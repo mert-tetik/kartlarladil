@@ -2,14 +2,14 @@
 
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { TIER_STYLES } from "@/data/tiers";
 import { cn } from "@/lib/utils";
-import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
+import { canUseSuperWater, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { buildLevelConfig, getHighestTierForLevel, getPointsForLevel, isGameLevelLocked } from "../game-levels";
 import { generateWordChallengeItems } from "../game-cards";
 import { useGameProgressStore } from "../game-progress-store";
@@ -23,9 +23,13 @@ import { GAME_BACKGROUND_SOURCES, GameShell } from "./game-shell";
 import { GameHeader } from "./game-header";
 import { GameStartSplash } from "./game-start-splash";
 import { GameResultScreen } from "./game-result-screen";
+import { GameUITransition } from "./game-ui-transition";
 import { GameButton } from "./game-button";
 
 type WordChallengePhase = "splash" | "playing" | "completed" | "failed";
+
+const CORRECT_ANSWER_SOUND_RATE_STEP = 0.1;
+const CORRECT_ANSWER_SOUND_MAX_RATE = 2.5;
 
 interface WordChallengeGameProps {
   initialLevel: number;
@@ -52,6 +56,7 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
   const [index, setIndex] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const correctAnswerStreakRef = useRef(0);
   const currentItem = items[index];
   const superWaterFont = canUseSuperWater(locale);
 
@@ -83,6 +88,7 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
     setIndex(0);
     setPhase("splash");
     setShowSplash(true);
+    correctAnswerStreakRef.current = 0;
     reset(config.seconds);
   }, [level, config.seconds, config.tiers, questionCount, selectedLanguage, startLevel, reset]);
 
@@ -101,10 +107,20 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
       if (phase !== "playing" || !currentItem) return;
 
       if (answer === currentItem.isTrue) {
-        sounds.correct();
+        correctAnswerStreakRef.current += 1;
+        const isFinalAnswer = index + 1 >= items.length;
+        if (isFinalAnswer) {
+          sounds.passed();
+        } else {
+          sounds.correct({
+            playbackRate: Math.min(
+              1 + (correctAnswerStreakRef.current - 1) * CORRECT_ANSWER_SOUND_RATE_STEP,
+              CORRECT_ANSWER_SOUND_MAX_RATE,
+            ),
+          });
+        }
         vibrate("word-challenge-correct");
-        if (index + 1 >= items.length) {
-          sounds.complete();
+        if (isFinalAnswer) {
           const points = getPointsForLevel(level);
           completeLevel("wordChallenge", level);
           addLocalPoints("wordChallenge", points);
@@ -123,6 +139,7 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
           setIndex((prev) => prev + 1);
         }
       } else {
+        correctAnswerStreakRef.current = 0;
         sounds.incorrect();
         vibrate("word-challenge-incorrect");
         setPhase("failed");
@@ -140,16 +157,19 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
     setIndex(0);
     setPhase("splash");
     setShowSplash(true);
+    correctAnswerStreakRef.current = 0;
     reset(config.seconds);
   }, [config.tiers, config.seconds, questionCount, selectedLanguage, reset]);
 
   const progressLabel = t("games.wordChallenge.progress", { current: index + 1, total: questionCount });
 
   return (
-    <GameShell backgroundSrc={GAME_BACKGROUND_SOURCES.wordChallenge}>
+    <GameShell
+      backgroundSrc={GAME_BACKGROUND_SOURCES.wordChallenge}
+      exitButtonVisible={phase !== "completed" && phase !== "failed"}
+    >
       <GameHeader
-        level={level}
-        tiers={[getHighestTierForLevel(level)]}
+        level={phase === "completed" ? level + 1 : level}
         remainingSeconds={remaining}
         progressLabel={progressLabel}
       />
@@ -164,51 +184,56 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
         />
       ) : null}
 
-      {phase === "completed" || phase === "failed" ? (
-        <GameResultScreen
-          game="wordChallenge"
-          level={level}
-          success={phase === "completed"}
-          points={phase === "completed" ? getPointsForLevel(level) : undefined}
-          onPrimary={phase === "completed" ? handleNextLevel : handleTryAgain}
-        />
-      ) : (
-        <div className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
-          {currentItem ? (
-            <>
-              <div
-                className={cn(
-                    "flex w-full max-w-sm flex-col items-center justify-center gap-4 rounded-2xl border border-white/80 bg-white p-6 text-center shadow-sm",
-                  )}
-                >
+      <GameUITransition
+        screenKey={
+          phase === "completed" || phase === "failed"
+            ? `result-${phase}`
+            : `question-${index}`
+        }
+        direction={phase === "failed" ? "backward" : "forward"}
+      >
+        {phase === "completed" || phase === "failed" ? (
+          <GameResultScreen
+            game="wordChallenge"
+            level={level}
+            success={phase === "completed"}
+            points={phase === "completed" ? getPointsForLevel(level) : undefined}
+            onPrimary={phase === "completed" ? handleNextLevel : handleTryAgain}
+          />
+        ) : (
+          <div className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
+            {currentItem ? (
+              <>
+                <div className="flex w-full max-w-sm flex-col items-center justify-center gap-4 rounded-2xl border border-white/80 bg-white p-6 text-center shadow-sm">
                   <span
                     className={cn(
-                    "rounded-lg px-3 py-1 text-4xl font-bold text-white shadow-sm",
-                    TIER_STYLES[currentItem.card.tier].accent,
-                  )}
-                >
-                  {currentItem.card.tier}
-                </span>
-                <span className={cn("text-sm font-semibold uppercase tracking-wider text-slate-600", superWaterFont && "font-super-water")}>
-                  {formatSuperWaterUppercaseText(locale, t("games.wordChallenge.question"))}
-                </span>
-                <p className="text-center text-2xl font-semibold leading-snug text-slate-950 sm:text-3xl">
-                  {`${currentItem.card.term} = ${currentItem.proposedMeaning}`}
-                </p>
-              </div>
+                      "rounded-lg px-3 py-1 text-4xl font-bold text-white shadow-sm",
+                      TIER_STYLES[currentItem.card.tier].accent,
+                    )}
+                  >
+                    {currentItem.card.tier}
+                  </span>
+                  <span className={cn("text-sm font-semibold uppercase tracking-wider text-slate-600", superWaterFont && "font-super-water")}>
+                    {formatSuperWaterUppercaseText(locale, t("games.wordChallenge.question"))}
+                  </span>
+                  <p className="text-center text-2xl font-semibold leading-snug text-slate-950 sm:text-3xl">
+                    {`${currentItem.card.term} = ${currentItem.proposedMeaning}`}
+                  </p>
+                </div>
 
-              <div className="grid w-full max-w-sm grid-cols-2 gap-3">
-                <GameButton variant="blue" size="lg" className="w-full" onClick={() => handleAnswer(true)}>
-                  {t("games.wordChallenge.correct")}
-                </GameButton>
-                <GameButton variant="red" size="lg" className="w-full" onClick={() => handleAnswer(false)}>
-                  {t("games.wordChallenge.wrong")}
-                </GameButton>
-              </div>
-            </>
-          ) : null}
-        </div>
-      )}
+                <div className="grid w-full max-w-sm grid-cols-2 gap-3">
+                  <GameButton variant="blue" size="lg" className="w-full" onClick={() => handleAnswer(true)}>
+                    {t("games.wordChallenge.correct")}
+                  </GameButton>
+                  <GameButton variant="red" size="lg" className="w-full" onClick={() => handleAnswer(false)}>
+                    {t("games.wordChallenge.wrong")}
+                  </GameButton>
+                </div>
+              </>
+            ) : null}
+          </div>
+        )}
+      </GameUITransition>
 
       <UpgradeDialog
         open={upgradeOpen}

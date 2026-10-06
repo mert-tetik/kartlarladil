@@ -18,9 +18,9 @@ const DAY_STREAK_CALENDAR_TRANSITION_DURATION = 560;
 const DAY_STREAK_VIDEO_FALLBACK_DURATION = 4500;
 const DAY_STREAK_UI_EARLY_REVEAL = 1500;
 const DAY_STREAK_IDLE_BACKGROUND_LEAD_TIME = 350;
-const DAY_STREAK_IDLE_BACKGROUND_SOURCE = "/day-streak/day-streak-idle-hq-v2-20260923.mp4";
+const DAY_STREAK_IDLE_BACKGROUND_SOURCE = "/day-streak/day-streak-idle-hq-v2-20260923.mp4?v=20261007-1";
 const DAY_STREAK_VIDEO_SOURCES: Record<ThemeMode, string> = {
-  dark: "/day-streak/day-streak-dark-v3.mp4",
+  dark: "/day-streak/day-streak-dark-v3.mp4?v=20261007-1",
 };
 const DAY_STREAK_POSTER_SOURCES: Record<ThemeMode, string> = {
   dark: "/day-streak/day-streak-dark-v2-poster.webp",

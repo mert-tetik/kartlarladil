@@ -7,9 +7,11 @@ export type SoundEffectName =
   | "learned"
   | "confetti"
   | "quiz-complete"
+  | "mission-passed"
   | "quiz-medals-complete"
   | "quiz-completion-progress-pop"
   | "quiz-select"
+  | "word-select"
   | "streak-video-whoosh"
   | "streak-count-reveal"
   | "rank-highlight"
@@ -47,6 +49,7 @@ const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   learned: "/sounds/learned-elevenlabs-v1.mp3",
   confetti: "/sounds/confetti-elevenlabs-v1.mp3",
   "quiz-complete": "/sounds/quiz-complete-elevenlabs-v1.mp3",
+  "mission-passed": "/sounds/mission-passed.mp3",
   "quiz-completion-progress-pop": "/sounds/quiz-completion-progress-pop.mp3",
   "quiz-select": "/sounds/quiz-select-elevenlabs-v1.mp3",
   // Source: user-provided Downloads/1002.mp3, packaged as an MP4 audio track.
@@ -67,6 +70,7 @@ const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   "result-medal-collect": "/sounds/medal-collect-koiroylers-v1.mp3",
 };
 const SOUND_EFFECT_VOLUMES: Partial<Record<SoundEffectName, number>> = {
+  "mission-passed": 0.6,
   "streak-video-whoosh": 0.8,
 };
 
@@ -93,7 +97,7 @@ function getAudioContext(): AudioContext | null {
   return audioContext;
 }
 
-function playSynthesizedEffect(effect: SoundEffectName) {
+function playSynthesizedEffect(effect: SoundEffectName, playbackRate = 1) {
   const context = getAudioContext();
 
   if (!context) {
@@ -106,7 +110,7 @@ function playSynthesizedEffect(effect: SoundEffectName) {
     }
 
     const synthesizer = EFFECT_SYNTHESIZERS[effect];
-    synthesizer(context, context.currentTime);
+    synthesizer(context, context.currentTime, playbackRate);
   } catch {
     // Audio feedback should never block quiz or navigation interactions.
   }
@@ -249,11 +253,27 @@ const SCALE = {
   G6: 1567.98,
 };
 
-function correct(context: AudioContext, now: number) {
+function correct(context: AudioContext, now: number, playbackRate = 1) {
   // Bright, satisfying major-third chime.
-  playTone(context, { frequency: SCALE.C5, startTime: now, duration: 0.14, gain: 0.12 });
-  playTone(context, { frequency: SCALE.E5, startTime: now + 0.04, duration: 0.2, gain: 0.1 });
-  playTone(context, { frequency: SCALE.G5, startTime: now + 0.08, duration: 0.24, gain: 0.08 });
+  const rate = Math.max(0.5, Math.min(playbackRate, 2.5));
+  playTone(context, {
+    frequency: SCALE.C5 * rate,
+    startTime: now,
+    duration: 0.14 / rate,
+    gain: 0.12,
+  });
+  playTone(context, {
+    frequency: SCALE.E5 * rate,
+    startTime: now + 0.04 / rate,
+    duration: 0.2 / rate,
+    gain: 0.1,
+  });
+  playTone(context, {
+    frequency: SCALE.G5 * rate,
+    startTime: now + 0.08 / rate,
+    duration: 0.24 / rate,
+    gain: 0.08,
+  });
 }
 
 function incorrect(context: AudioContext, now: number) {
@@ -345,6 +365,11 @@ function quizComplete(context: AudioContext, now: number) {
   });
 }
 
+function missionPassed(context: AudioContext, now: number) {
+  // Fallback celebration when the packaged mission-passed file cannot play.
+  quizComplete(context, now);
+}
+
 function quizMedalsComplete(context: AudioContext, now: number) {
   // Short, bright confirmation jingle after the earned medals finish revealing.
   const notes = [SCALE.G5, SCALE.C6, SCALE.E6, SCALE.G6];
@@ -389,6 +414,26 @@ function quizSelect(context: AudioContext, now: number) {
     startTime: now + 0.04,
     duration: 0.34,
     gain: 0.05,
+    type: "sine",
+  });
+}
+
+function wordSelect(context: AudioContext, now: number) {
+  // A short, self-contained tap with a tiny bright lift for word selection.
+  playTone(context, {
+    frequency: 240,
+    endFrequency: 170,
+    startTime: now,
+    duration: 0.055,
+    gain: 0.065,
+    type: "triangle",
+  });
+  playTone(context, {
+    frequency: SCALE.C5,
+    endFrequency: SCALE.E5,
+    startTime: now + 0.008,
+    duration: 0.085,
+    gain: 0.035,
     type: "sine",
   });
 }
@@ -670,7 +715,7 @@ function resultMedalCollect(context: AudioContext, now: number) {
   });
 }
 
-const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: number) => void> = {
+const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: number, playbackRate?: number) => void> = {
   correct,
   incorrect,
   "rank-up-opening": rankUpOpening,
@@ -679,9 +724,11 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   learned,
   confetti,
   "quiz-complete": quizComplete,
+  "mission-passed": missionPassed,
   "quiz-medals-complete": quizMedalsComplete,
   "quiz-completion-progress-pop": quizCompletionProgressPop,
   "quiz-select": quizSelect,
+  "word-select": wordSelect,
   "streak-video-whoosh": streakVideoWhoosh,
   "streak-count-reveal": streakCountReveal,
   "rank-highlight": rankHighlight,
@@ -711,7 +758,7 @@ export function playSoundEffect(effect: SoundEffectName, options?: { playbackRat
     return;
   }
 
-  playSynthesizedEffect(effect);
+  playSynthesizedEffect(effect, options?.playbackRate);
 }
 
 // Kept for tests and any future introspection.

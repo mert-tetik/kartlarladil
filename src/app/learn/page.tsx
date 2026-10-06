@@ -89,6 +89,11 @@ function parseBonusTest(value: string | string[] | undefined): boolean {
   return rawValue === "1" || rawValue === "true";
 }
 
+function parseBonusRewardTest(value: string | string[] | undefined): boolean {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return rawValue === "1" || rawValue === "true";
+}
+
 function parseBonusAfterEach(value: string | string[] | undefined): boolean {
   const rawValue = Array.isArray(value) ? value[0] : value;
   return rawValue === "1" || rawValue === "true";
@@ -159,6 +164,7 @@ export default async function LearnPage({
       params["quiz-continuation-test"],
   );
   const bonusTest = parseBonusTest(params["bonus-test"]);
+  const bonusRewardTest = parseBonusRewardTest(params["bonus-reward-test"]);
   const bonusAfterEach = parseBonusAfterEach(params["bonus-after-each"]);
   const normalTestValue = params["normal-test"] ?? params["quiz-normal-test"];
   const normalQuestionType = parseNormalQuestionType(
@@ -194,6 +200,7 @@ export default async function LearnPage({
         chestRewardTest={chestRewardTest}
         continuationMotivationTest={continuationMotivationTest}
         bonusTest={bonusTest}
+        bonusRewardTest={bonusRewardTest}
         bonusAfterEach={bonusAfterEach}
         normalTest={normalTest}
         normalQuestionType={normalQuestionType}

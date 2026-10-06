@@ -52,13 +52,15 @@ export function ChestCelebrationView({
   const [summaryExiting, setSummaryExiting] = useState(false);
   const [closing, setClosing] = useState(false);
   const [videoSource, setVideoSource] = useState(
-    "/quiz/result_message_video.mp4?v=20261005-2",
+    "/quiz/result_message_video.mp4?v=20261007-1",
   );
   const [videoUnavailable, setVideoUnavailable] = useState(false);
   const [messageKey] = useState(() =>
     CELEBRATION_MESSAGE_KEYS[Math.floor(Math.random() * CELEBRATION_MESSAGE_KEYS.length)],
   );
   const completeRef = useRef(onComplete);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoFinishedRef = useRef(false);
   const messageShownRef = useRef(false);
   const earlyMessageTimerRef = useRef<number | null>(null);
@@ -145,6 +147,7 @@ export function ChestCelebrationView({
   const finishVideo = () => {
     if (videoFinishedRef.current) return;
     videoFinishedRef.current = true;
+    audioRef.current?.pause();
     if (earlyMessageTimerRef.current !== null) {
       window.clearTimeout(earlyMessageTimerRef.current);
     }
@@ -153,6 +156,32 @@ export function ChestCelebrationView({
       messageTimerRef.current = null;
       showSummary();
     }, CELEBRATION_MESSAGE_DELAY_MS);
+  };
+
+  const startSynchronizedAudio = () => {
+    const video = videoRef.current;
+    const audio = audioRef.current;
+    if (!video || !audio) return;
+
+    try {
+      audio.currentTime = video.currentTime;
+    } catch {
+      // Seeking the separate audio track is best effort on older WebViews.
+    }
+    audio.volume = 1;
+    void audio.play().catch(() => undefined);
+  };
+
+  const syncSynchronizedAudio = (event: SyntheticEvent<HTMLVideoElement>) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (Math.abs(audio.currentTime - event.currentTarget.currentTime) > 0.18) {
+      try {
+        audio.currentTime = event.currentTarget.currentTime;
+      } catch {
+        // Keep the video usable if a WebView rejects a seek during startup.
+      }
+    }
   };
 
   const handleVideoLoadedMetadata = (event: SyntheticEvent<HTMLVideoElement>) => {
@@ -209,6 +238,7 @@ export function ChestCelebrationView({
       if (completeTimerRef.current !== null) {
         window.clearTimeout(completeTimerRef.current);
       }
+      audioRef.current?.pause();
     };
   }, []);
 
@@ -230,6 +260,7 @@ export function ChestCelebrationView({
         data-chest-celebration-background
       >
         {!videoUnavailable ? <video
+          ref={videoRef}
           className={cn(
             "absolute inset-0 h-full w-full object-cover transition-opacity duration-[850ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
             viewVisible ? "opacity-100" : "opacity-0",
@@ -237,13 +268,22 @@ export function ChestCelebrationView({
           key={videoSource}
           src={videoSource}
           autoPlay
+          muted
+          playsInline
           onEnded={finishVideo}
+          onPlay={startSynchronizedAudio}
           onError={handleVideoError}
           onLoadedMetadata={handleVideoLoadedMetadata}
-          playsInline
+          onTimeUpdate={syncSynchronizedAudio}
           preload="auto"
           data-chest-celebration-video
         /> : null}
+        <audio
+          ref={audioRef}
+          src="/quiz/result-message-video-audio.m4a?v=20261007-1"
+          preload="auto"
+          aria-hidden="true"
+        />
       </div>
       <div
         className={cn(

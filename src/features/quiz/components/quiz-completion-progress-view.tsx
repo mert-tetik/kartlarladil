@@ -6,6 +6,7 @@ import { useLocale } from "@/i18n/locale-provider";
 import { formatSuperWaterText } from "@/lib/super-water";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { cn } from "@/lib/utils";
+import { createCompletionParticles } from "@/lib/quiz-completion-particles";
 
 interface QuizCompletionProgressViewProps {
   enterWithCss?: boolean;
@@ -18,39 +19,6 @@ const QUIZ_COMPLETION_PARTICLE_DURATION_MS = 480;
 const QUIZ_COMPLETION_LABEL_ENTER_DURATION_MS = 520;
 const QUIZ_COMPLETION_LABEL_HOLD_MS = 1_000;
 const QUIZ_COMPLETION_EXIT_DURATION_MS = 420;
-const QUIZ_COMPLETION_PARTICLE_COUNT = 22;
-
-type CompletionParticle = {
-  startX: number;
-  startY: number;
-  y: number;
-  x: number;
-  rotation: number;
-  size: number;
-  duration: number;
-  delay: number;
-  color: string;
-};
-
-function createCompletionParticles(): CompletionParticle[] {
-  return Array.from({ length: QUIZ_COMPLETION_PARTICLE_COUNT }, () => {
-    const angle = Math.random() * Math.PI * 2;
-    const distance = 52 + Math.random() * 92;
-
-    return {
-      startX: 5 + Math.round(Math.random() * 90),
-      startY: 16 + Math.round(Math.random() * 68),
-      x: Math.round(Math.cos(angle) * distance),
-      y: Math.round(Math.sin(angle) * distance),
-      rotation: Math.round((Math.random() - 0.5) * 300),
-      size: 7 + Math.round(Math.random() * 7),
-      duration: 300 + Math.round(Math.random() * 100),
-      delay: Math.round(Math.random() * 45),
-      color: "#facc15",
-    };
-  });
-}
-
 export function QuizCompletionProgressView({
   enterWithCss = false,
   onComplete,

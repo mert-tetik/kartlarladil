@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+/* eslint-disable react-hooks/set-state-in-effect */
+
+import { useEffect, useRef, useState } from "react";
 import Image, { type StaticImageData } from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import hafizaIcon from "@/assets/games/hafiza_oyunu.png";
@@ -9,10 +11,9 @@ import wordMatchIcon from "@/assets/games/kelime_eslestirme.png";
 import { MobileLanguageBottomSheet } from "@/app/components/mobile-language-bottom-sheet";
 import { readLandingCardLanguage } from "@/app/components/landing-card-language";
 import { LanguageFlag } from "@/components/language-flag";
-import { ScoreIcon } from "@/components/score-icon";
 import { LANGUAGES } from "@/data/languages";
 import { useLocale, useT } from "@/i18n/locale-provider";
-import { formatNumber, getLanguageDisplayName } from "@/i18n/labels";
+import { getLanguageDisplayName } from "@/i18n/labels";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { vibrate } from "@/lib/vibration";
 import { cn } from "@/lib/utils";
@@ -26,7 +27,6 @@ import {
   MISSION_GAME_QUERY_KEY,
   parseMissionGame,
 } from "@/features/missions/mission-navigation";
-import { useProgressStats } from "@/features/progress/progress-client";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 
 interface GameEntry {
@@ -163,7 +163,6 @@ export function GamesList() {
   const t = useT();
   const { locale } = useLocale();
   const searchParams = useSearchParams();
-  const { stats } = useProgressStats();
   const getProgress = useGameProgressStore((state) => state.getProgress);
   const selectedLanguage = useGameProgressStore((state) => state.selectedLanguage);
   const setSelectedLanguage = useGameProgressStore((state) => state.setSelectedLanguage);
@@ -200,8 +199,8 @@ export function GamesList() {
   }, [locale, setSelectedLanguage]);
 
   useEffect(() => {
-    // Keep the existing game launch cover, but warm the destination route
-    // before the user taps Play.
+    // Warm only the currently selected route first. Compiling all game routes
+    // together makes the dev server compete for the same large card catalog.
     router.prefetch(selectedGame.href);
   }, [router, selectedGame.href]);
 
@@ -242,6 +241,8 @@ export function GamesList() {
         game: missionGame,
         href: selectedGame.href,
         color: GAME_LAUNCH_COLORS[missionGame],
+        level: incomingProgress.currentLevel,
+        tier: incomingTier,
         origin: {
           x: rect.left + rect.width / 2,
           y: rect.top + rect.height / 2,
@@ -250,7 +251,7 @@ export function GamesList() {
     });
 
     return () => window.cancelAnimationFrame(frameId);
-  }, [missionAutoStart, missionGame, selectedGame.href, selectedGameName]);
+  }, [incomingProgress.currentLevel, incomingTier, missionAutoStart, missionGame, selectedGame.href, selectedGameName]);
 
   function handleSelect(language: LanguageCode) {
     setLanguageSheetOpen(false);
@@ -278,13 +279,18 @@ export function GamesList() {
     }, GAME_CONTENT_TRANSITION_DURATION_MS);
   }
 
-  function handleGameLaunch(event: MouseEvent<HTMLButtonElement>, game: GameEntry) {
+  function handleGameLaunch(game: GameEntry, launchButton: HTMLButtonElement) {
     vibrate("tap");
-    const rect = event.currentTarget.getBoundingClientRect();
+    router.prefetch(game.href);
+    const rect = launchButton.getBoundingClientRect();
+    const progress = getProgress(game.name);
+
     requestGameLaunch({
       game: game.name,
       href: game.href,
       color: GAME_LAUNCH_COLORS[game.name],
+      level: progress.currentLevel,
+      tier: getHighestTierForLevel(progress.currentLevel),
       origin: {
         x: rect.left + rect.width / 2,
         y: rect.top + rect.height / 2,
@@ -380,7 +386,10 @@ export function GamesList() {
             <button
               type="button"
               data-game-launch={selectedGame.name}
-              onClick={(event) => handleGameLaunch(event, selectedGame)}
+              onClick={(event) => handleGameLaunch(selectedGame, event.currentTarget)}
+              onPointerEnter={() => router.prefetch(selectedGame.href)}
+              onFocus={() => router.prefetch(selectedGame.href)}
+              onPointerDown={() => router.prefetch(selectedGame.href)}
               className="relative isolate inline-flex h-16 w-44 shrink-0 items-center justify-center overflow-hidden rounded-full border border-transparent px-3 text-center transition-transform duration-300 hover:scale-[1.02] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-52"
             >
               <span
@@ -401,16 +410,6 @@ export function GamesList() {
               </span>
             </button>
 
-            <div
-              className="flex shrink-0 items-center gap-1.5 text-[1.45rem] font-bold leading-none text-white"
-              aria-label={`${formatNumber(locale, stats.totalPoints)} ${t("home.mobile.pointsLabel")}`}
-              data-games-points
-            >
-              <span className={cn("text-[var(--score-start)]", superWaterFont && "font-super-water")}>
-                {formatNumber(locale, stats.totalPoints)}
-              </span>
-              <ScoreIcon size={28} className="h-7 w-auto drop-shadow-[0_6px_16px_rgba(0,0,0,0.22)]" />
-            </div>
           </div>
 
           <div className="mt-16 grid w-full max-w-md grid-cols-3 items-end gap-3">

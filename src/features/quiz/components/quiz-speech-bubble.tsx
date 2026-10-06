@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Volume2 } from "lucide-react";
-import { useEffect, useRef, type SyntheticEvent } from "react";
+import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 import { useT } from "@/i18n/locale-provider";
 import {
   getAiPracticeCharacters,
@@ -37,6 +37,7 @@ export function QuizSpeechBubble({
   characterVideoSrc,
   characterClassName,
   bubbleClassName,
+  disableEntryOffset = false,
   className,
 }: {
   character: AiPracticeCharacter;
@@ -56,17 +57,25 @@ export function QuizSpeechBubble({
   characterVideoSrc?: string;
   characterClassName?: string;
   bubbleClassName?: string;
+  disableEntryOffset?: boolean;
   className?: string;
 }) {
   const t = useT();
   const characterName = getCharacterName(character, language);
   const voiceProfile = getCharacterVoiceProfile(character);
+  const hasCharacterVideo = Boolean(characterVideoSrc && showCharacter);
+  const [characterVideoReady, setCharacterVideoReady] = useState(!hasCharacterVideo);
   const arrowClassName = arrowPosition === "bottom"
     ? "before:left-1/2 before:top-auto before:bottom-[-0.55rem] before:-translate-x-1/2 before:rotate-45 before:border-b-[3px] before:border-r-[3px] before:border-l-0 before:border-t-0"
     : "before:left-[-0.55rem] before:top-1/2 before:-translate-y-1/2 before:rotate-45 before:border-b-[3px] before:border-l-[3px]";
 
   return (
-    <div className={cn("relative -translate-y-5 mx-auto flex w-full max-w-xl items-center gap-2 border-b border-[#AAAAAA] px-1 sm:-translate-y-6 sm:gap-3", className)}>
+    <div className={cn(
+      "relative mx-auto flex w-full max-w-xl items-center gap-2 border-b border-[#AAAAAA] px-1 transition-opacity duration-150 sm:gap-3",
+      !disableEntryOffset && "-translate-y-5 sm:-translate-y-6",
+      hasCharacterVideo && (characterVideoReady ? "opacity-100" : "pointer-events-none opacity-0"),
+      className,
+    )}>
       {showCharacter ? (
         <div
           className={cn(
@@ -76,7 +85,13 @@ export function QuizSpeechBubble({
           )}
         >
           {characterVideoSrc ? (
-            <QuizSpeechCharacterVideo src={characterVideoSrc} label={characterName} />
+            <QuizSpeechCharacterVideo
+              key={characterVideoSrc}
+              src={characterVideoSrc}
+              label={characterName}
+              onReady={() => setCharacterVideoReady(true)}
+              onError={() => setCharacterVideoReady(false)}
+            />
           ) : (
             <Image
               src={character.imageSrc}
@@ -145,8 +160,19 @@ export function QuizSpeechBubble({
 
 const CHARACTER_VIDEO_REPLAY_DELAY_MS = 4000;
 
-function QuizSpeechCharacterVideo({ src, label }: { src: string; label: string }) {
+function QuizSpeechCharacterVideo({
+  src,
+  label,
+  onReady,
+  onError,
+}: {
+  src: string;
+  label: string;
+  onReady: () => void;
+  onError: () => void;
+}) {
   const replayTimerRef = useRef<number | null>(null);
+  const [videoState, setVideoState] = useState<"pending" | "ready" | "unavailable">("pending");
 
   useEffect(() => {
     return () => {
@@ -155,6 +181,21 @@ function QuizSpeechCharacterVideo({ src, label }: { src: string; label: string }
       }
     };
   }, []);
+
+  function handleVideoReady() {
+    setVideoState("ready");
+    onReady();
+  }
+
+  function handleVideoError() {
+    if (replayTimerRef.current !== null) {
+      window.clearTimeout(replayTimerRef.current);
+      replayTimerRef.current = null;
+    }
+
+    setVideoState("unavailable");
+    onError();
+  }
 
   function handleEnded(event: SyntheticEvent<HTMLVideoElement>) {
     const video = event.currentTarget;
@@ -165,6 +206,8 @@ function QuizSpeechCharacterVideo({ src, label }: { src: string; label: string }
     }, CHARACTER_VIDEO_REPLAY_DELAY_MS);
   }
 
+  if (videoState === "unavailable") return null;
+
   return (
     <video
       src={src}
@@ -173,8 +216,14 @@ function QuizSpeechCharacterVideo({ src, label }: { src: string; label: string }
       muted
       playsInline
       preload="auto"
+      onCanPlay={handleVideoReady}
+      onLoadedData={handleVideoReady}
+      onError={handleVideoError}
       onEnded={handleEnded}
-      className="absolute inset-0 size-full object-contain object-bottom"
+      className={cn(
+        "absolute inset-0 size-full object-contain object-bottom transition-opacity duration-150",
+        videoState === "ready" ? "visible opacity-100" : "invisible opacity-0",
+      )}
       data-quiz-speech-character-video
     />
   );

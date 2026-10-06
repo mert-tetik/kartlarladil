@@ -5,7 +5,7 @@ export default function GamesPage() {
   return (
     <div
       data-games-active
-      className="relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] flex-col overflow-hidden bg-[#090909] lg:h-[calc(100dvh-var(--app-header-height))]"
+      className="relative flex h-[calc(100dvh-var(--mobile-nav-bar-height))] flex-col overflow-hidden bg-[#090909] lg:h-dvh"
     >
       <div
         aria-hidden="true"

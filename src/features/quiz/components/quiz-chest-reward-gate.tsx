@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
@@ -61,6 +61,7 @@ const { locale } = useLocale();
   const [chestOpeningMotion, setChestOpeningMotion] = useState<ChestOpeningMotion | null>(null);
   const [missedClosing, setMissedClosing] = useState(false);
   const chestMotionRef = useRef<HTMLDivElement | null>(null);
+  const openingVideoRef = useRef<HTMLVideoElement | null>(null);
   const openingFrameRef = useRef<number | null>(null);
   const openingReadyTimeoutRef = useRef<number | null>(null);
   const missedCloseTimeoutRef = useRef<number | null>(null);
@@ -79,6 +80,10 @@ const { locale } = useLocale();
     };
   }, []);
 
+  const handleOpeningVideoReady = useCallback((video: HTMLVideoElement | null) => {
+    openingVideoRef.current = video;
+  }, []);
+
   const handleOpen = () => {
     if (!tier || opening) return;
 
@@ -93,6 +98,19 @@ const { locale } = useLocale();
         deltaY: window.innerHeight / 2 - (chestRect.top + chestRect.height / 2),
         moving: false,
       });
+    }
+
+    const video = openingVideoRef.current;
+    if (video) {
+      video.muted = false;
+      video.volume = 1;
+      const playResult = video.play();
+      if (typeof playResult?.catch === "function") {
+        void playResult.catch(() => {
+          video.muted = true;
+          void video.play().catch(() => undefined);
+        });
+      }
     }
 
     setOpening(true);
@@ -313,10 +331,6 @@ const { locale } = useLocale();
     </div>
   );
 
-  if (!opening) {
-    return rewardGate;
-  }
-
   return (
     <div className="relative h-full min-h-full w-full overflow-hidden bg-[var(--background)]">
       <div
@@ -330,7 +344,9 @@ const { locale } = useLocale();
       <div
         className={cn(
           "absolute inset-0 z-10 overflow-hidden",
-          openingVisible
+          !opening
+            ? "pointer-events-none opacity-0"
+            : openingVisible
             ? cn(
                 "quiz-chest-opening-overlay-enter",
                 openingFullyVisible ? "pointer-events-auto" : "pointer-events-none",
@@ -343,7 +359,9 @@ const { locale } = useLocale();
           totalPoints={totalPoints}
           enterWithCss={false}
           onComplete={onComplete}
-          onRewardReady={onRewardReady}
+          autoPlay={false}
+          onVideoReady={handleOpeningVideoReady}
+          onRewardReady={opening ? onRewardReady : undefined}
         />
       </div>
     </div>

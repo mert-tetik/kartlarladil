@@ -27,9 +27,9 @@ interface QuizStreakRewardViewProps {
 }
 
 const STREAK_REWARD_INTRO_VIDEO_SOURCE =
-  "/quiz/streak-reward-background-20260921-intro.mp4?v=20261005-1";
+  "/quiz/streak-reward-background-20260921-intro.mp4?v=20261007-1";
 const STREAK_REWARD_CONTINUATION_VIDEO_SOURCE =
-  "/quiz/streak-reward-background-20260921-continuation.mp4?v=20261006-1";
+  "/quiz/streak-reward-background-20260921-continuation.mp4?v=20261007-1";
 const VIDEO_AUDIO_FADE_IN_DURATION_MS = 500;
 const VIDEO_AUDIO_FADE_OUT_DURATION_MS = 2000;
 const VIDEO_AUDIO_MAX_VOLUME = 0.75;
@@ -54,6 +54,7 @@ export function QuizStreakRewardView({
   const rewardRef = useRef<HTMLDivElement>(null);
   const scoreRef = useRef<HTMLSpanElement>(null);
   const introVideoRef = useRef<HTMLVideoElement>(null);
+  const introAudioRef = useRef<HTMLAudioElement>(null);
   const continuationVideoRef = useRef<HTMLVideoElement>(null);
   const activeVideoRef = useRef<HTMLVideoElement | null>(null);
   const completedRef = useRef(false);
@@ -71,6 +72,7 @@ export function QuizStreakRewardView({
   const audioFadeInStartedRef = useRef(false);
   const audioFadeOutStartedRef = useRef(false);
   const videoPlaybackStartedRef = useRef(false);
+  const introAudioStartedRef = useRef(false);
   const [displayPoints, setDisplayPoints] = useState(totalPoints);
   const [scorePulse, setScorePulse] = useState(0);
   const [gemRewards, setGemRewards] = useState<GemRewards>([]);
@@ -99,6 +101,8 @@ export function QuizStreakRewardView({
   }, [onComplete]);
 
   useEffect(() => {
+    // This state gates the document.body portal and intentionally runs once on the client.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -106,6 +110,8 @@ export function QuizStreakRewardView({
     if (testMode) {
       gemFinalBalancesRef.current = testGemBalances;
       prepareGemRewardDisplay(testGemBalances, testGemRewards);
+      // Test rewards are synchronized into the local display when the test inputs change.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setGemRewards(testGemRewards);
       return;
     }
@@ -285,6 +291,15 @@ export function QuizStreakRewardView({
     activeVideoRef.current = video;
     videoPlaybackStartedRef.current = true;
     startVideoAudioFadeIn(video);
+    if (!introAudioStartedRef.current && introAudioRef.current) {
+      introAudioStartedRef.current = true;
+      try {
+        introAudioRef.current.currentTime = video.currentTime;
+      } catch {
+        // Audio/video synchronization is best effort on older WebViews.
+      }
+      void introAudioRef.current.play().catch(() => undefined);
+    }
   }, [startVideoAudioFadeIn]);
 
   const handleContinuationVideoPlay = useCallback(() => {
@@ -375,6 +390,7 @@ export function QuizStreakRewardView({
       if (hardCompletionTimeoutRef.current !== null) {
         window.clearTimeout(hardCompletionTimeoutRef.current);
       }
+      introAudioRef.current?.pause();
     };
   }, []);
 
@@ -407,6 +423,7 @@ export function QuizStreakRewardView({
           key={introVideoSource}
           src={introVideoSource}
           autoPlay
+          muted
           playsInline
           preload="auto"
           onPlay={handleIntroVideoPlay}
@@ -415,6 +432,12 @@ export function QuizStreakRewardView({
           aria-hidden="true"
         />
       ) : null}
+      <audio
+        ref={introAudioRef}
+        src="/quiz/streak-reward-intro-audio.m4a?v=20261007-1"
+        preload="auto"
+        aria-hidden="true"
+      />
       {!continuationVideoUnavailable ? (
         <video
           ref={continuationVideoRef}

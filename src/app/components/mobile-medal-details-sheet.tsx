@@ -3,7 +3,7 @@
 import { createPortal } from "react-dom";
 import { useEffect, useState, type ReactNode } from "react";
 import Image from "next/image";
-import { X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { formatNumber } from "@/i18n/labels";
@@ -19,10 +19,16 @@ export function MobileMedalDetailsSheet({
   open,
   onClose,
   sourceRect = null,
+  medalPosition = null,
+  medalPositionLoading = false,
+  onOpenLeaderboard,
 }: {
   open: boolean;
   onClose: () => void;
   sourceRect?: DOMRect | null;
+  medalPosition?: number | null;
+  medalPositionLoading?: boolean;
+  onOpenLeaderboard?: () => void;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -78,7 +84,12 @@ export function MobileMedalDetailsSheet({
   const name = formatSuperWaterText(locale, t("medals.name"));
   const description = formatSuperWaterText(locale, t("medals.description"));
   const medals = user?.profile.quizResultMedals ?? 0;
-  const contentItemCount = 3;
+  const medalStanding = medalPosition === null
+    ? t("leaderboard.positionLoading")
+    : t("leaderboard.yourStanding", {
+        position: formatNumber(locale, medalPosition),
+      });
+  const contentItemCount = onOpenLeaderboard ? 5 : 4;
 
   function renderContentItem(index: number, children: ReactNode, className?: string) {
     return (
@@ -137,11 +148,41 @@ export function MobileMedalDetailsSheet({
           )}
           {renderContentItem(
             2,
+            <p className={cn("mt-4 w-full text-base font-semibold text-amber-300", useSuperWater && "font-super-water")}>
+              {medalPositionLoading ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                  {formatSuperWaterText(locale, medalStanding)}
+                </span>
+              ) : (
+                formatSuperWaterText(locale, medalStanding)
+              )}
+            </p>,
+            "w-full",
+          )}
+          {renderContentItem(
+            3,
             <p className={cn("mx-auto mt-4 w-full max-w-[18rem] text-sm leading-6 text-white", useSuperWater && "font-super-water")}>
               {description}
             </p>,
             "w-full",
           )}
+          {onOpenLeaderboard
+            ? renderContentItem(
+                4,
+                <button
+                  type="button"
+                  onClick={onOpenLeaderboard}
+                  className={cn(
+                    "mt-6 inline-flex min-h-14 w-full items-center justify-center rounded-full bg-brand px-5 py-3 text-base font-bold text-brand-foreground transition-transform active:translate-y-1",
+                    useSuperWater && "font-super-water",
+                  )}
+                >
+                  {formatSuperWaterText(locale, t("leaderboard.open"))}
+                </button>,
+                "w-full",
+              )
+            : null}
           <button
             type="button"
             onClick={onClose}

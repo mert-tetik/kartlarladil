@@ -243,7 +243,7 @@ export function QuizStreakCelebrationView({
       <video
         ref={videoRef}
         className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-        src="/quiz/streak-animation.mp4"
+        src="/quiz/streak-animation.mp4?v=20261007-1"
         muted
         playsInline
         preload="auto"

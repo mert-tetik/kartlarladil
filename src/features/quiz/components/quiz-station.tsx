@@ -796,6 +796,19 @@ export function QuizStation({
     snapshot.querySelectorAll<HTMLElement>(".quiz-flow-enter-right, .quiz-flow-exit-left").forEach((element) => {
       element.classList.remove("quiz-flow-enter-right", "quiz-flow-exit-left");
     });
+    if (isCountSelectionSnapshot) {
+      snapshot.querySelectorAll<HTMLElement>(
+        ".animate-quiz-word-button-correct, .animate-quiz-word-button-correct-shine, .animate-quiz-word-button-select, .animate-bonus-incorrect-shake",
+      ).forEach((element) => {
+        element.classList.remove(
+          "animate-quiz-word-button-correct",
+          "animate-quiz-word-button-correct-shine",
+          "animate-quiz-word-button-select",
+          "animate-bonus-incorrect-shake",
+        );
+        element.style.transform = "none";
+      });
+    }
     snapshot.classList.add("quiz-transition-fallback-old");
     document.body.appendChild(snapshot);
     return { snapshot, source };
@@ -2226,6 +2239,13 @@ export function QuizStation({
           (option) => option.card.id === item.question.correctOptionId,
         )?.card.term ?? ""
       : item.question.correctAnswer;
+    const answerFeedbackPlayedOnPress = answer.trim().length > 0 && [
+      "choice",
+      "group",
+      "listening",
+      "definition",
+      "true-false",
+    ].includes(item.questionType);
 
     if (item.willLearn && isCorrect) {
       const learnedLimit = PLAN_LIMITS[effectivePlan].learnedCards;
@@ -2244,8 +2264,10 @@ export function QuizStation({
             bonusIncorrect: results.bonusIncorrect,
           };
 
-          playSoundEffect("correct");
-          vibrate("correct");
+          if (!answerFeedbackPlayedOnPress) {
+            playSoundEffect("correct");
+            vibrate("correct");
+          }
           setResults(nextResults);
           setLimitError("free_learned_card_limit");
           queueAutoAdvance(nextResults);
@@ -2268,8 +2290,10 @@ export function QuizStation({
 
         const showCardProgress = startCardProgressFeedback(item, isCorrect);
 
-        playSoundEffect(isCorrect ? "correct" : "incorrect");
-        vibrate(isCorrect ? "correct" : "incorrect");
+        if (!answerFeedbackPlayedOnPress) {
+          playSoundEffect(isCorrect ? "correct" : "incorrect");
+          vibrate(isCorrect ? "correct" : "incorrect");
+        }
 
         setResults((current) => ({
           correct: isCorrect
@@ -4581,6 +4605,7 @@ export function GroupQuestion({
               key={`${option.card.id}-${feedback ?? "idle"}`}
               type="button"
               data-quiz-group-option={option.card.id}
+              onPressStart={() => playSoundEffect(isCorrectOption ? "correct" : "incorrect")}
               onClick={() => onAnswer(optionAnswer, isCorrectOption)}
               disabled={showingAnswer}
               wordType={showingAnswer ? "inactive" : isCorrectOption ? "correct" : "incorrect"}
@@ -4684,6 +4709,7 @@ export function ListeningQuestion({
               key={`${option}-${feedback ?? "idle"}`}
               type="button"
               data-quiz-listening-option={option}
+              onPressStart={() => playSoundEffect(isCorrectOption ? "correct" : "incorrect")}
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer}
               wordType={showingAnswer ? "inactive" : isCorrectOption ? "correct" : "incorrect"}
@@ -4786,6 +4812,7 @@ export function ChoiceQuestion({
               key={`${option}-${feedback ?? "idle"}`}
               type="button"
               data-quiz-option={option}
+              onPressStart={() => playSoundEffect(isCorrectOption ? "correct" : "incorrect")}
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer}
               wordType={showingAnswer ? "inactive" : isCorrectOption ? "correct" : "incorrect"}
@@ -4900,6 +4927,7 @@ export function DefinitionQuestion({
               key={`${option}-${feedback ?? "idle"}`}
               type="button"
               data-quiz-definition-option={option}
+              onPressStart={() => playSoundEffect(isCorrectOption ? "correct" : "incorrect")}
               onClick={() => onAnswer(option, isCorrectOption)}
               disabled={showingAnswer}
               wordType={showingAnswer ? "inactive" : isCorrectOption ? "correct" : "incorrect"}
@@ -5031,7 +5059,7 @@ export function SentenceCompletionQuestion({
             >
               {isValidatingOption ? (
                 <Loader2
-                  className="size-5 animate-spin"
+                  className="mx-auto size-5 animate-spin"
                   data-quiz-sentence-option-loading
                   aria-label={t("quiz.aiValidating")}
                 />
@@ -5158,6 +5186,7 @@ export function TrueFalseQuestion({
             key={`${option.value}-${feedback ?? "idle"}`}
             type="button"
             data-quiz-true-false-option={option.value}
+            onPressStart={() => playSoundEffect(option.isCorrect ? "correct" : "incorrect")}
             onClick={() => onAnswer(option.value, option.isCorrect)}
             disabled={showingAnswer}
             wordType={showingAnswer ? "inactive" : option.isCorrect ? "correct" : "incorrect"}
@@ -5260,11 +5289,15 @@ export function TextQuestion({
     ),
   );
   const activeMascotAnimation = mascotAnimation ?? fallbackMascotAnimation;
+  const [mascotReady, setMascotReady] = useState(!activeMascotAnimation);
   const checkDisabled = textAnswer.trim().length === 0 || isAiValidating || showingAnswer;
   const cardLanguageName = getLanguageDisplayName(item.card.language, locale);
   useEffect(() => {
+    setMascotReady(!activeMascotAnimation);
     if (activeMascotAnimation) preloadQuizFeedbackMascotAnimation(activeMascotAnimation);
   }, [activeMascotAnimation]);
+  const handleMascotReady = useCallback(() => setMascotReady(true), []);
+  const handleMascotError = useCallback(() => setMascotReady(false), []);
   async function handleSubmit() {
     if (showingAnswer || isAiValidating) return;
     await onSubmitText(textAnswer);
@@ -5375,7 +5408,8 @@ export function TextQuestion({
               showCharacter={false}
               arrowPosition="bottom"
               className={cn(
-                "text-question-speech-row !items-stretch !mt-0 !max-w-md !flex-col relative -top-[20px] border-b-0 !px-0",
+                "text-question-speech-row !items-stretch !mt-0 !max-w-md !flex-col relative -top-[20px] border-b-0 !px-0 transition-opacity duration-150",
+                mascotReady ? "opacity-100" : "pointer-events-none opacity-0",
                 mascotAnimation?.id === "animation-5"
                   ? "!translate-y-[15px]"
                   : "!translate-y-0",
@@ -5388,6 +5422,8 @@ export function TextQuestion({
             )}>
               <QuizFeedbackMascotAnimationView
                 animation={activeMascotAnimation!}
+                onReady={handleMascotReady}
+                onError={handleMascotError}
               />
             </div>
             <div className="relative -top-[35px] h-px w-full bg-[#AAAAAA]" aria-hidden="true" />
@@ -5581,6 +5617,7 @@ function QuizFeedbackStatusIcon({ isCorrect }: { isCorrect: boolean }) {
 
 const LEARNED_REWARD_SETTLE_DELAY_MS = 500;
 const LEARNED_CARD_ROTATION_DURATION_MS = 1000;
+const LEARNED_REWARD_FAILSAFE_CLOSE_MS = 2600;
 
 export function CelebrationView({
   card,
@@ -5601,6 +5638,7 @@ export function CelebrationView({
   const [rewardStarted, setRewardStarted] = useState(false);
   const onContinueRef = useRef(onContinue);
   const closeTimerRef = useRef<number | null>(null);
+  const closeScheduledRef = useRef(false);
   const scoreRef = useRef<HTMLSpanElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const gainedPoints = getPointsForTier(card.tier);
@@ -5624,6 +5662,13 @@ export function CelebrationView({
     if (rewardStarted) return;
 
     setRewardStarted(true);
+    closeTimerRef.current = window.setTimeout(() => {
+      closeTimerRef.current = null;
+      if (closeScheduledRef.current) return;
+      closeScheduledRef.current = true;
+      void refreshStats();
+      onContinueRef.current();
+    }, LEARNED_REWARD_FAILSAFE_CLOSE_MS);
     vibrate("learned");
     playSoundEffect("confetti");
     vibrate("confetti");
@@ -5676,18 +5721,6 @@ export function CelebrationView({
             <RewardGemHud animate superWater={canUseSuperWater(locale)} />
         </div>
 
-        <h2
-          className={cn(
-            "quiz-learned-celebration-title absolute inset-x-0 z-10 text-center text-[2.8rem] font-semibold text-foreground sm:text-[3.36rem]",
-            rewardStarted && "quiz-learned-celebration-title--visible",
-            canUseSuperWater(locale) && "font-super-water",
-          )}
-          style={{ top: "calc(clamp(5rem, 17vh, 8rem) + 10px)" }}
-          data-quiz-celebration-title
-        >
-          {formatSuperWaterText(locale, t("quiz.learnedTitle"))}
-        </h2>
-
         <div className="absolute inset-0 flex items-center justify-center px-4 sm:px-6">
           <div
             ref={cardRef}
@@ -5725,7 +5758,12 @@ export function CelebrationView({
             setScorePulse(arrivalIndex);
           }}
           onPointsComplete={() => {
+            if (closeScheduledRef.current) return;
+            closeScheduledRef.current = true;
             void refreshStats();
+            if (closeTimerRef.current !== null) {
+              window.clearTimeout(closeTimerRef.current);
+            }
             closeTimerRef.current = window.setTimeout(() => {
               closeTimerRef.current = null;
               onContinueRef.current();
@@ -5899,7 +5937,7 @@ export function ResultFlowView({
       );
     }
     return outcome ?? null;
-  }, [onChestRewardReady]);
+  }, [onChestRewardReady, setChestRewardGemCount]);
 
   const handleChestGateComplete = () => {
     setChestGateVisible(false);
@@ -6030,33 +6068,19 @@ const RESULT_MEDAL_COLLECT_MAX_PLAYBACK_RATE = 2.5;
 const RESULT_MEDAL_HUD_PULSE_DURATION_MS = 350;
 const RESULT_VIDEO_AUDIO_FADE_OUT_MS = 700;
 const RESULT_ANIMATION_VIDEO_SOURCES = [
-  "/quiz/result_animation_1.mp4?v=20261003-1",
-  "/quiz/result_animation_2.mp4?v=20261004-1",
+  "/quiz/result_animation_1.mp4?v=20261007-1",
+  "/quiz/result_animation_2.mp4?v=20261007-1",
 ] as const;
+const RESULT_ANIMATION_AUDIO_SOURCES = {
+  "result_animation_1": "/quiz/result-animation-1-audio.m4a?v=20261007-1",
+  "result_animation_2": "/quiz/result-animation-2-audio.m4a?v=20261007-1",
+} as const;
 let resultAnimationVideoIndex = 0;
 
 function getNextResultAnimationVideoSource() {
   const source = RESULT_ANIMATION_VIDEO_SOURCES[resultAnimationVideoIndex];
   resultAnimationVideoIndex = (resultAnimationVideoIndex + 1) % RESULT_ANIMATION_VIDEO_SOURCES.length;
   return source;
-}
-
-function fadeOutResultVideoAudio(event: SyntheticEvent<HTMLVideoElement>) {
-  const video = event.currentTarget;
-
-  if (!Number.isFinite(video.duration) || video.duration <= 0) {
-    return;
-  }
-
-  const remainingMs = Math.max(0, (video.duration - video.currentTime) * 1000);
-  if (remainingMs >= RESULT_VIDEO_AUDIO_FADE_OUT_MS) {
-    if (video.volume !== 1) {
-      video.volume = 1;
-    }
-    return;
-  }
-
-  video.volume = Math.min(1, remainingMs / RESULT_VIDEO_AUDIO_FADE_OUT_MS);
 }
 
 type ResultMedalFlightRequest = {
@@ -6138,6 +6162,7 @@ export function ResultView({
   const medalClaimFailedRef = useRef(false);
   const isResultTest = !quizSessionId;
   const resultAnimationSourceInitializedRef = useRef(false);
+  const resultAnimationAudioRef = useRef<HTMLAudioElement | null>(null);
   const [resultAnimationVideoSource, setResultAnimationVideoSource] = useState<
     (typeof RESULT_ANIMATION_VIDEO_SOURCES)[number]
   >(
@@ -6156,6 +6181,10 @@ export function ResultView({
         window.clearTimeout(medalPulseTimerRef.current);
       }
     };
+  }, []);
+
+  useEffect(() => () => {
+    resultAnimationAudioRef.current?.pause();
   }, []);
 
   useEffect(() => {
@@ -6422,16 +6451,51 @@ export function ResultView({
             className="block h-full w-full object-contain"
             src={resultAnimationVideoSource}
             autoPlay
-            muted={false}
+            muted
             playsInline
             preload="auto"
-            onLoadedMetadata={(event) => {
-              event.currentTarget.volume = 1;
+            onPlay={(event) => {
+              const audio = resultAnimationAudioRef.current;
+              if (!audio) return;
+              try {
+                audio.currentTime = event.currentTarget.currentTime;
+              } catch {
+                // Audio/video synchronization is best effort on older WebViews.
+              }
+              audio.volume = 1;
+              void audio.play().catch(() => undefined);
             }}
-            onTimeUpdate={fadeOutResultVideoAudio}
-            onEnded={(event) => {
+            onLoadedMetadata={(event) => {
               event.currentTarget.volume = 0;
             }}
+            onTimeUpdate={(event) => {
+              const audio = resultAnimationAudioRef.current;
+              if (audio && Math.abs(audio.currentTime - event.currentTarget.currentTime) > 0.18) {
+                try {
+                  audio.currentTime = event.currentTarget.currentTime;
+                } catch {
+                  // Keep rendering if a WebView rejects a seek during startup.
+                }
+              }
+              if (audio && Number.isFinite(event.currentTarget.duration) && event.currentTarget.duration > 0) {
+                const remainingMs = Math.max(0, (event.currentTarget.duration - event.currentTarget.currentTime) * 1000);
+                audio.volume = remainingMs < RESULT_VIDEO_AUDIO_FADE_OUT_MS
+                  ? Math.min(1, remainingMs / RESULT_VIDEO_AUDIO_FADE_OUT_MS)
+                  : 1;
+              }
+            }}
+            onEnded={(event) => {
+              event.currentTarget.volume = 0;
+              resultAnimationAudioRef.current?.pause();
+            }}
+            aria-hidden="true"
+          />
+          <audio
+            ref={resultAnimationAudioRef}
+            src={resultAnimationVideoSource.includes("result_animation_2")
+              ? RESULT_ANIMATION_AUDIO_SOURCES.result_animation_2
+              : RESULT_ANIMATION_AUDIO_SOURCES.result_animation_1}
+            preload="auto"
             aria-hidden="true"
           />
           <span

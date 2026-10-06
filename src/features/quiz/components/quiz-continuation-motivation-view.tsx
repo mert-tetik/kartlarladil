@@ -32,7 +32,7 @@ const MOTIVATION_IMAGES: Record<QuizContinuationMotivation["id"], string> = {
   remainingCards: "/quiz/continuation-motivations/waiting-cards-card-ref-20261004.png?v=20261005-1",
   xp: "/quiz/continuation-motivations/xp-classic-v2-20261004.png?v=20261005-1",
   gems: "/quiz/continuation-motivations/gems-classic-v2-20261004.png?v=20261005-1",
-  leaderboard: "/leaderboard-icon.png?v=20261005-1",
+  leaderboard: "/leaderboard-icon-v20261006-2.png",
   medals: "/quiz/result-cards/star.png?v=20261005-1",
   drawCards: "/quiz/continuation-motivations/draw-cards-card-ref-20261004.png?v=20261005-1",
 };

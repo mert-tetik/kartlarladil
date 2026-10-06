@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import Image from "next/image";
 import { Flame, Loader2 } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
@@ -20,6 +21,7 @@ import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { useAppMessage } from "@/components/app-message-provider";
 import type { LocaleCode } from "@/types/domain";
+import { RESULT_MEDAL_IMAGE_SRC } from "@/features/progress/components/reward-medal-hud";
 
 function LeaderboardWorldPositions({
   locale,
@@ -35,12 +37,15 @@ function LeaderboardWorldPositions({
   const streakPosition =
     typeof viewer?.streakPosition === "number" ? formatNumber(locale, viewer.streakPosition) : "—";
 
+  const medalsPosition =
+    typeof viewer?.medalsPosition === "number" ? formatNumber(locale, viewer.medalsPosition) : "—";
+
   return (
     <div
       data-leaderboard-world-positions
       aria-label="Worldwide leaderboard positions"
       className={cn(
-        "flex items-center justify-center gap-6 text-[2rem] font-bold leading-none text-foreground sm:text-[2.25rem]",
+        "flex items-center justify-center gap-4 text-[1.7rem] font-bold leading-none text-foreground sm:gap-6 sm:text-[2.25rem]",
         canUseSuperWater(locale) && "font-super-water",
         className,
       )}
@@ -52,6 +57,17 @@ function LeaderboardWorldPositions({
       <span className="inline-flex items-center gap-2">
         <Flame className="size-7 fill-red-500 text-red-500" aria-hidden="true" />
         <span>{streakPosition}.</span>
+      </span>
+      <span className="inline-flex items-center gap-2">
+        <Image
+          src={RESULT_MEDAL_IMAGE_SRC}
+          alt=""
+          aria-hidden="true"
+          width={28}
+          height={28}
+          className="size-7 object-contain"
+        />
+        <span>{medalsPosition}.</span>
       </span>
     </div>
   );
@@ -196,11 +212,19 @@ export function LeaderboardPageClient({
         data-leaderboard-page
         className={cn(
           "relative isolate mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-3xl flex-col items-center justify-center overflow-hidden overscroll-none box-border bg-center bg-cover bg-no-repeat px-4 py-4 transition-[background-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] max-lg:h-[calc(100dvh-var(--app-header-height))] max-lg:max-w-none max-lg:px-3 max-lg:py-4",
-          selectedMode === "streaks" ? "max-lg:bg-red-500" : "max-lg:bg-yellow-400",
+          selectedMode === "streaks"
+            ? "max-lg:bg-red-500"
+            : selectedMode === "medals"
+              ? "max-lg:bg-amber-500"
+              : "max-lg:bg-yellow-400",
         )}
         style={
           {
-            "--leaderboard-hue": selectedMode === "streaks" ? "#ef4444" : "#facc15",
+            "--leaderboard-hue": selectedMode === "streaks"
+              ? "#ef4444"
+              : selectedMode === "medals"
+                ? "#f59e0b"
+                : "#facc15",
             ...(selectedMode === "points"
               ? { backgroundImage: "url('/leaderboard/points-background.png')" }
               : {}),
@@ -256,6 +280,10 @@ export function LeaderboardPageClient({
                   {
                     value: "streaks",
                     label: formatSuperWaterText(locale, t("leaderboard.streaks")),
+                  },
+                  {
+                    value: "medals",
+                    label: formatSuperWaterText(locale, t("medals.name")),
                   },
                 ]}
               />
@@ -373,13 +401,26 @@ export function LeaderboardPageClient({
                           <span>
                             {formatNumber(
                               locale,
-                              dataMode === "streaks" ? entry.streak : entry.totalPoints,
+                              dataMode === "streaks"
+                                ? entry.streak
+                                : dataMode === "medals"
+                                  ? entry.medals
+                                  : entry.totalPoints,
                             )}
                           </span>
                           {dataMode === "streaks" ? (
                             <Flame
                               className="size-5 fill-red-500 text-red-500"
                               aria-hidden="true"
+                            />
+                          ) : dataMode === "medals" ? (
+                            <Image
+                              src={RESULT_MEDAL_IMAGE_SRC}
+                              alt=""
+                              aria-hidden="true"
+                              width={20}
+                              height={20}
+                              className="size-5 object-contain"
                             />
                           ) : (
                             <ScoreIcon size={20} className="size-5" />

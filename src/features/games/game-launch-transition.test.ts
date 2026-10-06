@@ -1,6 +1,8 @@
 import {
+  consumeHandledGameLaunch,
   consumePendingGameLaunch,
   hasPendingGameLaunch,
+  markGameLaunchHandled,
   requestGameLaunch,
   subscribeToGameLaunch,
 } from "./game-launch-transition";
@@ -41,5 +43,12 @@ describe("game launch transition", () => {
     }));
 
     unsubscribe();
+  });
+
+  it("marks a launch as handled before the destination route mounts", () => {
+    markGameLaunchHandled("memory");
+
+    expect(consumeHandledGameLaunch("memory")).toBe(true);
+    expect(consumeHandledGameLaunch("memory")).toBe(false);
   });
 });

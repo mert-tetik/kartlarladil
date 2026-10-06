@@ -56,6 +56,7 @@ export function RewardMedalHud({
   targetRef,
   size = "default",
   showBackground = true,
+  superWater = false,
 }: {
   className?: string;
   medals?: number | null;
@@ -63,6 +64,7 @@ export function RewardMedalHud({
   targetRef?: Ref<HTMLSpanElement>;
   size?: "default" | "large";
   showBackground?: boolean;
+  superWater?: boolean;
 }) {
   const session = useOptionalAuthSession();
   const medals = providedMedals ?? session?.user?.profile.quizResultMedals ?? 0;
@@ -87,7 +89,7 @@ export function RewardMedalHud({
           height={size === "large" ? 28 : 20}
           className={cn("size-5 object-contain", size === "large" && "size-7")}
         />
-        <span>{medals}</span>
+        <span className={cn(superWater && "font-super-water")}>{medals}</span>
       </span>
     </div>
   );

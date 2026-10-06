@@ -1,5 +1,5 @@
 {
-  "version": "216b9396ede3fd4ca95fd543a65a96d7df3329970a3f7f137d2f01bb2e916f9e",
+  "version": "a9d57441aeb797a4c4b47c8211392f006918d18871ea2f7babf9d97312fc32f2",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -554,6 +554,10 @@
       "revision": "6f859fb90f3df9efd1bbe14444d3fed68c4b4162c2d6118c44b54d7c88300ad5"
     },
     {
+      "url": "/day-streak/day-streak-icon-v20261006.png",
+      "revision": "6378e44ea04106e342dbf6a9896adfb7b2602c83d84a3a7e43d6bb2a6e236050"
+    },
+    {
       "url": "/day-streak/day-streak-icon.png",
       "revision": "6378e44ea04106e342dbf6a9896adfb7b2602c83d84a3a7e43d6bb2a6e236050"
     },
@@ -778,6 +782,10 @@
       "revision": "07e28cf4b39de197861debb8a6ae44904cd4aaa485bb3a7cec66c01bde1a9243"
     },
     {
+      "url": "/leaderboard-icon-v20261006-2.png",
+      "revision": "33bbab0077cd0f2b0bb7d0a849c136ccba2314dd442c8e8ea03255ae3c03b7d5"
+    },
+    {
       "url": "/leaderboard-icon.png",
       "revision": "d7a071bbafc4e21aefb4ea439c0d041d33bb6b83119773d9dd897258dae2e73b"
     },
@@ -786,8 +794,12 @@
       "revision": "470ab67c6a2e766ec886d63739d30f6ae2ef2e35bb2508eb6513c59998848929"
     },
     {
-      "url": "/leaderboard/series-leaderboard-icon.png",
-      "revision": "599b42bfb6f5b9e69c721779b05faccb424c2f6569b984f04f717bc78cf0f15b"
+      "url": "/leaderboard/series-leaderboard-icon-v20261006-3.png",
+      "revision": "14f58db5555f422348f34353318dd7817ab28b66901d79d46407726117faf641"
+    },
+    {
+      "url": "/leaderboard/series-leaderboard-icon-v20261006-4.png",
+      "revision": "c796d07c9bbf30921ccf3c2ce473e6d54b2ae0ce4f1fa15a65823e9774705d11"
     },
     {
       "url": "/logo.webp",
@@ -914,6 +926,18 @@
       "revision": "4d4e24a48bafa75328f3bbe495441287a7d71fca01b729a751eac094156c1c53"
     },
     {
+      "url": "/mission-icon-v20261006-2.png",
+      "revision": "9ed6cda3da5fadc726bcc5233bd678d31adf4af5638cee329bd14b9de14f100f"
+    },
+    {
+      "url": "/mission-icon-v20261006.png",
+      "revision": "3829cac6f6ca46ccc1dda5dd6aea15e8c00fad0db367ae86be7d1e98dcba004f"
+    },
+    {
+      "url": "/mission-icon.png",
+      "revision": "3829cac6f6ca46ccc1dda5dd6aea15e8c00fad0db367ae86be7d1e98dcba004f"
+    },
+    {
       "url": "/mission-icon.webp",
       "revision": "ea5651e0b418ce05f395673f140c6bdf2f4c4679b1e97d9654038b05bf80a519"
     },
@@ -947,27 +971,27 @@
     },
     {
       "url": "/mobile-nav-icons/color-palette.png",
-      "revision": "e0e199512ba7413c055fef18d098c15827928c340edf4492c897ba49dcab6a1d"
+      "revision": "f2bde936850d20c5c56fc6dca7999ac3876662d7e50e0bdc634df34fe83c6b9a"
     },
     {
       "url": "/mobile-nav-icons/fire.png",
-      "revision": "8fef754d44f5da3daa88aca077425e368857dc1f6528d67e95a3a02f4ef6c8c1"
+      "revision": "c7965a572daac881d1cf5473585024519fdaa728c2cb938b70dc84c5b4a97075"
     },
     {
       "url": "/mobile-nav-icons/game.png",
-      "revision": "43674c1e8eb7ee952277d2eab551e4d9fd30517d3aa1ed9fd69af17d63afeb90"
+      "revision": "27e2aeb2c079ed9da0848de18945ed9e440815ce6eb461dd00c7611ac0b8cc78"
     },
     {
       "url": "/mobile-nav-icons/home.png",
-      "revision": "c0baf096723702fb13e06ac5d8d32c3ceb742b59effda3e42a1455269886f635"
+      "revision": "85a5c24570d9b2af82550dc6d6bf6d9286b3a99b849f944a8480e32b82cb3c71"
     },
     {
       "url": "/mobile-nav-icons/practice.png",
-      "revision": "b6d5201974366b5cac9be037888f553b522676f10711f0393d12c676c438b7eb"
+      "revision": "986efc8836634b12471b4d69c6aea00034f978679bbb7c91ade8de0c89b0e169"
     },
     {
       "url": "/mobile-nav-icons/question-mark.png",
-      "revision": "cd762af6af3c9027bcceec6267dffffd1441b92535e8c10f2f9f7cd117b3aa49"
+      "revision": "dbe6497030675549025a3b1cb43d1930d42fcd9149da6cbf214e475dca1ef32c"
     },
     {
       "url": "/onboarding-bg.jpg",
@@ -1507,191 +1531,191 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/1.png",
-      "revision": "3cde0400bdbe1ddbc077cf9ec80564c34d4d18522981e88751c6e081ef77ec28"
+      "revision": "35ffd92399c92ead373437c764471c9f6966018ce4029a5afae23163b0a630ba"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/10.png",
-      "revision": "5885804b7ffb9003598d9aaec39414c526072a700a73ad7b428e92843bf84df6"
+      "revision": "a90f6640158da3e89291cbe5dd972bd827203aaa2ba045ef81dc6df0fe42fd4c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/11.png",
-      "revision": "c25eb7e1a52387d015d956db0c544872429517e4a6cce00bfdf5408ad4ebe076"
+      "revision": "e38d8c7232832decc88f13fda2b51eecaa0bef792adea7976cc9081a24a54011"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/12.png",
-      "revision": "e01b689464d3a6b5b2a07a60d11b71e99b5a493d787086ddfda0c26c4ba2e176"
+      "revision": "b71a41fa976fda7e30ad3d550dc12c6f4717aad45b45dfbbca285e2db6e305d1"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/13.png",
-      "revision": "aaf61dcc89215182f4c298f0349fbea291552cf42ab13aa6d915ee4418434bb8"
+      "revision": "574cbb4617bc9efaecb6db8daec9fe05c5ce0822c39434d6c4b6c11c8a41ddf4"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/14.png",
-      "revision": "f10e22ac8eb5ff1ce42eb203e38c4413130226d97e7db81651eca588624d60f8"
+      "revision": "25baf48eff27585a0fd2be6b058c586a8fbaaccac3fdecc320845bb2954ac716"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/15.png",
-      "revision": "4ddd4ca0a4a1331a330ee59c8c7e36dcc56c6da5924062ae9fcccc4d234ee452"
+      "revision": "652308d6ff7e913ae44d2e72d9ebfd616b760f1b476771b2d326025bc58b23a0"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/16.png",
-      "revision": "672d5b4d5e4d9cce644fe6c7d3b824c2ecc7d912b4506d35e0a53ad989093447"
+      "revision": "c962c1964a5763b483bcf8e5e39a4721565d75adfb47c4163c3c751f35d5461f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/17.png",
-      "revision": "cb791ab0115259324e4f6091823a114c87e3998b8610d6d6039e8e42d419a14d"
+      "revision": "e2a87024db24a81b79d2085e5c6ed390cfffcfe0091fd3d1b0f6d169b5e88945"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/18.png",
-      "revision": "20d3d9fe77286ada0ae5b122a6c0b5afe067acb0d37e0292cc3d55bcd7ca2894"
+      "revision": "509071472af8a6603e710e4ce1608b8d04d1f7d8efc27f602f216d939ae35149"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/19.png",
-      "revision": "1fa12b521745454e47af796c589c0adb01365c32eb8ae31ded39e1f4279d0ea7"
+      "revision": "1a176a8068e30fb1540a9c42c7c21e17c1f8211ab58a31149cfa2cdf6c1f52c8"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/2.png",
-      "revision": "49c2443fdab0536f94fbb48e5e7d5a351d6fbfa7bdedc243ccb2d75ccdde6527"
+      "revision": "c544f8719b7acfd76c145df382e21e78a62e855651bcd574ec1792a1999354d4"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/20.png",
-      "revision": "9982fe6c451420cde4fe415d6d08a4b3ab71f0ad2892de4d29e4276e1de25d51"
+      "revision": "77ad68926de6a87c91f1a0d1bc8eb9af0662e30fdfb86b01d77c893648b6f712"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/21.png",
-      "revision": "fe46f74128947a7fc6930df91f0c67bb3ce8dba8774739957686dc0a798ac47e"
+      "revision": "2703805b2bafe3292ebe71372875824d9ad657eecee14f1b194d5510b1d5d7db"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/22.png",
-      "revision": "5bba34ed0d2bc89541254e830e5e321fc5651b3927a71c14139807dd71a0fc5a"
+      "revision": "21600825d2eb2d28e9c2f24a7205310edae0ab3062529af100198625d9dbbf4a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/23.png",
-      "revision": "7b91d5257c0c663bfbd401c4c3b3136d86dc0d529283a3cfb557dabca5f5e36b"
+      "revision": "c615251a334797b8c38212cf355e66b3d16ce459f715f6a7d86c89f84c826c11"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/24.png",
-      "revision": "8cff729d5f0d99af805e7b96ccc14185f947659ccd73416eac6d61fa6488fcd8"
+      "revision": "e0d768db03e1b1edcd8ae29071fb7eccc3c5ba534bba159a890efeef47e957ba"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/25.png",
-      "revision": "4fa5737682ef382ff279a8a1d7050e0e2ac765551da0771d6322022f6bf723e6"
+      "revision": "542cd575b7b6c029c7494be492796feacdd8b5cb336464ac7773dcd5afc3c7ce"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/26.png",
-      "revision": "0a6e82c94a2ba86d3cbd532bfb06887ae5b9e9960815b4d38f5333ff877dc357"
+      "revision": "e21e1f16c58245b33763a5249ef03ec719118969f3411d7a47731d228b57b407"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/27.png",
-      "revision": "152992437626d93d73b900a12e8525c22a5a35f6096db4105eeaf661e2571231"
+      "revision": "1735729d18550de026d830e6c3dc087fcce32f929c92a1623d3305097e2f9981"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/28.png",
-      "revision": "309a046d63914ec9e30497a0a657e3160103b8be4da34efccf90fd2ab5deca22"
+      "revision": "bbd54137cb9af2f03c2b29c93caa30c91cc466d7b601d5fe0c02ff8f4af0861f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/29.png",
-      "revision": "47f29f63432b31bbf49299f43c1b903bc1c732ca0d804f5c5d2e4de80836ffb6"
+      "revision": "86e167cd1570c951b11cbe0d60b12d7842367def30e52d696e0a53d8a98cd82b"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/3.png",
-      "revision": "d6ef57ded737caf6fc9906dc6902d0cb7f5eb132a20ce09e8567b3663491362f"
+      "revision": "3c37c0036a3492e453f710a74faf16c26b8f23eec59fb0a6c1c4c061a63bc466"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/30.png",
-      "revision": "d73cb2f42b3f7a347acd3747474375902a03b5125507c13d52fec1ac3e09f20b"
+      "revision": "905be67f215cc3bfd9e011d306548a7f4b521f29bf3b2e6fc0557a43d235e765"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/31.png",
-      "revision": "0d249e7aa579da97161cc6ba4b29d72b23cd686b0601e5a8f07d49f0db666739"
+      "revision": "6963c088ef4bcf37cc21eb04669d5b137a7614859721d2957501e75ad05407c3"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/32.png",
-      "revision": "e95f28efed3658b937bf183f802768b48852500c95194436964202e924c7fb50"
+      "revision": "ef9d8713afe579b5e9a45f037f48f28a0fb1a9b48438fa1a2aa56960c61f59f2"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/33.png",
-      "revision": "b5f3daa71899c79a0d90ab8c054f7c0a5b9169105a0809fa1ee521ae697c5238"
+      "revision": "bd453e4aac57813d41a8e2c3cb55149c8c60ffd98e126d17e2c8998859f9bf40"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/34.png",
-      "revision": "968d241e141aba417f46339343b2f9fa3cac60ceecf50f96485cdaa18b7daf64"
+      "revision": "692479c7ab218fbec0ae1368e11ecf45cb2ea9ce2b99fab931bcf5a05f105c59"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/35.png",
-      "revision": "cfa17629b6ec2d6eb8973918f1a5b9467d6ea98bc407acabcdba3dcc7a09f2dd"
+      "revision": "ccb35a9ce53177968d55a655f5f9a006f4cbab3e9fd5713562834f7d1498144a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/36.png",
-      "revision": "ee090a5b4b10ba4a9a87f421573ba339095eee711036178bbd0edb3bb3c504e6"
+      "revision": "53a9bbdb9d07c89de8cade4774ad7ae87934e1568b9b529439cd04b7e94b392b"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/37.png",
-      "revision": "9660f70b3a7f5b02641ca2a46f0dc2f219152492331a9ba562d0e6b9a22a6797"
+      "revision": "45b63aff56d57a23be5ec869c26de6cc59a6fd82ef0dd9989a58c176313f694a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/38.png",
-      "revision": "10c4cc1f96a22169b0544c9a582086b8b2a462d45f976256ab57d89675414b28"
+      "revision": "1bb57fa27c86f820d9d30b0f18cd7de1540d78b1713ffce14e706926ec96e1d0"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/39.png",
-      "revision": "7332fbc2e577c114faef9cf4e026317147f659f9e2576a2da92a3160eef47980"
+      "revision": "26f6b7c3d123732c7d028c790dd68f00a78bd8eb92ad30dba96f21db2ade6f88"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/4.png",
-      "revision": "1a9de6f25b9ddbe75d34e6d5f8fecf539f620592495313bba9e129d216ec269e"
+      "revision": "f6fea50c3994c3ae3df5db9997df5e8e7e7112a4c4ec9571b003d7f67fbb89ab"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/40.png",
-      "revision": "47722d57a30c70c7e2f3b252db095e9a284b315dec1e48044534e18a68801a1a"
+      "revision": "53b5fb1f0ea45b6ec4d6a786ccb42ba276402396e1e05a582181f10d68331d04"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/41.png",
-      "revision": "eeceb2ddd07f7249fb3053e1cf43eb13d0deaafda68de77a3fbb167827f53f09"
+      "revision": "826b3f39841942dc6aec0bcdb88d3e1f3fb55e06c00a8a65e3012f0d78e8a278"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/42.png",
-      "revision": "c82b041a3c0187b7220b88bb45ff4ee6e1b66ad46a63224d1d8d1fe6c0fa562a"
+      "revision": "08f3988a778e6eeeccf046a2771b7ab9c848acf31bc8042f5c500b3ca1da6122"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/43.png",
-      "revision": "2104e006f23ad50daf16c894ccce95a07df9f4db302972fb29893b4a32ee8ede"
+      "revision": "0b64582963ec363e613bd1879c41af15bfe818a99c6b9a7a2ba88eb35573b09e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/5.png",
-      "revision": "2549b66e30f6176c1c0bc44d1cda7f3202b307ceaf3cad7712915e196ed64cf1"
+      "revision": "6207c479309a5865e575f41ed7c88e7a243255b070d9cda4b299e382e13f1352"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/6.png",
-      "revision": "88024a39acc6d33966689d42d93cb732e8500bcc7a9f4c9f35e93f4a462d8948"
+      "revision": "a87c003b4d031a694ae8a6331e3097a5b18784bfdb7574974e52c81033537add"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/7.png",
-      "revision": "f6d8f709d4b7738da2eb4bfae5c67f31bcaedc852d26e97c6c0ad1304ccb5c24"
+      "revision": "101ff77846ecf59b0e3a739981e6a02cdb3aa632a521fbdbd5441aee0a80933e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/8.png",
-      "revision": "5623b57a382f22ea9074fc6afd23f315d096f93bd2a6ebec1d80b504ed02f40d"
+      "revision": "bfbe2804679c60065e729f2c5d6a145db1d824d8c6d49bfb504b7d8cdc09e077"
     },
     {
       "url": "/quiz-feedback-mascots-v1/Bonus-Celebration/9.png",
-      "revision": "821e82efe8b3d841d0721438fffbe45944db69650d1c43cd6d9900c8ae618340"
+      "revision": "78ee00a8d6d6758b481d09633ef8ae1801579b75575c9a4a616ac7e66df0432f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/1.png",
-      "revision": "00776c438d53e1010fe674acabcfd42aedd8e505fa2f618855a2cead426ba95a"
+      "revision": "a60370b21904bb6c3a23fac36a0d96350d095335cbb45ea784deef5905143cec"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/10.png",
-      "revision": "bef895ab3e3554cf847fcfc38045ce502318247335caef8d7fbe81cabb350ad1"
+      "revision": "41346d39ec817ae432a020c15100a8d69dd86238aaba686b4649a6aae82b30cf"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/100.png",
-      "revision": "cf7050c2ba6edb9a19c8368d4567339038143c32c8b4c6586290c8198fe9d563"
+      "revision": "4ae13b46eee6b20771e694d0788cd0884a7cb976c1013cb76555d173321e4321"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/101.png",
-      "revision": "13eab30a290fe6b24adef27160bc03c996a595ae73576111cb435d5b25a457c4"
+      "revision": "05dc36698b0ee472e2a26787f9cdbb851d0ad9831cbf886d8d7fdda055d79853"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/102.png",
@@ -1707,391 +1731,391 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/11.png",
-      "revision": "2cf5d804c37288ee3e89c4cdb4f4ef2381cf9c2bed0f77c2196a68169de30fdc"
+      "revision": "c8ad39bdaf39ba5fb80142c69a655b948c69fb0ab9e948eea4acd2603bcb5749"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/12.png",
-      "revision": "53ff5aa2425a6bf24a44334bdabaee5ca681738c13d29fb423b528c7430561ba"
+      "revision": "e32b2d593244ba8f75d4258af3cacd5a839fc38e45fa2475eb857f6035d99a82"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/13.png",
-      "revision": "a6f31daa521dd882e1b31017a96949f149cc52d4f4e364855d4cccc1a18f6ede"
+      "revision": "531edabdde20b6c1cc5cfac30a55eb6ecbce7df683c88824ac559a88ee196252"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/14.png",
-      "revision": "69d87ec55d696d93326b0757139f211b751342b117f85cc7716f3a7b0ec84544"
+      "revision": "818a9e6bea0e894731ad8516998b3e3bb20707d6cbe022256d8da82d8a1f59cd"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/15.png",
-      "revision": "1ae37350eb7dd5f0a04de3531d86f16a4bd1140e32002193f5ed76d1c7e67064"
+      "revision": "a839d44fbb2adf478b4e8bc48420ecad997f9124319e7efc111a08412c982d0c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/16.png",
-      "revision": "cc02a9c3e9e8b36272792e8a0876aa083dbfb9c8dc064cb40ac29f662025c03b"
+      "revision": "39880f192ad4967255802fbe974c7268848c2cff2de86dbc5af0b88a82e21127"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/17.png",
-      "revision": "72209ffff4d20247f81ef11dca19ba6d4ebdd99e748498d0c1d359eb0e18b90e"
+      "revision": "83c787aa39e2efe25b764ddd6b637e28632bcc7792497b18c31cef558029673a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/18.png",
-      "revision": "5eb7cf313ac7868864ce2c3e20207d6d93d984d5fc71680a15101683d897d2d4"
+      "revision": "20ba92002fa8849192f99674a84fe227af7fbfa21421cd73a6af3a092ebe6196"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/19.png",
-      "revision": "cd502aa56b16fd9ace428523e77dfadec6280d17c4ae578ad7346b07781c77c1"
+      "revision": "187daba17295ee3df3c8a2d1161f1394c4e4bf5b56a4cb57df259d4e2e2dacdb"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/2.png",
-      "revision": "239500bcd8765a7b8ccf8602b203bffb3a949101d807c1e20bf50e62f3e85f70"
+      "revision": "baf9f6716ecf1666f699302e28ece08be439d83bb3e14ac6de786e827c1fa16f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/20.png",
-      "revision": "09298c083a6957ba379c103ad20efabcce67ec9cf0f78843bb540c71f0d8670c"
+      "revision": "27d2ff2a6f50d60031030f930b6e57a9c432b8698e804f9a7ac434e19f2efdd7"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/21.png",
-      "revision": "dd9fe9b4443b891c5e5bd031c66d10daea10191edb044521c101d58acf2a3aae"
+      "revision": "c1986e93d89aeaadbffbd617c4571ec0afed9c8c5e8b3191ab09826df2f25ad7"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/22.png",
-      "revision": "cc914cc60a7e5a938363267d1738c793ea103766148b734be8695cc6fdafd962"
+      "revision": "0a31285eaceca8ce78abf9fc3a4f349683164c96eb92a3adf22712dffb8a5bce"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/23.png",
-      "revision": "f21612efd1386aa0f1cc654958b03372e1691a1e4af04531c6a2006c55844154"
+      "revision": "381f90d37c741609586409a461c5dcb9bd6dedc7ac4abe393d897b771e1b0158"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/24.png",
-      "revision": "4d2b737eba0bdc74399a2fdeab06cd115053aaab3070bf6dc9bfc4cf699913d9"
+      "revision": "8cfdc1ecbe859d71ccbe3133cb7a5bbf65f72220635db316fda5c1dd66c29f23"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/25.png",
-      "revision": "8c8e1ebee47b3961873ffb6c5b0be135c93670902eee402a1a6a189ff426d20c"
+      "revision": "7f9c5ad7c30778a6b351cd7d8c58fe214a6d086e14b5bdb81deb9377cc179a04"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/26.png",
-      "revision": "5b5bfe254ce2184019cfca37b7458a85b502f0644430d39620a554afb8f02c71"
+      "revision": "3e669a793d6d44eb23df0a89a33ab56654f1978c9a576ab6933facb55c0e9367"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/27.png",
-      "revision": "aae2f0e87f3c61b5b9fcdd57b9d5da10cc38e2a15aa0c65edbea1d8a0077d6cf"
+      "revision": "584a4de16a49d904cbe9d3bdf803d49e21818730ccf3f78235da76b522b7ade7"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/28.png",
-      "revision": "b818a3891817a9a30bb366b3910ae6d09ad57c927147268ab981e23570ea5b2d"
+      "revision": "871ec22934dc0077c1b2905ba914de24572803be7a9a1593bb4724aff1301641"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/29.png",
-      "revision": "5cb54ee4657b5133e4406ddc596bef51a37347810337decaf7906f0c48b9b812"
+      "revision": "3ff0008454defc342e51f8a32824c026787094cc46d984599759365676807f6c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/3.png",
-      "revision": "902b77b429233463a6a069203d4c32f3d2a4d125874037c21d071b3513af20d5"
+      "revision": "5ca5307f16c1c4a68dfb98c154ecb23c1f9b9489d5c5e6bd765b681c527fcef7"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/30.png",
-      "revision": "2c10f7b152db4a647bb87d44dcd059012a6dfc807620e59d2ff3fcc23b219bb6"
+      "revision": "326a855062dcc0ca3062974d5ab4c682a9b8b55aa5c033aa27931c92e1fc6e33"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/31.png",
-      "revision": "9c61690207977b7836f25daccc3c4a652195d88e56c8ad5f56d4bb9bf553de43"
+      "revision": "4abf92248a71292eedf6a994cb6b47ba0ccfe3614813fe27f4225f723b409c53"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/32.png",
-      "revision": "fafb55d77870a70b1e53dc9417916eaad279029228627962756af25572ffe2e0"
+      "revision": "c07f7e3bbca63487f5f60ba73c4b1cb0dcea1091265dc3b89972e4ef47b55b7e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/33.png",
-      "revision": "74177dadc76fa593da0ba259543524117de494f6c22ba1e0d962e1675f094abd"
+      "revision": "be9e6fd9609cfdfd3442a85e2e6b6bc1498587d112396311d258da43f5f3e816"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/34.png",
-      "revision": "39d339fe313a4787d7ed12d53ea84e054e447da6746f6e713bb61c1b40495b4b"
+      "revision": "5f412cbb2c3d51906b08f80f72a30ebb1fee0089055b235dc751eaef4641fc2d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/35.png",
-      "revision": "73bd34c1cbb9ee95e933da73be2d37167d0c7437ed69e8c9f79ae4174e194fd3"
+      "revision": "1d613a9af9596ac000fae39600c4d50c1f7e65324034b75b4b8deb9c6aa98f6f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/36.png",
-      "revision": "86899f0b95ad0280fef2079208d3e79fb7f984241c405d331dae7854876b706f"
+      "revision": "b328c0b11bf1a0ffa74927b0ba45a4b42452bbdf98d30ab6c29a9b4853501c12"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/37.png",
-      "revision": "2b8beeaaaef94269422a6ec4c245b9150e48d0e27889b8997d776b4f019001ec"
+      "revision": "8e9cdaf39c3559e566086156f51f58e682675b4bde14abde8f1a2573926ec6e4"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/38.png",
-      "revision": "648dfd567cc2767b058f0c461ecf27d8f28d030d1756c26d452f9b9843451120"
+      "revision": "8a1c5c4d3976478817263016183c841b7543fdca4e7e1838037fec0571769ced"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/39.png",
-      "revision": "557d92c59027176c1fe26cace5e0eef11e3bede51cf6cabf04f7ceb615c30a50"
+      "revision": "233ba7ef9e84569ca67b7e127be1a8ee230a55dcc714d6f1f20b4192b286a1a4"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/4.png",
-      "revision": "3abfdc3d16a6273478475677d2ba08ae4cb436e9696a63e50c02038f4a06fd38"
+      "revision": "9d643b31ed464370853e0bb908a70a557113c01fa7faf7205aa4613e2830ac71"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/40.png",
-      "revision": "d6dfaf1d7f9a75471e79b5fb956f0738a6e1535946a01ddd0877949f5ec387e8"
+      "revision": "2783125029d865392c87f07051a38332454e4845146b65002aac6fc7d879360e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/41.png",
-      "revision": "c578396d1e24b976f42acdf7014cd4af128e89e809dd9cbb9eb4e602d40367a8"
+      "revision": "0c3ad6753d4de5627e4ff88ca57e09a2d898440656da6b903f9617679bad6f4d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/42.png",
-      "revision": "8d191e14f694cd3d42532c79926dbfe158389f70ba3b2f4f926ec5d4cb9bdd5e"
+      "revision": "ce2c43532ec7895f421995c9249aa4a148f7a892b6fad98d39b311df326e6508"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/43.png",
-      "revision": "5431eff8cf5c9d4327998f662958881fb6925fb270044e47f23c7d53c5107dbd"
+      "revision": "720cc79427f54bd51d1c7dc2cfdb2d00009c1cfe75a47bc701fbcdf5afe24878"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/44.png",
-      "revision": "6e6d8b344834c8ef1be9a164a49b36019ab9c830cf8ba6df1ef97a30e19c6ffc"
+      "revision": "bda36aed4faf244212e2ded6b12773688587856490352e12d8fa80fea6b1ec9f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/45.png",
-      "revision": "c2d94acad567e2f645f92a305bb94d7011175d50b9832d2731e5d88ee9899669"
+      "revision": "d4a444d3be6edcd3ade51dc5f24eb15b7831976958f7c9dc156170b2df919788"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/46.png",
-      "revision": "3a0624c66378fc1816b50e87f84399dd488d948873ee031179a53e216cc445ea"
+      "revision": "07c58529e7f74bf92df479f36f6fdbd12ad65b9bbacedd211cf5659a1e7ca3f1"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/47.png",
-      "revision": "b0c91847e9a886a6683a855d4cef11b1d6d202279069a9e5c41206708b97a869"
+      "revision": "931204fb11198af4919cc09561ae9feba816e8effe0e6476179d4877f3bd6b27"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/48.png",
-      "revision": "d50bc45c7e6edbb9c5da67723d0f006dc8b926518d7472afeae50eaeab3492e5"
+      "revision": "8a4233af066cbc5b6292f5ca013a3f2a8bd802f6d702976b5ffe81273828b974"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/49.png",
-      "revision": "a0897580a14c0d74b2ef0fb2f4c318be13d0130ad5e8b0313eee87837e26df4e"
+      "revision": "d3ce80bdad89cdcfa33a237fa8f18de017460d915be8b75e6ef2beb053c34fbd"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/5.png",
-      "revision": "1d6da1ab7d73379acd8e6af6333ac4b05ad87e1099d798e828ea8eed97edf88f"
+      "revision": "17278a9104f14e28bb884ea80feb547e8b65747cfecc8ac6f7f3dff9a07ad89e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/50.png",
-      "revision": "ca6d6d3c47024f941b9d233fc57f68dfa85d660a1aa690088f186afa34b82408"
+      "revision": "a64b72e24d416ea7e2df83a09497c293ed821370e59be56ef7499cdc8a55aafd"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/51.png",
-      "revision": "a2ea8e913f6330f5af2535e2904d94ec0d2943513e897d6f583a301b2869d1ea"
+      "revision": "df83d82939c55f2a4594a41d55eda2e9c28d988e82712d7c01cc599ee9289df0"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/52.png",
-      "revision": "4537332b9f3c2f314331fda61879027577db66adc60637d140c60f31aa3c106d"
+      "revision": "75653eff2322e7b288486c8271d41ff6c5347bdecbbdef53af483fbc44155885"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/53.png",
-      "revision": "dfd0b18d0858e97f2ac7ca282722a9b7b1608b43742968c3d6d9ff2cef64cfdc"
+      "revision": "8c1e117a0415ce19353225608bd7cfd54c73748f9337dc711dfbf781f529ea2a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/54.png",
-      "revision": "e2f2303240620897e641633f531f647aeb5b6d9a2e6e169e47b450cd897df9a5"
+      "revision": "4e51b11fa05a6b96b2e01140a38c6ea5cb3e6ae0977f245e8724d687f5512f83"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/55.png",
-      "revision": "aaad0199e17349e040c5e422acac46f62b19a942e5bbec7c8d6fedd8d676ee44"
+      "revision": "a5594f039f1a6127448882b921ff59ce684fc9d27c2b80fa790945c5f2aa190d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/56.png",
-      "revision": "17a6d220644fb8d9047811eba517b09a961b65a8739afa260675571ba63010b1"
+      "revision": "2340fdb57e441a120bc710b5410d194f3f1b3672da0c6e97d47bd42f9e25c9c8"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/57.png",
-      "revision": "b7ee3eb0340b1856f3e6d002e526185c86e2c10fa0062d87dcbc20a9cdd30273"
+      "revision": "de1df2fa524093281ce8e4c6cd5b38a4c5c5b6207af6e389dfecb02b884f2c50"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/58.png",
-      "revision": "06ae8310ee744bbb2c3ab369d0348dc56960d2b968307aeaab544d5f87649e37"
+      "revision": "7663748acb5c8c10d31b9aba65adf7061189bb4afa7beb915f1b6dbd69ceef68"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/59.png",
-      "revision": "d9ce3d26d7b79c7af78252e448945ef8f69845afa42d372b91ada43bec2a8ac0"
+      "revision": "278cda96fcb785cea0e2f4f19265c23f380ef64fa50bfaf3a45069c72ca9f89e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/6.png",
-      "revision": "67d8efb1b4d9d5750c0c2a175559b7d093572207c6d08dc463fff35f5b9e78f5"
+      "revision": "ee92437083cc66aa239dc72a85094cb7fbd96046ad19b91011d65142a432131c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/60.png",
-      "revision": "d5964d403f91d9f4a5709b13fe06aab483df1521bcb550340ac690ca2505e0d7"
+      "revision": "8ac397165952f59abb1169c1ab6f05260d842ebc33875e3ed91c2722ec20c06d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/61.png",
-      "revision": "ffedceeb2da2d95ef2e5b51bdd6465c8da5a64f2e7e965914a55038187b3e0f3"
+      "revision": "60b164042ae7e3e12c19548ffee88da84a941e81e049b3f114bfb50b54e82d8d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/62.png",
-      "revision": "ecdce075cfd9bd7ef57ef537430d371d189a769480ae5b5d36e13afb735c72ec"
+      "revision": "5bfb6190575641c8cc356b893b6e9c895e7378bbf72c454c945ec8ed7369a788"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/63.png",
-      "revision": "cc5cd4156c7017db2b4ed489a8f5a3c82816504246dbecf526394c11b482d6e4"
+      "revision": "6c62e31d66fc0ea1288cee4698ffd07393b4e087389ae0d0f620cdcc2cc01037"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/64.png",
-      "revision": "b24ca119902304b3db975afd5f131a2030f71c462c594a60bcda9c3660352959"
+      "revision": "7cb54a0afbac9f676a93d9ecd6c2c02d8189b235cceaef9258e17ecdb972de0e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/65.png",
-      "revision": "222dac288eb6455a2dc10e86ce6505e989aa41120750546ff14ec65d10cb2888"
+      "revision": "1de946714c0fca7a3eed323b2499bc6ed5dfcf796e9760bda1ee98bbbae41419"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/66.png",
-      "revision": "65b2d740716dffdaf8203a9e4bab5b9318ae2391b0e74d6c1b0b480838954b36"
+      "revision": "17ce2734be83efb248869048f14cb3cd926d1563de61c5e4f8b0a641f68fc116"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/67.png",
-      "revision": "bc64c95eaa3ec56942b3b1bd95a4770606b5d153f18a5efc93e9afba88f3b8d8"
+      "revision": "a448a7faeef86524a7aaece65e64efe4f1e457377c1c8756edc513a60656c779"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/68.png",
-      "revision": "424bb84eb943f49fce166e7d7317d9525f762ad74444a4420eedae47dc595273"
+      "revision": "113120377e4cb3876796389aa5997d01197d309384675ee3ae787d62e8566faa"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/69.png",
-      "revision": "0340460d7e6af04a356778a49a7b6a9fd07ff2cebcbc2f9938a9495d973bce12"
+      "revision": "9654f4c1c0e4454a24d70b765e85283fd4d53c418d24afc26c1316490792e5ba"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/7.png",
-      "revision": "8c849ba7947b2f3ec1df3f67d6026aa7d0cc9232400e71996f9934f9417fe92a"
+      "revision": "9b5c64d3954c83c548cb6bb7c0e933645bf18e31c97e55a59300366c10fc128c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/70.png",
-      "revision": "1db463381dde5a2d5f99d694d8e8620fbc051ffe3509c05b2c181e9a54ee34ef"
+      "revision": "1c54739dab1002468e8eb1bb3017a65c0bbc754ef343449cc2cf25db24e355ca"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/71.png",
-      "revision": "4c2ad797df8fd0b17b8e7ee53d689091d5bb0beede25fe1e062103a900a572f7"
+      "revision": "71d73cfb9d80096fd5e99b9c94ce596b8cc49f9e7a4ed46a1cefe34e18814e1f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/72.png",
-      "revision": "30783139b733a72bc1fe4fbb527e7516ac377b59fedcc631ab24f535331cf455"
+      "revision": "141c1bc34d6d6a66fdd91d8d061c3f161249361f8ba3b7fa4b71eab853bfcdec"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/73.png",
-      "revision": "a84039c26b8462785d2fbf166f498fa29f8ffd394ff749a816e8992504bf5c7d"
+      "revision": "ababc8d88077bb2311d38e1f2975b0d3c4a8692ae38543b10ec1cb35ba2d6794"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/74.png",
-      "revision": "dda43ae59ae2c4245af837ccebc298b1a3578a81d745141f71f7a6de05df0315"
+      "revision": "832034e7dfb38d54d8f2fd9bb543894b5f0cac2171c56620bc00afc12ed52e62"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/75.png",
-      "revision": "7aa7c444304c498c9f914efffbb88294645a2c5b5ff920578df2971f1a9c72da"
+      "revision": "135c8d3c0430f4bef164d45406557b50ae47c8cc9d5aaefa0db8f51822d33d20"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/76.png",
-      "revision": "7a01b30f54303644539e989b7b28b2b48fc9f846c37aa0f3c34683fdad259e88"
+      "revision": "50b81e04af0c09ee1e9d7d826a90d8cb1aded206e98d2389772cce402da29ca6"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/77.png",
-      "revision": "1fdae8fae41ca55f63346850abe9ffd825ebcd363b1d70ac2ad4caaae6b6e73d"
+      "revision": "46469d505ebc1c863fad10be13dd0b80e759a6b177cd8e34feb804fc60b111a1"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/78.png",
-      "revision": "7353eb597da77d80725f02bf2eac92af605c0159340ee2c2dc3ad3c364a6324d"
+      "revision": "f135477472cf33824aefc38fb7a9af2da02ef4d185dbf31db9c86d242975be26"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/79.png",
-      "revision": "d06b22cca64a464b719123bde0fbad1757a3ac30f3fecda315b7b0cb16b8ce0d"
+      "revision": "d87961a44d4bf5a8ca255ba07c5c885d1d8bff90a953addbd52aea0d07de6228"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/8.png",
-      "revision": "1270ee6f054f5531e070ec725dfab41a80553c09c501ad6c3aaf0153eef9e064"
+      "revision": "f9c7b5af474c3c5fd77f30702a68dc0ac8e478f77d77456c4cb44d72ff0d2df1"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/80.png",
-      "revision": "db07a594b264891fa169e01a6493a77087abfe9b11fce27073cf35ee93d5cd40"
+      "revision": "814aeed012ea3ad546060676caef5c363aad6a68b8dbd911e8ee3e1ba82abd86"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/81.png",
-      "revision": "bb347d32446cbf940209feb6eac88f047a9c2ad7abc53d8f01a6822ffcc1a30f"
+      "revision": "b1342acf567dc7c910c41edfd26d038abf149228ca02175a6340be70fbe2c9d1"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/82.png",
-      "revision": "161cd40bc8810e9de55a2fb5538470adccd1e8b8b355c0aa753f09350a36c454"
+      "revision": "7342e58585aa2d7c9d8ab1ecc8a2b986b0b50b2d07e0337a5422b410ecd6e412"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/83.png",
-      "revision": "04b46e8989cc315bcb9397619dca8e4b3a4b341f18d3fffe652a9db7ac948751"
+      "revision": "ff90862439e96dd9034a2b130309ede37741c6dfc2943bcfb7f39f02105d5984"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/84.png",
-      "revision": "98c389c9f599f2b3f89837b302c6c5a2cf7c1173b7220227c2df439241444656"
+      "revision": "d4c18c582f3378028bf905c4ad273dc759aeead1a35828882bb33093ab5991a3"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/85.png",
-      "revision": "949aee79091335f8a60da43e67548de9fc690eeb70b1613ff146a9de965a89fa"
+      "revision": "4e3ccc3d713239fc4658c40ea8b6c5fe3a40ad593165d42b6d864a4e9351906c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/86.png",
-      "revision": "b0f1ecdff201f5b7ccd0e55ee6bd7c673e04a201c6a148ed135b43ab6ab7b405"
+      "revision": "e24c526ec2be2ef1df736e7ab5ad2cfac6f2f088c342f6b715245bc024a0dabb"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/87.png",
-      "revision": "142137dd1370d2952a60087a5dcf788de8753395a0479bb6c90c6db14797498b"
+      "revision": "0e0ef8fa351c52d56a849e1ebc4b8da4eee8b5c82431e5946f0f8d403fa50b16"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/88.png",
-      "revision": "fc95db94f031ecc89b01297348ce65a083c9e5d865f54bfdb8f7d44da654ff43"
+      "revision": "0bdf7edda7a3ef80733cb574076619114a6ccc16e642846b2e05442e3d24744b"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/89.png",
-      "revision": "b0e4faef8625c6ccc0080ee7ff118cade42d08938957d18ef46e4677aa18ce34"
+      "revision": "8f404008f6310fb22fd7e0b2581ae8f9135d7066258ead51aa4fe11de268a23f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/9.png",
-      "revision": "b52e6264f0a2ba41651eee69ea80321549c1f16870b829216093cc54222eaf7a"
+      "revision": "645eca15d45d5815853b57ab105f5ebb3a77b2f649a40207580ee56ea63d39df"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/90.png",
-      "revision": "f5fc0910d0d978258f556fb75091a4b9088d76f61aaaf49cfff07dcd999074ca"
+      "revision": "bc539b03c245c1fc5dc05625e2f38dba1e73b847ca09c016d7f5e57fa1a1b20d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/91.png",
-      "revision": "241b59ab6567491e610382a46700aa3f316683ca741ff2466471c9765d08b1e1"
+      "revision": "0a9d715182f6d36472e20d5cd5ffa233f3e3c71b15af53e3d28fa633f6a6fb80"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/92.png",
-      "revision": "8e025d51a08d61cec8b71e7f055c677c6922a30b0dc3e42875fcfd14a549718f"
+      "revision": "621dde22f16dc918a1f94764538cd907d95abad9040e6eceddb86d3eb15c1a9c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/93.png",
-      "revision": "ef5c40c1ae0351a44329c3402af41ddd8de7c5d1509bfe795de69d4a31025910"
+      "revision": "e25ef8e3046778f675c50d9da248377b15dfea536f7aa1f3cab0d20151533b3b"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/94.png",
-      "revision": "17430d0b52f8ddd8576111b70a57edcea3b1cd07a426f49b002161eca30d0449"
+      "revision": "e41366c1d604a2b861570df5d03ee843f8d45f2ccef01b39f837a856927e9ff3"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/95.png",
-      "revision": "bd4aa45976136b7c139db30fe0f6c30b60c4124df590a00802359017518808d3"
+      "revision": "9f87ba9d262fdc4f2984af5b9f1a007f01599207a8c11d566d7310d3c516171c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/96.png",
-      "revision": "a1691803cf039aa9dce1c74ee95432b47210b66ba0e36bbb2adc89c3a39bb4c3"
+      "revision": "d923e587d0aad7ea8e84f807f24d0154bce637b37d28b9d7c7b00be4141a4ebc"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/97.png",
-      "revision": "8442f5e6e09cf18a60e8948356b0c4ccd87efb5edee215de2ca26cae434bdc64"
+      "revision": "78705e1f89e51b86467597c14dfbeb593f282f34ea8b4fa60c01ed9386629548"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/98.png",
-      "revision": "bb005658b2680c2602ad5981f4bc1d53c1b63c0011c87e128a8d79864ac1518d"
+      "revision": "ec5f16a01fad2de4ca7e1382ceeeb03ef6a8061def28502745552d8071ab4543"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-1/99.png",
-      "revision": "7a6c9e07f91bbd54842d3c04f8db1758bd063f5ad98faa7167faaa16e5ffe10e"
+      "revision": "90b9a6518544cb873ea67f3481760627c1cfeb8ebb3ed5a0824a2546961fe0db"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/1.png",
@@ -2099,43 +2123,43 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/10.png",
-      "revision": "16714cc4e7ce8ad75a9e787acc8352d5722e702b5dba56c6443ea7a2f27aa3ca"
+      "revision": "8e4b30ef89ed99381910dfee0b3edc61e58f7f4f1c0b6ecc73a156e70a63f92e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/11.png",
-      "revision": "bbd6a3c34a9b17d3df4a92c163d5d0620109f72566bc6141070d5db5966a492e"
+      "revision": "e0b5c3310e7d6cca889186970e8483c4761f40ef9cfade4a028b87976b3e8218"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/12.png",
-      "revision": "a9bb24eb4e8cdb76b534d53c7352fe9656401d43a9f71faf05e7181804a6a60f"
+      "revision": "82734bce34a01b776eab6e42c29cdc2688da013e23b3fea2b45a9cbe4c9ec933"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/13.png",
-      "revision": "f5ffdf4b8efd386f87877b8812113b7d6d9a9ec9947f744ad58f48ded3301262"
+      "revision": "1598b93615b6444a64ca8ae4e947eac301c2b815410322d107683ca079532560"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/14.png",
-      "revision": "10becbf01987d05100e5c07804f8a6786054c4b996d35464e5146b6f9a15e005"
+      "revision": "9370277ff9de4a6d7470d7a7f2f71932b7c75c19f617a6550d3d3546da3654b5"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/15.png",
-      "revision": "18fe0ebdccf9f1639cdc892eda12cd3909f081f33e02acb9bc734eb0ee658197"
+      "revision": "9921b1ec345b5ce19dcb7541512a7a0bbf52fbd28e708f0fdb62d8d059518055"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/16.png",
-      "revision": "707e1f09a5297796d62a6b553bb9b8e086f283c406b74576d3b7e58bc1a4e640"
+      "revision": "ad52786989bb463c49444f18729084892e279e7255876f8e2fb25494cc9a01d0"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/17.png",
-      "revision": "fb029bfe864ce4d3daf88e639168a0b266a7e789f490e42ad92a18eac6e2a2cd"
+      "revision": "990d7980f827537f9ed540b83acfd602b35f4d34fd44e1a0b585a67d31745ecf"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/18.png",
-      "revision": "a05cccb8ebd6166588a6585594a2bba321eed3457febc17652df047ac5119a5d"
+      "revision": "a5506ecbaf92e1b3d20e38534fa86631657343e0b7cbbf7641b544e9f0eca91c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/19.png",
-      "revision": "2f5122f9d582f6202e0df423d2b606dcd1f2ea2b08839a751401d9b37c95323f"
+      "revision": "b5fa13d1ded1584581a232b8f2b87ef73d4a94e0b838d2f879924950dd06b540"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/2.png",
@@ -2143,43 +2167,43 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/20.png",
-      "revision": "26590797e41fce5dec2b0665dd86ad892ed161770f850bc0fa7a99a6ab2f8c06"
+      "revision": "6f0e42eb01a20a7c7b05ab358ef6631f74572a9421385a4a7ef675975c6bb5b5"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/21.png",
-      "revision": "c91e1c43b65050f2f71ce2f701ea5d28bb33223c73ebdc807cfad270a70d0062"
+      "revision": "9527e468ba685ded648905791cc10f005dc7cd6fae7d2b2fae175b54001fe68a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/22.png",
-      "revision": "22d7e92beb9bc4bed03c3bb4fb37dcbc04b746ea8a755e579cf10f92860bede4"
+      "revision": "f61d2c3163554a30c590318b0d95f6b48aabfde2d08406e3b8fc16d4a6514475"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/23.png",
-      "revision": "5ae0af88c179bd5e1ae34a60c021b5daa5358a7f17179ec0eff900a7c6a57c5b"
+      "revision": "934c4fd72897ad7753f3da3e29a30b2dfe7ea31a336a62cef38fbccf96256034"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/24.png",
-      "revision": "c65336aeb74bf90d948a1ebf05a7341593d9e49fa5acce19fdf5868aa2c5171f"
+      "revision": "dc226f0cd38732294bdccfc25445d69865896766256bd2340c2b03387d35e74c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/25.png",
-      "revision": "bb0325155a8b98161be5e6db62510e4a708bf6b1f358268e9bde0d5e81dd6d8b"
+      "revision": "338b4b3cd40028edce8a791f313efdd10cffce85fbef597bd115458be2364de4"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/26.png",
-      "revision": "58ff3b3e1acaa8a2fd59d5e0784cb6bfb793145f0c4cdf3f4208f7d52d0f2405"
+      "revision": "284a65070c63f62990f579fa1a53bbf38d96f488e16e4786e3f4ddd53a7578c3"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/27.png",
-      "revision": "45b520c5658e3eb68e77037fff224f21edc30720708b9fa50740df4399114a6a"
+      "revision": "dc6d1459150ac8a90cd6133deb569c34a33624718e2235330c254c75fb0f0557"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/28.png",
-      "revision": "aacce7c747ddf0b532d569f8dcd637367bcca5f99d4b9bfe859b57e63b31079c"
+      "revision": "ca9705a81208ad7f5f7585071dca592334982bcd1843b41de217247d4f33066d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/29.png",
-      "revision": "a1e9eeccf9786ab8ce3b5d4e9d62ad6c377d7a4fb605ea69f75f8b252c68dced"
+      "revision": "4e1341b3c800b1f1ac3347e5fac581970b9118157cedccf9b417bf615b4538de"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/3.png",
@@ -2187,43 +2211,43 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/30.png",
-      "revision": "bed36b421d2ca0764afec5e718ddf3e72235dc22bfcfb35899dae7c0acee78ae"
+      "revision": "de08c270cb28eba65961ff0e23e14821cc9330b1c851652bbad746be65a6ef34"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/31.png",
-      "revision": "ad79e2b6a3f4532e925658aa16b278a09379e5618a7d34e3b609af0d3c91d841"
+      "revision": "9c8d6910d6dbe0b0917a75c1d1ef54a5b796aad740f3bad1a659f28ffb1770bb"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/32.png",
-      "revision": "82e096c367f1875510ec14dbe59a6d1ac49b31671c2298905d8c0f13858fb914"
+      "revision": "d31bfc73a694afc36aad4848671019d284acbc86f84cabfa26b7bce721f5032a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/33.png",
-      "revision": "c38767926bac854374749a2e3a0ed2cead55004512a88761d969850682443bf7"
+      "revision": "d1122131518b86848305f3ccc1388e5e3b71273eed485dff840cbf6c15bd71ce"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/34.png",
-      "revision": "3cb77e2e5419b93b709ea639b19021318a042c597fff1de212c95f21e3c10b9c"
+      "revision": "2a3f188383f3cd992714048a068f10aa7dc9149c8cb4064a7576cded7a0f2eba"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/35.png",
-      "revision": "f5ae54382d27517318660dbfe3e9a326929926f7e5c7f6caa01d2e418b22cb85"
+      "revision": "9cd510724b57d536a6c40dfd059143428a8f07f97f2a9732931f3004a1f635af"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/36.png",
-      "revision": "7b5131689e22262159f5da1abf630223acf11a82debaa367e385bb122145e4b2"
+      "revision": "d3c3c46adf039ff5e235a15b39a4addddfb294b7d8552fd8c4d382d3c0077b83"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/37.png",
-      "revision": "e2146538d0a8e6e689259e515fd58bbc86998ba518bd9b6531f7115c0f3b31ba"
+      "revision": "a07cea5f6ac3cb63c642d3af064fa07c5221460d165fd907b2498c08348ae6be"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/38.png",
-      "revision": "309a661ff606ba5d628b3094577858ff041de2c8b833fa54d3255a424cae7dd8"
+      "revision": "0121adcd5a9460eb796ce9c698b36582d1fcf06a3160de5cadc27c7b2372170f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/39.png",
-      "revision": "a030944a864bf9fb54e0d5d20a793b6b45bc3154ab23076cd5f5aae104c24e24"
+      "revision": "397d141d88723bbc5b337bc98b04f4ee582817e3966fa5d0afcf384ee8ec7866"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/4.png",
@@ -2231,255 +2255,255 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/40.png",
-      "revision": "3a01979d80ab5d5232ce76d65b8158c2f45cd16c62da85fbe747d7660c2f736b"
+      "revision": "339b266545ac977a1018c43ebc92786916e0c2ecd0e6fb2c6d7c46f902403ed8"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/41.png",
-      "revision": "4613768534dca0a1d1212fdc3bdcfed6ad2ac3798178d694abd6737d8e69f2d1"
+      "revision": "c6861b9615912668e4dbd1b7df227857407bd088d4fcbf120928ce6b90f4ea47"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/42.png",
-      "revision": "18d73980df73bd3581e404cc347b9b401969a8f31ec8ef5e9fba624bcc2374f0"
+      "revision": "6ac7b79a2f5fd79304460ce52d562071f0e6a8ad43570d5679ee3bf7b1dfb024"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/43.png",
-      "revision": "c0cf417dad159fc5dcea58194226c4422bc8f31199b40dee243006b3e579d2cf"
+      "revision": "3a2bc4b3f3bd38d342d5e3195cefa3be684c9f2dbec0af2ba64d14577840bbcd"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/44.png",
-      "revision": "5b13b564caf04e160e80b5ba32714d4e3e060e2b36314cc4ac7987eb0a69f4ab"
+      "revision": "902f18087ddc7052a714d9d400c257d7c3bdb2e7e201e8acf767ca0d3a1b7347"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/45.png",
-      "revision": "82c68189b031219ddcf6f424259b6ebcc58f80b7e40978460275e247e03cdc6e"
+      "revision": "844d1b6d91a31ae8f6f27cde31e8f5ea8e78c7bb7d508bcdcd9c8ec496d69bf9"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/46.png",
-      "revision": "9341b788d9e372829cf306fd20a8c5b775c5836f05ee202df81f951ca2fb2d0d"
+      "revision": "5d331eed9d2ba923ab452558d54da28f036b0cf60913fac145b30d595aa67b06"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/47.png",
-      "revision": "b8dfa3180dd8a2551433c99dc9931f32c6a9f354600b42044e9d64db43497bb4"
+      "revision": "b39bd9972c1a066582e459045f8ffc8684aef168911c218a1f960d43a826fa8d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/48.png",
-      "revision": "8980b9e408160940f68d37f4f96f35b6d46d86ec7b093c6d6b8ddff688a86d4a"
+      "revision": "1003c702d645c7a2fc68ec972ffa96670f6f310ea241cabf9af6aa42ed622aba"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/49.png",
-      "revision": "3c087b1aad0dca2e3c8d4203bbd9a1c4ea87046e07048b955d24f3c09915d39d"
+      "revision": "42c0aa163e2f4eebd345fd62faf898581670487e038884a94a564387f7adfcc3"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/5.png",
-      "revision": "4a74eb7d3d54f30e5fdaecbfbe023724b52acd23397e49a3ecd8592b814bfb24"
+      "revision": "b30c3ccabc0fb6c34c6c18893aadc07559ca4d1c9d1401dd07199a9d5bc06d44"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/50.png",
-      "revision": "5a4ea58372bfc6883a0e068d9a8573c365ff60685ccb7aba68b04e8cf9111d7b"
+      "revision": "432be7183fff34bf370d61d039adde4d9bea9301c60e1599994471335e0e0f50"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/51.png",
-      "revision": "d0401a47b17593c17c040cc87a048c84d3df33c032be3abbe0f53558c8713d80"
+      "revision": "83078dc9467f2f70cf2020a17099d3b22e2864102c52fd535758ba749eaab45c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/52.png",
-      "revision": "cbf1f4fd04170837cef2fc24ee6227459a08644061c3df7c68a2d43173b1acd8"
+      "revision": "892a281ddcb2f5e3aace6adb71b5ebc0796cd4517d88dce47f8961e28e67f201"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/53.png",
-      "revision": "09c9a250c025be6faa2e0cfa2c6d7fea932acc57d24d4dfead2680dc96b2ce2b"
+      "revision": "16e86e8ef7970b28f54db5bf5fd54935cf7183ebdb9d177bf31fdea6560cb3ed"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/54.png",
-      "revision": "a4612f4019143f5ae7965c145833a8484758952b931d4ec7dc3eefd494ebf1f5"
+      "revision": "9386b2c9e03f930a284533f4f5e8df6f49d4b81044223c9fba0097ed48123f84"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/55.png",
-      "revision": "04fd3b8f621e890afdda66cf392bee5958d28b078acb1990750069ff68f62ef1"
+      "revision": "b6d4afc3c2b45523df8190d4ce22fc97530990557d53f30e24a150ebc887def5"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/56.png",
-      "revision": "23949799d3ba0285657dfce3e9bb907645b6dfcad7afdb54104b89044bae8b5a"
+      "revision": "ec730f971344157a7d0236eb813e46d96314320114fd96c3a92d57300350fb94"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/57.png",
-      "revision": "654f8dc97dc88ee4a4f85c7254865a92055b0e1704613814ae164a8903e9d140"
+      "revision": "681b36a875d10956f497513893a12a8b47acd11b190cc0ed6fe41a2a9d1b96e5"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/58.png",
-      "revision": "b790dc7a2210491fbe0cab814582e5b233c6550816467712472670b8617e35cc"
+      "revision": "1d6725b7cfdc6961e2e90aa595fc19a0189ff0945beb31a0d42338431e2a4bce"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/59.png",
-      "revision": "d87d211bea6e36726377e61b9dcbd1ca45ecb8e1eb000972b38d8345889979c4"
+      "revision": "7963b5e586104d67653708ac290d68009a6403e2181e534f025908048e86120e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/6.png",
-      "revision": "6f77efab915dda4fd9e18905ce4ee92fe9bd48b6af9d7e10e4410808c7ef4523"
+      "revision": "214073337ad514098fad951fd309f5c28c7892ddf9b9ece28ca31ce5e25e804e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/60.png",
-      "revision": "043e02add42338f4287bac7dd6a68f76dce5e47d484e4ba0a1bf46a90e0c40a5"
+      "revision": "93c4a3c4ac2a096de1209815ad5444841a4282c4b1b382e961b7aed9252f230e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/61.png",
-      "revision": "96552dbd3b30f7ca1e9292a0b587976019d7c838896812dd18d8b1526d96e5df"
+      "revision": "2b575c44803a55d0b33338eb483ba47c29bf5aaca784e0606d400225eec5d337"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/62.png",
-      "revision": "70c0e0764ea96c3e6e8f467bdcdbfa3d573c38b208ea4838635cca9ba88a1d50"
+      "revision": "fa45ebe6006b70c899521a605ccfc0a7ccae6a573d37b4b09bae648fb7274f29"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/63.png",
-      "revision": "b3a36671d9efe43a4ed0f77d50603508faeb53ee21cd65f896d4483da47d7189"
+      "revision": "1accfeae2c26601bea38a39043eff4237a73f8d6fc780d32de92067080db5b5b"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/64.png",
-      "revision": "9c4b90cec8f3f39e2c96fc46d8b56e7366fa2055461b49906aeb1f015f2f2f5f"
+      "revision": "86804ef9ff2fd9da791fdc4eeecc95377e9deb530c89482fba255ee4d3fe00a8"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/65.png",
-      "revision": "55c7d75b1533b27b8245ce99d8bd5ec412620df2781abc90c069ff308de94667"
+      "revision": "db9be64c651f03d0f66961ab7152ac52c8bb470904307b4f2a37087179d9a64a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/66.png",
-      "revision": "0cb7aa69c49b8deda3b7c5a90720ac95aa721e2c542400cedc34b97e9399d73a"
+      "revision": "dd88605eeb8efd3efa73ed50cfd472247d8e14b89cb45f1394c5e9e1871feae8"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/67.png",
-      "revision": "05557e1cd3548f05a6f3f3b06912aaff47b7cae5aee881c47a9d485a88d2766d"
+      "revision": "ac5025c87d9436af35e71e6a585523fbf7fc5170fecbadaf50d2549f96b3253d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/68.png",
-      "revision": "109b2ccdb0f92c8251f74864124cbd0abcd74a70a0b4b6ffa61e5e5c64827b36"
+      "revision": "ec87f15c233cdfd42b8d148ec89178ee9ddd355e09e2d2b4afe96214bdeea0f8"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/69.png",
-      "revision": "ac2236781c2121047fec56827256890e04688d8aff9d982be6bb9a4a145a9c0e"
+      "revision": "450d40de25c7e6aef8f80ab0420d84ebfa9e4e2772a1fa49ba687e9cfe226fed"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/7.png",
-      "revision": "0229408a6fec101b4938f16ce76e60b628bd9f1cb380506bdadf6b7d3bd371ea"
+      "revision": "06e2e6f1c49dff0cfff50fd7bd5d79d9bff5651d35b562ce5b0bca9ea2da26d6"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/70.png",
-      "revision": "c7edacac8db99d83b3e7b9096589b38e12866f243a6121e932ae672555f40998"
+      "revision": "c6a4997d06800c2947c4835fd7b00e15dd7d115e22e29b1404fd7e3cb281bd86"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/71.png",
-      "revision": "672678af49f06852ed4b4c2fc028d13aef497185e11a5bc8c4ef9ddd61e1bd25"
+      "revision": "ef23d0e87a4d68683b9ff5eb330874571e6edc5cd4e97c304d01fd93bdeedf2d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/72.png",
-      "revision": "04abcd0d1540e76d7e885de07b20b372cbe274bebb85d7ca7102b201ae8348a3"
+      "revision": "64bb98c28ec0b4f1ac39de6b35acc0060236d2fec9e9742b421723c61b0ab267"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/73.png",
-      "revision": "b264b3d20988af5e3a2a29940659f66c2a7fa086eb1e1f01a9584f733583ec3e"
+      "revision": "c83e41c2133259b3c35c2465a8d4b21343eba807506912a956eb2450940c67da"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/74.png",
-      "revision": "5f27fcddd89f6db3c11dbe5cfa51255cf38f56c9a1b2921c8b58d5ffc0948f60"
+      "revision": "7292bcf7372d6a1e8ec93c3b48621654b88a8083dd991826f9a405f20f7f2050"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/75.png",
-      "revision": "e682742247a469b4b38c01d28baaf3dc2ad1d0a803c34abf6ad81f2c0295a36b"
+      "revision": "11a42456e6036c5e386e746cdeceec021c2359123b352425435843d93c60f647"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/76.png",
-      "revision": "3475844f78beab6104a0e2b37d6896932c0a58f269a684032bfb578da26c9321"
+      "revision": "7aa06a147ba49b9eaedbd95ebdfc5f50a1993dddcdbc2f5bf8833cb6a4e2bce9"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/77.png",
-      "revision": "b27d48217e1bb9e0d7364897ae784aaff307858dccef1254a0f29ffdcc32a23d"
+      "revision": "339c6edc50608b88ef952904a0744777c9410da6115eedec28c76197b16e8852"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/78.png",
-      "revision": "8ebd33639452e64f3615948ebbc1948d3be7822bd2f99e3f1ff942ef333928c6"
+      "revision": "4e466de878bebe7dd505c6b4f5a61bbf089257fea0fa5bfae89bc77acedb4254"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/79.png",
-      "revision": "ac09b2a8ad2b81f3471a1b61aec585b55151e37e855ba931ecb35608ae68437d"
+      "revision": "c3bd4ca0fbb6adf7c1cc5120a8fe823d316ad7c228f4631ee76cc5aa4adbf1ae"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/8.png",
-      "revision": "c16971a0ced6045db0c60370c2255abc4afcce443126868ac5cddea26fecaef6"
+      "revision": "17240970c692f1f6731180f2435075357b34d2769aaa931ce89ba50a02be0505"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/80.png",
-      "revision": "25e18cdee14a852c9e28bfb378f6cafdac18ce03c82000225147e0cf84c1ebcf"
+      "revision": "c938fb07a9bfd7512bbcbbf7355ee16adf04c7e974802d0317dec98c331c46a9"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/81.png",
-      "revision": "6e5a333f5562a5b0321b8e74252bd7634080909df566961ccca18cf4475cf46c"
+      "revision": "1be9ce9944d44de930dee61b0e3b40165d3ce88981e1e9f40862fb772cf4dafe"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/82.png",
-      "revision": "41f5e5d5cea881e77e700fe84998b96d50715da7b7a2a34f674d826da5d49dde"
+      "revision": "b214969b34a9a69896031c236cb302f61790bd7d75519040f781d0d0e75acc07"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/83.png",
-      "revision": "6a210295eceec78d3921589726493bd51899c8a0ecada81e867778bc08a1e7f0"
+      "revision": "cdc384faf8742377fe41eca8a8bbdeea3e6da70ea2d1fb55e4ceeab2b254101a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/84.png",
-      "revision": "5111c8f5804355ae27854e971e8694205583aec5645d8ad664c908500b1b4ba7"
+      "revision": "924935d79bf6a93f8611cf6d9cea4da97545d8fe2eb59f587541e8829270581f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/85.png",
-      "revision": "fcf9b5625a86a725eb9ad77809f5f05fb3bd7aa80ef121bca7c0a092d6e3d84c"
+      "revision": "a0290b06c8ba2b3728e2ee1cce0c1e38b69f0e5bd26128c74b1b2b1e0856095e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/86.png",
-      "revision": "7ad51a7da46c9a8bda5e676e748a2e0b4de8c4bcf52617de217fa5f050ddb8b7"
+      "revision": "8a7bf6abdd8bf3853144e34c5148cd80a867ce446b57253da2ac2545a91ce1c0"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/87.png",
-      "revision": "1d11ebe6c63abdfb1270bc20ba661e6a331314b8d4e895d4773b6ca29fee2056"
+      "revision": "c5e85d9a9a16e2229f99da8c6095043f2046b1095a570da6839e249d2a2e2585"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/88.png",
-      "revision": "7924d915fce69ebecfb8239070919c5f6a0e3aaba53cfbeaa076ec726ab29427"
+      "revision": "542cced335bdb630f224ab793a35a05d9d410b893a17b18307cab398f8fd69a6"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/89.png",
-      "revision": "00e32b40c20b13571fb38ac05e2383daa7b3180412c5cfa7415c8a97c3488a4f"
+      "revision": "e18dfdeb2422123716992512b618db71bb6ee9217bc32675fdda54256a87fb4e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/9.png",
-      "revision": "7ed97ca935d81d0a25f5753bc44672815558999d28caf615236ae3cea5872c0e"
+      "revision": "20dd3ee82f3b9f9c06c2fa307ca8be81ed7a64b8f290d706d4bed8df955b643a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/90.png",
-      "revision": "cba6d333df70b21c05c4614040385fc43ac7960989e53dfa0626841892238345"
+      "revision": "3e8235de2586909f43ab10b31fd3e728e381c274ea241b261177d0c7e14929cd"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/91.png",
-      "revision": "7e367a93b6e91f3cc66fbd2fe280b8724e8440db21045a264715dde806c432b1"
+      "revision": "1d0af1a16957e22932614d4b8beef54f275726baac678cc58975c0a249924d4a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/92.png",
-      "revision": "d7f3732a0594c8133bf48a3dee5eeaf45d1d652f42786e8f22c65550fd43e49b"
+      "revision": "537b8eca95edf56690f6b32decd7560e2be9dbd3460032e87c83ffe7a1b8fdad"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/93.png",
-      "revision": "22d4dc0e4e1bdf8de664f4e87ca86b27aa5efa238c0b8667ffdc014b577c3a7f"
+      "revision": "766c9928913e082ba041322c0ff090113f949578d23fc482368aad7cbcc89576"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/94.png",
-      "revision": "b3386248674d9d658f68333235514162f7853c4632b982d665730fa5bd09cb0e"
+      "revision": "bca99af1d87f7a47dbd373b76482fb8c76905eba592216fd0d8f27ed1b7202cd"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/95.png",
-      "revision": "6665f728fa97ac7b3c609efb14ff3cd58ffeb52d6490313f454b583b98d0e821"
+      "revision": "9d1e7f2aee1446d067485d5c7ea8c88ce46e2d683ece9235a76072a555fa3da7"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/96.png",
-      "revision": "c92668589cce93ba5e7c53a1dbb34adbad5cd73ecd9fb37c4ae3711cbc4bcfe3"
+      "revision": "b99f1dc47a7e3a5ba6cdac92c8155f63ceff4f1330a5fb75be83c4f572167a37"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-2/97.png",
-      "revision": "34b538227795ce925abe7f44ae7dc936c7fbdbad66ae39a85e2c1e61a77e55a6"
+      "revision": "94ff3e414515b4968d5972142c2daa54b1a5724853a1b225db9282ed609a4bea"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/1.png",
@@ -2487,71 +2511,71 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/10.png",
-      "revision": "555768d6f8cded68c7024c7cbf859e4a8d5797530404adfc4f59b6b76625791c"
+      "revision": "aadbb1fc4ccc76896a782f31624cf284e1555b7a0ed8641c6cbe95033922a17d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/100.png",
-      "revision": "375cffd67ee68578026accee9576a9c27e10363225893c0e0efce5d1180dabd2"
+      "revision": "84b19ff2b7ed8af995dde0c369a2024425384c63360be0d400468cf3d282c46f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/101.png",
-      "revision": "49a9756a696de0ede02b3c56d604f274fbb50820415e51017b431d166e0491fc"
+      "revision": "9c380d8ca4437e46cfa3c8e01b014d9ef97335241c8a704d8b3e80d526d86f71"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/102.png",
-      "revision": "1eb5d673cc6fc84dea0f0bbe3e59365b9f857ea168d533600b14164a59cbe3ae"
+      "revision": "2414acecb57806f336b40850f2b2933fda7ae02b58df1aca4312785a008776f1"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/103.png",
-      "revision": "4d8f4810b6a0e46f287a610af8e07bcd86e79fd18bd6d2e630cdca170be90cb9"
+      "revision": "103cfebcc5096c4b250d35af6e5798a71db8b5ceb8f675f85c228456ffe3ea3a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/104.png",
-      "revision": "07ca98dc5d5acb7da0b2c9252ded2136da940cbc4ffbb7794a07bf49f5d5ea75"
+      "revision": "3eabb6af7b3281380d27db24f5837d73ad81b5000f466d18a373428f832f3cf9"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/105.png",
-      "revision": "6ee8b9853c39ac11e73089d3e302e4d30909f19af9926213d6bc9c4b8e136b7a"
+      "revision": "fcf502218d0559583ab03cfcffeb6573a4007829d8618f28802ab0669f7b5c4e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/106.png",
-      "revision": "bcee283e6d82ad1a15099ca09bb79b538e8db16a42af98d75670f39628f1e53c"
+      "revision": "b3e6a166cec8f8d04b58f0df5726fcd7241f86553ae3c58c876c6f597a094ebe"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/107.png",
-      "revision": "0ca9f5b86c7c7516692fae3f9e36f1489a311d6d1153858a8c419afd6572281c"
+      "revision": "11e0581ef734bb094efc15d57337d0d760ca295313b5cd2a20168ff3bedbbd07"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/108.png",
-      "revision": "e04acf0654afa2be8602f3a56858344617ea8195da745666b71ab6c7893be8df"
+      "revision": "aaf8810e078875dbf80426e413144de2f916d010db09b8f072980c58eee18eed"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/109.png",
-      "revision": "8677e15db3bf4c621237be5dcaa72217ead279c10d52ef464001bfc69f6c04e4"
+      "revision": "edf794a2d77d5e881800fa187fda1e1206ecdb33892766a6dcd6b98689055334"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/11.png",
-      "revision": "cd3286215969359cfa319a137355f866ef668c90a541552fc0856f1d0ca7dbf0"
+      "revision": "c77c0b5891aef9259cad61bab13efe18cafea7a0fcbab9f5c1964aeb4dfeb3cf"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/110.png",
-      "revision": "3ea3fe3a3540f23f5b38ce8eeac48beb867c0018915575009296223c553b6c4a"
+      "revision": "9f6cd299e6ba45e7801329ed42a60db8b2b75a603561af1286b3a0a3bc24869b"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/111.png",
-      "revision": "aca20c827dfd89abd6c1186a16317bc27404f690ef9bce56f9b341f613acbd70"
+      "revision": "2ef18b6ba500099730a3fb3495a420ff8299ca40924cf4dd7c106b8221aa94f3"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/112.png",
-      "revision": "f74dae544ee6fecc35de03887a975dd9ef80d6ebfb95aaccdd0b0ee920522e9c"
+      "revision": "f6995ac7796ce0caa9cf74413b586eddfe3bd7f3598c4fc5d28cb0f582afc07b"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/113.png",
-      "revision": "30f8b4a12b1f0c2c4a5eca7d6e6ac889b5e7a044d2afea39647e49d766d791ce"
+      "revision": "7135c9d492cec170a29f627adebec9adab91a200e1794f33fbe55142325a2711"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/114.png",
-      "revision": "e96910329af89e43ee10b87c8dcafcad448c66d3c3d33a6cb7e411d4608ff6c1"
+      "revision": "ed3025f51b017356a3f7378a184077c83c17796f0f1d09250c44f5811d121ae9"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/115.png",
@@ -2575,7 +2599,7 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/12.png",
-      "revision": "aaaf0a964fcde36a6528e220dda19bf2535beaf403796ff4f366b6e7e11d1c86"
+      "revision": "ade164a912203d1a4683d2ae45d09c6232ae777b4d95a6f3bd812adac7791f97"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/120.png",
@@ -2591,31 +2615,31 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/13.png",
-      "revision": "8c4003c4b11122844ae5bd79868d2d7eefa5f3f02b8f5620521c4cd15a577000"
+      "revision": "bac3c54695cac878becf4ed0fc6bc148a70cfa8567afef9d762a52379433350a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/14.png",
-      "revision": "5238d4c847be5fd88f8dcda2329bcf42652300aa6a3e0cd91707c959721a1b5c"
+      "revision": "243aabb58c1f381e0d2c7ebcf31089dbdd698fc00b27f6afa4b345955487446d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/15.png",
-      "revision": "d87a1935a7a278ffcbca290325c49ba5a9942517194c86c76b98fb1200cbb8e3"
+      "revision": "ca2a5e3f495150c8b3a7750f5d75a751f08eb92cbf839345fe9af5b92a9725b1"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/16.png",
-      "revision": "0b75b4ee43e75acdd181af89ee50c1d008f8c2a8fd72d1c0f9edd82ec25267d0"
+      "revision": "497cfb219a625ca501eb6aae2c6ec0bd27ddb3775b4f70aa478f4d1b353195a6"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/17.png",
-      "revision": "44b7a86a95480ffe6420a9657c2c5ce6feab06c2580bd20f497e8750c27d5993"
+      "revision": "7adc3d0d48d3a0028f4bb304919cffabb3777fc61066859807d74dfcefd4127d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/18.png",
-      "revision": "0394f237e7095574cf37d964063abd7e802d00edeaf3815976a234e66508b717"
+      "revision": "bc865322a1991f1606e5962bb84662741caf3f36259de2012d420e2c67e18f70"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/19.png",
-      "revision": "73ccba1e348fbd8abacf330e2025fa5e7f44787ff08a86752fb32a80d2ee7504"
+      "revision": "0be0e4af74111eb7fede3ef01a2efc63d2b95b4905f67ec4c4e3eb1802e24ea7"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/2.png",
@@ -2623,43 +2647,43 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/20.png",
-      "revision": "29ee7350db24ffb6e8e453829fce818d6e9837778dbbc9afa6f2aa29205bee81"
+      "revision": "8773be597907936aec0a5af2ad4b029dbcba18aa40cf2607836a62f00322b91b"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/21.png",
-      "revision": "1b5f0ece7eb56cb1d205710471f2ffc715e766d98807889356f52b97cd7ee623"
+      "revision": "f8a2942c99529e390db69d67c29d906b49acd97bdbd7437b624ad34ae668a6d3"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/22.png",
-      "revision": "908127e07e19ccdaeb746fca8c0080600140498a2bf8f4f1b33184dd920ef4d3"
+      "revision": "82ccd71b716d59fba48aef4064cc6639ccb9057eeec2d2da4d1ae69a823ee7a7"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/23.png",
-      "revision": "af04a9204794133d3a50dbdc3ab3f5c9b180d0747970ac214be93016a25a07ad"
+      "revision": "cf59a1ef9b6806ceaeb9d3585318ddd729cc6cf8882cf65caa3263c366b33806"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/24.png",
-      "revision": "dcf4a879141c5e8c3c5f1af15b970185dd52974346f3ed50f434952b847d0b92"
+      "revision": "fc367147f4b52586057b5e1bb5a2688f07888b0b889fe5b2f988f7708ed9b6e4"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/25.png",
-      "revision": "7f2f2c562a82241bd82f7e3994ea97dd4b2a992c5eacd1f0d80f42df7fe74bf0"
+      "revision": "bf970d2a19c3333f9694093a0e0d257c7445caea6f6d69f94b4ebfdd1c346331"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/26.png",
-      "revision": "ff4f613da8b46d48dd1d93b313b60223d3732484d54d87ad92343be5ea5667a0"
+      "revision": "19e7211f9b1ab2af2a7e5d553f2d78a9e4b1cd77c8e46b6b39615f7cc4adf8e7"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/27.png",
-      "revision": "9c0b7c6c101fa15f2def3e4f7635bfb50909f171ffca3fa06d7ea8cfa2ff456b"
+      "revision": "59d683b06b12b4a1efc0fff976556cf65db252acd44b846f2aa44f6333d30fec"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/28.png",
-      "revision": "c860755db8f106ce03ddc1e09828dfca7addb70f9e4fa74ba20fb63e349ce632"
+      "revision": "874ca014d5d6f785030f5da62646dff9676e5201ae4ae14750ab86ed7602cf40"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/29.png",
-      "revision": "ec857f0bac06157e85997caa5f13513ba8bf44fe068bd55d87fd9c9dc9b13082"
+      "revision": "dc9b9b0e1fd61e227139a00d030c300673209f642b50cfd568a9f97fe4599d23"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/3.png",
@@ -2667,43 +2691,43 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/30.png",
-      "revision": "5521fe7e58cd9a00ea4cba02b6150025d68702cc43d5263a834eb36da6a203a6"
+      "revision": "340e18e0bd43bb1cfbbcc75e298320788f4a2cba71cce89ff619facd69654ff6"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/31.png",
-      "revision": "bb35c38b0d5e55e0a4a1fc5a4786a1f0b57b08e6e19cfc00c06a92dcc75433c5"
+      "revision": "9858714b94c862ad2e04dfad69e116a62122ceb7839c3c4f2e6d3c1f5bc53536"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/32.png",
-      "revision": "72dc34761d02f28a8e5d8d8240f8d1a6ea774cdd188869467ea7ee32cf307e47"
+      "revision": "1365c1247704b4ef549790d82e8f6b1b21b04b80e885d48a9d53dc7f56829514"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/33.png",
-      "revision": "a8d9bba9b7f86a355b4d90b03fbd9a60f74349ce1137e967bad7a69ec6e30de3"
+      "revision": "7806680f4a212170d3615b8a69d7944ccc2dae0ab7c8de0f6ee731a4615585b3"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/34.png",
-      "revision": "56f52f5ca736e0a7eb491f3890bf676fb470b6a27a5c82d4f66f83d090a165dc"
+      "revision": "aea542449712f5e9e4a594e2aea9282cc84bf967d036644d5be8a3f7cb868cbf"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/35.png",
-      "revision": "1045cd24654842b706099e43bceb772e897875783dfc8a3146e12e8ac533c430"
+      "revision": "7b61b2ce9088af2b8846d8c1e5dc91e10d9224c498c29684bcb824bdc161f117"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/36.png",
-      "revision": "22164a2a6e7a7b0e0a96caae9005f316c4a0ea380a9f2aefe49c017d8481b360"
+      "revision": "ac54188af811bdfad3eb62470ed22d43e4e090df300b164cd07d19d549b6360c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/37.png",
-      "revision": "5deb0b45f6313f4eba12bd8049a9531d6f3548697e5d877b145421befbe5ac8a"
+      "revision": "abefa291ad3163dd894b1639d757f2f5cbe10c450dde376fd6c316cb6c04b159"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/38.png",
-      "revision": "fe624d75f3abd528eb737a0b1dd0fd58482d0b4433c9f264033a520d10aa8f27"
+      "revision": "53227f192ddee01fe953557dfee4498970d37e6007317ebb96f21e3ecbad787e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/39.png",
-      "revision": "e08719e9438e05b2b3c4fa76e45dcc7245eae1f84b52e4b2f48737dfe6ccd459"
+      "revision": "b81942419cf0263ec75f49e763e6a727c35e895091453eb08413fdaab4310445"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/4.png",
@@ -2711,43 +2735,43 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/40.png",
-      "revision": "f48178ccb68f77451038173c06ad6ebee28b3e75dd75bf7499a95d12d4055eb4"
+      "revision": "1e5a55e2c3802f53e32f305b170f3dc9c36eb8ff8394355d867bc6cb79a39c70"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/41.png",
-      "revision": "defa394d8f60c852e08db4c1cae19805274d655988578510f0149054084329eb"
+      "revision": "250a4d24567e57ba9a85e466e05e72ac3909d593951688b9cf8bf98943ce2a6f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/42.png",
-      "revision": "c04311c350d4301ea7db363e47d5ec0f2e99caac2ca6bdb0e918c6d0fc009b26"
+      "revision": "7cc1704c2565baaec097b1e2c67dd9bf753917341c5eab6eb8cb324f7468d4ef"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/43.png",
-      "revision": "098f151875d9a9dc430a2871fa715caa785267bc33d706b246b473f8b5e52786"
+      "revision": "e42291945d0526035ef17515b689900279f6f509956e1cda3cb7d1e69d5c7970"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/44.png",
-      "revision": "08d2f7be447d0629f8306b40df3719344c55b2a3927696c9cdceee089b0d6ff1"
+      "revision": "96c18a49354948c06e35e0189fdcd6cda672b24463107ac99f268d812a6e10c6"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/45.png",
-      "revision": "04cc909e76a837e3d688c2219e1a7b8afdc651660f76861423af708fdcd8b539"
+      "revision": "5e9d8f6fcf6f90abd06d2b60baedaed78027b0db18cac7736fb8a56baa9188b9"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/46.png",
-      "revision": "ea1cf5aacf910a8e192e010f4d88c6fc54f30dc6b462a92d534b3a05d73832b7"
+      "revision": "a6d5c993a6daa045a3979b3491cbc41050265cf4a89c78d707dd50bed5a87a71"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/47.png",
-      "revision": "10b8c575dc2e59441d31e3490920faca34879fdea7269a18c9356ce67da226c3"
+      "revision": "f655bfec7a2375ea759759b0c8f3625675d3f91edee4fc49dfed1c9de61af61f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/48.png",
-      "revision": "aac00f7dd18ffed59f0b4da70f0a4805700694498a764e41bcdd150f58bde704"
+      "revision": "621e06110c91de7d931239f20a166463dd73ff78dbceb4ce25729ab091d5ce7b"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/49.png",
-      "revision": "ef33cee027ef49a7ae2b2c2f074c9f7dbabe0167b3561c96811048df0e4eefb6"
+      "revision": "7966a50bbaa05072ccaf96e9ae529986ac66c615242d4b66aafdac3543f9b7ed"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/5.png",
@@ -2755,599 +2779,599 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/50.png",
-      "revision": "79b2dba074eab402e2978cb834a306085ccb04be40e4412acf909b2cacf719dd"
+      "revision": "5d7c6cdb48e6881bf066ea56b03a0a9d5ca94605dccc0c17375f721c34c0936f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/51.png",
-      "revision": "55670f91ffc71047faeb3f1381fcb51e5b422555150409ac135b6ff0fff85e72"
+      "revision": "cd494b7f29051faf926622c80b0ee4e483cafc765b07dcc7494ac40272f75a6a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/52.png",
-      "revision": "a78f7d33caaf2dffe9f08bac54dab4bc5f70b63e4ed462678e9d5375f6c5eaf4"
+      "revision": "95960061b4822c4537252a31cd6a5819563ac2709cfbe987bc0493071b49c2f0"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/53.png",
-      "revision": "7fb463e45d93aa902b634ed69df60118a72d6854baa11e373a93f42461402b82"
+      "revision": "62d48b0f46def711205473248161daa4520d0bff675fe9986a9ab061c20e1d7c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/54.png",
-      "revision": "09cff3b424d7b6be47433ccf6f60c4332a208410d64e1afb4244956d2e26cd0d"
+      "revision": "1afb596e095641a975181532ac8ba41cdbce5ed33c528408aed8cd501a3eb541"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/55.png",
-      "revision": "9ae73cfe1d151b9889d1b32aa44aabb0616704db2da454a1134cf475953e841f"
+      "revision": "ae135c8ae89c2c78c25aefe2e7eafe2920c2b53f2ff752bce3a3d1fb0623b971"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/56.png",
-      "revision": "f1e19644b88ed2d2c6ddc6ff2b814f694c878401a859e848d5636dd64d445066"
+      "revision": "7ba9be3e940ad3bc9304ae9f1704bed0fd0025cfbaee9c47dce5c97e2d7fbdf2"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/57.png",
-      "revision": "07389c31a2a6667f40014e54b62ab5c97392f4069c03130cd6cdbac294a9ca04"
+      "revision": "984e86ae59351d93253eb56bb01dbce61b901dd3db03d76f6322355b37c330bb"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/58.png",
-      "revision": "2b8c63b219e053d9f45a5f7f7427a7e2e18bdaa32afdbab637c553fd2d2de057"
+      "revision": "918ce2683c6ddbcfa1ec2103b74112ba4e1c11a790307125171a63a23b881542"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/59.png",
-      "revision": "6994e1dd834e8e0b2f8f4f2dc577e42088a6469d18c3ff61a23a066d19fdf6df"
+      "revision": "c1fc1ea3f2b742422af54296c6a75a86b042c1f5267c1589beafc147d7110d5f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/6.png",
-      "revision": "55db443ea1f6bfb84f7e416553fadd54a36da163971a7b2861128b51197dfeb4"
+      "revision": "c0b91b3de5d4937e2ff60f50fc0c3573c8f0da6bac59039079a97ba01e8da102"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/60.png",
-      "revision": "82ebb7b364292773a80fbc662d50010428d70c04eb43dd6f36502f23fd8617bf"
+      "revision": "ec65bb767526e4b41f9685f75c2f6ab4297567223f5f3ad50f6f0779d485636d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/61.png",
-      "revision": "65d12cad4c88d299da3eb032c15dc6c4a6341c8f64a2fecd6ee12919a6bac202"
+      "revision": "0f891bc00091c6511dc717937c35adb0115de762b151b970bdb474a638fdbbf8"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/62.png",
-      "revision": "5e87dfaf00e6888aafaba6d17e79aebfeae131093b00cc114b9363f9e83fe735"
+      "revision": "78f0b890e7eafe27c4d4b6ddd57fbcbd5b940d7dfd897aeefb12de29866819d6"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/63.png",
-      "revision": "dea53a5e5b334f505ffd8d0a291f33bb06c1918f9d89f00d6b6af820cf29709d"
+      "revision": "0cdcec5743d866cb162541bb3b66cf695fbad7911869ea0f2c802b504431cd4f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/64.png",
-      "revision": "f1f92b0c69da94fb06bb624ad73d357dc8381e50f50844451d993c73f77e0253"
+      "revision": "c7883774d658817e30b6725af6e812e8b8c362ca879bc29c5d295e1d7dde3d44"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/65.png",
-      "revision": "df2a7d9ec6dc15d941cf00fe8ce3f78c68273b893a54cc7f3e7f87daa132cb9e"
+      "revision": "c11e8fcc68a32625ab14d90bfd4836dc30d8ded1449d8e127116c6119ff74cbd"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/66.png",
-      "revision": "893e0bc4309799afc0e0e21bbd03c256d1c18cbe04c91e9f7c519c068ce76f09"
+      "revision": "a010fd58af703f68eede980d908af50a127c4c67b8fc000e476866af05605203"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/67.png",
-      "revision": "1df634b22a4b03572b2f25a34d0acb38825c1529b80bf3380f48b75ecacccf2e"
+      "revision": "81de0e0621b2f5a50f21f3828ed54eeb8c9ccda07d660afb63168b399e1e9ea4"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/68.png",
-      "revision": "6382cfeaaace41eb3fdfbccbff2acee86321c80e70961cf6907c1d850ff86da0"
+      "revision": "c71e8ec10afaca66814fbb66c42243de60b9012c921edb045e035f0ff18ef504"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/69.png",
-      "revision": "df60ab4b100afde54d4ba3d28f33071bba5803b5223d0666c8d9ee51f9f83463"
+      "revision": "f1c6697d503b48f6daf23e8cfbb457e00b568c0524916f6d0d6de07312e7104e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/7.png",
-      "revision": "10100b4ea749efab0309270ef30dda11b36cccdc767824c8d3de5a2de5db2579"
+      "revision": "a0fc209f15f3e2c69cddbac01c3a8f313eb961034adfd800bc47b13f371de458"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/70.png",
-      "revision": "0451b4f22728d5f7eb56d41b87b8269d3e61a21c05a8748e46bb8ffb9da0d5d5"
+      "revision": "42713ebb3f307e3839bfee04a8fe3345bf70c9f45191aaa82c8c6f9e8b1d366b"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/71.png",
-      "revision": "23ad7e1b18b8d6b01957a0063d44c25d72949c288d2ced474d9bce22b1b74222"
+      "revision": "f44a418c00a6437e5b0c66a70ea37452ee59ce5c85a3a6d042fe4e6b89103d99"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/72.png",
-      "revision": "6aa93f6d1e9d924636bb628206bc396d5035b7dcb47ab3e166646d581833ca6d"
+      "revision": "5f1cb3a3804336a835b8855c0d13716325c2b8b655b91a476f8bbada9e7d8920"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/73.png",
-      "revision": "09b82735b18b28d72779417b0e46162d03c04b85a092b5450eedf8d895131241"
+      "revision": "9a194b2749ca154c90321c3d24c99a243025b3f73abfe47eb2a4a83fc673ba13"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/74.png",
-      "revision": "0320dbf4b4aa4fa228580cf0cfe7ffd89910e4571cd8618e38dfdf47af9153fd"
+      "revision": "8132f4aa2ac123ada38c51d37c7ec42d98706cda86e80ae858aae28a39268d5d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/75.png",
-      "revision": "ca1b61da111020dfeea15c140ad166e4c3c0552bc5915135810aab6e0d837929"
+      "revision": "7793ca8c966a623d27afe9f8cc4ada8b90e8ced008e522e4fddf1d7254029fce"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/76.png",
-      "revision": "204aa3072a1b899f05e09bd4dbb449dc4e56d9e25de10d647c52f594efa9c3b1"
+      "revision": "c3aaa6b017307f0f9e1ae4155d072873021bdbc4af71d800f24232ec1df945d4"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/77.png",
-      "revision": "4c18d80d54fe6809323e378b0cfeb3dc36763a184520f2f3c2fd0d6580625559"
+      "revision": "15c7f0bb9e4d06b49ab36a2882808f79e0afe1c609ed9518689ebcb145d7704c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/78.png",
-      "revision": "bf580f78358ad570a2d2538751633792eb17d467ac43f6fb99991056a5b49479"
+      "revision": "50046a5ba9065db2e87c7eda03a15272954a41b42a284e6852c2f439d7849881"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/79.png",
-      "revision": "1c6a6d97b6d6c6fe372bf490039c75a0036622db0a1ff45e2d894309498d2013"
+      "revision": "23b423165616234bbd1594aa652a1a76e9180fac37188e2ace78b83f33617ea7"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/8.png",
-      "revision": "fa14db6b875ab96dab691d4c085c8f6864c969c906fc8dd2aeb452f0bf9fb792"
+      "revision": "9822ab1735055c6af06a17a158497f126ce479d7f45161ef1e13b8423a441977"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/80.png",
-      "revision": "d6cde3df8d2a870d2e7f562efb76b74b628cd117446abe9819e669084beba171"
+      "revision": "790e50353e4a3a6d3ce5a2cba325a44226b277e6447d162c14c5de3fa5047547"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/81.png",
-      "revision": "667075ca96d03a4ba4a98120a8461c7d0babfcdd03684ca43f8cdb947da29960"
+      "revision": "975b1f1f66b687f17e9bc2c6e86c655ced615bd9ec31963c6b11e4631688a13e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/82.png",
-      "revision": "8ef3724bc05bcc0aa555128f52efc273f348a8c1d63a041a4a206bc583ca6563"
+      "revision": "ddb9e268470155f7773e07cfb3d6a745db3fee2a4fc693dff817b2eac8d199b8"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/83.png",
-      "revision": "99fc973723298c788e240ad47e8a6743c9b9ef702d9849f8f36225e66067ee3a"
+      "revision": "82cdf97e630996042881284b1d4e5ac96c35ae91a09d1e06b5055c0dbb73f320"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/84.png",
-      "revision": "5ec4376086349fe415a63e926745c81664acbe68ee171f019774dd42154fbf0f"
+      "revision": "862bcf8480d9b362bc281c2324fd7da1b9f4e5a084fa319553e062e76fc0c21e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/85.png",
-      "revision": "8b554151ec1931cd9ab946b70d47a3a59d466a78d2e2cb711204fad062e4c888"
+      "revision": "bda8f672ff962e56bcb373e950124d2eb0cf2f85410c6f387275a53d4d196514"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/86.png",
-      "revision": "54ced71c4930650ea85c5c20b5a8dabe5111a229842ac229b31c6e62a4fcb574"
+      "revision": "5f9a14385db12083f3aa20a68250e0f2a85973d29aaede8bda823c7171d201c6"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/87.png",
-      "revision": "3db22333d233fa3513e085bd1ef26f96fc22d6bb5b85d3c1261ee2259c17bd48"
+      "revision": "e1712972b1a69455236a1a842defd55707043d142bba54a96fcea89616e0491e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/88.png",
-      "revision": "09d6e4ce0c9a3c289591c97612f11192f7ad0c5c438442bbf2bea22ef6603a7b"
+      "revision": "7e6b9cb4491b5941946dece8a63b2779a062589152b99185ff959ad45b0fd468"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/89.png",
-      "revision": "bb6141ef6b57e0c7a39b2ad790a826b908224f9109267e140db351a4356b7253"
+      "revision": "5d94b4079dd799c5836df4fabf7e244de7e041efbc747bbfebc8618965f0db51"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/9.png",
-      "revision": "3fd1f25e4b18a21aa487f5386ab9901af2f2b4d84ddfbbf5371beff72d1e28f5"
+      "revision": "aa26f2a0f8710aca8bb67b17241f92a0c3da795bf16e0cd493df363279371b86"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/90.png",
-      "revision": "8b277b963326b7d6e20ca63603a167f3c08be316e7f47c8b4219139bb3d9d897"
+      "revision": "4eb350c526ef472e03faffdaaa341730c7dd4837cbcb3e0c798fe885df6b35c3"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/91.png",
-      "revision": "3c779726b26c44c34b550aa11c17e269e550c3cf0f91a9c41c37f4790a02b146"
+      "revision": "7c7e7c014d4fe872487c1b33677b2abd942a57c3e6093bb147813a493dc4f18c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/92.png",
-      "revision": "be66168d73fa38ca5e90a31dffd8d6d7af706ed00d72a6b5618e399827c9ffce"
+      "revision": "7f8f0581d4c54b074c00ee1f83a004c0cbbabbd20aa853b4dbf71a746ab39eca"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/93.png",
-      "revision": "381b8ef9be427a549fdcdb69cd5cfff80a6eb2cd45ef3ce4ea5c0f8fa2e8dc49"
+      "revision": "fcab11fd45af6f8beb4bc64be4ea74f4dc133e1f8bd517c38ba4fa1105df2f6c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/94.png",
-      "revision": "8ee80e0141cbbd0b997180759c027d9381fed00407d54184076708e720d61817"
+      "revision": "46267d1040571edc0a0e72e986cbace873f806f3664378662facfaae288e3e44"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/95.png",
-      "revision": "44bcb961373a8237376dbd7b14cd3b6d4835f51ef959dd4eab39f69988cefa04"
+      "revision": "666d6a4fa1f2e4677a006192f17be90cd068d9be4b7574dd2ba995faf084adc3"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/96.png",
-      "revision": "fd45750292719b3b5f92c381ee5ded377b79b40f01abceb620deeb9dd137e27d"
+      "revision": "7b1dc81eb59279940cd12eb0b187c5727b1299044b07ab26c707ca95a3b8c87c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/97.png",
-      "revision": "aca5ee78bfa3caee16aa4a56169bedd94db8a335013af8c3b2a511941e94a93e"
+      "revision": "c337e7abc82845482b470ce50ef6734584a1adfaa71da65a3dbb75d1b5142e3f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/98.png",
-      "revision": "49ca7047f82e72833b3414de0173e54d9e782ce2eff73758df3792ac0e6f8c1b"
+      "revision": "44f05f92decb357c01d2354ab9a2ee2b4ac9932f0869b974fe73b925e726b540"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-3/99.png",
-      "revision": "1f1cb171a4926db7d0373b81658c4946ab4c8c39bddf2baab9d75f890677dd00"
+      "revision": "955bcfd47a1573c067203d79a9e43d2a60941c826c2eaa2503b9c0560988a4e8"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/1.png",
-      "revision": "bfec8b70f7819a835a3df6b12bd8f18457e816894b1b2985ef5febd4f9f94a21"
+      "revision": "858ce53846f1ae89c1b33e39dc2ad6d05ac2176a6f4b3cca4c2ca2aba9b9f71a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/10.png",
-      "revision": "c583dbba20997a819864ec5cde7bb7f9bd5b67b23059e5b26665eedf7583976d"
+      "revision": "d9edb7b1ec5c70c8756d3bb8b1245513b5111a45d403186b4627c2e1e770ff24"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/11.png",
-      "revision": "9aa013757973315da27189cbbc3fca3762c59c8990baa65271ab0019408e9f03"
+      "revision": "49c239837a868c30bda969aa92bb7bae1abd116d6301a4fd67b4b89aed778585"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/12.png",
-      "revision": "43f9e5e92d7eabd044b6c487d44de72b65a9a11596ec2ca927295fc2368c9c17"
+      "revision": "68f535ba28472e91350b145636df28e1225b9f36268ca5877f3c5d8193f79ef8"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/13.png",
-      "revision": "c15d9478e539e76e58104d5d505d795e04a67881cf4733bf4cca9ab1d3607ec5"
+      "revision": "ab9ddebe198a913255680f5ad0ee50957de8aae35693a60dfe1c6a251c7f60ed"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/14.png",
-      "revision": "dda39fd0c5f00be57509cedb9082cd855b35deb98c58813c4be2d3f2157f75cd"
+      "revision": "f8ad1f2041be6218801f7fe814c3b67e6ff826917185f646dbd5188e2fb4cfa7"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/15.png",
-      "revision": "413574cafecedf9ec7a8f270bc94a80273c0eca6e471d84fd3a731fce32ccdef"
+      "revision": "cbd760a87fcfad89a0bef645fee37e03c6257d08140bd5402066f92acb3ddce0"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/16.png",
-      "revision": "acff3b7dee92b87c914864a62a494c463ab98c5569bac1b184710fe863dfc4b5"
+      "revision": "980b358814a218e6cd953bf0fbb2bf2cae5a75c4f6fa3df02e2b492d2516f3ab"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/17.png",
-      "revision": "d95cb1ef11b69ce3f72c51519c2ebff38ca593c9eb3eb8dedba71dd41765322e"
+      "revision": "c8f6390bd24a36111113772d01ece182ebc26df5eed488cd0641da06a07bacc9"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/18.png",
-      "revision": "3e6ebd67618252cb0671be71b2c5a0ecc288f4861c5d3a1ae3511c3185baa3b0"
+      "revision": "c76221cbcef17e917327f8bf82bc4135a430ec381d8310b28db9f4e01658a51d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/19.png",
-      "revision": "8e9b02871cc58723a15f69e09a5ed82eaf061c8efb1621710031847d3d6f5407"
+      "revision": "105cd573ba1deb75ca76f5c1cdf471b70fd308cf8749a03ca6c5292f45a55ca8"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/2.png",
-      "revision": "cb4fe24b945c0ed56e6b429cc22d0484a7039e75a697d754d308cce87005286f"
+      "revision": "13a1227711fe8488402fda40ce94c81964891ba4231e408ea91f533cf1909bd0"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/20.png",
-      "revision": "8b01c1c893ace193320d1c5ee2fbdb258b798451397504e29818c136b63818d2"
+      "revision": "059177cb8d3fa7de3fabf1966303a2c99c73b09e49d757fe1d048f2976bbf346"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/21.png",
-      "revision": "654047fc97f9d0489e847de2b8b26774d77951f54626ed2c441bb047bf4b121f"
+      "revision": "09b8943b98cf0a92c41e88aec73cc624bf92627c879c5757b10d38ddfebcda59"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/22.png",
-      "revision": "b9a51339bb366dc2d4ee4477d4d472b908590eb2e62c8c4d907dccc785db9e8a"
+      "revision": "88b6dc70fc4bfedecb1aa67dba83587f34deef505b3d11aa181cd42c9bb0aecf"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/23.png",
-      "revision": "106e24ed7e2f4f24b5c4252f980d109e1f7e76d3ddedf7d9eb26a94288f39e0c"
+      "revision": "454728c2259fcd62064bee967fbaaddd54e7aa61d5d4e2a4e5e4e19957674b01"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/24.png",
-      "revision": "728fbb13d624af6e35343f5b07413bb0331f0e8a3f4c4516639b6a755fe8c2db"
+      "revision": "befcb51b0606c1c821477af2518dd2c7473e31444c6d97ebf0633fab6862ae83"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/25.png",
-      "revision": "47ea660cc18749f129e0decf6083a69be3659cc44b9647d4263ea8b65ea9394a"
+      "revision": "60ce472d42218689eeb6e6773d18035bd38ac3d754c909d763ce63574748ae67"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/26.png",
-      "revision": "d82979a77f7154bc06dbfd6d628982ecac85e39355086a710a2416efa98c0b95"
+      "revision": "05e70093efb6e8ff777fa31874d6bfd97937a168d92b62c12184aa478709c4aa"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/27.png",
-      "revision": "2f673b8486d6530764757f74786390408c7a6dfc94872c79d71908acba025215"
+      "revision": "e21ecc0ccb277601e17da83e4c02083d33ec6e5423041afe3f8ef47a9a720b86"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/28.png",
-      "revision": "1e0d25099a163ec671f0fbf18a443329287b0d521432ad977a5c6a144211f85a"
+      "revision": "b2d81485ced499e44d0ab7530f620278b70444a92009089fdc55e10ce47aa5f1"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/29.png",
-      "revision": "be8669abc569e0f367b5a5ef0150f5f7e055dcb5c2d22f1a33515212de0acd0d"
+      "revision": "fee7a26ec18ac97403ee8b5c4a406b1fb7a11ef8e7a752172fd3e191d5458ce3"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/3.png",
-      "revision": "337078cb919f789e13268ca1606acf1d350c2aa00eacd7c4ca200112b4d5c9f5"
+      "revision": "72a78a698575caf5a582f51e001f18b050d36ba72f58c8b6a7fbfd027a679594"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/30.png",
-      "revision": "1a5a0ee13498341cba28e60dda7665bb6d02154e2a2c08ad80314664c2afd3ea"
+      "revision": "4ebbfbf67c3b8ab5d5e2b32a6dc8461882cd55ce1d8dea029ff61774e00ac7f3"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/31.png",
-      "revision": "05f97e77884afa69a87de10ad2a39dc1259112b3fae151591e3b2c2d5a87a407"
+      "revision": "91660be7cd5c4d7547f6347c9dac6142ef840542770aaa3a3ff4cacddf2b0c90"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/32.png",
-      "revision": "fecd8b7b409e6545008c90417099cfd000cec3e5a7dc67e9f859c3482c46a91a"
+      "revision": "30a5605003d7c7616358e285fbf6a365dd0f663349433f12a22163db8711b73b"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/33.png",
-      "revision": "dac64a08a55527dc58839a0486f10c87a2e7ccbbfb985c11f43bde8eaac34d6e"
+      "revision": "6896f74e5d52fa2a47a123df1d2c7f404d0e26810985568bfba7140866f51562"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/34.png",
-      "revision": "1859c832c78ab851ad3bd3d5345df7883fa09d977fdf1f9b4c9db0888a6b30e0"
+      "revision": "65e5b0e2cbe926a9d73c2680742266a31cf8c057b295cc00e349c930a5c4734c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/35.png",
-      "revision": "d1b7c5a66324837879ddc6dc30a014aa35a823181eecbb69a13f23a9f150c699"
+      "revision": "73a0a428e8c2f45ab7f209b7b271d4601196e350088894fd18c165c299000ae8"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/36.png",
-      "revision": "ca339c7616db1c54a323848444132e5abf911d6737d6585abe90c91055809e8e"
+      "revision": "43caa41058eb9df905c84a41e1adca6e5a46346958bb1fcc0f9ec92b91d16793"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/37.png",
-      "revision": "308dd64b8f6fd0691517527bb20e9e55e82ad0e66894947be6dc89d1a3547438"
+      "revision": "3126a7c635dea5725307b60827c3d3a121e49277cd920e9d54139b0653466019"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/38.png",
-      "revision": "e2bd6bf21e019615ea714985957f2bf9a043de9355b7c0343d527c0fc896521e"
+      "revision": "6e0098aff2a90a444da7b5445919b8e9c11b2103d29aa224666ede6873e43a20"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/39.png",
-      "revision": "e0d26bac67dd140edbcbcceb62783e21e6f6dd24cfa8b2c1334bcdbc5087f3fc"
+      "revision": "164d9f2e637b47800030a0346b64be65d3ab60fca832a15791bdfc425fa3b3c5"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/4.png",
-      "revision": "0502be1165f7644c519211205a8227fc1e666014ad99e662ef0e60197af75fe1"
+      "revision": "7b18207aab3b35967deff7759428f6c486353caa8c42cd8339bbeada514a3787"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/40.png",
-      "revision": "859c52bc685f917f037476031721afb0a0ae7f129b2425db18f71ff49c26fc5a"
+      "revision": "2fc2e7381eff166c89d766bc1a7e69d973f1ccef20502a510d8e7e70a68ba4f5"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/41.png",
-      "revision": "449676282c51d0f8a800df4c742c271222aa17e74883aa16ae91380ab1321a3b"
+      "revision": "d910433dba34cf704af17f3de0a1a039caef3f91f07b7cdaa47ee4931dbc444f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/42.png",
-      "revision": "f67875ae7dc02b9ba34358acb86ce585527deccbf66ffd23020a08e9fde91c93"
+      "revision": "1e89b5465fd20dffd583616690080ea0ade87d8793a4e9cbe0e429c91f4f81b8"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/43.png",
-      "revision": "b63653d58b85acd0c1f8a901e9e6d9e8db8b35f9c9b42a25ab23806a664d0e8d"
+      "revision": "b5b7a2a488797f3fb888114fc1be023580128f0446f602bea394c82118f47b68"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/44.png",
-      "revision": "8242f218bcc464c43de3f451b3b6321364f1c4a6f413fd50dec335d142a30a34"
+      "revision": "0d066efb551e339de6e0bb5f5a439fec470ee8591e48c30595e113f2bb79e237"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/45.png",
-      "revision": "ea3956823e2676ac26d447433a5ca39fa08db8c7a61d318607f31a543a9dacf5"
+      "revision": "ae76507fdf889b7f2149c261fd14ec4615bcaa1c7b0257eeb4787ace8bdd514e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/46.png",
-      "revision": "37a5ccca1a27ba693665532f5e6cccf991e19d33fc8be3afdd4eaa8573da6895"
+      "revision": "cf848651bbc13552e7a9dd65a86a1a17f6627dd4e22453534fc10ab20fac366c"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/47.png",
-      "revision": "d96ef4cd622c9ae5bc01edb7bba7c9d50e655190b063bfa2413b6def29e68324"
+      "revision": "751521e32043823685771676c7ab4638067df885183b80a0334fea4cfb861280"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/48.png",
-      "revision": "8786ee56b95a8d19dd0129667e93185e0248df321b22883e7684abbb61ee1fc1"
+      "revision": "d7dfe54a812d4bbd30aec947baf65b3d5172b2317e1a4c23c7ceb4039bde910a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/49.png",
-      "revision": "4fcf7214d6dbee4392e0e140bcb005daf552a11cb38dd3bef0b59244625e759f"
+      "revision": "b0d2e8c7abeedff9021aef030f22f3711700a345a3d3bb638d551c2f3c15ee33"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/5.png",
-      "revision": "d775d37bf3282a0de049fcda857a2c33605f161c7b1859711cc50df3efea5ff2"
+      "revision": "753697b1de4ce6bc743427f3f3530a4b93a0cdea85bd2feb4d5f0e0fff64e192"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/50.png",
-      "revision": "1649845e434361be6c0cacf26abb99496411e31797a923c885744c85b6419805"
+      "revision": "f425e08fbeeb02778e0f0e9c01b4377fed608ef0b5f5e2f4a835c56a00ee80f5"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/51.png",
-      "revision": "1893c6308cfb3b1c8c53c2cd72433786ab100ad20d73e6a0196150a0f51317f4"
+      "revision": "905ea5271c9e45a5cd805bc35fe5dd537183406ae5f8ee1e2015837dfb6e215a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/52.png",
-      "revision": "cf562e309bc3f175d46a3167f7344dcb6cf34f4fc459cd9c3209af835444f56c"
+      "revision": "0b9f9aaaa63e8355861eae1b69accf74e673ff6b66e24afc18110bcb562e8f11"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/53.png",
-      "revision": "73ee436e74e5b797fdb7cc5d4171e10823da7a55b5822e89ce35e5a59f1e746b"
+      "revision": "0acf5c3c53c6170d1dee97886c00e1c062f9d7c11aadfead05a62e175eadb637"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/54.png",
-      "revision": "a6f04ba8b0bd2f2a4ba45298dcea8b0594f9397e43c2045104033fc54bdba02a"
+      "revision": "3a5b54684e64fdf55aa046835dbba7436c02c21440990e7854921ddaefc8249e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/55.png",
-      "revision": "b741ffe11e755f8c7de049b7f8780e46cb1c7d01473971cc0471f3a8d8aad016"
+      "revision": "4964d4a13301417431863ef7f1a3a56f20fdd7cac2af79bf37ee5340fbe321f1"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/56.png",
-      "revision": "d7d764697f0027b64fc1c27f0cf1355c3dad7941139fbeb75a72b4d1756419ea"
+      "revision": "ea74240dbc156dbd8c62741c12973e8e35ddbca7beffae7aeec218b363c3af7f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/57.png",
-      "revision": "5de0ae5e946b90483f2ebf547839a3683bf49866abd71f379bb249ce64d6f560"
+      "revision": "4b47b6d3b482806286eb73779cd752bc3f5647872ecd59b46336145784e23347"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/58.png",
-      "revision": "f1425d57ef35ea232d146998ba80e78dd846008615e0c4ebff7a7a6ecf0b024d"
+      "revision": "3187904dc55f502848f0e342ef22a14b1bd53a0ff6a824854254fb52a6550cd7"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/59.png",
-      "revision": "fd343de14b3b5bd67b13768535bdcd45565a2ffe3f521cffbd20eede87952b4a"
+      "revision": "2af57102f8aa9428ab441c4847595bd2f862b742986ac39cd6c5a0a0195def50"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/6.png",
-      "revision": "b5975ee02405a5bf6162e03ce9ea34b38f63a70d728e9e93c8e9860ede1d97e4"
+      "revision": "2dcf1f1313ff716aa25b0d805ffaad8c227521ee5d19d109febd3df441e5c4d8"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/60.png",
-      "revision": "95b2d9524a0eafe075c9f80bd38fb12227f57bb7e2c35fb0c54d4b74108a8218"
+      "revision": "f7391016a6d14d22372291f8470bc8c7c28e41bbea423dd766f50ce474bb0870"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/61.png",
-      "revision": "76bbcfa8b0340854e7410389a404374ef7aaa0e098086dade9a7cd1ba14ae449"
+      "revision": "2094e5ab3fb4d55d6f09035ee7d05a063077fbbb3c3ba9f0c71f435cb6c98485"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/62.png",
-      "revision": "a90d24a9b2a1739ba1d57b5591316786f603bc9fa6f268fd9b53f99161bba0df"
+      "revision": "821e937d41e74c09d43199fd276b1f8f515b51d2a7dbf61f110c1c9324c12ba1"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/63.png",
-      "revision": "b30e7ad3b41ed9215fe5cb4d370b89cd1af42b59dcb7e9e824518106f37c0566"
+      "revision": "abf74b33e8f9985d8285f0a61d737be1eaa4fbd4d3524731d97f06ce138c9610"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/64.png",
-      "revision": "e182f795b8ec896b7b0d9cf2135398c536f6acf47b7a4323595f12be8969725e"
+      "revision": "a15b066b5ab04f6d1ac1bda6b55913ca11e16a9c3b05d573dd940f99e1d35a92"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/65.png",
-      "revision": "cd2a3aa29b3720128e80858952fc9d1ed8158507158fd623c453ddc98d841fb0"
+      "revision": "1a908716e84cfd8cfbedf690cd9722b48c081af9ffee1d3cf128fb64f72b9d79"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/66.png",
-      "revision": "a3eff8eb21c00709a2664edd760454b32a08363da6503fc6547169d51c609958"
+      "revision": "27e7563c9611171221ff4f6a6de77454844cb9ccd40870058f2665fceac55da5"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/67.png",
-      "revision": "a1414bbbbdabe421edd2e59a42df56c995030540afece9b75085fd8dc28bfbae"
+      "revision": "1ac0243358f8246e43e7c9a66dcddb0777864494ab5fccbe75c9a843ad9d76ec"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/68.png",
-      "revision": "257dfbb861c8e09a2a1add9e9f9139dc951ed73384c3519ad7bf274e3182f9e7"
+      "revision": "8db6d0ca2ed2ee30c2babdd041b0805b527cf1f9bf99b690dafac428d3b48d0a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/69.png",
-      "revision": "8a3282e6ae7606a66c352a304871646d39f6c4afc87b1ffb534443be2ec41475"
+      "revision": "1a341e0f8d25434be9d4599c843c24cfe564952f4550bd91884523f86b716a25"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/7.png",
-      "revision": "bc4a87e7beb694eefb527fb3228bec3e6196e1aaf8f6bd878bbf1716b28f663a"
+      "revision": "be103495176638d832e27f563139fef71ada4bf58463a1b52c466d554cb0f173"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/70.png",
-      "revision": "5aa7b5693a3457e33d7a8d72b6bb71e96d0f514dd165d56b18f457a4a2de1caf"
+      "revision": "23f34d85b763c0154459ada60ac78b2c94ce938ed1f200b903df088c49f25f65"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/71.png",
-      "revision": "f327a4362b0c58c58300cf4c2f2dd1fd3102a161aa9e908bb8a83b63712e34b5"
+      "revision": "a5d41223315a1f2226516abf2630110b44fc36079c3d6aebd23b1fd9c43aaa33"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/72.png",
-      "revision": "63215b892580a3f51415149d5085348b384a376dd34a2b147a050a55a46d182c"
+      "revision": "f58cec9cba45d4cdddc6f044a55825872540e4f4dbf3f33ee2f479cc88b5f234"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/73.png",
-      "revision": "f70f79a5877081a1e84e4b01cfa4881f78b441f3ec95771f17b891e0d12a483b"
+      "revision": "c5865b4611fdde16d9269e647cf6f64468f3cde3150cea49666519660a50aeba"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/74.png",
-      "revision": "e2b23274ebb0f8143de405acb7152afb3637636a97da7f7bf1358804bfde5fcd"
+      "revision": "7dc39925e8630e2f8355ee3e84a7b312c9a4b8bed42a70cff727ae233847be4a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/75.png",
-      "revision": "2808341076e728df32fca4aead2574354a8116d39fac0237c61c3cf80a96f42e"
+      "revision": "7932cbd8440c109b38f9d575aa99b941cc0cedc185be4a840c3927431e6f9836"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/76.png",
-      "revision": "a4ba77011714a8fe8c89bb33a0a177300aef4a68dcb194f24ab80208989ad01e"
+      "revision": "6500ef88185726a24497d0aed11980a4cc4d13b4b6c15a02ae0e19cc5f539caa"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/77.png",
-      "revision": "553469c6a984b047ba48f30d2ac03b7febc3a03600c91a7b50da5b3f0d710faa"
+      "revision": "ecba4bc9ce7bbffa8f0fe23247931fbcf97616bb9f24a4700340c7144541bac6"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/78.png",
-      "revision": "40b334adb7affd18b4dbd3557665e52442adcb7819d31ca858828717e489c1da"
+      "revision": "1dc1b66c4c47278c5dc6041044b1d72d291c5a9719e670487fac958933a566bd"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/79.png",
-      "revision": "134779365a158abb6730060e3f393e314a5e80bcf7afbb4e9757c1bc21beb0cb"
+      "revision": "e3d75e66cd8c26a66dd9789ddeea0674e2773e29f698f085bc322fec809223b7"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/8.png",
-      "revision": "0725270a826105f31fe06ed81242ae3e5c983ec3377adc8aa708258b3bbd27b9"
+      "revision": "2020bf8390aacff37fa41af7969b1e0e349ccc47cff9bc5283a285fbd9b20588"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/80.png",
-      "revision": "0a5d3d37c71193e51ee6b5a340c02af323e3e80c56d1009cff4c36fe991458aa"
+      "revision": "886183ab73fdf63f6f165fab53ab35fa849928ecb7ac52b0f3406e552caac167"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/81.png",
-      "revision": "32a3332e3722d00699f07791ccb82b498597ea09557cca0b2e9eef61b9e1a062"
+      "revision": "b2b2ff73f1fca88859bef80c315771ab3a1da922b6d05a30aa2bce7934122150"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/82.png",
-      "revision": "b639fb56b29e39b58f34439626b01a00beb564c917a4ac4f9f2b90a46f5daf0f"
+      "revision": "24792d5a92fc80f30286612d652e7f40c9fdefeec87ea65d074310b82ebd07e6"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/83.png",
-      "revision": "b34b9ed279e887a55419f39dc6f9ed62c60e0abb11a8e33bc1c9574350e5c05f"
+      "revision": "926aca8316fada94b1255d84d937dd8580e67ff32b6ec9d1f0cae6dfe3f532e4"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/84.png",
-      "revision": "23c3f04b161bb75797b61fda6197882d7e3e15c62b5e602168af77d657587925"
+      "revision": "a6a566883877d68a50531a5539b08c66bb4effa9d7002e265c2d2df9373c764a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/85.png",
-      "revision": "8aa3ff041692d2d0fe0cc351c7b362b8c19be651d43f8e2aa05df3d5cd98fa03"
+      "revision": "5af759477fd2261f489c74b80660ef214bb0de481ed67828ff1b34f17fa514e2"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/86.png",
-      "revision": "55f1ae064662831d451bb46cb20059b2c5c84c174cef7ee418af4732c9166b67"
+      "revision": "2905889d59a6887408f80f4dedee8b28da6dbb07f09daf8bedfe1b28e9422392"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/87.png",
-      "revision": "4fe39854009f7935c12e6605f938e865f307a4198e4ebfe4bb91e93de054269a"
+      "revision": "00165262b3103ff376f00039a13233a0f86c3a7fafacfdd5cc855ca6ad0ce46f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/88.png",
-      "revision": "f4990ba2c7c042c47366337c95908917dcbf22158b9658296fd4b24fa5b370a4"
+      "revision": "94f825bf889225687c83d39f675aa544b0c6637716753b43b79609737c944fb1"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/89.png",
-      "revision": "4dd71fa9e60b51b0c290a4fc44b0723792ce0067f98b17a3d078465b6346b399"
+      "revision": "0b91af605c1bfd4681c1627ef2242b2cd03901798445e8c0caa50ddcdcb390b4"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/9.png",
-      "revision": "7844d6507eab4459cb029f0948f9c950cb98d9b21ce6d950dfda9765d1b1f9ef"
+      "revision": "b9babea9f87b63379c2e2f6acc115474322e4035b37d9bcbaf435ee85ed798da"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/90.png",
-      "revision": "008db409a791387239ac82f8f99918561bc742cc07b317de424032ae546ce812"
+      "revision": "387a874ed5e4385881e8c364e727abef6ebf8e7cebcef649d4468e195002acf5"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/91.png",
-      "revision": "ac7d97f239e0a9fae174b72f5849f178a759637c08da37e5d160b4545853085b"
+      "revision": "71ebcb0fa77ec827dd997b75c53bbd72f685e06e5bfeeb629c51939221b585b1"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/92.png",
-      "revision": "8d301d8abe8b36fcea5f2a95ed798d434d9d07af7b0340e6b3efc3c46e590eea"
+      "revision": "9d6b1861c627458f25af2761b477daa1622b40aaa6626058e72111d339591cea"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/93.png",
-      "revision": "215246bcf4da0b8fd9bc640c3cec72445338004e22011338e0b3f7c20195a828"
+      "revision": "f7343dada04356ae7b04187827d9d9c53e43e0cc10e0a1d45c5fe4135868ea8b"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/94.png",
-      "revision": "13de65a5bc56be895207d09283eedd8e66b90054f6e8030e6b2597f10ec932cc"
+      "revision": "b334192fc49cbb95da5a260a75954aa2541ea43e4cafedbd9d2e686fa2148fd8"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-4/95.png",
-      "revision": "4e27d0a8b6d4faac32c5a6a61ac171ba2109e154fa106975a015ab883ba55cfa"
+      "revision": "25b431f848d93b1ba80040fc6c9549d2c5b25cd6a6b4c3d9d4b610b7c1183268"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/1.png",
@@ -3355,63 +3379,63 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/10.png",
-      "revision": "8ef9a5f3616843e73a1f3e1a3d432247192f3d43a1807b31dfa804b60b1a659e"
+      "revision": "cadec57343eeb7ea7d4041bc729b00c40f216616427d02d2559875780e4fd326"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/100.png",
-      "revision": "2de0d83f7ff138978fe4902f2c1fc5b8f2fca3984c3f584f79b23d7e2abc50f4"
+      "revision": "a88ba72c8fe95d396d9da2a0f86981f2bfe83bf0f770bb81bf03c1cb98138714"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/101.png",
-      "revision": "c43634bb5d6de98ab3fcd44867367bf496321ad9cf5856824b94ca650de158f3"
+      "revision": "74ab6cde15ace79eec8dc99fb8c2a30380114540cf4df670b0c09cd31e34b9ab"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/102.png",
-      "revision": "9c85478e82580501eafea3092d1d6873cf193132f56747245bb685e32cd30e3b"
+      "revision": "f7a69d34675eeab30e2f7b1750a131e49281b3f38bc7c1f80d4370fe44900d2a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/103.png",
-      "revision": "c86ef858565b4cf241cbd8bec43c0bc2bcbeebd5ed8c35059e2212dfc41a81e6"
+      "revision": "dde40e4f1206dc2efa62f56bf62cee35a242c72d65906d940ac0154b7028c1e6"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/104.png",
-      "revision": "55b8f7d549c0c39d8a72f06c0e922145ec21b1ee550efc330b2df8f122dd82e3"
+      "revision": "c36869c741781881271e696b45704ea0d1789b38a362c052c20d9e50a316ac83"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/11.png",
-      "revision": "ba382f91f624ab14b8037f838094575e883e4dca910bc63933b790af6b251154"
+      "revision": "b58e6a0cc25009677b4a631007d0ef03a4a7baef441994a91e73d432377c4914"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/12.png",
-      "revision": "38fcbe2daa89d9edcc196f778efc4bfc3a2571a7c6d5dd33cd58c8c66a3294d0"
+      "revision": "1849ccef79c755c89479e9bba133338d1ea546f5cc2bec0b2cc588061e10c461"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/13.png",
-      "revision": "15f9193b45d97d9fb3b79d1468be68c7d7004df4b982e9acc76761fc3c6b8166"
+      "revision": "457a1f6108c4bf17f52647112e3b7fa44ebcf7d43e44d7a10bd47bfda4cd570e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/14.png",
-      "revision": "474d6effad09a7138f25e4ce96e7af9ed66d24d4607668f8789e6aff43987408"
+      "revision": "9288e449f38d0100cfaef686db536c42e4a8ba5aa5ba42fb70d1e2489c430f50"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/15.png",
-      "revision": "188b9d7bc4d3b7fa83f7d059571512f397f8eb63593bf10956a94614ad456516"
+      "revision": "c01a67c0f8b8e73c2fb9e301c4b4425f8edf4483855064ef97010e5ae311cb6f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/16.png",
-      "revision": "ff2568bc0f3a33901066fac50f2e123d6bafdfa693bafe6f9e17eb66ac4429ee"
+      "revision": "fd01f77f8d7d909d78fa1ab56f23f9f0487e4221d02e6c64d3e4fc0e033ea6db"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/17.png",
-      "revision": "86c21a994e6d10325e2de634f4ffc4334b9fbf2f4b030cdb7a40372c3c024e7a"
+      "revision": "995d42c733a02dcd1b2cd5fd08f1ea6706354802b5470434bff56f533a81e5f4"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/18.png",
-      "revision": "691000a30c8bfd028e3cdaec63a5a1bf4629388f3614209339c4b897929327eb"
+      "revision": "c0bd8926e66ea3fa3e2c8e4edab3100f4d94d2f1dc08c80a26b67373d819ebbc"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/19.png",
-      "revision": "526a12b2533d178e2bbabad593e90e3986fdc9d3c6f587bc77b561409f7821f1"
+      "revision": "938b83753afca08bd0dad5dcafacb5c40fb98f9a90ed086c96ef3ccdd0e3d19a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/2.png",
@@ -3419,43 +3443,43 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/20.png",
-      "revision": "71f360adaa50767c81032839334f734d2c62b199d976ce010bf4c63c9f41f1d7"
+      "revision": "8002514de88f1def0fceff8e1c5fdeed4a5a87a20cd5b41adfd96d5f08e2bb00"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/21.png",
-      "revision": "ae5b0a2bd0e83b7e756962139d3ff6ec3819e8a729b5397edf1f821c4f64eb2d"
+      "revision": "3037becde9064bcc45bfaf66072f26a2bbf0e61969fc634cd785891a34654231"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/22.png",
-      "revision": "44060d1d1c8bd47916a5bd574e0bd9fb233091a464ffc622b2bcdf79d77f0dce"
+      "revision": "cefb16036f6ac7e50be4896022c32a326c3fb8df8bb9939c36b66239f1bb3fa6"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/23.png",
-      "revision": "f0cfccf63e750fb86f98fae40bdabc49a3b59161c02c5d3f61116ac902f99d51"
+      "revision": "215be546a6549b3c22cbb82a8eda21d0dd285a424c825ad9ab6d28f0e58d200e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/24.png",
-      "revision": "485de8776167d03930ccfec8911ecd04fc2040ba0f4cf3f5eb0242703a2bdfa5"
+      "revision": "0d567ba343f39831859a17c246e8986c109a367b676d80c878e4930a5918302f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/25.png",
-      "revision": "62c56f8e11ff5721d302fef85e8d11dda366dffab43967e0d2f79797b18af170"
+      "revision": "7004074bc7896efea19c53e435290bc0c2ccf62a1b25dc61a663527446c2e919"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/26.png",
-      "revision": "90172c78d6cacf437053228fe5531c591a8775c33a98de6c2ecec0f121a868d1"
+      "revision": "acb0710f43571315a25c1c003382acd7e1424f397ef478c5583fe0c309566ee3"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/27.png",
-      "revision": "6a06f8535a4a5b4eae2c15430e86de5e9d376ae9554b4c833e742c0c840c0a40"
+      "revision": "64eb6160b7d376d897cffd7074a73f5503b78fb91d4727d8d1623d3f5029cec6"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/28.png",
-      "revision": "8828cc834b25b5032aeecd852e5b1b5d4615e46b066d4c33d532bd3fd9b6243d"
+      "revision": "f74737682d48e410c886f49333521fe0742581ac06ba5e076acf706af92e1bb2"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/29.png",
-      "revision": "afc2c41d7a98cb53d3980c340faf38f82bc196774e671e33bea352b5c9d706da"
+      "revision": "28a5b2565a390a4e3c6836c4ef0aa28a060c529d6a6a2c36c37dda5f6ff383cb"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/3.png",
@@ -3463,43 +3487,43 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/30.png",
-      "revision": "3a0540f47ee70ce39de4a2c52f44be39c034bdffdb204cc933330ae8e6ef9144"
+      "revision": "d669e8c1ce026e69107f09c51b51a5279a2376581700eb32f62769ad714f57d5"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/31.png",
-      "revision": "16f6fcbe14dc4e494d6a31aa74cb3781fe9947c579eca979c3362b2bab65145d"
+      "revision": "1d5193ee81a89e2d5e1efc3510c12711301a74f5daf3d46179b8b50b8e8bf8ef"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/32.png",
-      "revision": "14f844480eec250f6fc49da0a858c47723a81cf231f5f0087f02abde80b3542e"
+      "revision": "61d94bf65f477eda934d7ded5c779c0314e38571bda4eb8f42f1bad729f835c5"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/33.png",
-      "revision": "e2d09d0dd381ed78c8765d93432b1114a11cb586370eb49dd2c3e70b46150efc"
+      "revision": "bd92ec30c8d85b38678729be7751d528acec43bc0f50e76f78f6db2399c025ba"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/34.png",
-      "revision": "098b0f7473a42b573ddaa8c7c610a9bcf2a4ae1fa14505a1ae4b41baff33884a"
+      "revision": "1d4d42d18e29fa09c59428b75011334fd750da1dd66c1dd04d61ec1bde42c940"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/35.png",
-      "revision": "be360028c12ff468d9775af6d23a430f5afbfc2389654a00b5084ef3871687a3"
+      "revision": "8ce5ae966f1bec4ff2e836aa80347b0992fad12ef886dcdd7cb6e433a0ebf790"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/36.png",
-      "revision": "da4d2818a5b810f9859520fe39be57ba895c7234373f09e9c891ceb8a5ef6d9c"
+      "revision": "d40aec25529c336c6ad0ddc4d1f3de7b95e025db319442a2880983cf7735d4cf"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/37.png",
-      "revision": "0530bbbf333666747cb8921e8a64ed579e89a5eee6518f1c3f09e05a49dafe2c"
+      "revision": "9723d9cf111e60a0a294c402173a3a47d49858a8c06c9e03b7770811f8d8749f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/38.png",
-      "revision": "5cdf1d5881b085722607103a7b0630bf1fda4d753ce9c2b8ec3209486f16cfd5"
+      "revision": "f218d119279aa1d86794ad434c5331b28582912897b12110c387f37085cd4cc0"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/39.png",
-      "revision": "f7a15610ea34f66ef9c28cec6fe6b32c93a408adc9a134a8d9a398f55c232631"
+      "revision": "c8f99c7325a93145868d4a362e9d1a12d81bb0190a8f085cc10ddebed7645433"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/4.png",
@@ -3507,43 +3531,43 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/40.png",
-      "revision": "c54e1a748f03b2038ac0e3ecbfa9edcab9fa343fd0cfd8ce8c6aca7a34777788"
+      "revision": "5221a87cfb7f61f67dbe4f9bfdc93b1a6c1c8ea7f5873d1e62df6f01cacdab55"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/41.png",
-      "revision": "d50611bb743a8e6f81a58e19b29ef1fec0b9e71b2bec2042dfaf598c359917c4"
+      "revision": "f3f8e23ada54732292bf48820a0a04fa277432a4a09bf0f85d890612593a4bc8"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/42.png",
-      "revision": "bbd3bb45547243c46a2cb79e078d0d9b65782f5757f9b9e3ecf40ce781da5207"
+      "revision": "2072f0535f09540a9397bab998ee2c9ddfa4f01a752ee9bb75ee70f8d4ff59f5"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/43.png",
-      "revision": "f32583622dc15f0737c7f603800e920ffad2b826eb6e94c808d7bb8c227428e6"
+      "revision": "98b0c863b078d238ac02874466c05216878324b8079857f8a3ab74db878b50d0"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/44.png",
-      "revision": "dd4ee666da0221960419df1839201581069357fcc261aff5b4b9b777096858b1"
+      "revision": "4249bd35e1f8d64ade664664b6abfb89d890002ca05572231ac93bf8e4f7ef73"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/45.png",
-      "revision": "57e46ea27439697da86a9b2bbff2c22e22cb4463bb553970027a5d83bf0a30a6"
+      "revision": "9bdf0645b374a63ec3bf8a0d6d9466eee224ff488e48d017f7ff87fa714e6a64"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/46.png",
-      "revision": "c10a52979a0c3a8dcab66c52b21ea7b5c64cde7253b46e1e6da6d239acceccc8"
+      "revision": "9480455293676868a784ce30ca4c3e1350914bfe84784c4607afc19b1e5d9bdf"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/47.png",
-      "revision": "642f2c6bc3f39d125d42213875fb8f05860c7967d8cb0f1edd8dba69ed32c0d4"
+      "revision": "2d9cd3e91bdcb24ddf575b18db1c62697e7e90a5541a2a0ec09742bad17d394a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/48.png",
-      "revision": "0e9a7ab552b987f90b525c0feaf775b23c6298b337a70e9889bfee721577773e"
+      "revision": "2000002aa7cc83f44e28fae38cd827f50ac7e0dc40a30bf144c3c80c7bdb6f65"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/49.png",
-      "revision": "c3f6196aad069d8669fe62910d4e0c52f6858bf6c3dd06b50f734b60ee5d8e61"
+      "revision": "bfcbd4cea6973a12cb1b77d19179488693b4a60fdfdb962ee9191be89e3f8c7f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/5.png",
@@ -3551,43 +3575,43 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/50.png",
-      "revision": "2b188593edd09cb3a55ecc1b467e30741cbaa4ee361ac03915ecceed5861a33c"
+      "revision": "53bc56b8d859d72d5d8c5e155aaa89ecd56da4861a191edf540620aa26a0d5a9"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/51.png",
-      "revision": "45e571029800ea3453a7d1c1d08698e9e250251ad60d00fcc53074f44a1dc3fc"
+      "revision": "8d784a5814e27f1bd70e211b96dd06cde23a74cba81aa29dc8918dfd366d8c17"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/52.png",
-      "revision": "61785ea96637d3892aabf14c23a2b84fcc6ea510e25d48718a182989e20f86f0"
+      "revision": "e0945ccb8eb20c8064babf05f4e210a142915af2cfa93fcdf57e8251e9f91343"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/53.png",
-      "revision": "add108b8707c37284feb5325f49e6a2ff9e778ceeda52943a90f4d90a80ca515"
+      "revision": "67e18fb748a0a5782c84323bd8ff0477a99a0c2f24fb734c7bb55ba8326dfa69"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/54.png",
-      "revision": "b957fa05de015350107417b1a1260ed66f5d48ffc2885b857ab44ecb49876967"
+      "revision": "40ad7b80b149cd056d20ea1658fd1e2e42ecd1f4d40061eeaee4ecbdb60205a6"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/55.png",
-      "revision": "497bb2cfd75e04f39319368e03f7a1f6fe50d1e126cf6a4eed1fbb1ce8b5ed6b"
+      "revision": "8d89a11db53ab18997d2abc4e06437d11fa25b9f7d5a06e9f0c1c9db0d1690e3"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/56.png",
-      "revision": "096e987f9a224fe2c2ea72d6c75c5e2696a9581f2706de18c8a7c53791722ebe"
+      "revision": "3760e6dad5ff2a7e0b7b0b774756dd406b6624986ce6c132138015478c98f79e"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/57.png",
-      "revision": "ff0add7453a0afce5c040c9913431e1ce4323ede285512297ba804888363c7d7"
+      "revision": "19a1021698360fc18adc2487af68dea65d16838f099feee3e008885243480aed"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/58.png",
-      "revision": "35fe0438d141fea3b1c96422898b771d57b89fdeab8effd535082562b72f3573"
+      "revision": "4bde1349fb66531ec27c02483c1bfba59c70b7770f302ce73826ad3f4deb6b58"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/59.png",
-      "revision": "7af51611c913dbf26e837fb4509eb41403cb1fc38baf383eeb9dec1f42cf309b"
+      "revision": "8b54f97a4cfc93c17318223c53eecff4fae7314f182721fe60379ebfaf294630"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/6.png",
@@ -3595,43 +3619,43 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/60.png",
-      "revision": "e81868c11652a6680d1cf447c7b27c7930a2181fd2aa221a942cac27a965effb"
+      "revision": "b283068134adc3847745c282bf79180dcb63fcb45c25214e2a59595476b8b362"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/61.png",
-      "revision": "991c3f797032f8fcf640fd2966e42b16d31434a87563ac4e6f5c7f83aacb0495"
+      "revision": "77498fe8e6fb3e8edd9e050dbe787907079320bf7f82829505bc31e167610d1a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/62.png",
-      "revision": "06ae130aad3c33cd591758208695cc9d77545b87786f0802303ed41e9705445d"
+      "revision": "811921b780fd14685166e2654e4e164f2a54acaf5ea546e06f0b743ac00c9b82"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/63.png",
-      "revision": "3959118b6336a326bd63fc35422c181ce21ca6bf7c12fd31780aa5c661234cff"
+      "revision": "f56a059ed8d3e15eaaf1d2f39ca314159ac96737f3eb7a75cafdf63c1f9330c9"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/64.png",
-      "revision": "a8327f1bebebcb5215a4b13e928b0f7de31445221d80a81b3f19fa0e27253548"
+      "revision": "4a4c514ba3c007ec46de81f556d8fdceed664dcb7e249147d9e320c4ffc00a63"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/65.png",
-      "revision": "cf05c7fffa7472b81beeac846a4b162c0dfa33cf2a5b27dbbdee2ee8ce88a381"
+      "revision": "57bb63c27937f8136a55482865fc3eaea8eaf2d30d21c57c5c6c95d1b601339d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/66.png",
-      "revision": "cc0c65b891ca0827b392c62edac930014ffa993af610a106254c57705e9be7b4"
+      "revision": "ec4de371005f44cdee68b5284ad036d694cead25867013785568b1e9346195c0"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/67.png",
-      "revision": "02313a02688cdd7a3282876bd599b00b98ffc4bb891819fe5d6e40351e127f52"
+      "revision": "c68fca19ce81a530e2c916a41839a291a5db8f587d920ac2c0bbcc9323afe3ae"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/68.png",
-      "revision": "84a14b939de901307dcc5a46fce47685d4487252d7958e6b61076ba1b13f8112"
+      "revision": "305f8ab96e4c83d122a4bd1dd3054ffbd84637f0ad1ffaa6a88b97e969d55bcf"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/69.png",
-      "revision": "6ec5dc1a9c102835874dfac8b2135b45a2e903e487c6bdc300cd422b6ca3725b"
+      "revision": "311728515a0d0ff9b6ecdf676d015ff04e87983edc6be04683024f3fcfc9c0f6"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/7.png",
@@ -3639,43 +3663,43 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/70.png",
-      "revision": "e77cf439e00d8a3790cd28528af8523b9307ff7e1737feadb2c87074dfd5c6ee"
+      "revision": "19797432bf340223794a72df90a4b7b5fd038cb1aa241c60ef0f7e711f2788ac"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/71.png",
-      "revision": "061bc8eedfc1e882756594c3bbe91d95f1e98c97e524c8b919a6e81681d08272"
+      "revision": "50c71c8d280220c101c2ce766fdabb22e557d2e0ab33b20e6a7cdd83eb700e29"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/72.png",
-      "revision": "830f5f81d1089e42e75b861dc01339d96a735887b9cdbbaeac22404a19e6234b"
+      "revision": "4891a93660478bbbac4a42f099e36f175852dd5ce947ea3dc9798711a04f3f9f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/73.png",
-      "revision": "78a3611c1f79ec2c8ff2d6851082c87d1e35acef8f6b31b408d9814ccc0a2a60"
+      "revision": "ab50c6c61955c325db567d51345f3f0acbc6d10250e4c2803642b3857b5596f2"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/74.png",
-      "revision": "c83aed0f6c740a45833c5ffa3aa7d6f77f62b58cd8d9d17f5de8744472a71412"
+      "revision": "7208893513002c96dd7b6536c8989aa5707f6abd86099183701fadc273424699"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/75.png",
-      "revision": "e6fc5a56759919ce41bca92cdeae3ae181309af133105bbe2d47d3d4116720b3"
+      "revision": "04a0a65a695d0dfe197dcb76b394ece5b1062074ad309b6025a9cbcb8b8de7a5"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/76.png",
-      "revision": "96d1dc49e3f0734d437a5af84a98e74fb6049ba7443c7e33cd43d0a167b5f072"
+      "revision": "da52a984a908a8120ff553e4c5f673177ee61aba5e4241f67e8b8e87a6854404"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/77.png",
-      "revision": "a24459342cb749cb923f27b588f7583da0923c5061c9b7ccff7286b58b16cc00"
+      "revision": "2635536299786b15f38dd213f9dc7fbb00e6d08cbc75e6262ed59aa0a3968b76"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/78.png",
-      "revision": "a358e7f2d00de331047fdf44317e102e2fc9d9a049a9377c8c464c355480d393"
+      "revision": "cd6b8bfeef7bd96e9d5cee8b0286aa0a163fe7cb3b66af555f564dde908d5f7f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/79.png",
-      "revision": "ec4739e34472278f1822165dfe3e0cca320cd612f230b8f5f6484ee17ba9b9df"
+      "revision": "e46d700227041e2d920783cc46d1827a5127cefa169c65efa16e1964c1753ea1"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/8.png",
@@ -3683,43 +3707,43 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/80.png",
-      "revision": "3db4b6766d973873526bd84796dd6cfee79740d31a23c2e3c737313bd41a5148"
+      "revision": "1da5bd493037918032d0285880050b94d3176540529f234de90a84b3744cfedf"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/81.png",
-      "revision": "da6024faaab5ed0ca54157ecb18ca25624df461a3186c15ee3c554e30d5cdde5"
+      "revision": "eab9d95e6d7a5431e6477d0737e91b479542e6b5e28e7630057d1fb92438372f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/82.png",
-      "revision": "2e8f20f057d5afbd0409b3bfbda4fec0dc4a61fe3d2283c57c0e959aa1818885"
+      "revision": "3859466ec37c8cfa15849bb5a4571285cb290a62634380daa52b6cf132c66fa8"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/83.png",
-      "revision": "731bc80e1e411aadf4084455e7528e750d3aa2d4196187bdf32861bf050d4250"
+      "revision": "b452d4d58df5e6cbee2fabb757f6582a6be66df18fdf3ea88151d694791e14b1"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/84.png",
-      "revision": "57056ee34dc794ad648dee3d5a9a91b34f69bcb30711ece6b106e28d9b91c155"
+      "revision": "65db3c1bb90c11498e38d47757696fb634765009953bced3bca77f3cdc9e2e97"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/85.png",
-      "revision": "98bc626d0c4089c741c40b3378b9d125a7a58ad35702d617c765fd9f4efb5388"
+      "revision": "126ae236a2f57393c2373cbbbc73ce1378385dad7cd3684cf6e60e51328a7994"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/86.png",
-      "revision": "1f1e7af809d14688e385c1f1b204c8cea4c5afe656c40a64a156de4b9d77d3fb"
+      "revision": "65ec32f5ef673384230b8092eb1b825f389d6605eb3b5ad27f00b1bff186536a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/87.png",
-      "revision": "c0242006574caa5a5829f37b9e20833083f409e681d4ebe6f708b1a9f50dcce9"
+      "revision": "a3e1bf3b21aa2978e2e57d6cc5ee971f0b21ef85c4d36ba2a814c859b43d1500"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/88.png",
-      "revision": "868d1d1465714a32f77b182369f5b379322a1612e32c239730009f0032e6646e"
+      "revision": "a942f7e18d4b1975b221da8f297ceeef3eba80173217ece45589984ed46661d9"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/89.png",
-      "revision": "335ebedc2900642a4c86b02601cb782e8a84e5c7626205851f716f2656b2cc9a"
+      "revision": "89f9e44ce515791bb7fd1a811aa93e39aedaa8b0a22dec75c6cba5093d9349bd"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/9.png",
@@ -3727,43 +3751,43 @@
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/90.png",
-      "revision": "1b87fa3306e539b4f860b1a5df01f17bf281f8b76ecdd14db198b09c2affffd4"
+      "revision": "c3b05ba336b6e6532cbc706ca8f7b5e64cea0c5aa006f86c1ed6aa2e0a33848d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/91.png",
-      "revision": "a223e5246a1e54078563632ae03e1b2a427962b9ef465f4c63cec20ea1a19d3b"
+      "revision": "b5f632fad6adb71a3bb9ea95b12e0ab4a9fedafe9d8e20f2b17db971a8d7761f"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/92.png",
-      "revision": "8ceeca4ec3b52517526ffa6a9440d854163a84375b99bb28b4e32ce65e4484da"
+      "revision": "c56cc6e94f85d7e1103787aadcc45bfa8ab720559255d11c3cc7661ea0438605"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/93.png",
-      "revision": "350904e5ebae16777286639e544a5b61d497e5c08928a81e8a1d5c52d287fc05"
+      "revision": "7e346dbaa936ee57473c59c85cd534148931bfd355def6614f3a9109585b229a"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/94.png",
-      "revision": "44885293bff7db9ca43b831c87b60a6679caf88bb3503dffabc27b858094244d"
+      "revision": "4efd1e726c458154cd14275d47f562f1a31af9ee2358f922d6bfb92721170cd1"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/95.png",
-      "revision": "1cc18743a3f3363c762ce052ae3cf9d8ca2a2861400f71852d8d1b4054b50865"
+      "revision": "082bb928cb5082d7f240f59c0033c4aff1e0a20b1ec021d5fde213533ad5ca94"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/96.png",
-      "revision": "00fa7fadae1b50919da5f96a452ba22a93fe1ebce7413ed723a7e7e10f76d0eb"
+      "revision": "167da451fe56bc6a1416524460b33e071d5cc9031f5aaaa51d3d6fd4667ff76d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/97.png",
-      "revision": "058d88cc9105362d6c70af0e69a39ed26280e0ec960b9bba8e45389b4461f436"
+      "revision": "ceee7ccaf9127d5b075e7b8ec7fed1b5c24f824f3545a72e8fefb2252d346c4d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/98.png",
-      "revision": "f47775ea9a823adb5d4e74e470928d0143c03ed248e4a59df6e1898e51bc26aa"
+      "revision": "bc4ced41dc0503d8a47d1c74a8596c44978a55bc0431d927ac95cfc9470f439d"
     },
     {
       "url": "/quiz-feedback-mascots-v1/animation-5/99.png",
-      "revision": "3a844c9c9ad01ba0916f5cb5f3b4dd27789622445dd61cce6f0a209764b7c5a5"
+      "revision": "d2c4e73ba1053bb8c7edb2e34e986dde7204c33e9efbc7e672305022e343e706"
     },
     {
       "url": "/quiz/bonus-intro-sprite.png",
@@ -4316,28 +4340,32 @@
       "revision": "af0851bb44745130ff3419a1e5a32ff32b5a6da1e75f484a79273d5dc6f07ae4"
     },
     {
+      "url": "/mission-icon.png",
+      "revision": "3829cac6f6ca46ccc1dda5dd6aea15e8c00fad0db367ae86be7d1e98dcba004f"
+    },
+    {
       "url": "/mobile-nav-icons/color-palette.png",
-      "revision": "e0e199512ba7413c055fef18d098c15827928c340edf4492c897ba49dcab6a1d"
+      "revision": "f2bde936850d20c5c56fc6dca7999ac3876662d7e50e0bdc634df34fe83c6b9a"
     },
     {
       "url": "/mobile-nav-icons/fire.png",
-      "revision": "8fef754d44f5da3daa88aca077425e368857dc1f6528d67e95a3a02f4ef6c8c1"
+      "revision": "c7965a572daac881d1cf5473585024519fdaa728c2cb938b70dc84c5b4a97075"
     },
     {
       "url": "/mobile-nav-icons/game.png",
-      "revision": "43674c1e8eb7ee952277d2eab551e4d9fd30517d3aa1ed9fd69af17d63afeb90"
+      "revision": "27e2aeb2c079ed9da0848de18945ed9e440815ce6eb461dd00c7611ac0b8cc78"
     },
     {
       "url": "/mobile-nav-icons/home.png",
-      "revision": "c0baf096723702fb13e06ac5d8d32c3ceb742b59effda3e42a1455269886f635"
+      "revision": "85a5c24570d9b2af82550dc6d6bf6d9286b3a99b849f944a8480e32b82cb3c71"
     },
     {
       "url": "/mobile-nav-icons/practice.png",
-      "revision": "b6d5201974366b5cac9be037888f553b522676f10711f0393d12c676c438b7eb"
+      "revision": "986efc8836634b12471b4d69c6aea00034f978679bbb7c91ade8de0c89b0e169"
     },
     {
       "url": "/mobile-nav-icons/question-mark.png",
-      "revision": "cd762af6af3c9027bcceec6267dffffd1441b92535e8c10f2f9f7cd117b3aa49"
+      "revision": "dbe6497030675549025a3b1cb43d1930d42fcd9149da6cbf214e475dca1ef32c"
     },
     {
       "url": "/splash.png",

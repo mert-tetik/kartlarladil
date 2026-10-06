@@ -116,6 +116,7 @@ describe("reproducible Android Firebase bootstrap", () => {
       expect(patchedGradle).toContain("implementation 'com.google.firebase:firebase-analytics'");
       expect(patchedManifest).toContain('android:name="com.example.app.Application"');
       expect(patchedManifest).toContain('android:name="androidx.core.content.FileProvider"');
+      expect(patchedManifest).toContain('android:name="android.intent.action.TTS_SERVICE"');
       expect(fileProviderPaths).toContain('path="camera/"');
     } finally {
       const resolvedProjectDir = path.resolve(projectDir);

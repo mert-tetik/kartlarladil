@@ -12,6 +12,8 @@ export function RouteAwareShell({ children }: { children: ReactNode }) {
   const isAutomationTable =
     pathname === "/content-automation/automations" ||
     pathname === "/content-automation/test-automations";
+  const isGamesLanding = pathname === "/games";
+  const isGamePlayRoute = pathname.startsWith("/games/");
   const isFullScreenStudy =
     pathname === "/learn" ||
     pathname === "/learned" ||
@@ -25,11 +27,13 @@ export function RouteAwareShell({ children }: { children: ReactNode }) {
       className={cn(
         "flex-1 outline-none",
         isAutomationTable && "fixed inset-x-0 bottom-0 top-[var(--app-header-height)] z-30 overflow-hidden",
-        !isAccountPage && !isFullScreenStudy && !hidesMobileBottomNav && "max-lg:pb-[var(--mobile-nav-bar-height)]",
-        (pathname === "/games" ||
-          pathname.startsWith("/games/") ||
-          pathname === "/leaderboard") &&
-          "h-[calc(100dvh-var(--app-header-height))] overflow-hidden",
+        !isAccountPage && !isFullScreenStudy && !isGamesLanding && !hidesMobileBottomNav && "max-lg:pb-[var(--mobile-nav-bar-height)]",
+        (pathname === "/games" || pathname.startsWith("/games/") || pathname === "/leaderboard") &&
+          (isGamesLanding
+            ? "h-[calc(100dvh-var(--mobile-nav-bar-height))] overflow-hidden lg:h-dvh"
+            : isGamePlayRoute
+              ? "h-screen overflow-hidden"
+              : "h-[calc(100dvh-var(--app-header-height))] overflow-hidden"),
       )}
       tabIndex={-1}
     >

@@ -20,6 +20,7 @@ const profiles = [
     streak_points: 0,
     mission_points: 0,
     quiz_result_points: 7,
+    quiz_result_medals: 5,
     leaderboard_visible: true,
     profile_picture_index: null,
   },
@@ -31,6 +32,7 @@ const profiles = [
     streak_points: 0,
     mission_points: 10,
     quiz_result_points: 0,
+    quiz_result_medals: 12,
     leaderboard_visible: true,
     profile_picture_index: null,
   },
@@ -42,6 +44,7 @@ const profiles = [
     streak_points: 0,
     mission_points: 0,
     quiz_result_points: 0,
+    quiz_result_medals: 5,
     leaderboard_visible: true,
     profile_picture_index: null,
   },
@@ -53,6 +56,7 @@ const profiles = [
     streak_points: 0,
     mission_points: 0,
     quiz_result_points: 0,
+    quiz_result_medals: 2,
     leaderboard_visible: true,
     profile_picture_index: null,
   },
@@ -64,6 +68,7 @@ const profiles = [
     streak_points: 0,
     mission_points: 0,
     quiz_result_points: 0,
+    quiz_result_medals: 8,
     leaderboard_visible: true,
     profile_picture_index: null,
   },
@@ -197,6 +202,25 @@ describe("getLeaderboardPayload", () => {
       ["user-2", 2, 3],
       ["user-4", 1, 4],
       ["user-3", 0, 5],
+    ]);
+  });
+
+  it("ranks users by their claimed medals", async () => {
+    const payload = await getLeaderboardPayload("user-1", "medals");
+
+    expect(payload.mode).toBe("medals");
+    expect(payload.viewer).toMatchObject({
+      userId: "user-1",
+      medals: 5,
+      position: 3,
+      medalsPosition: 3,
+    });
+    expect(payload.entries.map((entry) => [entry.userId, entry.medals, entry.position])).toEqual([
+      ["user-2", 12, 1],
+      ["user-5", 8, 2],
+      ["user-1", 5, 3],
+      ["user-3", 5, 4],
+      ["user-4", 2, 5],
     ]);
   });
 

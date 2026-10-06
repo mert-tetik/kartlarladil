@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -70,14 +70,17 @@ const navItems: readonly NavItem[] = [
 ];
 
 const mobileNavItems: readonly NavItem[] = [
-  { href: "/games", labelKey: "nav.games", mobileLabelKey: "nav.gamesShort", icon: Gamepad2, mobileImageSrc: "/mobile-nav-icons/game.png" },
-  { href: "/ai-practice", labelKey: "nav.aiPractice", mobileLabelKey: "nav.aiPracticeShort", icon: MessageCircle, mobileImageSrc: "/mobile-nav-icons/practice.png" },
-  { href: "/", labelKey: "nav.home", icon: Home, mobileImageSrc: "/mobile-nav-icons/home.png" },
-  { href: "/ask", labelKey: "nav.ask", mobileLabelKey: "nav.askShort", icon: CircleHelp, mobileImageSrc: "/mobile-nav-icons/question-mark.png" },
-  { href: "/pricing", labelKey: "nav.pricing", mobileLabel: "Premium", icon: Flame, mobileImageSrc: "/mobile-nav-icons/fire.png" },
+  { href: "/games", labelKey: "nav.games", mobileLabelKey: "nav.gamesShort", icon: Gamepad2, mobileImageSrc: "/mobile-nav-icons/game.png?v=20261006-2" },
+  { href: "/ai-practice", labelKey: "nav.aiPractice", mobileLabelKey: "nav.aiPracticeShort", icon: MessageCircle, mobileImageSrc: "/mobile-nav-icons/practice.png?v=20261006-2" },
+  { href: "/", labelKey: "nav.home", icon: Home, mobileImageSrc: "/mobile-nav-icons/home.png?v=20261006-2" },
+  { href: "/ask", labelKey: "nav.ask", mobileLabelKey: "nav.askShort", icon: CircleHelp, mobileImageSrc: "/mobile-nav-icons/question-mark.png?v=20261006-2" },
+  { href: "/pricing", labelKey: "nav.pricing", mobileLabel: "Premium", icon: Flame, mobileImageSrc: "/mobile-nav-icons/fire.png?v=20261006-2" },
 ];
 
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
+const subscribeToHydration = () => () => undefined;
+const getClientHydrationSnapshot = () => true;
+const getServerHydrationSnapshot = () => false;
 
 export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const pathname = usePathname();
@@ -88,6 +91,11 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [mobileBackOverride, setMobileBackOverride] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
+  const subscriptionHydrated = useSyncExternalStore(
+    subscribeToHydration,
+    getClientHydrationSnapshot,
+    getServerHydrationSnapshot,
+  );
   const showMobileBackButton =
     isMobileViewport &&
     (mobileBackOverride ||
@@ -104,6 +112,8 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const paidPlan = entitlements?.effectivePlan === "basic" || entitlements?.effectivePlan === "pro"
     ? entitlements.effectivePlan
     : null;
+  const isGamePlayRoute = pathname.startsWith("/games/");
+  const isGamesRoute = pathname === "/games" || isGamePlayRoute;
 
   const mobileBackHref = (() => {
     if (mobileBackOverride) return "/";
@@ -154,16 +164,18 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
 
   return (
     <>
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-foreground focus:px-4 focus:py-2 focus:text-background"
-      >
-        {t("common.skipToContent")}
-      </a>
-      <header
-        data-route-transition-navigation
-        className="sticky top-0 z-50 border-b border-white/10 bg-black text-white"
-      >
+      {!isGamesRoute ? (
+        <>
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-foreground focus:px-4 focus:py-2 focus:text-background"
+          >
+            {t("common.skipToContent")}
+          </a>
+          <header
+            data-route-transition-navigation
+            className="sticky top-0 z-50 border-b border-white/10 bg-black text-white"
+          >
         <div className="relative flex h-16 w-full items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-2">
             {showNavbarBackButton ? (
@@ -203,7 +215,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
               className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-white transition-colors hover:bg-white/10 lg:hidden"
             >
               <Image
-                src="/mobile-nav-icons/color-palette.png"
+                src="/mobile-nav-icons/color-palette.png?v=20261006-2"
                 alt=""
                 aria-hidden="true"
                 width={128}
@@ -274,25 +286,28 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
             )}
           </div>
         </div>
-      </header>
+          </header>
+        </>
+      ) : null}
 
       {user ? <ThemePickerDialog open={themeOpen} onOpenChange={setThemeOpen} /> : null}
 
-      <div
-        data-mobile-main-nav-frame
-        className="mobile-main-nav-frame text-foreground lg:hidden"
-      >
-        <nav
-          aria-label={t("nav.mobileMenu")}
-          data-mobile-main-nav
-          className="mobile-main-nav-bar bg-background-card dark:bg-[#090909]"
+      {!isGamePlayRoute ? (
+        <div
+          data-mobile-main-nav-frame
+          className="mobile-main-nav-frame text-foreground lg:hidden"
         >
-          <div className="grid h-full grid-cols-5 items-center">
-            {mobileNavItems.map((item) => {
+          <nav
+            aria-label={t("nav.mobileMenu")}
+            data-mobile-main-nav
+            className="mobile-main-nav-bar bg-background-card dark:bg-[#090909]"
+          >
+            <div className="grid h-full grid-cols-5 items-center">
+              {mobileNavItems.map((item) => {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
               const shouldPrefetch = PREFETCHED_NAV_PATHS.has(item.href);
               const isPremium = item.href === "/pricing";
-              const showPaidPremiumImage = isPremium && paidPlan !== null;
+              const showPaidPremiumImage = subscriptionHydrated && isPremium && paidPlan !== null;
               const label = item.mobileLabel ?? t(item.mobileLabelKey ?? item.labelKey);
               const tutorialTarget = item.href === "/games"
                 ? "games-nav"
@@ -351,10 +366,11 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                   )}
                 </Link>
               );
-            })}
-          </div>
-        </nav>
-      </div>
+              })}
+            </div>
+          </nav>
+        </div>
+      ) : null}
     </>
   );
 }

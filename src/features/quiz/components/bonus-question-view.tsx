@@ -363,7 +363,10 @@ export function BonusQuestionIntro({ onComplete }: { onComplete: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const completedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     let frameTimer: number | null = null;
@@ -602,7 +605,7 @@ export function BonusQuestionView({
   const sourceRef = useRef<HTMLDivElement | null>(null);
   const points = getBonusQuestionPoints(question.kind);
   const isSentenceOrder = question.kind === "sentence-order";
-  const [sentenceDecorationMounted, setSentenceDecorationMounted] = useState(false);
+  const [sentenceDecorationMounted] = useState(true);
   const [rewardRevealCollected, setRewardRevealCollected] = useState(false);
   const [sentenceDecorationCharacter] = useState(() => {
     const characters = getAiPracticeCharacters();
@@ -611,10 +614,6 @@ export function BonusQuestionView({
   const rewardDelivered = rewardRevealCollected && showingAnswer && answerAccepted === true && rewardReady;
   const rewardFlightReady = rewardDelivered && (showPointFlight || Boolean(gemRewards?.length));
   const showRewardHud = rewardFlightReady;
-
-  useEffect(() => {
-    setSentenceDecorationMounted(true);
-  }, []);
 
   function handleRewardRevealCollect() {
     if (!rewardRevealVisible || rewardRevealCollected) return;
@@ -722,6 +721,8 @@ export function BonusQuestionView({
                 width={1536}
                 height={1000}
                 sizes="(max-width: 640px) 74vw, 432px"
+                unoptimized
+                priority
                 className={cn(
                   "relative z-10 h-auto w-full object-contain",
                   rewardRevealCollected

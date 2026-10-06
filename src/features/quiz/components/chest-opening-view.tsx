@@ -22,6 +22,8 @@ interface ChestOpeningViewProps {
   onRewardReady?: () => Promise<ChestRewardOutcome | null>;
   reward?: ChestRewardOutcome | null;
   enterWithCss?: boolean;
+  autoPlay?: boolean;
+  onVideoReady?: (video: HTMLVideoElement | null) => void;
 }
 
 type ChestPhase = "playing" | "revealed" | "disappearing";
@@ -52,6 +54,8 @@ export function ChestOpeningView({
   onRewardReady,
   reward,
   enterWithCss = true,
+  autoPlay = true,
+  onVideoReady,
 }: ChestOpeningViewProps) {
   const t = useT();
   const { locale } = useLocale();
@@ -96,6 +100,11 @@ export function ChestOpeningView({
   const pointsScatterCompleteRef = useRef(false);
   const gemsScatterCompleteRef = useRef(false);
   const scatterCompletionTriggeredRef = useRef(false);
+
+  const attachVideoRef = useCallback((video: HTMLVideoElement | null) => {
+    videoRef.current = video;
+    onVideoReady?.(video);
+  }, [onVideoReady]);
 
   const rewardGemSourceRefs = useMemo<Partial<Record<GemType, RefObject<HTMLElement | null>>>>(
     () => ({ blue: blueGemRewardRef, green: greenGemRewardRef, purple: purpleGemRewardRef }),
@@ -229,6 +238,8 @@ export function ChestOpeningView({
   }, [handleVideoEnded, videoSource]);
 
   useEffect(() => {
+    // The media element must be reset synchronously when a different chest tier is mounted.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVideoSource(CHEST_TIER_OPENING_VIDEOS[tier.tier]);
     setVideoUnavailable(false);
     videoCompletionModeRef.current = "playing";
@@ -238,6 +249,7 @@ export function ChestOpeningView({
   useEffect(() => {
     if (reward) {
       rewardPromiseRef.current = Promise.resolve(reward);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRewardOutcome(reward);
       setRewardResolved(true);
       return;
@@ -315,8 +327,8 @@ export function ChestOpeningView({
     >
       {!videoUnavailable ? <video
         key={videoSource}
-        ref={videoRef}
-        autoPlay
+        ref={attachVideoRef}
+        autoPlay={autoPlay}
         playsInline
         preload="auto"
         aria-hidden="true"

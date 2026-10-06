@@ -18,6 +18,7 @@ interface LeaderboardProfileRow {
   streak_points: number | null;
   mission_points: number | null;
   quiz_result_points: number | null;
+  quiz_result_medals: number | null;
   game_points: number | null;
   gem_points: number | null;
   leaderboard_visible: boolean | null;
@@ -153,10 +154,13 @@ export async function getLeaderboardPayload(
         gamePoints: profile.game_points ?? 0,
         gemPoints: profile.gem_points ?? 0,
       });
+      const medals = Math.max(0, Math.round(profile.quiz_result_medals ?? 0));
       const leaderboardValue =
         mode === "streaks"
           ? (longestStreakByUser.get(profile.user_id) ?? 0)
-          : totalPoints;
+          : mode === "medals"
+            ? medals
+            : totalPoints;
 
       return {
         userId: profile.user_id,
@@ -170,6 +174,7 @@ export async function getLeaderboardPayload(
             : null,
         totalPoints,
         streak: longestStreakByUser.get(profile.user_id) ?? 0,
+        medals,
         leaderboardValue,
         leaderboardVisible: profile.leaderboard_visible ?? false,
       };
@@ -191,6 +196,7 @@ export async function getLeaderboardPayload(
 
   const pointsPositions = createPositionMap(scoredProfiles, (profile) => profile.totalPoints);
   const streakPositions = createPositionMap(scoredProfiles, (profile) => profile.streak);
+  const medalPositions = createPositionMap(scoredProfiles, (profile) => profile.medals);
 
   const entries: LeaderboardEntry[] = viewer.leaderboardVisible
     ? scoredProfiles
@@ -201,6 +207,7 @@ export async function getLeaderboardPayload(
           profilePictureIndex: profile.profilePictureIndex,
           totalPoints: profile.totalPoints,
           streak: profile.streak,
+          medals: profile.medals,
           rankIcon: getRankForPoints(profile.totalPoints).icon,
           isViewer: profile.userId === viewerUserId,
         }))
@@ -214,9 +221,11 @@ export async function getLeaderboardPayload(
       position: viewerIndex + 1,
       pointsPosition: pointsPositions.get(viewer.userId) ?? 1,
       streakPosition: streakPositions.get(viewer.userId) ?? 1,
+      medalsPosition: medalPositions.get(viewer.userId) ?? 1,
       displayName: viewer.displayName ?? "",
       totalPoints: viewer.totalPoints,
       streak: viewer.streak,
+      medals: viewer.medals,
       leaderboardVisible: viewer.leaderboardVisible,
     },
     entries,
@@ -236,20 +245,19 @@ function createEmptyLeaderboardPayload(
       position: 1,
       pointsPosition: 1,
       streakPosition: 1,
+      medalsPosition: 1,
       displayName: viewerProfile?.display_name?.trim() || "",
-      totalPoints:
-        mode === "streaks"
-          ? 0
-          : getProfilePointTotal({
-              aiPracticePoints: viewerProfile?.ai_practice_points ?? 0,
-              chestPoints: viewerProfile?.chest_points ?? 0,
-              streakPoints: viewerProfile?.streak_points ?? 0,
-              missionPoints: viewerProfile?.mission_points ?? 0,
-              quizResultPoints: viewerProfile?.quiz_result_points ?? 0,
-              gamePoints: viewerProfile?.game_points ?? 0,
-              gemPoints: viewerProfile?.gem_points ?? 0,
-            }),
+      totalPoints: getProfilePointTotal({
+        aiPracticePoints: viewerProfile?.ai_practice_points ?? 0,
+        chestPoints: viewerProfile?.chest_points ?? 0,
+        streakPoints: viewerProfile?.streak_points ?? 0,
+        missionPoints: viewerProfile?.mission_points ?? 0,
+        quizResultPoints: viewerProfile?.quiz_result_points ?? 0,
+        gamePoints: viewerProfile?.game_points ?? 0,
+        gemPoints: viewerProfile?.gem_points ?? 0,
+      }),
       streak: 0,
+      medals: Math.max(0, Math.round(viewerProfile?.quiz_result_medals ?? 0)),
       leaderboardVisible: viewerProfile?.leaderboard_visible ?? false,
     },
     entries: [],

@@ -44,12 +44,12 @@ export const CHEST_TIER_ARTWORK: Record<ChestTier, string> = {
 };
 
 export const CHEST_TIER_OPENING_VIDEOS: Record<ChestTier, string> = {
-  wood: "/chests/openings/wood_chest_opening_v2.mp4",
-  iron: "/chests/openings/iron_chest_opening_v2.mp4",
-  gold: "/chests/openings/golden_chest_opening_v2.mp4",
-  diamond: "/chests/openings/diamond_chest_opening_v2.mp4",
-  emerald: "/chests/openings/emerald_chest_opening_v2.mp4",
-  ruby: "/chests/openings/ruby_chest_opening_v2.mp4",
+  wood: "/chests/openings/wood_chest_opening_v2.mp4?v=20261007-1",
+  iron: "/chests/openings/iron_chest_opening_v2.mp4?v=20261007-1",
+  gold: "/chests/openings/golden_chest_opening_v2.mp4?v=20261007-1",
+  diamond: "/chests/openings/diamond_chest_opening_v2.mp4?v=20261007-1",
+  emerald: "/chests/openings/emerald_chest_opening_v2.mp4?v=20261007-1",
+  ruby: "/chests/openings/ruby_chest_opening_v2.mp4?v=20261007-1",
 };
 
 export const CHEST_TIERS: ChestTierDefinition[] = [

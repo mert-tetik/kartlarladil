@@ -25,9 +25,9 @@ export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]>
   /** Short, solid feedback when a card flips. */
   flip: [22],
   /** Crisp confirmation for a correct answer. */
-  correct: [38],
-  /** Two short bursts that mimic an "incorrect" buzz. */
-  incorrect: [22, 55, 22],
+  correct: [62],
+  /** Two firm bursts that make an incorrect response unmistakable. */
+  incorrect: [64, 42, 78],
   /** Subtle pulse when the learned popup appears. */
   learned: [32],
   /** Heavier burst synced with confetti. */

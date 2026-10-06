@@ -26,7 +26,7 @@ describe("vibration", () => {
     window.FoxiesDeckNativeVibration = { vibrate: nativeVibrate };
     setBrowserVibration(browserVibrate);
     vibrate("incorrect");
-    expect(nativeVibrate).toHaveBeenCalledWith("[22,55,22]");
+    expect(nativeVibrate).toHaveBeenCalledWith("[64,42,78]");
     expect(browserVibrate).not.toHaveBeenCalled();
     expect(isVibrationSupported()).toBe(true);
   });

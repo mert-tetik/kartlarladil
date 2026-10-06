@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
@@ -30,6 +32,8 @@ export const BONUS_QUIZ_FEEDBACK_MASCOT: QuizFeedbackMascotAnimation = {
 };
 
 export const QUIZ_FEEDBACK_MASCOT_CHANCE = 1 / 7;
+
+const mascotAnimationPreloadCache = new Map<string, Promise<void>>();
 
 const QUIZ_FEEDBACK_BAR_MASCOTS = NORMAL_QUIZ_FEEDBACK_MASCOTS.filter(
   (animation) => animation.id === "animation-1" || animation.id === "animation-3",
@@ -67,13 +71,35 @@ export function pickQuizFeedbackBarMascotAnimation(
 
 export function preloadQuizFeedbackMascotAnimation(
   animation: QuizFeedbackMascotAnimation,
-) {
-  if (typeof window === "undefined") return;
+): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
 
-  for (let frame = 1; frame <= animation.frameCount; frame += 1) {
-    const image = new window.Image();
-    image.src = getQuizFeedbackMascotFramePath(animation, frame);
-  }
+  const cacheKey = `${animation.id}:${animation.frameCount}`;
+  const cached = mascotAnimationPreloadCache.get(cacheKey);
+  if (cached) return cached;
+
+  const preload = Promise.all(
+    Array.from({ length: animation.frameCount }, (_, index) => {
+      const image = new window.Image();
+      const source = getQuizFeedbackMascotFramePath(animation, index + 1);
+
+      return new Promise<void>((resolve, reject) => {
+        image.onload = () => {
+          const decode = image.decode?.();
+          if (decode) {
+            void decode.then(() => resolve()).catch(() => resolve());
+          } else {
+            resolve();
+          }
+        };
+        image.onerror = () => reject(new Error(`Mascot frame failed to load: ${source}`));
+        image.src = source;
+      });
+    }),
+  ).then(() => undefined);
+
+  mascotAnimationPreloadCache.set(cacheKey, preload);
+  return preload;
 }
 
 function getQuizFeedbackMascotFramePath(
@@ -85,33 +111,54 @@ function getQuizFeedbackMascotFramePath(
 
 export function QuizFeedbackMascotAnimationView({
   animation,
+  onReady,
+  onError,
 }: {
   animation: QuizFeedbackMascotAnimation;
+  onReady?: () => void;
+  onError?: () => void;
 }) {
   const [frame, setFrame] = useState(1);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     let animationFrame = 0;
-    const startedAt = window.performance.now();
-
-    const advance = (now: number) => {
-      const nextFrame = Math.min(
-        animation.frameCount,
-        Math.floor(((now - startedAt) * animation.fps) / 1000) + 1,
-      );
-
-      setFrame((currentFrame) => (currentFrame === nextFrame ? currentFrame : nextFrame));
-
-      if (nextFrame < animation.frameCount) {
-        animationFrame = window.requestAnimationFrame(advance);
-      }
-    };
-
+    setReady(false);
     setFrame(1);
-    animationFrame = window.requestAnimationFrame(advance);
 
-    return () => window.cancelAnimationFrame(animationFrame);
-  }, [animation]);
+    void preloadQuizFeedbackMascotAnimation(animation)
+      .then(() => {
+        if (cancelled) return;
+        setReady(true);
+        onReady?.();
+        const startedAt = window.performance.now();
+
+        const advance = (now: number) => {
+          if (cancelled) return;
+          const nextFrame = Math.min(
+            animation.frameCount,
+            Math.floor(((now - startedAt) * animation.fps) / 1000) + 1,
+          );
+
+          setFrame((currentFrame) => (currentFrame === nextFrame ? currentFrame : nextFrame));
+
+          if (nextFrame < animation.frameCount) {
+            animationFrame = window.requestAnimationFrame(advance);
+          }
+        };
+
+        animationFrame = window.requestAnimationFrame(advance);
+      })
+      .catch(() => {
+        if (!cancelled) onError?.();
+      });
+
+    return () => {
+      cancelled = true;
+      if (animationFrame) window.cancelAnimationFrame(animationFrame);
+    };
+  }, [animation, onError, onReady]);
 
   return (
     <div
@@ -120,18 +167,21 @@ export function QuizFeedbackMascotAnimationView({
       aria-hidden="true"
       data-quiz-feedback-mascot={animation.id}
       data-quiz-feedback-mascot-frame={frame}
+      data-quiz-feedback-mascot-ready={ready}
     >
-      <div className="absolute inset-0">
-        <Image
-          src={getQuizFeedbackMascotFramePath(animation, frame)}
-          alt=""
-          fill
-          unoptimized
-          loading="eager"
-          sizes="(max-width: 640px) 30vw, 176px"
-          className="object-contain object-bottom"
-        />
-      </div>
+      {ready ? (
+        <div className="absolute inset-0">
+          <Image
+            src={getQuizFeedbackMascotFramePath(animation, frame)}
+            alt=""
+            fill
+            unoptimized
+            loading="eager"
+            sizes="(max-width: 640px) 30vw, 176px"
+            className="object-contain object-bottom [filter:contrast(1.12)]"
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

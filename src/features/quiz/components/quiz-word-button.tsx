@@ -1,10 +1,12 @@
 "use client";
 
 import {
+  useRef,
   useState,
   type ButtonHTMLAttributes,
   type CSSProperties,
   type MouseEvent,
+  type PointerEvent,
   type ReactNode,
 } from "react";
 import { cn } from "@/lib/utils";
@@ -29,6 +31,7 @@ interface QuizWordButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   pressAnimation?: boolean;
   animationTrigger?: number;
   correctClassName?: string;
+  onPressStart?: () => void;
   style?: CSSProperties;
 }
 
@@ -55,12 +58,15 @@ export function QuizWordButton({
   style,
   animationTrigger = 0,
   correctClassName,
+  onPressStart,
+  onPointerDown,
   ...props
 }: QuizWordButtonProps) {
   const [internalSelected, setInternalSelected] = useState(false);
   const [pressedFeedback, setPressedFeedback] = useState<QuizWordButtonFeedback | null>(null);
   const [invalidOperationKey, setInvalidOperationKey] = useState(0);
   const [inactiveAfterPress, setInactiveAfterPress] = useState(false);
+  const pointerFeedbackHandledRef = useRef(false);
   const isInactive = wordType === "inactive" && inactiveAfterPress;
   const isInteractive = !isInactive && wordType !== "neutral" && !disabled;
   const isSelected = selected ?? internalSelected;
@@ -71,7 +77,7 @@ export function QuizWordButton({
         ? isInactive ? "muted" : "idle"
         : pressedFeedback ?? "idle");
 
-  function handleClick(event: MouseEvent<HTMLButtonElement>) {
+  function triggerPressVibration() {
     if (wordType === "select" || wordType === "neutral") {
       vibrate("tap");
     } else if (wordType === "correct") {
@@ -80,6 +86,24 @@ export function QuizWordButton({
       vibrate("incorrect");
     } else if (wordType === "inactive") {
       vibrate("tap");
+    }
+  }
+
+  function handlePointerDown(event: PointerEvent<HTMLButtonElement>) {
+    if (!disabled && !isInactive) {
+      pointerFeedbackHandledRef.current = true;
+      onPressStart?.();
+      triggerPressVibration();
+    }
+    onPointerDown?.(event);
+  }
+
+  function handleClick(event: MouseEvent<HTMLButtonElement>) {
+    if (pointerFeedbackHandledRef.current) {
+      pointerFeedbackHandledRef.current = false;
+    } else {
+      onPressStart?.();
+      triggerPressVibration();
     }
 
     if (wordType === "select") {
@@ -107,6 +131,7 @@ export function QuizWordButton({
       {...props}
       type={props.type ?? "button"}
       disabled={disabled || isInactive}
+      onPointerDown={handlePointerDown}
       onClick={handleClick}
       style={style}
       className={cn(

@@ -34,8 +34,12 @@ import { GAME_BACKGROUND_SOURCES, GameShell } from "./game-shell";
 import { GameHeader } from "./game-header";
 import { GameStartSplash } from "./game-start-splash";
 import { GameResultScreen } from "./game-result-screen";
+import { GameUITransition } from "./game-ui-transition";
 
 type WordMatchPhase = "splash" | "playing" | "completed" | "failed";
+
+const WORD_MATCH_SOUND_RATE_STEP = 0.1;
+const WORD_MATCH_SOUND_MAX_RATE = 2.5;
 
 interface WordMatchGameProps {
   initialLevel: number;
@@ -78,6 +82,7 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const boardRef = useRef<HTMLDivElement | null>(null);
   const boardWrapperRef = useRef<HTMLDivElement | null>(null);
+  const correctMatchStreakRef = useRef(0);
 
   const handleTimeExpired = useCallback(() => {
     setPhase("failed");
@@ -108,6 +113,7 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
     setLines([]);
     setPhase("splash");
     setShowSplash(true);
+    correctMatchStreakRef.current = 0;
     reset(config.seconds);
   }, [level, config.seconds, selectedLanguage, startLevel, reset]);
 
@@ -192,7 +198,6 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
 
     const allMatched = items.length > 0 && items.every((item) => item.matched);
     if (allMatched) {
-      sounds.complete();
       const points = getPointsForLevel(level);
       completeLevel("wordMatch", level);
       addLocalPoints("wordMatch", points);
@@ -221,7 +226,7 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
         const selectedItems = prev.filter((item) => item.selected);
 
         if (selectedItems.length === 0) {
-          sounds.flip();
+          sounds.select();
           return prev.map((item) =>
             item.id === id ? { ...item, selected: true } : item,
           );
@@ -235,7 +240,20 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
           first.side !== clicked.side;
 
         if (isMatch) {
-          sounds.correct();
+          correctMatchStreakRef.current += 1;
+          const isFinalMatch = prev.every(
+            (item) => item.matched || item.id === first.id || item.id === clicked.id,
+          );
+          if (isFinalMatch) {
+            sounds.passed();
+          } else {
+            sounds.correct({
+              playbackRate: Math.min(
+                1 + (correctMatchStreakRef.current - 1) * WORD_MATCH_SOUND_RATE_STEP,
+                WORD_MATCH_SOUND_MAX_RATE,
+              ),
+            });
+          }
           return prev.map((item) => {
             if (item.id === first.id || item.id === clicked.id) {
               return { ...item, matched: true, selected: false };
@@ -244,6 +262,7 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
           });
         }
 
+        correctMatchStreakRef.current = 0;
         sounds.incorrect();
         window.setTimeout(() => {
           setItems((current) =>
@@ -276,6 +295,7 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
     setLines([]);
     setPhase("splash");
     setShowSplash(true);
+    correctMatchStreakRef.current = 0;
     reset(config.seconds);
   }, [level, selectedLanguage, config.seconds, reset]);
 
@@ -301,10 +321,10 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
     <GameShell
       backgroundSrc={GAME_BACKGROUND_SOURCES.wordMatch}
       backgroundOverlay="rgb(2 6 23 / 0.58)"
+      exitButtonVisible={phase !== "completed" && phase !== "failed"}
     >
       <GameHeader
-        level={level}
-        tiers={[getHighestTierForLevel(level)]}
+        level={phase === "completed" ? level + 1 : level}
         remainingSeconds={remaining}
         progressLabel={progressLabel}
       />
@@ -319,16 +339,20 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
         />
       ) : null}
 
-      {phase === "completed" || phase === "failed" ? (
-        <GameResultScreen
-          game="wordMatch"
-          level={level}
-          success={phase === "completed"}
-          points={phase === "completed" ? getPointsForLevel(level) : undefined}
-          onPrimary={phase === "completed" ? handleNextLevel : handleTryAgain}
-        />
-      ) : (
-        <div className="flex flex-1 flex-col overflow-hidden p-4">
+      <GameUITransition
+        screenKey={phase === "completed" || phase === "failed" ? `result-${phase}` : "game"}
+        direction={phase === "failed" ? "backward" : "forward"}
+      >
+        {phase === "completed" || phase === "failed" ? (
+          <GameResultScreen
+            game="wordMatch"
+            level={level}
+            success={phase === "completed"}
+            points={phase === "completed" ? getPointsForLevel(level) : undefined}
+            onPrimary={phase === "completed" ? handleNextLevel : handleTryAgain}
+          />
+        ) : (
+          <div className="flex flex-1 flex-col overflow-hidden p-4">
           <div
             ref={boardWrapperRef}
             className="relative flex flex-1 flex-row gap-4"
@@ -394,8 +418,9 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
               </div>
             </div>
           </div>
-        </div>
-      )}
+          </div>
+        )}
+      </GameUITransition>
 
       <UpgradeDialog
         open={upgradeOpen}

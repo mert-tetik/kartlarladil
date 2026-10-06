@@ -71,6 +71,10 @@ const nextConfig: NextConfig = {
         pathname: "/leaderboard-icon.png",
         search: "?v=20261005-1",
       },
+      {
+        pathname: "/mobile-nav-icons/**",
+        search: "?v=20261006-2",
+      },
     ],
   },
   async redirects() {

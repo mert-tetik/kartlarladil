@@ -20,6 +20,7 @@ import { QuizResultMessageTest } from "@/app/learn/components/quiz-result-messag
 import { QuizChestRewardTest } from "@/app/learn/components/quiz-chest-reward-test";
 import { QuizContinuationMotivationTest } from "@/app/learn/components/quiz-continuation-motivation-test";
 import { BonusQuestionsTest } from "@/app/learn/components/bonus-questions-test";
+import { BonusRewardTest } from "@/app/learn/components/bonus-reward-test";
 import { NormalQuestionsTest } from "@/app/learn/components/normal-questions-test";
 import { QuizWordButtonTest } from "@/app/learn/components/quiz-word-button-test";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,7 @@ interface LearnQuizShellProps {
   chestRewardTest?: boolean;
   continuationMotivationTest?: boolean;
   bonusTest?: boolean;
+  bonusRewardTest?: boolean;
   bonusAfterEach?: boolean;
   normalTest?: boolean;
   normalQuestionType?: NormalQuizItem["questionType"] | null;
@@ -67,6 +69,7 @@ export function LearnQuizShell({
   chestRewardTest = false,
   continuationMotivationTest = false,
   bonusTest = false,
+  bonusRewardTest = false,
   bonusAfterEach = false,
   normalTest = false,
   normalQuestionType = null,
@@ -88,7 +91,6 @@ export function LearnQuizShell({
   const router = useRouter();
   const authSession = useOptionalAuthSession();
   const { locale } = useLocale();
-  const t = useT();
   const redirectStartedRef = useRef(false);
   const showHeader = phase === "mode" || phase === "language" || phase === "count";
   const canRenderPersistedPool = cards.length > 0;
@@ -127,7 +129,7 @@ export function LearnQuizShell({
   }, [initialMode]);
 
   useEffect(() => {
-    if (bonusTest || normalTest || chestRewardTest || continuationMotivationTest) return;
+    if (bonusTest || bonusRewardTest || normalTest || chestRewardTest || continuationMotivationTest) return;
 
     if (!hydrated || cloudLoading || !cloudInventoryReady) {
       return;
@@ -142,6 +144,7 @@ export function LearnQuizShell({
     }
   }, [
     bonusTest,
+    bonusRewardTest,
     cloudInventoryReady,
     cloudLoading,
     hasUsableCardsForMode,
@@ -202,6 +205,10 @@ export function LearnQuizShell({
 
   if (bonusTest) {
     return <BonusQuestionsTest />;
+  }
+
+  if (bonusRewardTest) {
+    return <BonusRewardTest />;
   }
 
   if ((!hydrated || cloudLoading || !cloudInventoryReady) && !canRenderPersistedPool) {

@@ -78,8 +78,9 @@ export function QuizCountSelection({
             language={locale}
             showSpeaker={false}
             largeCharacter
-            characterVideoSrc="/quiz/kac-kartla-calisacaksin.mp4?v=20261006-2"
-            className="quiz-count-selection-speech -translate-y-[20px]"
+            characterVideoSrc="/quiz/kac-kartla-calisacaksin.mp4?v=20261007-1"
+            disableEntryOffset
+            className="quiz-count-selection-speech"
           />
         </QuizMobileActionPortal>
         <div

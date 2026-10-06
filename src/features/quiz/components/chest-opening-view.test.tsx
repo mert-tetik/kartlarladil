@@ -50,7 +50,7 @@ describe("ChestOpeningView", () => {
     expect(video).not.toHaveAttribute("muted");
     expect(video?.querySelector("source")).toHaveAttribute(
       "src",
-      "/chests/openings/wood_chest_opening_v2.mp4",
+      "/chests/openings/wood_chest_opening_v2.mp4?v=20261007-1",
     );
     expect(document.querySelector("[data-chest-reward-sources]")).not.toBeInTheDocument();
 

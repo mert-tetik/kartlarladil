@@ -12,7 +12,7 @@ export function MissionIcon({
 }) {
   return (
     <Image
-      src="/mission-icon.webp"
+      src="/mission-icon-v20261006-2.png"
       alt={alt}
       width={size}
       height={size}

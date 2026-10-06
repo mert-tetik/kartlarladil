@@ -133,6 +133,14 @@ export function MobileLandingDashboard() {
     enabled: Boolean(user),
     refreshOnMount: true,
   });
+  const {
+    data: medalLeaderboardData,
+    loading: medalLeaderboardLoading,
+  } = useLeaderboardData({
+    enabled: Boolean(user),
+    mode: "medals",
+    refreshOnMount: true,
+  });
 
   const defaultLanguage = useMemo<LanguageCode>(() => {
     const requestedLanguage = parseLandingLanguage(searchParams.get("language"));
@@ -647,17 +655,17 @@ export function MobileLandingDashboard() {
         data-tutorial-target="leaderboard"
       >
         <Image
-          src="/leaderboard-icon.png"
+          src="/leaderboard-icon-v20261006-2.png"
           alt=""
           aria-hidden="true"
           width={31}
           height={31}
-          className="h-[2rem] w-auto object-contain"
+          className="h-[34px] w-auto object-contain"
         />
         {leaderboardButtonLabel ? (
           <span
             className={cn(
-              "absolute -bottom-3 left-[0.2rem] origin-bottom-left -rotate-12 inline-flex whitespace-nowrap bg-gradient-to-r from-[#FDF4A5] to-[#F5AC27] bg-clip-text px-0.5 py-px !text-transparent",
+              "absolute -bottom-3 left-[0.2rem] translate-y-[5px] origin-bottom-left -rotate-12 inline-flex whitespace-nowrap bg-gradient-to-r from-[#FDF4A5] to-[#F5AC27] bg-clip-text px-0.5 py-px !text-transparent",
               MOBILE_TOP_ACTION_LABEL_CLASSNAME,
               leaderboardButtonLabelClassName,
               canUseSuperWater(locale) && "font-super-water",
@@ -712,7 +720,12 @@ export function MobileLandingDashboard() {
           className="flex h-7 items-center justify-center rounded-md px-0.5 transition-transform active:scale-95"
           aria-label={t("medals.name")}
         >
-          <RewardMedalHud />
+          <RewardMedalHud
+            size="large"
+            showBackground={false}
+            superWater={canUseSuperWater(locale)}
+            className="h-7 gap-0.5 rounded-md px-0.5 py-0 text-sm"
+          />
         </button>
       </div>
 
@@ -770,7 +783,7 @@ export function MobileLandingDashboard() {
         data-route-transition-surface
       >
         <Image
-          src="/day-streak/day-streak-icon.png"
+          src="/day-streak/day-streak-icon-v20261006.png"
           alt=""
           aria-hidden="true"
           width={256}
@@ -810,7 +823,7 @@ export function MobileLandingDashboard() {
         data-route-transition-surface
       >
         <Image
-          src="/leaderboard/series-leaderboard-icon.png"
+          src="/leaderboard/series-leaderboard-icon-v20261006-4.png"
           alt=""
           aria-hidden="true"
           width={256}
@@ -1060,6 +1073,15 @@ export function MobileLandingDashboard() {
       <MobileMedalDetailsSheet
         open={medalDetailsOpen}
         sourceRect={selectedMedalSourceRect}
+        medalPosition={medalLeaderboardData?.viewer.medalsPosition ?? null}
+        medalPositionLoading={medalLeaderboardLoading}
+        onOpenLeaderboard={() => {
+          vibrate("tap");
+          requireAuthAction(() => {
+            setMedalDetailsOpen(false);
+            openLeaderboard("medals");
+          }, { nextPath: "/" });
+        }}
         onClose={() => setMedalDetailsOpen(false)}
       />
 
