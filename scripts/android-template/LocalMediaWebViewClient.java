@@ -123,6 +123,7 @@ public final class LocalMediaWebViewClient extends WebViewClient {
                 || normalized.endsWith(".gif")
                 || normalized.endsWith(".jpeg")
                 || normalized.endsWith(".jpg")
+                || normalized.endsWith(".m4a")
                 || normalized.endsWith(".m4v")
                 || normalized.endsWith(".mp3")
                 || normalized.endsWith(".mp4")

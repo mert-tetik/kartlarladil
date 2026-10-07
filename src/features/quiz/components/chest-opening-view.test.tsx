@@ -16,6 +16,7 @@ describe("ChestOpeningView", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(() => Promise.resolve());
   });
 
   afterEach(() => {
@@ -47,10 +48,14 @@ describe("ChestOpeningView", () => {
 
     const video = document.querySelector("[data-chest-opening-video]");
     expect(video).toBeInTheDocument();
-    expect(video).not.toHaveAttribute("muted");
+    expect(video).toHaveProperty("muted", true);
     expect(video?.querySelector("source")).toHaveAttribute(
       "src",
-      "/chests/openings/wood_chest_opening_v2.mp4?v=20261007-1",
+      "/chests/openings/wood_chest_opening_v2.mp4?v=20261007-2",
+    );
+    expect(document.querySelector("audio")).toHaveAttribute(
+      "src",
+      "/chests/openings/wood_chest_opening_v2.m4a?v=20261007-2",
     );
     expect(document.querySelector("[data-chest-reward-sources]")).not.toBeInTheDocument();
 

@@ -8,7 +8,11 @@ import { formatNumber } from "@/i18n/labels";
 import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
-import { CHEST_TIER_OPENING_VIDEOS, type ChestTierDefinition } from "@/features/quiz/chest-rewards";
+import {
+  CHEST_TIER_OPENING_AUDIO,
+  CHEST_TIER_OPENING_VIDEOS,
+  type ChestTierDefinition,
+} from "@/features/quiz/chest-rewards";
 import { GEM_ASSETS, type ChestRewardOutcome, type GemBalances, type GemType } from "@/features/gems/gem-types";
 import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
 import { MainPointsDisplay } from "@/features/progress/components/main-points-display";
@@ -66,6 +70,7 @@ export function ChestOpeningView({
   const [displayPoints, setDisplayPoints] = useState(stableTotalPoints);
   const [rewardOutcome, setRewardOutcome] = useState<ChestRewardOutcome | null>(reward ?? null);
   const [videoSource, setVideoSource] = useState(CHEST_TIER_OPENING_VIDEOS[tier.tier]);
+  const [audioSource, setAudioSource] = useState(CHEST_TIER_OPENING_AUDIO[tier.tier]);
   const [videoUnavailable, setVideoUnavailable] = useState(false);
   const [rewardResolved, setRewardResolved] = useState(!onRewardReady || Boolean(reward));
   const [rewardRevealReady, setRewardRevealReady] = useState(false);
@@ -85,6 +90,8 @@ export function ChestOpeningView({
   const hasShownRewardsRef = useRef(false);
   const hasTriggeredOpenHapticRef = useRef(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioStartedRef = useRef(false);
   const videoCompletionModeRef = useRef<"playing" | "ended" | "skipped">("playing");
   const lastTapAtRef = useRef(0);
   const rewardPromiseRef = useRef<Promise<ChestRewardOutcome | null> | null>(null);
@@ -127,7 +134,22 @@ export function ChestOpeningView({
   }, []);
 
   const handleVideoPlay = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
-    event.currentTarget.volume = 1;
+    const video = event.currentTarget;
+    video.muted = true;
+    video.volume = 0;
+    const audio = audioRef.current;
+    if (audio) {
+      audioStartedRef.current = true;
+      try {
+        audio.currentTime = video.currentTime;
+      } catch {
+        // Seeking the separate track is best effort on older WebViews.
+      }
+      const playResult = audio.play?.();
+      if (playResult && typeof playResult.catch === "function") {
+        void playResult.catch(() => undefined);
+      }
+    }
     if (!hasTriggeredOpenHapticRef.current) {
       hasTriggeredOpenHapticRef.current = true;
       try {
@@ -147,10 +169,21 @@ export function ChestOpeningView({
 
   const handleVideoTimeUpdate = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
     const video = event.currentTarget;
+    const audio = audioRef.current;
+    if (audio && audioStartedRef.current) {
+      if (Math.abs(audio.currentTime - video.currentTime) > 0.16) {
+        try {
+          audio.currentTime = video.currentTime;
+        } catch {
+          // Keep the video usable if a WebView rejects a seek during startup.
+        }
+      }
+    }
     if (Number.isFinite(video.duration) && video.duration > 0) {
       const fadeStart = video.duration - VIDEO_AUDIO_FADE_DURATION_MS / 1000;
       if (video.currentTime >= fadeStart) {
-        video.volume = Math.max(0, Math.min(1, (video.duration - video.currentTime) / (VIDEO_AUDIO_FADE_DURATION_MS / 1000)));
+        const fadeProgress = Math.max(0, Math.min(1, (video.duration - video.currentTime) / (VIDEO_AUDIO_FADE_DURATION_MS / 1000)));
+        if (audio) audio.volume = fadeProgress;
       }
     }
 
@@ -187,7 +220,9 @@ export function ChestOpeningView({
     const video = videoRef.current;
     if (video) {
       video.pause();
+      video.muted = true;
       video.volume = 0;
+      audioRef.current?.pause();
       if (Number.isFinite(video.duration) && video.duration > 0) {
         try {
           video.currentTime = video.duration;
@@ -212,7 +247,9 @@ export function ChestOpeningView({
   }, [skipVideoToLastFrame]);
 
   const handleVideoEnded = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
+    event.currentTarget.muted = true;
     event.currentTarget.volume = 0;
+    audioRef.current?.pause();
     if (videoCompletionModeRef.current === "skipped") {
       event.currentTarget.pause();
       revealAtVideoTimestamp();
@@ -241,9 +278,11 @@ export function ChestOpeningView({
     // The media element must be reset synchronously when a different chest tier is mounted.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setVideoSource(CHEST_TIER_OPENING_VIDEOS[tier.tier]);
+    setAudioSource(CHEST_TIER_OPENING_AUDIO[tier.tier]);
     setVideoUnavailable(false);
     videoCompletionModeRef.current = "playing";
     lastTapAtRef.current = 0;
+    audioStartedRef.current = false;
   }, [tier.tier]);
 
   useEffect(() => {
@@ -294,11 +333,13 @@ export function ChestOpeningView({
   }, [rewardResolved, rewardRevealReady]);
 
   useEffect(() => {
+    const audio = audioRef.current;
     return () => {
       if (pointsTimeoutRef.current !== null) window.clearTimeout(pointsTimeoutRef.current);
       if (videoEndCloseTimeoutRef.current !== null) window.clearTimeout(videoEndCloseTimeoutRef.current);
       if (completeTimeoutRef.current !== null) window.clearTimeout(completeTimeoutRef.current);
       if (videoRevealTimeoutRef.current !== null) window.clearTimeout(videoRevealTimeoutRef.current);
+      audio?.pause();
     };
   }, []);
 
@@ -329,6 +370,7 @@ export function ChestOpeningView({
         key={videoSource}
         ref={attachVideoRef}
         autoPlay={autoPlay}
+        muted
         playsInline
         preload="auto"
         aria-hidden="true"
@@ -341,6 +383,12 @@ export function ChestOpeningView({
       >
         <source src={videoSource} type="video/mp4" />
       </video> : null}
+      <audio
+        ref={audioRef}
+        src={audioSource}
+        preload="auto"
+        aria-hidden="true"
+      />
 
       <div className="relative z-10 flex h-full w-full max-w-5xl flex-1 flex-col">
         <div className={cn(
