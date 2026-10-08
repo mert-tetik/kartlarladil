@@ -135,8 +135,8 @@ export function QuizContinuationMotivationView({
       </div>
 
       <div
-        className="quiz-continuation-stagger-enter mx-auto mt-6 w-full max-w-3xl overflow-hidden rounded-xl border border-foreground/20 bg-background-card/60 shadow-sm sm:mt-8"
-        style={{ "--quiz-continuation-delay": "120ms" } as CSSProperties}
+        className="quiz-continuation-stagger-enter mx-auto mt-6 w-full max-w-3xl overflow-hidden rounded-xl border-[3px] border-[#AAAAAA] bg-background-card/60 shadow-sm sm:mt-8"
+        style={{ "--quiz-continuation-delay": "70ms" } as CSSProperties}
         data-quiz-continuation-motivation-list
       >
         {motivations.map((motivation, index) => {
@@ -160,10 +160,10 @@ export function QuizContinuationMotivationView({
             <article
               key={motivation.id}
               className={cn(
-                "quiz-continuation-stagger-enter flex min-h-28 min-w-0 flex-row items-center justify-start gap-[10px] border-b border-foreground/20 px-3 py-6 text-left last:border-b-0 sm:min-h-32 sm:px-4 sm:py-8",
+                "quiz-continuation-stagger-enter flex min-h-28 min-w-0 flex-row items-center justify-start gap-[10px] border-b-[3px] border-[#AAAAAA] px-3 py-6 text-left last:border-b-0 sm:min-h-32 sm:px-4 sm:py-8",
               )}
               style={{
-                "--quiz-continuation-delay": `${180 + index * 120}ms`,
+                "--quiz-continuation-delay": `${135 + index * 65}ms`,
               } as CSSProperties}
               data-quiz-continuation-motivation-card={motivation.id}
               data-strength={motivation.strength.toFixed(3)}
@@ -231,7 +231,7 @@ export function QuizContinuationMotivationView({
 
       <div
         className="quiz-continuation-stagger-enter mt-8 flex w-full items-center justify-center gap-4 pb-1 sm:gap-7 sm:pb-2"
-        style={{ "--quiz-continuation-delay": "620ms" } as CSSProperties}
+        style={{ "--quiz-continuation-delay": "350ms" } as CSSProperties}
         data-quiz-continuation-actions
       >
         {hasMoreCardsToLearn || isReviewQuiz ? (

@@ -9,6 +9,7 @@ export type SoundEffectName =
   | "quiz-complete"
   | "mission-passed"
   | "quiz-medals-complete"
+  | "quiz-medal-reveal"
   | "quiz-completion-progress-pop"
   | "quiz-select"
   | "word-select"
@@ -16,6 +17,7 @@ export type SoundEffectName =
   | "streak-count-reveal"
   | "rank-highlight"
   | "bonus-select"
+  | "bonus-reward-loot"
   | "bonus-invalid-operation"
   | "pricing-perk-select"
   | "card-swipe-right"
@@ -29,7 +31,9 @@ export type SoundEffectName =
   | "mission-claim"
   | "gem-loot"
   | "gem-spend"
-  | "result-medal-collect";
+  | "result-medal-collect"
+  | "result-action-press"
+  | "result-card-reveal";
 
 interface BrowserAudioWindow extends Window {
   Audio?: typeof Audio;
@@ -51,6 +55,7 @@ const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   "quiz-complete": "/sounds/quiz-complete-elevenlabs-v1.mp3",
   "mission-passed": "/sounds/mission-passed.mp3",
   "quiz-completion-progress-pop": "/sounds/quiz-completion-progress-pop.mp3",
+  "quiz-medal-reveal": "/sounds/medal-reveal-universfield-bonus-03.mp3?v=20261008-1",
   "quiz-select": "/sounds/quiz-select-elevenlabs-v1.mp3",
   // Source: user-provided Downloads/1002.mp3, packaged as an MP4 audio track.
   "streak-video-whoosh": "/sounds/streak-video-whoosh.mp4",
@@ -62,6 +67,7 @@ const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   "rank-up-reveal": "/sounds/rank-up-reveal.mp3",
   "chest-open": "/sounds/chest.mp3",
   "chest-crack": "/sounds/crack-audio.mp3",
+  "bonus-reward-loot": "/sounds/bonus-reward-loot-collect.mp3?v=20261008-1",
   "level-fail": "/sounds/level-fail-elevenlabs-v1.mp3",
   "mission-claim": "/sounds/stream.mp3",
   "gem-loot": "/sounds/gem-collect-opengameart-v1.mp3",
@@ -75,6 +81,31 @@ const SOUND_EFFECT_VOLUMES: Partial<Record<SoundEffectName, number>> = {
 };
 
 let audioContext: AudioContext | null = null;
+const preloadedSoundEffects = new Set<string>();
+const preloadedSoundEffectAudios = new Map<string, HTMLAudioElement>();
+
+export function preloadSoundEffects(effects: readonly SoundEffectName[]) {
+  if (typeof window === "undefined") return;
+
+  const audioWindow = window as BrowserAudioWindow;
+  const AudioConstructor = audioWindow.Audio;
+  if (typeof AudioConstructor !== "function") return;
+
+  for (const effect of effects) {
+    const source = SOUND_EFFECT_AUDIO_FILES[effect];
+    if (!source || preloadedSoundEffects.has(source)) continue;
+
+    try {
+      const audio = new AudioConstructor(source);
+      audio.preload = "auto";
+      audio.load();
+      preloadedSoundEffectAudios.set(source, audio);
+      preloadedSoundEffects.add(source);
+    } catch {
+      // Preloading is opportunistic and must never block the quiz flow.
+    }
+  }
+}
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === "undefined") {
@@ -138,8 +169,14 @@ function playAudioFile(effect: SoundEffectName, playbackRate = 1) {
   }
 
   try {
-    const audio = new AudioConstructor(src);
+    const audio = preloadedSoundEffectAudios.get(src) ?? new AudioConstructor(src);
     audio.preload = "auto";
+    audio.pause();
+    try {
+      audio.currentTime = 0;
+    } catch {
+      // Some media elements reject seeking before their metadata is ready.
+    }
     audio.volume = SOUND_EFFECT_VOLUMES[effect] ?? 1;
     const rate = Math.max(0.5, Math.min(playbackRate, 2.5));
     audio.playbackRate = rate;
@@ -383,6 +420,34 @@ function quizMedalsComplete(context: AudioContext, now: number) {
     });
   });
   playChord(context, [SCALE.C6, SCALE.E6, SCALE.G6], now + 0.18, 0.34, 0.025);
+}
+
+function quizMedalReveal(context: AudioContext, now: number, playbackRate = 1) {
+  // A louder metallic "cling" with a bright ring and a quick decay.
+  const rate = Math.max(0.5, Math.min(playbackRate, 2.5));
+  playTone(context, {
+    frequency: 720 * rate,
+    endFrequency: 1160 * rate,
+    startTime: now,
+    duration: 0.075 / rate,
+    gain: 0.1,
+    type: "sine",
+  });
+  playTone(context, {
+    frequency: 1360 * rate,
+    endFrequency: 1980 * rate,
+    startTime: now + 0.01 / rate,
+    duration: 0.19 / rate,
+    gain: 0.12,
+    type: "sine",
+  });
+  playTone(context, {
+    frequency: 2720 * rate,
+    startTime: now + 0.016 / rate,
+    duration: 0.26 / rate,
+    gain: 0.05,
+    type: "triangle",
+  });
 }
 
 function quizCompletionProgressPop(context: AudioContext, now: number) {
@@ -715,6 +780,60 @@ function resultMedalCollect(context: AudioContext, now: number) {
   });
 }
 
+function resultActionPress(context: AudioContext, now: number, playbackRate = 1) {
+  // Deeper, longer UI press: a rounded body hit followed by a clean upward tick.
+  const rate = Math.max(0.5, Math.min(playbackRate, 2.5));
+  playNoise(context, {
+    startTime: now,
+    duration: 0.07 / rate,
+    gain: 0.08,
+    filterFrequency: 420,
+  });
+  playTone(context, {
+    frequency: 155 * rate,
+    endFrequency: 105 * rate,
+    startTime: now,
+    duration: 0.12 / rate,
+    gain: 0.15,
+    type: "triangle",
+  });
+  playTone(context, {
+    frequency: 560 * rate,
+    endFrequency: 860 * rate,
+    startTime: now + 0.035 / rate,
+    duration: 0.18 / rate,
+    gain: 0.085,
+    type: "sine",
+  });
+}
+
+function resultCardReveal(context: AudioContext, now: number) {
+  // Short, airy reveal cue for each result card entering the summary.
+  playTone(context, {
+    frequency: 320,
+    endFrequency: 220,
+    startTime: now,
+    duration: 0.075,
+    gain: 0.04,
+    type: "triangle",
+  });
+  playTone(context, {
+    frequency: SCALE.G5,
+    endFrequency: SCALE.C6,
+    startTime: now + 0.018,
+    duration: 0.14,
+    gain: 0.045,
+    type: "sine",
+  });
+  playTone(context, {
+    frequency: SCALE.E6,
+    startTime: now + 0.045,
+    duration: 0.12,
+    gain: 0.025,
+    type: "triangle",
+  });
+}
+
 const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: number, playbackRate?: number) => void> = {
   correct,
   incorrect,
@@ -726,6 +845,7 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "quiz-complete": quizComplete,
   "mission-passed": missionPassed,
   "quiz-medals-complete": quizMedalsComplete,
+  "quiz-medal-reveal": quizMedalReveal,
   "quiz-completion-progress-pop": quizCompletionProgressPop,
   "quiz-select": quizSelect,
   "word-select": wordSelect,
@@ -733,6 +853,7 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "streak-count-reveal": streakCountReveal,
   "rank-highlight": rankHighlight,
   "bonus-select": bonusSelect,
+  "bonus-reward-loot": resultActionPress,
   "bonus-invalid-operation": bonusInvalidOperation,
   "pricing-perk-select": pricingPerkSelect,
   "card-swipe-right": cardSwipeRight,
@@ -747,6 +868,8 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "gem-loot": gemLoot,
   "gem-spend": gemSpend,
   "result-medal-collect": resultMedalCollect,
+  "result-action-press": resultActionPress,
+  "result-card-reveal": resultCardReveal,
 };
 
 export function playSoundEffect(effect: SoundEffectName, options?: { playbackRate?: number }) {

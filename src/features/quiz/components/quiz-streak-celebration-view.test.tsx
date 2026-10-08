@@ -33,7 +33,7 @@ describe("QuizStreakCelebrationView", () => {
     const play = HTMLMediaElement.prototype.play as unknown as ReturnType<typeof vi.spyOn>;
 
     expect(view).toHaveClass("quiz-flow-enter-right");
-    expect(video).toHaveAttribute("src", "/quiz/streak-animation.mp4?v=20261007-1");
+    expect(video).toHaveAttribute("src", "/quiz/streak-animation.mp4?v=20261007-2");
     expect(play).not.toHaveBeenCalled();
 
     act(() => {

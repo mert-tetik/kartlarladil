@@ -324,7 +324,7 @@ Kart kataloğu uygulama bundle'ında tutulur (`VOCABULARY_CARDS`), ancak kullan�
 
 | Plan | Aktif kart | Öğrenilmiş kart | AI günlük | AI aylık |
 |------|------------|-----------------|-----------|----------|
-| free | 20 | 50 | 10 | 200 |
+| free | 20 | 100 | 10 | 200 |
 | basic | unlimited | unlimited | 30 | 900 |
 | pro | unlimited | unlimited | 150 | 4500 |
 

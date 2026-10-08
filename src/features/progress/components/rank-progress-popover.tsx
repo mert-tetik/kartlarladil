@@ -451,7 +451,7 @@ export function RankUpMenu({
           ref={backgroundVideoRef}
           src={
             backgroundPhase === "first"
-              ? "/rank-up/rank-up-background-first.mp4?v=20261007-1"
+              ? "/rank-up/rank-up-background-first.mp4?v=20261007-2"
               : "/rank-up/rank-up-background-loopedvideo.mp4?v=20261007-1"
           }
           muted

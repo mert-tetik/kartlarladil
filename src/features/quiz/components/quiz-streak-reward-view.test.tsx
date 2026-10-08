@@ -87,9 +87,16 @@ function renderReward(onComplete = vi.fn()) {
     />,
   );
   const videos = view.container.querySelectorAll("video");
-  const video = videos[0];
-  const continuationVideo = videos[1];
-  if (!video || !continuationVideo) throw new Error("Reward video segments were not rendered");
+    const video = videos[0];
+    const continuationVideo = videos[1];
+    if (!video || !continuationVideo) throw new Error("Reward video segments were not rendered");
+    const audios = view.container.querySelectorAll("audio");
+    expect(audios).toHaveLength(2);
+    expect(continuationVideo).toHaveProperty("muted", true);
+    expect(audios[1]).toHaveAttribute(
+      "src",
+      "/quiz/streak-reward-background-20260921-continuation-audio.m4a?v=20261007-2",
+    );
 
   // jsdom does not calculate layout, but the shared scatter controller needs
   // real source/target geometry before it can render flight particles.

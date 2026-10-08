@@ -134,6 +134,7 @@ import { QuizStreakCelebrationView } from "@/features/quiz/components/quiz-strea
 import { QuizStreakRewardView } from "@/features/quiz/components/quiz-streak-reward-view";
 import { QuizCompletionProgressView } from "@/features/quiz/components/quiz-completion-progress-view";
 import { QuizMedalRating } from "@/features/quiz/components/quiz-medal-rating";
+import { preloadQuizCompletionAssets } from "@/features/quiz/quiz-completion-preload";
 import {
   getChestTierByCount,
   resolveAwardedChestTier,
@@ -144,6 +145,10 @@ import {
   type ChestTierDefinition,
 } from "@/features/quiz/chest-rewards";
 import { getQuizStreakRewardPoints, getRewardableQuizStreak } from "@/features/quiz/streak-rewards";
+import {
+  getCorrectAnswerFeedbackDelayMs,
+  QUIZ_BUTTON_FEEDBACK_DURATION_MS,
+} from "@/features/quiz/quiz-answer-feedback-timing";
 import { getQuizResultRewardPoints } from "@/features/quiz/result-rewards";
 import { EmptyState } from "@/components/empty-state";
 import {
@@ -290,8 +295,6 @@ const QUIZ_QUESTION_ENTRY_DURATION_MS = 360;
 const QUIZ_FLOW_TRANSITION_DURATION_MS = 360;
 const QUIZ_COMPLETION_TOPBAR_FADE_DURATION_MS = 720;
 const QUIZ_FLOW_INCOMING_DELAY_MS = 500;
-const QUIZ_BUTTON_FEEDBACK_DURATION_MS = 700;
-const NORMAL_ANSWER_AUTO_ADVANCE_DELAY_MS = QUIZ_BUTTON_FEEDBACK_DURATION_MS;
 const QUIZ_CARD_PROGRESS_FOOTER_HEIGHT_PX = 56;
 const QUIZ_CARD_RETURN_SETTLE_DURATION_MS = QUIZ_CARD_GROW_DURATION_MS + 80;
 const QUIZ_CARD_COMPACT_SCALE = 0.78;
@@ -725,6 +728,35 @@ export function QuizStation({
     );
   }, []);
 
+  useEffect(() => {
+    if (phase !== "quiz") return;
+
+    const chestPreviewTiers = selectedCount
+      ? getChestPreviewPairForCount(selectedCount) ?? ["wood", "iron"] as const
+      : [];
+    const rankIcons = [stats.rank.icon, stats.nextRank?.icon].filter(
+      (icon): icon is RankIconId => Boolean(icon),
+    );
+
+    preloadQuizCompletionAssets({
+      chestTiers: chestPreviewTiers,
+      rankIcons,
+    });
+  }, [phase, selectedCount, stats.nextRank?.icon, stats.rank.icon]);
+
+  function clearQuizAnswerFeedbackAnimation() {
+    if (typeof document === "undefined") return;
+
+    document.querySelectorAll<HTMLElement>(
+      ".animate-quiz-word-button-correct, .quiz-word-button-correct-shine",
+    ).forEach((element) => {
+      element.classList.remove(
+        "animate-quiz-word-button-correct",
+        "quiz-word-button-correct-shine",
+      );
+    });
+  }
+
   type FallbackTransitionSnapshot = {
     snapshot: HTMLElement;
     source: HTMLElement;
@@ -796,19 +828,93 @@ export function QuizStation({
     snapshot.querySelectorAll<HTMLElement>(".quiz-flow-enter-right, .quiz-flow-exit-left").forEach((element) => {
       element.classList.remove("quiz-flow-enter-right", "quiz-flow-exit-left");
     });
+    snapshot.querySelectorAll<HTMLElement>(
+      ".animate-quiz-word-button-correct, .quiz-word-button-correct-shine, .animate-quiz-word-button-select, .animate-bonus-incorrect-shake",
+    ).forEach((element) => {
+      element.classList.remove(
+        "animate-quiz-word-button-correct",
+        "quiz-word-button-correct-shine",
+        "animate-quiz-word-button-select",
+        "animate-bonus-incorrect-shake",
+      );
+      element.style.transform = "none";
+    });
+
     if (isCountSelectionSnapshot) {
-      snapshot.querySelectorAll<HTMLElement>(
-        ".animate-quiz-word-button-correct, .animate-quiz-word-button-correct-shine, .animate-quiz-word-button-select, .animate-bonus-incorrect-shake",
-      ).forEach((element) => {
-        element.classList.remove(
-          "animate-quiz-word-button-correct",
-          "animate-quiz-word-button-correct-shine",
-          "animate-quiz-word-button-select",
-          "animate-bonus-incorrect-shake",
-        );
-        element.style.transform = "none";
-      });
+
+      // The count screen is a centered flex layout, while the first question
+      // mounts a fixed bottom action row.  Keeping only the outer snapshot
+      // fixed is not enough: the flex container can still be re-laid out for
+      // one frame when React mounts that row. Freeze the two visible count
+      // groups at the exact screen coordinates they had before the update.
+      const sourceStack = source.querySelector<HTMLElement>(
+        ".quiz-count-selection-mobile-stack",
+      );
+      const snapshotStack = snapshot.querySelector<HTMLElement>(
+        ".quiz-count-selection-mobile-stack",
+      );
+      if (sourceStack && snapshotStack) {
+        const stackRect = sourceStack.getBoundingClientRect();
+
+        snapshotStack.style.setProperty("position", "absolute", "important");
+        snapshotStack.style.setProperty("inset", "0", "important");
+        snapshotStack.style.setProperty("width", `${stackRect.width}px`, "important");
+        snapshotStack.style.setProperty("height", `${stackRect.height}px`, "important");
+        snapshotStack.style.setProperty("min-height", `${stackRect.height}px`, "important");
+        snapshotStack.style.setProperty("max-height", `${stackRect.height}px`, "important");
+        snapshotStack.style.setProperty("overflow", "hidden", "important");
+        snapshotStack.style.setProperty("transform", "none", "important");
+
+        const visualPairs: Array<[HTMLElement | null, HTMLElement | null]> = [
+          [
+            sourceStack.querySelector<HTMLElement>(".quiz-count-selection-speech"),
+            snapshotStack.querySelector<HTMLElement>(".quiz-count-selection-speech"),
+          ],
+          [
+            sourceStack.querySelector<HTMLElement>("[data-quiz-count-options]"),
+            snapshotStack.querySelector<HTMLElement>("[data-quiz-count-options]"),
+          ],
+        ];
+
+        for (const [sourceElement, snapshotElement] of visualPairs) {
+          if (!sourceElement || !snapshotElement) continue;
+
+          const rect = sourceElement.getBoundingClientRect();
+          snapshotElement.style.setProperty("position", "absolute", "important");
+          snapshotElement.style.setProperty("inset", "auto", "important");
+          snapshotElement.style.setProperty(
+            "left",
+            `${rect.left - stackRect.left}px`,
+            "important",
+          );
+          snapshotElement.style.setProperty(
+            "top",
+            `${rect.top - stackRect.top}px`,
+            "important",
+          );
+          snapshotElement.style.setProperty("width", `${rect.width}px`, "important");
+          snapshotElement.style.setProperty("height", `${rect.height}px`, "important");
+          snapshotElement.style.setProperty("margin", "0", "important");
+          snapshotElement.style.setProperty("transform", "none", "important");
+        }
+      }
     }
+    if (isCountSelectionSnapshot) {
+      // Animate a scene wrapper, not the count screen's layout root. The
+      // count screen contains a centered/fixed composition; putting the
+      // horizontal transform directly on that root makes its first animation
+      // frame recalculate the flex/fixed descendants and visibly nudges them
+      // upward. The wrapper owns only the horizontal motion now.
+      const countTransitionLayer = document.createElement("div");
+      countTransitionLayer.className = "quiz-transition-fallback-count-layer";
+      countTransitionLayer.setAttribute("aria-hidden", "true");
+      countTransitionLayer.setAttribute("data-quiz-transition-fallback-count", "true");
+      snapshot.classList.add("quiz-transition-fallback-count-content");
+      countTransitionLayer.appendChild(snapshot);
+      document.body.appendChild(countTransitionLayer);
+      return { snapshot: countTransitionLayer, source };
+    }
+
     snapshot.classList.add("quiz-transition-fallback-old");
     document.body.appendChild(snapshot);
     return { snapshot, source };
@@ -870,7 +976,147 @@ export function QuizStation({
       return;
     }
 
+    if (isCountBoundary) {
+      const countSource = document.querySelector<HTMLElement>(
+        "[data-quiz-count-selection]",
+      );
+
+      if (!countSource) {
+        update();
+        return;
+      }
+
+      // Keep the real count DOM alive for the exit. A cloned layer can detach
+      // the video element from its playback/layout context, which makes the
+      // character appear frozen. The live source is promoted to an isolated
+      // viewport layer instead, while its visible groups are pinned to their
+      // current coordinates before the horizontal animation begins.
+      const countStack = countSource.querySelector<HTMLElement>(
+        ".quiz-count-selection-mobile-stack",
+      );
+      const stackRect = countStack?.getBoundingClientRect();
+      const visualElements = countStack
+        ? [
+            countStack.querySelector<HTMLElement>(".quiz-count-selection-speech"),
+            countStack.querySelector<HTMLElement>("[data-quiz-count-options]"),
+          ]
+        : [];
+      // Read every visual rect before promoting the source to fixed. The
+      // promotion changes the page/navbar geometry; measuring afterwards is
+      // exactly what caused the buttons to jump upward under the bubble.
+      const visualRects = visualElements.map((element) =>
+        element ? { element, rect: element.getBoundingClientRect() } : null,
+      );
+
+      countSource.setAttribute("data-quiz-count-transition-exit", "true");
+      countSource.style.setProperty("position", "fixed", "important");
+      countSource.style.setProperty("inset", "0", "important");
+      countSource.style.setProperty("width", "100vw", "important");
+      countSource.style.setProperty("height", "100dvh", "important");
+      countSource.style.setProperty("min-height", "100dvh", "important");
+      countSource.style.setProperty("display", "block", "important");
+      countSource.style.setProperty("padding", "0", "important");
+      countSource.style.setProperty("margin", "0", "important");
+      countSource.style.setProperty("overflow", "hidden", "important");
+      countSource.style.setProperty("z-index", "120", "important");
+
+      if (countStack && stackRect) {
+        countStack.style.setProperty("position", "absolute", "important");
+        countStack.style.setProperty("inset", "0", "important");
+        countStack.style.setProperty("box-sizing", "border-box", "important");
+        countStack.style.setProperty("width", `${stackRect.width}px`, "important");
+        countStack.style.setProperty("height", `${stackRect.height}px`, "important");
+        countStack.style.setProperty("min-height", `${stackRect.height}px`, "important");
+        countStack.style.setProperty("max-height", `${stackRect.height}px`, "important");
+        countStack.style.setProperty("overflow", "hidden", "important");
+        countStack.style.setProperty("transform", "none", "important");
+
+        for (const visual of visualRects) {
+          if (!visual) continue;
+
+          const { element: sourceElement, rect } = visual;
+          sourceElement.style.setProperty("position", "absolute", "important");
+          sourceElement.style.setProperty("inset", "auto", "important");
+          sourceElement.style.setProperty(
+            "left",
+            `${rect.left - stackRect.left}px`,
+            "important",
+          );
+          sourceElement.style.setProperty(
+            "top",
+            `${rect.top - stackRect.top}px`,
+            "important",
+          );
+          sourceElement.style.setProperty("width", `${rect.width}px`, "important");
+          sourceElement.style.setProperty("height", `${rect.height}px`, "important");
+          sourceElement.style.setProperty("margin", "0", "important");
+          sourceElement.style.setProperty("transform", "none", "important");
+        }
+      }
+
+      let exitFinished = false;
+      const finishCountExit = () => {
+        if (exitFinished) return;
+        exitFinished = true;
+        flushSync(update);
+        window.setTimeout(() => {
+          if (!countSource.isConnected) return;
+          countSource.removeAttribute("data-quiz-count-transition-exit");
+          countSource.removeAttribute("style");
+        }, 0);
+      };
+
+      if (typeof countSource.animate === "function") {
+        const exitAnimation = countSource.animate(
+          [
+            { transform: "translate3d(0, 0, 0)" },
+            { transform: "translate3d(-100vw, 0, 0)" },
+          ],
+          {
+            duration: QUIZ_FLOW_TRANSITION_DURATION_MS,
+            easing: "cubic-bezier(0.85, 0, 0.15, 1)",
+            fill: "forwards",
+          },
+        );
+        exitAnimation.addEventListener("finish", finishCountExit, { once: true });
+      } else {
+        countSource.classList.add("quiz-count-transition-exit-fallback");
+        window.setTimeout(finishCountExit, QUIZ_FLOW_TRANSITION_DURATION_MS);
+      }
+      return;
+    }
+
     const fallbackTransition = createFallbackTransitionSnapshot({ fadeQuizTopBar });
+    const isCountFallback = Boolean(
+      fallbackTransition?.snapshot.hasAttribute("data-quiz-transition-fallback-count"),
+    );
+
+    // The live count screen must not participate in layout after its visual
+    // copy has been captured. Otherwise the incoming question's action row
+    // can still move the old screen for a single frame underneath the copy.
+    if (isCountFallback) {
+      fallbackTransition?.source.setAttribute(
+        "data-quiz-transition-fallback-source-hidden",
+        "true",
+      );
+    }
+
+    if (isCountFallback && fallbackTransition) {
+      // Count selection -> first question is intentionally sequential. Do not
+      // mount the question while the count snapshot is still exiting: the
+      // question's fixed bottom action row would otherwise share the layout
+      // phase with the old screen and make it jump vertically.
+      window.setTimeout(() => {
+        fallbackTransition.snapshot.remove();
+        update();
+        window.setTimeout(() => {
+          fallbackTransition.source.removeAttribute(
+            "data-quiz-transition-fallback-source-hidden",
+          );
+        }, 0);
+      }, QUIZ_FLOW_TRANSITION_DURATION_MS);
+      return;
+    }
 
     if (shouldDelayIncoming) {
       if (!fallbackTransition) {
@@ -905,7 +1151,14 @@ export function QuizStation({
     update();
     if (fallbackTransition) {
       window.setTimeout(
-        () => fallbackTransition.snapshot.remove(),
+        () => {
+          fallbackTransition.snapshot.remove();
+          if (isCountFallback) {
+            fallbackTransition.source.removeAttribute(
+              "data-quiz-transition-fallback-source-hidden",
+            );
+          }
+        },
         QUIZ_FLOW_TRANSITION_DURATION_MS,
       );
     }
@@ -937,7 +1190,11 @@ export function QuizStation({
     }
   }, []);
 
-  const startCardProgressFeedback = useCallback((item: QuizItem, isCorrect: boolean) => {
+  const startCardProgressFeedback = useCallback((
+    item: QuizItem,
+    isCorrect: boolean,
+    feedbackDelayMs: number,
+  ) => {
     if (
       mode !== "active" ||
       !isCorrect ||
@@ -970,7 +1227,7 @@ export function QuizStation({
       cardProgressTimeoutIdsRef.current = cardProgressTimeoutIdsRef.current.filter(
         (activeTimeoutId) => activeTimeoutId !== revealTimeoutId,
       );
-    }, QUIZ_BUTTON_FEEDBACK_DURATION_MS);
+    }, feedbackDelayMs);
     cardProgressTimeoutIdsRef.current.push(revealTimeoutId);
 
     // Let the card enter after the answer buttons settle. The progress
@@ -2166,6 +2423,9 @@ export function QuizStation({
     requireAuthAction(
       () => {
         const nextStreak = isCorrect ? streak + 1 : 0;
+        const correctAnswerFeedbackDelayMs = isCorrect
+          ? getCorrectAnswerFeedbackDelayMs(nextStreak)
+          : QUIZ_BUTTON_FEEDBACK_DURATION_MS;
 
         flushSync(() => {
           setShowingAnswer(true);
@@ -2173,6 +2433,10 @@ export function QuizStation({
           setLastAnswerCorrect(isCorrect);
           setLastAnswer(answer);
         });
+
+        if (correctAnswerFeedbackDelayMs === 0) {
+          clearQuizAnswerFeedbackAnimation();
+        }
 
         setResults((current) => ({
           ...current,
@@ -2195,7 +2459,7 @@ export function QuizStation({
           bonusRewardClaimedRef.current = false;
           const bonusRevealDelay = item.bonusQuestion.kind === "matching"
             ? 0
-            : QUIZ_BUTTON_FEEDBACK_DURATION_MS;
+            : correctAnswerFeedbackDelayMs;
           bonusRewardRevealTimeoutRef.current = window.setTimeout(() => {
             bonusRewardRevealTimeoutRef.current = null;
             runQuizViewTransition(() => setBonusRewardRevealVisible(true));
@@ -2280,6 +2544,9 @@ export function QuizStation({
       () => {
         const willLearn = item.willLearn && isCorrect;
         const nextStreak = isCorrect ? streak + 1 : 0;
+        const correctAnswerFeedbackDelayMs = isCorrect
+          ? getCorrectAnswerFeedbackDelayMs(nextStreak)
+          : QUIZ_BUTTON_FEEDBACK_DURATION_MS;
 
         flushSync(() => {
           setShowingAnswer(true);
@@ -2288,7 +2555,11 @@ export function QuizStation({
           setLastAnswer(answer);
         });
 
-        const showCardProgress = startCardProgressFeedback(item, isCorrect);
+        const showCardProgress = startCardProgressFeedback(
+          item,
+          isCorrect,
+          correctAnswerFeedbackDelayMs,
+        );
 
         if (!answerFeedbackPlayedOnPress) {
           playSoundEffect(isCorrect ? "correct" : "incorrect");
@@ -2324,6 +2595,9 @@ export function QuizStation({
           clearNormalAnswerAdvance();
           normalAnswerAdvanceTimeoutRef.current = window.setTimeout(() => {
             normalAnswerAdvanceTimeoutRef.current = null;
+            if (correctAnswerFeedbackDelayMs === 0) {
+              clearQuizAnswerFeedbackAnimation();
+            }
             // Keep the streak screen after answer feedback. A learned card
             // first goes through its own celebration and hands off below.
             if (shouldShowStreak && !willLearn) {
@@ -2335,7 +2609,7 @@ export function QuizStation({
             // feedback settles so a slow persistence/stats request cannot
             // delay the learned-card celebration.
             advanceQuizRef.current();
-          }, NORMAL_ANSWER_AUTO_ADVANCE_DELAY_MS);
+          }, correctAnswerFeedbackDelayMs);
         }
 
         if (deferredRecordTimeoutRef.current !== null) {
@@ -5866,6 +6140,19 @@ export function ResultFlowView({
 }: ResultFlowViewProps) {
   const t = useT();
   const { locale } = useLocale();
+  const resultActionPressIndexRef = useRef(0);
+  const playResultActionPress = useCallback(() => {
+    const pressIndex = resultActionPressIndexRef.current;
+    resultActionPressIndexRef.current = (pressIndex + 1) % 3;
+    playSoundEffect("result-action-press", {
+      playbackRate: 0.9 + pressIndex * 0.1,
+    });
+  }, []);
+
+  useEffect(() => {
+    resultActionPressIndexRef.current = 0;
+  }, [resultProps.quizSessionId]);
+
   const { data: leaderboardData } = useLeaderboardData({
     enabled: resultProps.mode !== "learned",
     refreshOnMount: true,
@@ -5982,6 +6269,7 @@ export function ResultFlowView({
           learnedCards={learnedCards}
           advancedCards={advancedCards}
           advancedCardProgress={advancedCardProgress}
+          onResultActionPress={playResultActionPress}
           preserveMessageOnComplete
           onComplete={() => {
             setResultStageVisible(true);
@@ -5995,6 +6283,7 @@ export function ResultFlowView({
           >
             <ResultView
               {...resultProps}
+              onResultActionPress={playResultActionPress}
               onContinue={handleResultContinue}
               showMedalHud={!chestGateVisible && !continuationMotivationVisible}
             />
@@ -6032,6 +6321,7 @@ export function ResultFlowView({
     <div className="relative h-full w-full overflow-hidden" data-quiz-result-flow>
       <ResultView
         {...resultProps}
+        onResultActionPress={playResultActionPress}
         onContinue={handleResultContinue}
         showMedalHud={!chestGateVisible && !continuationMotivationVisible}
       />
@@ -6067,13 +6357,14 @@ const RESULT_MEDAL_COLLECT_PLAYBACK_RATE_STEP = 0.2;
 const RESULT_MEDAL_COLLECT_MAX_PLAYBACK_RATE = 2.5;
 const RESULT_MEDAL_HUD_PULSE_DURATION_MS = 350;
 const RESULT_VIDEO_AUDIO_FADE_OUT_MS = 700;
+const RESULT_SUMMARY_EXIT_DURATION_MS = 260;
 const RESULT_ANIMATION_VIDEO_SOURCES = [
-  "/quiz/result_animation_1.mp4?v=20261007-1",
-  "/quiz/result_animation_2.mp4?v=20261007-1",
+  "/quiz/result_animation_1.mp4?v=20261007-2",
+  "/quiz/result_animation_2.mp4?v=20261007-2",
 ] as const;
 const RESULT_ANIMATION_AUDIO_SOURCES = {
-  "result_animation_1": "/quiz/result-animation-1-audio.m4a?v=20261007-1",
-  "result_animation_2": "/quiz/result-animation-2-audio.m4a?v=20261007-1",
+  "result_animation_1": "/quiz/result-animation-1-audio.m4a?v=20261007-2",
+  "result_animation_2": "/quiz/result-animation-2-audio.m4a?v=20261007-2",
 } as const;
 let resultAnimationVideoIndex = 0;
 
@@ -6099,6 +6390,7 @@ export function ResultView({
   quizSessionId = null,
   quizDurationSeconds = 0,
   chestOpened,
+  onResultActionPress,
   onContinue,
   showMedalHud = true,
 }: {
@@ -6108,6 +6400,7 @@ export function ResultView({
   quizSessionId?: string | null;
   quizDurationSeconds?: number;
   chestOpened: boolean;
+  onResultActionPress?: () => void;
   onContinue?: () => void;
   showMedalHud?: boolean;
   onRestart: () => void;
@@ -6139,6 +6432,9 @@ export function ResultView({
   const [claimedMedals, setClaimedMedals] = useState(false);
   const [medalsFlightMounted, setMedalsFlightMounted] = useState(false);
   const [medalFlightRequests, setMedalFlightRequests] = useState<ResultMedalFlightRequest[]>([]);
+  const [resultMedalStage, setResultMedalStage] = useState<"summary" | "medals">("summary");
+  const [isResultSummaryExiting, setIsResultSummaryExiting] = useState(false);
+  const [medalRevealComplete, setMedalRevealComplete] = useState(false);
   const [openMenu, setOpenMenu] = useState<
     "correct" | "incorrect" | "learned" | null
   >(null);
@@ -6149,12 +6445,14 @@ export function ResultView({
     totalMedals: number;
     remaining: number;
   } | null>(null);
+  const isMedalCenterFlightActive = medalCenterFlight !== null;
   const [medalCenterTapReady, setMedalCenterTapReady] = useState(false);
   const medalSourceRef = useRef<HTMLDivElement>(null);
   const medalTargetRef = useRef<HTMLSpanElement>(null);
   const medalCollectSoundCountRef = useRef(0);
   const medalPulseSequenceRef = useRef(0);
   const medalPulseTimerRef = useRef<number | null>(null);
+  const resultSummaryExitTimerRef = useRef<number | null>(null);
   const medalFlightSequenceRef = useRef(0);
   const activeMedalFlightsRef = useRef(0);
   const medalRemainingRef = useRef(0);
@@ -6180,12 +6478,41 @@ export function ResultView({
       if (medalPulseTimerRef.current !== null) {
         window.clearTimeout(medalPulseTimerRef.current);
       }
+      if (resultSummaryExitTimerRef.current !== null) {
+        window.clearTimeout(resultSummaryExitTimerRef.current);
+      }
     };
   }, []);
 
   useEffect(() => () => {
     resultAnimationAudioRef.current?.pause();
   }, []);
+
+  useEffect(() => {
+    if (!isMedalCenterFlightActive || typeof window === "undefined") return;
+
+    const isMobileViewport = window.matchMedia?.("(max-width: 1023px)").matches ?? false;
+    if (!isMobileViewport) return;
+
+    const guardState = {
+      ...(window.history.state ?? {}),
+      __foxiesDeckMedalCollection: true,
+    };
+    window.history.pushState(guardState, "", window.location.href);
+
+    const handleMedalCollectionPopState = () => {
+      window.history.pushState(guardState, "", window.location.href);
+    };
+
+    window.addEventListener("popstate", handleMedalCollectionPopState);
+
+    return () => {
+      window.removeEventListener("popstate", handleMedalCollectionPopState);
+      if (window.history.state?.__foxiesDeckMedalCollection) {
+        window.history.back();
+      }
+    };
+  }, [isMedalCenterFlightActive]);
 
   useEffect(() => {
     if (!claimingMedals && !claimedMedals) {
@@ -6429,12 +6756,37 @@ export function ResultView({
   const claimLabel = canUseSuperWater(locale)
     ? formatSuperWaterText(locale, t("quiz.claimMedals"))
     : t("quiz.claimMedals");
+  const continueLabel = canUseSuperWater(locale)
+    ? formatSuperWaterText(locale, t("quiz.continue"))
+    : t("quiz.continue");
+  const isMedalStage = resultMedalStage === "medals";
   const isCollectingMedals = claimingMedals && !claimedMedals;
+
+  const handleResultPrimaryAction = useCallback(() => {
+    onResultActionPress?.();
+    if (!onResultActionPress) {
+      playSoundEffect("result-action-press");
+    }
+
+    if (!isMedalStage) {
+      if (isResultSummaryExiting) return;
+
+      setIsResultSummaryExiting(true);
+      resultSummaryExitTimerRef.current = window.setTimeout(() => {
+        resultSummaryExitTimerRef.current = null;
+        setResultMedalStage("medals");
+        setIsResultSummaryExiting(false);
+      }, RESULT_SUMMARY_EXIT_DURATION_MS);
+      return;
+    }
+
+    collectMedals();
+  }, [collectMedals, isMedalStage, isResultSummaryExiting, onResultActionPress]);
 
   return (
     <div
       data-quiz-result-view
-      data-quiz-result-stage="first"
+      data-quiz-result-stage={isMedalStage ? "medals" : "summary"}
       className="relative isolate flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--background)] text-center"
     >
       <div
@@ -6499,11 +6851,11 @@ export function ResultView({
             aria-hidden="true"
           />
           <span
-            className="pointer-events-none absolute inset-y-0 left-0 w-7 bg-gradient-to-r from-[var(--background)] to-transparent sm:w-10"
+            className="pointer-events-none absolute inset-y-0 left-0 w-9 bg-gradient-to-r from-[var(--background)] to-transparent sm:w-12"
             aria-hidden="true"
           />
           <span
-            className="pointer-events-none absolute inset-y-0 right-0 w-7 bg-gradient-to-l from-[var(--background)] to-transparent sm:w-10"
+            className="pointer-events-none absolute inset-y-0 right-0 w-9 bg-gradient-to-l from-[var(--background)] to-transparent sm:w-12"
             aria-hidden="true"
           />
         </div>
@@ -6541,87 +6893,135 @@ export function ResultView({
           {performanceMessageText}
         </p>
 
+          {!isMedalStage ? (
           <div
-            className="result-stagger-enter relative top-[30px] flex w-full items-center justify-center gap-2 sm:gap-3"
-            style={{ "--result-stagger-delay": "220ms" } as CSSProperties}
-            data-result-stats
-          >
-            {resultStats.map(({ key, label, value, icon: Icon, className, headerClassName }) => (
-              <div
-                key={key}
-                className={cn(
-                  "flex aspect-[778/700] w-[98px] shrink-0 flex-col items-center overflow-hidden rounded-2xl border-2 bg-transparent p-0 text-center",
-                  className,
-                )}
-              >
-                <span className={cn(
-                  "flex w-full shrink-0 items-center justify-center px-1 py-2 text-[0.58rem] font-bold uppercase leading-none text-[var(--background)] sm:py-2.5 sm:text-xs",
-                  headerClassName,
-                )}>
-                  {label}
-                </span>
-                <div className="flex min-h-0 flex-1 items-center justify-center gap-1 text-lg font-bold leading-none sm:text-xl">
-                  <Icon className="size-5 shrink-0" strokeWidth={3} aria-hidden="true" />
-                  <span>{value}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div
-            className="result-stagger-enter relative top-[30px] mt-3 flex w-full items-center justify-center gap-2 sm:mt-4 sm:gap-3"
-            style={{ "--result-stagger-delay": "340ms" } as CSSProperties}
-            data-result-summary-cards
-          >
-            {resultCards.map((card) => (
-              <ResultCard
-                key={card.key}
-                resultKey={card.key}
-                icon={card.icon}
-                label={card.label}
-                count={card.count}
-                disabled={card.count === 0}
-                onClick={() => setOpenMenu(card.key)}
-              />
-            ))}
-          </div>
-
-          <div
-            className="relative top-[4px] mt-4 h-4 w-full max-w-[310px] shrink-0 sm:mt-5 sm:h-5"
-            data-result-medals-heading
-            aria-hidden="true"
-          />
-          <div
-            ref={medalSourceRef}
             className={cn(
-              "relative top-[4px] w-full max-w-[310px] shrink-0 transition-opacity duration-200",
-              (claimingMedals || claimedMedals) && medalsFlightMounted
-                ? "opacity-0"
-                : "result-stagger-enter",
+              "relative top-[30px] w-full",
+              isResultSummaryExiting && "result-medal-summary-exit",
             )}
-            style={{ "--result-stagger-delay": "220ms" } as CSSProperties}
-            data-result-earned-medals
+            data-result-summary-metrics
           >
-            <QuizMedalRating
-              rating={medalRating}
-              className="w-full max-w-[310px] justify-between gap-0 px-2 sm:px-4"
-            />
+            <div
+              className="result-stagger-enter relative top-[30px] flex w-full items-center justify-center gap-2 sm:gap-3"
+              style={{ "--result-stagger-delay": "220ms" } as CSSProperties}
+              data-result-stats
+            >
+              {resultStats.map(({ key, label, value, icon: Icon, className, headerClassName }) => (
+                <div
+                  key={key}
+                  className={cn(
+                    "flex aspect-[778/700] w-[98px] shrink-0 flex-col items-center overflow-hidden rounded-2xl border-2 bg-transparent p-0 text-center",
+                    className,
+                  )}
+                >
+                  <span className={cn(
+                    "flex w-full shrink-0 items-center justify-center px-1 py-2 text-[0.58rem] font-bold uppercase leading-none text-[var(--background)] sm:py-2.5 sm:text-xs",
+                    headerClassName,
+                  )}>
+                    {label}
+                  </span>
+                  <div className="flex min-h-0 flex-1 items-center justify-center gap-1 text-lg font-bold leading-none sm:text-xl">
+                    <Icon className="size-5 shrink-0" strokeWidth={3} aria-hidden="true" />
+                    <span>{value}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div
+              className="result-stagger-enter relative top-[30px] mt-3 flex w-full items-center justify-center gap-2 sm:mt-4 sm:gap-3"
+              style={{ "--result-stagger-delay": "340ms" } as CSSProperties}
+              data-result-summary-cards
+            >
+              {resultCards.map((card) => (
+                <ResultCard
+                  key={card.key}
+                  resultKey={card.key}
+                  icon={card.icon}
+                  label={card.label}
+                  count={card.count}
+                  disabled={card.count === 0}
+                  onClick={() => setOpenMenu(card.key)}
+                />
+              ))}
+            </div>
           </div>
+          ) : null}
+
+          {isMedalStage ? (
+            <div
+              className="w-full"
+              style={{ transform: "translateY(51px)" }}
+              data-result-medal-content
+            >
+              <div
+                className="relative top-[4px] mt-4 h-4 w-full max-w-[310px] shrink-0 sm:mt-5 sm:h-5"
+                data-result-medals-heading
+                aria-hidden="true"
+              />
+              <div
+                ref={medalSourceRef}
+                className={cn(
+                  "relative top-[4px] mx-auto w-full max-w-[310px] shrink-0 transition-opacity duration-200",
+                  (claimingMedals || claimedMedals) && medalsFlightMounted
+                    ? "opacity-0"
+                    : "result-stagger-enter",
+                )}
+                style={{ "--result-stagger-delay": "220ms" } as CSSProperties}
+                data-result-earned-medals
+              >
+                <QuizMedalRating
+                  rating={medalRating}
+                  className="origin-center scale-[1.06] w-full max-w-[310px] justify-center px-2 sm:px-4"
+                  sequentialReveal
+                  onRevealComplete={() => setMedalRevealComplete(true)}
+                />
+              </div>
+            </div>
+          ) : null}
 
           <div
-            className="result-stagger-enter relative mt-auto w-full shrink-0 pt-3 sm:pt-4"
+            className={cn(
+              "relative mt-auto flex w-full shrink-0 justify-center pt-3 sm:pt-4",
+              !isMedalStage && !isResultSummaryExiting && "result-stagger-enter",
+              isResultSummaryExiting && "result-medal-summary-exit pointer-events-none",
+            )}
             style={{ "--result-stagger-delay": "460ms", top: "-60px" } as CSSProperties}
           >
-            <button
-              type="button"
-              onClick={collectMedals}
-              disabled={claimingMedals || claimedMedals}
-              data-no-tap-vibrate
-              data-result-claim-medals
-              className="pointer-events-auto flex h-14 w-full items-center justify-center rounded-xl bg-[#f5a900] px-5 text-lg font-bold text-white shadow-[0_6px_0_#c77f00] transition-transform active:translate-y-1 active:shadow-[0_2px_0_#c77f00] disabled:pointer-events-none disabled:opacity-60 sm:h-16 sm:text-xl"
-            >
-              {claimLabel}
-            </button>
+            {isMedalStage ? (
+              medalRevealComplete ? (
+                <button
+                  type="button"
+                  onClick={handleResultPrimaryAction}
+                  disabled={claimingMedals || claimedMedals}
+                  data-no-tap-vibrate
+                  data-result-primary-action
+                  data-result-claim-medals="true"
+                  style={{ "--result-stagger-delay": "0ms" } as CSSProperties}
+                  className={cn(
+                    "result-stagger-enter pointer-events-auto flex h-14 w-[calc(100%-2rem)] max-w-[400px] items-center justify-center rounded-xl px-5 text-lg font-bold shadow-[0_6px_0_rgba(0,0,0,0.22)] transition-transform active:translate-y-1 active:shadow-[0_2px_0_rgba(0,0,0,0.22)] disabled:pointer-events-none disabled:opacity-60 sm:h-16 sm:text-xl",
+                    canUseSuperWater(locale) && "font-super-water",
+                    "bg-[#f5a900] text-white",
+                  )}
+                >
+                  {claimLabel}
+                </button>
+              ) : null
+            ) : (
+              <button
+                type="button"
+                onClick={handleResultPrimaryAction}
+                disabled={isResultSummaryExiting}
+                data-no-tap-vibrate
+                data-result-primary-action
+                className={cn(
+                  "pointer-events-auto flex h-14 w-[calc(100%-2rem)] max-w-[400px] items-center justify-center rounded-xl bg-emerald-500 px-5 text-lg font-bold text-white shadow-[0_6px_0_rgba(0,0,0,0.22)] transition-transform active:translate-y-1 active:shadow-[0_2px_0_rgba(0,0,0,0.22)] sm:h-16 sm:text-xl",
+                  canUseSuperWater(locale) && "font-super-water",
+                )}
+              >
+                {continueLabel}
+              </button>
+            )}
           </div>
         </div>
       </main>
@@ -6635,7 +7035,7 @@ export function ResultView({
         />
       ) : null}
 
-      {showMedalHud && typeof document !== "undefined"
+      {showMedalHud && isMedalStage && typeof document !== "undefined"
         ? createPortal(
             <div
               className="result-stagger-enter pointer-events-none fixed left-4 top-4 z-[260]"
@@ -6647,6 +7047,7 @@ export function ResultView({
                 targetRef={medalTargetRef}
                 size="large"
                 showBackground={false}
+                superWater
                 className="rounded-xl pr-3"
               />
             </div>,
@@ -6715,14 +7116,18 @@ export function ResultView({
       {medalCenterFlight && typeof document !== "undefined"
         ? createPortal(
             <div
-              className="pointer-events-none fixed inset-0 z-[140]"
+              className="pointer-events-none fixed inset-0 z-[320] touch-none select-none overscroll-none"
               data-result-medal-center-flight
             >
               {medalCenterTapReady && medalCenterFlight.remaining > 0 ? (
                 <button
                   type="button"
-                  className="pointer-events-auto fixed inset-0 z-[139] cursor-pointer appearance-none border-0 bg-transparent p-0 focus-visible:outline-none"
-                  onClick={collectNextMedal}
+                  className="pointer-events-auto fixed inset-0 z-[321] cursor-pointer appearance-none touch-none border-0 bg-transparent p-0 focus-visible:outline-none"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    collectNextMedal();
+                  }}
                   data-no-tap-vibrate
                   aria-label={claimLabel}
                 />

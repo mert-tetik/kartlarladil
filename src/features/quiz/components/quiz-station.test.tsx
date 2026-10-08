@@ -6,7 +6,7 @@ import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { EMPTY_PROGRESS_STATS, getNextRankProgress } from "@/features/progress/progress-stats";
-import { LegacyResultView, MobileQuizFeedback, QuizStation } from "@/features/quiz/components/quiz-station";
+import { LegacyResultView, MobileQuizFeedback, QuizStation, ResultView } from "@/features/quiz/components/quiz-station";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
@@ -89,6 +89,7 @@ vi.mock("@/data/card-definitions.generated", () => ({
 
 vi.mock("@/lib/sound-effects", () => ({
   playSoundEffect: vi.fn(),
+  preloadSoundEffects: vi.fn(),
 }));
 
 vi.mock("@/lib/vibration", () => ({
@@ -492,6 +493,62 @@ describe("ResultView star rating", () => {
       },
     });
     expect(markPlayReviewEligible).toHaveBeenCalledWith("quiz");
+  });
+});
+
+describe("ResultView medal stages", () => {
+  it("keeps the summary and medal collection screens separate", () => {
+    vi.useFakeTimers();
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={null}>
+          <ResultView
+            mode="active"
+            results={{
+              correct: VOCABULARY_CARDS.slice(0, 7),
+              incorrect: VOCABULARY_CARDS.slice(7, 10),
+              learned: [],
+            }}
+            selectedCount={10}
+            chestOpened={false}
+            onContinue={vi.fn()}
+            onRestart={vi.fn()}
+            onExit={vi.fn()}
+          />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    expect(document.querySelector('[data-quiz-result-stage="summary"]')).toBeInTheDocument();
+    expect(document.querySelector("[data-result-summary-metrics]")).toBeInTheDocument();
+    expect(document.querySelector("[data-result-earned-medals]")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-main-medals-display]")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Devam et" }));
+
+    expect(document.querySelector('[data-quiz-result-stage="summary"]')).toBeInTheDocument();
+    expect(document.querySelector("[data-result-summary-metrics]")).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(260);
+    });
+
+    expect(document.querySelector('[data-quiz-result-stage="medals"]')).toBeInTheDocument();
+    expect(document.querySelector("[data-result-summary-metrics]")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-result-medal-content]")).toBeInTheDocument();
+    expect(document.querySelector("[data-result-earned-medals]")).toBeInTheDocument();
+    expect(document.querySelector("[data-main-medals-display]")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Madalyaları al" })).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(2500);
+    });
+
+    expect(screen.getByRole("button", { name: "Madalyaları al" })).toHaveClass(
+      "text-white",
+      "font-super-water",
+    );
   });
 });
 

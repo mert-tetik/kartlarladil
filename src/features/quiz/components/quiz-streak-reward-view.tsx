@@ -27,9 +27,13 @@ interface QuizStreakRewardViewProps {
 }
 
 const STREAK_REWARD_INTRO_VIDEO_SOURCE =
-  "/quiz/streak-reward-background-20260921-intro.mp4?v=20261007-1";
+  "/quiz/streak-reward-background-20260921-intro.mp4?v=20261007-2";
+const STREAK_REWARD_INTRO_AUDIO_SOURCE =
+  "/quiz/streak-reward-intro-audio.m4a?v=20261007-2";
 const STREAK_REWARD_CONTINUATION_VIDEO_SOURCE =
-  "/quiz/streak-reward-background-20260921-continuation.mp4?v=20261007-1";
+  "/quiz/streak-reward-background-20260921-continuation.mp4?v=20261007-2";
+const STREAK_REWARD_CONTINUATION_AUDIO_SOURCE =
+  "/quiz/streak-reward-background-20260921-continuation-audio.m4a?v=20261007-2";
 const VIDEO_AUDIO_FADE_IN_DURATION_MS = 500;
 const VIDEO_AUDIO_FADE_OUT_DURATION_MS = 2000;
 const VIDEO_AUDIO_MAX_VOLUME = 0.75;
@@ -56,7 +60,9 @@ export function QuizStreakRewardView({
   const introVideoRef = useRef<HTMLVideoElement>(null);
   const introAudioRef = useRef<HTMLAudioElement>(null);
   const continuationVideoRef = useRef<HTMLVideoElement>(null);
+  const continuationAudioRef = useRef<HTMLAudioElement>(null);
   const activeVideoRef = useRef<HTMLVideoElement | null>(null);
+  const activeAudioRef = useRef<HTMLAudioElement | null>(null);
   const completedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
   const breakTimerRef = useRef<number | null>(null);
@@ -73,6 +79,7 @@ export function QuizStreakRewardView({
   const audioFadeOutStartedRef = useRef(false);
   const videoPlaybackStartedRef = useRef(false);
   const introAudioStartedRef = useRef(false);
+  const continuationAudioStartedRef = useRef(false);
   const [displayPoints, setDisplayPoints] = useState(totalPoints);
   const [scorePulse, setScorePulse] = useState(0);
   const [gemRewards, setGemRewards] = useState<GemRewards>([]);
@@ -157,8 +164,8 @@ export function QuizStreakRewardView({
     vibrate("streak-reward-tap");
   }, []);
 
-  const startVideoAudioFadeIn = useCallback((video: HTMLVideoElement) => {
-    if (!video || audioFadeInStartedRef.current || audioFadeOutStartedRef.current) return;
+  const startVideoAudioFadeIn = useCallback((audio: HTMLAudioElement | null) => {
+    if (!audio || audioFadeInStartedRef.current || audioFadeOutStartedRef.current) return;
 
     audioFadeInStartedRef.current = true;
     if (audioFadeInFrameRef.current !== null) {
@@ -166,20 +173,20 @@ export function QuizStreakRewardView({
       audioFadeInFrameRef.current = null;
     }
 
-    video.volume = 0;
+    audio.volume = 0;
     const startedAt = performance.now();
     const fade = (timestamp: number) => {
       const progress = Math.min(
         1,
         (timestamp - startedAt) / VIDEO_AUDIO_FADE_IN_DURATION_MS,
       );
-      video.volume = VIDEO_AUDIO_MAX_VOLUME * progress;
+      audio.volume = VIDEO_AUDIO_MAX_VOLUME * progress;
 
       if (progress < 1) {
         audioFadeInFrameRef.current = window.requestAnimationFrame(fade);
       } else {
         audioFadeInFrameRef.current = null;
-        video.volume = VIDEO_AUDIO_MAX_VOLUME;
+        audio.volume = VIDEO_AUDIO_MAX_VOLUME;
       }
     };
 
@@ -187,8 +194,8 @@ export function QuizStreakRewardView({
   }, []);
 
   const startVideoAudioFadeOut = useCallback(() => {
-    const video = activeVideoRef.current;
-    if (!video || audioFadeOutStartedRef.current) return;
+    const audio = activeAudioRef.current;
+    if (!audio || audioFadeOutStartedRef.current) return;
 
     audioFadeOutStartedRef.current = true;
     if (audioFadeOutTimerRef.current !== null) {
@@ -204,20 +211,20 @@ export function QuizStreakRewardView({
       audioFadeOutFrameRef.current = null;
     }
 
-    const initialVolume = video.volume;
+    const initialVolume = audio.volume;
     const startedAt = performance.now();
     const fade = (timestamp: number) => {
       const progress = Math.min(
         1,
         (timestamp - startedAt) / VIDEO_AUDIO_FADE_OUT_DURATION_MS,
       );
-      video.volume = Math.max(0, initialVolume * (1 - progress));
+      audio.volume = Math.max(0, initialVolume * (1 - progress));
 
       if (progress < 1) {
         audioFadeOutFrameRef.current = window.requestAnimationFrame(fade);
       } else {
         audioFadeOutFrameRef.current = null;
-        video.volume = 0;
+        audio.volume = 0;
       }
     };
 
@@ -289,8 +296,11 @@ export function QuizStreakRewardView({
     if (!video) return;
 
     activeVideoRef.current = video;
+    activeAudioRef.current = introAudioRef.current;
     videoPlaybackStartedRef.current = true;
-    startVideoAudioFadeIn(video);
+    video.muted = true;
+    video.volume = 0;
+    startVideoAudioFadeIn(introAudioRef.current);
     if (!introAudioStartedRef.current && introAudioRef.current) {
       introAudioStartedRef.current = true;
       try {
@@ -298,6 +308,7 @@ export function QuizStreakRewardView({
       } catch {
         // Audio/video synchronization is best effort on older WebViews.
       }
+      introAudioRef.current.volume = 0;
       void introAudioRef.current.play().catch(() => undefined);
     }
   }, [startVideoAudioFadeIn]);
@@ -307,18 +318,49 @@ export function QuizStreakRewardView({
     if (!video) return;
 
     activeVideoRef.current = video;
+    activeAudioRef.current = continuationAudioRef.current;
     videoPlaybackStartedRef.current = true;
-    video.volume = VIDEO_AUDIO_MAX_VOLUME;
+    video.muted = true;
+    video.volume = 0;
+    const audio = continuationAudioRef.current;
+    if (audio) {
+      if (!continuationAudioStartedRef.current) {
+        continuationAudioStartedRef.current = true;
+        try {
+          audio.currentTime = video.currentTime;
+        } catch {
+          // Seeking the separate track is best effort on older WebViews.
+        }
+        audio.volume = VIDEO_AUDIO_MAX_VOLUME;
+        void audio.play().catch(() => undefined);
+      } else if (Math.abs(audio.currentTime - video.currentTime) > 0.16) {
+        try {
+          audio.currentTime = video.currentTime;
+        } catch {
+          // Keep the video usable if a WebView rejects a seek during startup.
+        }
+      }
+    }
     if (interactionStartedRef.current) {
       scheduleVideoFade();
     }
   }, [scheduleVideoFade]);
 
   const handleContinuationVideoTimeUpdate = useCallback(() => {
+    const video = continuationVideoRef.current;
+    const audio = continuationAudioRef.current;
+    if (video && audio && continuationAudioStartedRef.current && Math.abs(audio.currentTime - video.currentTime) > 0.16) {
+      try {
+        audio.currentTime = video.currentTime;
+      } catch {
+        // Keep the video usable if a WebView rejects a seek during startup.
+      }
+    }
     if (interactionStartedRef.current) scheduleVideoFade();
   }, [scheduleVideoFade]);
 
   const handleContinuationVideoEnded = useCallback(() => {
+    continuationAudioRef.current?.pause();
     startBreak();
   }, [startBreak]);
 
@@ -346,6 +388,7 @@ export function QuizStreakRewardView({
     if (introVideo && !introVideo.paused && !introVideo.ended) return;
 
     interactionStartedRef.current = true;
+    introAudioRef.current?.pause();
     startRewardScatter();
 
     hardCompletionTimeoutRef.current = window.setTimeout(() => {
@@ -368,6 +411,8 @@ export function QuizStreakRewardView({
   }, [continuationVideoUnavailable, startBreak, startRewardScatter]);
 
   useEffect(() => {
+    const introAudio = introAudioRef.current;
+    const continuationAudio = continuationAudioRef.current;
     return () => {
       if (audioFadeInFrameRef.current !== null) {
         window.cancelAnimationFrame(audioFadeInFrameRef.current);
@@ -390,7 +435,8 @@ export function QuizStreakRewardView({
       if (hardCompletionTimeoutRef.current !== null) {
         window.clearTimeout(hardCompletionTimeoutRef.current);
       }
-      introAudioRef.current?.pause();
+      introAudio?.pause();
+      continuationAudio?.pause();
     };
   }, []);
 
@@ -434,7 +480,7 @@ export function QuizStreakRewardView({
       ) : null}
       <audio
         ref={introAudioRef}
-        src="/quiz/streak-reward-intro-audio.m4a?v=20261007-1"
+        src={STREAK_REWARD_INTRO_AUDIO_SOURCE}
         preload="auto"
         aria-hidden="true"
       />
@@ -451,10 +497,12 @@ export function QuizStreakRewardView({
           )}
           key={continuationVideoSource}
           src={continuationVideoSource}
+          muted
           playsInline
           preload="auto"
           onLoadedMetadata={(event) => {
-            event.currentTarget.volume = VIDEO_AUDIO_MAX_VOLUME;
+            event.currentTarget.muted = true;
+            event.currentTarget.volume = 0;
           }}
           onPlay={handleContinuationVideoPlay}
           onPlaying={handleContinuationVideoPlay}
@@ -464,6 +512,12 @@ export function QuizStreakRewardView({
           aria-hidden="true"
         />
       ) : null}
+      <audio
+        ref={continuationAudioRef}
+        src={STREAK_REWARD_CONTINUATION_AUDIO_SOURCE}
+        preload="auto"
+        aria-hidden="true"
+      />
       <div className={cn(
         "pointer-events-none absolute inset-0 animate-streak-reward-ui-enter",
         uiExiting && "animate-streak-reward-ui-exit",

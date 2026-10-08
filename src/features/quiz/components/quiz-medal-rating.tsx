@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { playSoundEffect } from "@/lib/sound-effects";
+import { playSoundEffect, preloadSoundEffects } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 
 interface QuizMedalRatingProps {
@@ -11,6 +11,7 @@ interface QuizMedalRatingProps {
   max?: number;
   className?: string;
   style?: CSSProperties;
+  sequentialReveal?: boolean;
   onRevealComplete?: () => void;
 }
 
@@ -33,6 +34,8 @@ const MEDAL_SIZES = [
 const PANEL_REVEAL_DELAY_MS = 260;
 const DROP_DURATION_MS = 500;
 const STAGGER_MS = 120;
+const PLACEHOLDER_REVEAL_DURATION_MS = 360;
+const PLACEHOLDER_STAGGER_MS = 70;
 const MEDAL_IMAGE_SRC = "/quiz/result-cards/star.png?v=20261003-2";
 
 export function QuizMedalRating({
@@ -40,9 +43,11 @@ export function QuizMedalRating({
   max = 5,
   className,
   style,
+  sequentialReveal = false,
   onRevealComplete,
 }: QuizMedalRatingProps) {
   const clampedRating = Math.max(0, Math.min(max, Math.round(rating)));
+  const revealStepMs = sequentialReveal ? DROP_DURATION_MS + STAGGER_MS : STAGGER_MS;
   const [ready, setReady] = useState(false);
   const [showEmpty, setShowEmpty] = useState(clampedRating === 0);
   const onRevealCompleteRef = useRef(onRevealComplete);
@@ -52,6 +57,11 @@ export function QuizMedalRating({
   }, [onRevealComplete]);
 
   useEffect(() => {
+    if (!sequentialReveal || clampedRating === 0) return;
+    preloadSoundEffects(["quiz-medal-reveal"]);
+  }, [clampedRating, sequentialReveal]);
+
+  useEffect(() => {
     const timer = window.setTimeout(() => setReady(true), PANEL_REVEAL_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, []);
@@ -59,27 +69,39 @@ export function QuizMedalRating({
   useEffect(() => {
     if (clampedRating === 0) return;
     const lastFilledIndex = clampedRating - 1;
-    const revealAt = PANEL_REVEAL_DELAY_MS + lastFilledIndex * STAGGER_MS + DROP_DURATION_MS;
+    const revealAt = PANEL_REVEAL_DELAY_MS + lastFilledIndex * revealStepMs + DROP_DURATION_MS;
+    let completeTimer: number | null = null;
     const timer = window.setTimeout(() => {
       setShowEmpty(true);
       playSoundEffect("quiz-medals-complete");
-      onRevealCompleteRef.current?.();
+      const placeholderCount = Math.max(0, max - clampedRating);
+      const placeholderRevealTime = placeholderCount > 0
+        ? PLACEHOLDER_REVEAL_DURATION_MS + (placeholderCount - 1) * PLACEHOLDER_STAGGER_MS
+        : 0;
+      completeTimer = window.setTimeout(() => {
+        onRevealCompleteRef.current?.();
+      }, placeholderRevealTime);
     }, revealAt);
-    return () => window.clearTimeout(timer);
-  }, [clampedRating]);
+    return () => {
+      window.clearTimeout(timer);
+      if (completeTimer !== null) window.clearTimeout(completeTimer);
+    };
+  }, [clampedRating, max, revealStepMs]);
 
   useEffect(() => {
     if (clampedRating === 0) return;
 
     const timers = Array.from({ length: clampedRating }, (_, index) =>
       window.setTimeout(() => {
-        playSoundEffect("points");
+        playSoundEffect(sequentialReveal ? "quiz-medal-reveal" : "points", {
+          playbackRate: sequentialReveal ? 1 + index * 0.08 : 1,
+        });
         vibrate("tap");
-      }, PANEL_REVEAL_DELAY_MS + index * STAGGER_MS + DROP_DURATION_MS),
+      }, PANEL_REVEAL_DELAY_MS + index * revealStepMs + DROP_DURATION_MS),
     );
 
     return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [clampedRating]);
+  }, [clampedRating, revealStepMs, sequentialReveal]);
 
   return (
     <div
@@ -100,7 +122,7 @@ export function QuizMedalRating({
 
         if (filled) {
           return (
-            <div key={index} className={cn("flex items-end", offset)}>
+            <div key={index} className={cn("flex shrink-0 items-end", offset)}>
               <Image
                 src={MEDAL_IMAGE_SRC}
                 alt=""
@@ -113,7 +135,7 @@ export function QuizMedalRating({
                   ready ? "animate-medal-drop" : "opacity-0",
                 )}
                 style={{
-                  animationDelay: `${index * STAGGER_MS}ms`,
+                  animationDelay: `${index * revealStepMs}ms`,
                 }}
                 data-quiz-medal="filled"
                 data-quiz-medal-index={index}
@@ -123,14 +145,18 @@ export function QuizMedalRating({
         }
 
         return (
-          <div key={index} className={cn("flex items-end", offset)}>
+          <div key={index} className={cn("flex shrink-0 items-end", offset)}>
             <div
               className={cn(
-                "relative origin-bottom",
+                "relative origin-bottom shrink-0",
                 sizeClass,
-                showEmpty ? "opacity-100" : "opacity-0",
-                "transition-none",
+                showEmpty ? "animate-medal-placeholder" : "opacity-0",
               )}
+              style={{
+                animationDelay: showEmpty
+                  ? `${Math.max(0, index - clampedRating) * PLACEHOLDER_STAGGER_MS}ms`
+                  : undefined,
+              }}
               data-quiz-medal="empty"
               data-quiz-medal-index={index}
             >
@@ -139,22 +165,12 @@ export function QuizMedalRating({
                 alt=""
                 fill
                 sizes="4rem"
-                className="object-contain opacity-20 grayscale"
-                aria-hidden="true"
-              />
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 bg-foreground-muted"
+                className="object-contain"
                 style={{
-                  maskImage: `url("${MEDAL_IMAGE_SRC}")`,
-                  maskPosition: "center",
-                  maskRepeat: "no-repeat",
-                  maskSize: "contain",
-                  WebkitMaskImage: `url("${MEDAL_IMAGE_SRC}")`,
-                  WebkitMaskPosition: "center",
-                  WebkitMaskRepeat: "no-repeat",
-                  WebkitMaskSize: "contain",
+                  filter: "grayscale(1) brightness(0.45)",
+                  opacity: 0.9,
                 }}
+                aria-hidden="true"
               />
             </div>
           </div>

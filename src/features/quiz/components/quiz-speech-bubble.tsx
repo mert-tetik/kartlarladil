@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Volume2 } from "lucide-react";
-import { useEffect, useRef, useState, type SyntheticEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from "react";
 import { useT } from "@/i18n/locale-provider";
 import {
   getAiPracticeCharacters,
@@ -13,6 +13,11 @@ import { speakCardTerm } from "@/features/cards/card-speech";
 import type { AiPracticeCharacter, LanguageCode } from "@/types/domain";
 import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
+import {
+  preloadQuizVideo,
+  QUIZ_COUNT_SELECTION_VIDEO_SOURCE,
+  subscribeToQuizVideoReady,
+} from "@/features/quiz/quiz-video-preload";
 
 export function getRandomQuizCharacter() {
   const characters = getAiPracticeCharacters();
@@ -174,6 +179,18 @@ function QuizSpeechCharacterVideo({
   const replayTimerRef = useRef<number | null>(null);
   const [videoState, setVideoState] = useState<"pending" | "ready" | "unavailable">("pending");
 
+  const handleVideoReady = useCallback(() => {
+    setVideoState("ready");
+    onReady();
+  }, [onReady]);
+
+  useEffect(() => {
+    if (src !== QUIZ_COUNT_SELECTION_VIDEO_SOURCE) return;
+
+    preloadQuizVideo(src);
+    return subscribeToQuizVideoReady(src, handleVideoReady);
+  }, [handleVideoReady, src]);
+
   useEffect(() => {
     return () => {
       if (replayTimerRef.current !== null) {
@@ -181,11 +198,6 @@ function QuizSpeechCharacterVideo({
       }
     };
   }, []);
-
-  function handleVideoReady() {
-    setVideoState("ready");
-    onReady();
-  }
 
   function handleVideoError() {
     if (replayTimerRef.current !== null) {

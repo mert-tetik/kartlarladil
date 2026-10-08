@@ -169,6 +169,17 @@ export async function removeCardWithGemAction(sourceKey: string): Promise<{ succ
   try {
     const user = await requireAuthUser("/");
     const admin = createSupabaseAdminClient();
+    const { data: card, error: cardError } = await admin
+      .from("user_cards")
+      .select("status")
+      .eq("user_id", user.id)
+      .eq("card_source_key", sourceKey)
+      .maybeSingle<{ status: string }>();
+    if (cardError) return { success: false, error: cardError.message };
+    if (!card) return { success: false, error: "card_not_found" };
+    if (card.status !== "active") {
+      return { success: false, error: "card_removal_only_active" };
+    }
     const { data, error } = await admin.rpc("spend_gem_and_remove_card", { p_user_id: user.id, p_source_key: sourceKey, p_cost: 10 }).maybeSingle<{ success: boolean; blue_gems: number; green_gems: number; purple_gems: number }>();
     if (error || !data) return { success: false, error: error?.message ?? "database_error" };
     revalidatePath("/"); revalidatePath("/my-cards");

@@ -290,16 +290,16 @@ export function MobileCardDisplaySheet({
           )
         ) : null}
 
-        {renderContentItem(
-          3,
-          <div className="mx-auto mt-3 flex w-full max-w-[300px] flex-col items-center gap-2" data-card-gem-actions>
-            <GemCardAction type="blue" cost={10} disabled={!user || blueBalance < 10 || !inventory} label={t("gems.removeCard")} onClick={(event) => requestGemAction("blue", event.currentTarget.getBoundingClientRect())} />
-            {inventory?.status === "active" ? (
-              <GemCardAction type="purple" cost={2} disabled={!user || purpleBalance < 2} label={t("gems.markLearned")} onClick={(event) => requestGemAction("purple", event.currentTarget.getBoundingClientRect())} />
-            ) : null}
-          </div>,
-          "w-full",
-        )}
+        {inventory?.status === "active"
+          ? renderContentItem(
+              3,
+              <div className="mx-auto mt-3 flex w-full max-w-[300px] flex-col items-center gap-2" data-card-gem-actions>
+                <GemCardAction type="blue" cost={10} disabled={!user || blueBalance < 10} label={t("gems.removeCard")} onClick={(event) => requestGemAction("blue", event.currentTarget.getBoundingClientRect())} />
+                <GemCardAction type="purple" cost={2} disabled={!user || purpleBalance < 2} label={t("gems.markLearned")} onClick={(event) => requestGemAction("purple", event.currentTarget.getBoundingClientRect())} />
+              </div>,
+              "w-full",
+            )
+          : null}
       </div>
 
       {confirmation ? (

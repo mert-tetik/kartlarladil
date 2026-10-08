@@ -12,7 +12,7 @@ const SOURCE = {
   "limit.aiMonthlyLimitTitle": "Monthly AI message quota full",
   "limit.defaultDescription": "This action is outside your current plan’s limits. Upgrade your plan to unlock more.",
   "limit.defaultTitle": "Plan limit reached",
-  "limit.learnedCardLimitDescription": "The free plan lets you learn up to 50 cards in total. Reset some learned cards or upgrade your plan to learn more.",
+  "limit.learnedCardLimitDescription": "The free plan lets you learn up to 100 cards in total. Reset some learned cards or upgrade your plan to learn more.",
   "limit.learnedCardLimitTitle": "Learned card quota full",
   "limit.cardAlreadyActiveTitle": "This card is already active",
   "limit.cardAlreadyActiveDescription": "This card is already in your active cards. You can’t add the same card twice.",

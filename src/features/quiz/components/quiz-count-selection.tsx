@@ -4,17 +4,17 @@ import { useState } from "react";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import { QuizWordButton } from "@/features/quiz/components/quiz-word-button";
 import { getRandomQuizCharacter, QuizSpeechBubble } from "@/features/quiz/components/quiz-speech-bubble";
-import { QuizMobileActionPortal } from "@/features/quiz/components/quiz-mobile-action-portal";
 import {
   getChestPreviewPairForCount,
   QUIZ_COUNT_OPTIONS,
 } from "@/features/quiz/chest-rewards";
-import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
+import { formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { formatNumber } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
 import type { LocaleCode, PracticeMode } from "@/types/domain";
+import { QUIZ_COUNT_SELECTION_VIDEO_SOURCE } from "@/features/quiz/quiz-video-preload";
 
 const COUNT_OPTION_NAMES: Record<LocaleCode, Record<number, string>> = {
   tr: { 10: "Hızlı", 20: "Dengeli", 30: "Uzun", 50: "Maraton" },
@@ -46,7 +46,6 @@ export function QuizCountSelection({
 }) {
   const { locale } = useLocale();
   const t = useT();
-  const useSuperWater = canUseSuperWater(locale);
   const showChestTiers = mode === "active";
   const [character] = useState(getRandomQuizCharacter);
   const [animatingCount, setAnimatingCount] = useState<number | null>(null);
@@ -71,20 +70,20 @@ export function QuizCountSelection({
       )}
     >
       <div className="w-full max-w-xl">
-        <QuizMobileActionPortal mobileOnly>
+        <div className="quiz-count-selection-mobile-stack">
           <QuizSpeechBubble
             character={character}
             term={formatSuperWaterText(locale, t("quiz.chooseCountTitle"))}
             language={locale}
             showSpeaker={false}
             largeCharacter
-            characterVideoSrc="/quiz/kac-kartla-calisacaksin.mp4?v=20261007-1"
+            characterVideoSrc={QUIZ_COUNT_SELECTION_VIDEO_SOURCE}
+            characterClassName="quiz-count-selection-character"
             disableEntryOffset
             className="quiz-count-selection-speech"
           />
-        </QuizMobileActionPortal>
         <div
-          className="mx-auto mt-3 flex w-full flex-col gap-3 sm:mt-5 sm:gap-4 max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[60px] max-lg:z-[55] max-lg:bg-background max-lg:px-3 max-lg:pb-[calc(0.75rem+env(safe-area-inset-bottom))] max-lg:pt-3 sm:max-lg:px-5"
+          className="mx-auto mt-3 flex w-full flex-col gap-3 sm:mt-5 sm:gap-4"
           data-quiz-count-options
         >
           {QUIZ_COUNT_OPTIONS.map((count) => {
@@ -124,6 +123,7 @@ export function QuizCountSelection({
               </QuizWordButton>
             );
           })}
+        </div>
         </div>
       </div>
     </section>

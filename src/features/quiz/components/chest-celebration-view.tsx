@@ -7,12 +7,14 @@ import { TIER_REQUIREMENTS } from "@/data/tiers";
 import { cn } from "@/lib/utils";
 import { canUseSuperWater, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { getNativeMediaFallbackSource, isNativeMediaFallbackSource } from "@/lib/native-media-fallback";
+import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import type { VocabularyCard } from "@/types/domain";
 
 interface ChestCelebrationViewProps {
   onComplete: () => void;
+  onResultActionPress?: () => void;
   learnedCards?: readonly VocabularyCard[];
   advancedCards?: readonly VocabularyCard[];
   advancedCardProgress?: Readonly<Record<string, number>>;
@@ -27,7 +29,7 @@ const CELEBRATION_MESSAGE_KEYS = [
 ] as const satisfies readonly string[];
 
 const CELEBRATION_ENTER_DELAY_MS = 50;
-const CELEBRATION_MESSAGE_EARLY_START_MS = 450;
+const CELEBRATION_MESSAGE_EARLY_START_MS = 650;
 const CELEBRATION_VIDEO_ERROR_FALLBACK_DELAY_MS = 750;
 const CELEBRATION_MESSAGE_DELAY_MS = 1000;
 const CELEBRATION_MESSAGE_EXIT_DURATION_MS = 420;
@@ -36,9 +38,80 @@ const RESULT_SUMMARY_CONTENT_DELAY_MS = 80;
 const CELEBRATION_COMPLETE_DELAY_MS = 500;
 const RESULT_MESSAGE_WAVE_SRC = "/quiz/result-message-wave-20261003-1.png";
 const RESULT_MESSAGE_WAVE_HEIGHT_CSS = "177.9167vw";
+const RESULT_MESSAGE_ACHIEVEMENT_ENTER_DURATION_MS = 620;
+const RESULT_MESSAGE_PARTICLE_SRC = "/quiz/result-message-bubble.png?v=20261008-1";
+const RESULT_MESSAGE_PARTICLE_COUNT = 30;
+const RESULT_MESSAGE_PARTICLE_REVEAL_LEAD_MS = 80;
+const RESULT_MESSAGE_PARTICLE_SPAWN_RECT = {
+  leftPercent: 32,
+  topPercent: 34,
+  widthPercent: 36,
+  heightPercent: 32,
+} as const;
+
+type ResultMessageParticle = {
+  originX: number;
+  originY: number;
+  quarterX: number;
+  quarterY: number;
+  midX: number;
+  midY: number;
+  threeQuarterX: number;
+  threeQuarterY: number;
+  x: number;
+  y: number;
+  rotation: number;
+  midRotation: number;
+  size: number;
+  duration: number;
+  delay: number;
+  opacity: number;
+};
+
+function createResultMessageParticles(): ResultMessageParticle[] {
+  return Array.from({ length: RESULT_MESSAGE_PARTICLE_COUNT }, () => {
+    const durationSeconds = 1 + Math.random() * 0.15;
+    const velocityX = (Math.random() * 2 - 1) * 160;
+    const velocityYBase = -190 + Math.random() * 270;
+    const velocityY = velocityYBase < 0 ? velocityYBase * 1.6 : velocityYBase;
+    const gravity = 280 + Math.random() * 60;
+    const getPosition = (timeSeconds: number) => ({
+      x: velocityX * timeSeconds,
+      y: velocityY * timeSeconds + 0.5 * gravity * timeSeconds ** 2,
+    });
+    const quarter = getPosition(durationSeconds * 0.25);
+    const midpoint = getPosition(durationSeconds * 0.5);
+    const threeQuarter = getPosition(durationSeconds * 0.75);
+    const end = getPosition(durationSeconds);
+
+    return {
+      originX:
+        RESULT_MESSAGE_PARTICLE_SPAWN_RECT.leftPercent
+        + Math.random() * RESULT_MESSAGE_PARTICLE_SPAWN_RECT.widthPercent,
+      originY:
+        RESULT_MESSAGE_PARTICLE_SPAWN_RECT.topPercent
+        + Math.random() * RESULT_MESSAGE_PARTICLE_SPAWN_RECT.heightPercent,
+      quarterX: quarter.x,
+      quarterY: quarter.y,
+      midX: midpoint.x,
+      midY: midpoint.y,
+      threeQuarterX: threeQuarter.x,
+      threeQuarterY: threeQuarter.y,
+      x: end.x,
+      y: end.y,
+      rotation: (Math.random() - 0.5) * 180,
+      midRotation: (Math.random() - 0.5) * 80,
+      size: 11 + Math.round(Math.random() * 10),
+      duration: Math.round(durationSeconds * 1000),
+      delay: Math.round(Math.random() * 45),
+      opacity: 0.3 + Math.random() * 0.7,
+    };
+  });
+}
 
 export function ChestCelebrationView({
   onComplete,
+  onResultActionPress,
   learnedCards = [],
   advancedCards = [],
   advancedCardProgress,
@@ -52,9 +125,10 @@ export function ChestCelebrationView({
   const [summaryExiting, setSummaryExiting] = useState(false);
   const [closing, setClosing] = useState(false);
   const [videoSource, setVideoSource] = useState(
-    "/quiz/result_message_video.mp4?v=20261007-1",
+    "/quiz/result_message_video.mp4?v=20261008-1",
   );
   const [videoUnavailable, setVideoUnavailable] = useState(false);
+  const [messageParticles, setMessageParticles] = useState<ResultMessageParticle[]>([]);
   const [messageKey] = useState(() =>
     CELEBRATION_MESSAGE_KEYS[Math.floor(Math.random() * CELEBRATION_MESSAGE_KEYS.length)],
   );
@@ -71,7 +145,9 @@ export function ChestCelebrationView({
   const summaryMessageHideTimerRef = useRef<number | null>(null);
   const summaryAutoCompleteTimerRef = useRef<number | null>(null);
   const completeTimerRef = useRef<number | null>(null);
+  const messageRevealTimerRef = useRef<number | null>(null);
   const completionStartedRef = useRef(false);
+  const messageRevealHandledRef = useRef(false);
   const hasSummaryCards = learnedCards.length > 0 || advancedCards.length > 0;
 
   useEffect(() => {
@@ -83,6 +159,33 @@ export function ChestCelebrationView({
     messageShownRef.current = true;
     setMessageVisible(true);
   };
+
+  const revealMessageParticles = useCallback(() => {
+    if (messageRevealHandledRef.current) return;
+    messageRevealHandledRef.current = true;
+    playSoundEffect("streak-count-reveal", { playbackRate: 0.8 });
+    setMessageParticles(createResultMessageParticles());
+  }, []);
+
+  useEffect(() => {
+    if (!messageVisible || closing) return;
+
+    if (messageRevealTimerRef.current !== null) {
+      window.clearTimeout(messageRevealTimerRef.current);
+    }
+
+    messageRevealTimerRef.current = window.setTimeout(() => {
+      messageRevealTimerRef.current = null;
+      revealMessageParticles();
+    }, RESULT_MESSAGE_ACHIEVEMENT_ENTER_DURATION_MS - RESULT_MESSAGE_PARTICLE_REVEAL_LEAD_MS);
+
+    return () => {
+      if (messageRevealTimerRef.current !== null) {
+        window.clearTimeout(messageRevealTimerRef.current);
+        messageRevealTimerRef.current = null;
+      }
+    };
+  }, [closing, messageVisible, revealMessageParticles]);
 
   const completeView = useCallback(() => {
     if (completionStartedRef.current) return;
@@ -122,6 +225,10 @@ export function ChestCelebrationView({
 
   const closeView = () => {
     if (!summaryVisible || closing) return;
+    onResultActionPress?.();
+    if (!onResultActionPress) {
+      playSoundEffect("result-action-press");
+    }
     completeView();
   };
 
@@ -238,6 +345,9 @@ export function ChestCelebrationView({
       if (completeTimerRef.current !== null) {
         window.clearTimeout(completeTimerRef.current);
       }
+      if (messageRevealTimerRef.current !== null) {
+        window.clearTimeout(messageRevealTimerRef.current);
+      }
       audioRef.current?.pause();
     };
   }, []);
@@ -280,7 +390,7 @@ export function ChestCelebrationView({
         /> : null}
         <audio
           ref={audioRef}
-          src="/quiz/result-message-video-audio.m4a?v=20261007-1"
+          src="/quiz/result-message-video-audio.m4a?v=20261007-2"
           preload="auto"
           aria-hidden="true"
         />
@@ -296,12 +406,49 @@ export function ChestCelebrationView({
       >
         <p
           className={cn(
-            "text-balance text-5xl font-bold uppercase leading-tight text-white [filter:grayscale(1)_brightness(0)_invert(1)] sm:text-7xl",
+            "relative text-balance text-5xl font-bold uppercase leading-tight text-white [filter:grayscale(1)_brightness(0)_invert(1)] sm:text-7xl",
+            messageVisible && !closing && "result-message-achievement-enter",
             canUseSuperWater(locale) && "font-super-water",
           )}
+          onAnimationEnd={revealMessageParticles}
           data-chest-celebration-message
         >
-          {formatSuperWaterUppercaseText(locale, t(messageKey))}
+          <span className="relative z-10">
+            {formatSuperWaterUppercaseText(locale, t(messageKey))}
+          </span>
+          {messageParticles.length > 0 ? (
+            <span
+              className="result-message-particle-layer pointer-events-none absolute inset-0 z-0 overflow-visible"
+              aria-hidden="true"
+            >
+              {messageParticles.map((particle, index) => (
+                <span
+                  key={index}
+                  className="result-message-particle absolute block bg-contain bg-center bg-no-repeat"
+                  style={{
+                    left: `${particle.originX}%`,
+                    top: `${particle.originY}%`,
+                    width: particle.size,
+                    height: particle.size,
+                    backgroundImage: `url("${RESULT_MESSAGE_PARTICLE_SRC}")`,
+                    animationDuration: `${particle.duration}ms`,
+                    animationDelay: `${particle.delay}ms`,
+                    "--result-message-particle-quarter-x": `${particle.quarterX}px`,
+                    "--result-message-particle-quarter-y": `${particle.quarterY}px`,
+                    "--result-message-particle-x": `${particle.x}px`,
+                    "--result-message-particle-y": `${particle.y}px`,
+                    "--result-message-particle-mid-x": `${particle.midX}px`,
+                    "--result-message-particle-mid-y": `${particle.midY}px`,
+                    "--result-message-particle-three-quarter-x": `${particle.threeQuarterX}px`,
+                    "--result-message-particle-three-quarter-y": `${particle.threeQuarterY}px`,
+                    "--result-message-particle-rotation": `${particle.rotation}deg`,
+                    "--result-message-particle-mid-rotation": `${particle.midRotation}deg`,
+                    "--result-message-particle-opacity": particle.opacity,
+                  } as CSSProperties}
+                />
+              ))}
+            </span>
+          ) : null}
         </p>
       </div>
 
@@ -406,6 +553,19 @@ function AchievementCardSection({
   staggerOffsetMs: number;
 }) {
   const [faceDownCardIds, setFaceDownCardIds] = useState<Set<string>>(() => new Set());
+
+  useEffect(() => {
+    if (!reveal || exiting || typeof window === "undefined") return;
+
+    const timers = cards.map((_, index) => window.setTimeout(
+      () => playSoundEffect("result-card-reveal"),
+      staggerOffsetMs + 150 + index * 55,
+    ));
+
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, [cards, exiting, reveal, staggerOffsetMs]);
 
   const handleCardClick = (cardId: string) => {
     vibrate("flip");
