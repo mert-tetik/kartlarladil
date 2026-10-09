@@ -129,4 +129,47 @@ describe("MobileDayStreakMenu", () => {
     await waitFor(() => expect(dialog).toHaveAttribute("data-day-streak-content-ready", "true"));
     expect(currentTime).toBeCloseTo(4.499, 3);
   });
+
+  it("does not repeatedly seek the audio track during mobile video updates", () => {
+    render(
+      <LocaleProvider initialLocale="tr">
+        <ThemeProvider initialTheme="default-dark">
+          <MobileDayStreakMenu
+            open
+            onClose={vi.fn()}
+            snapshot={{
+              currentStreak: 4,
+              today: "2026-09-15",
+              loggedDates: [],
+            }}
+          />
+        </ThemeProvider>
+      </LocaleProvider>,
+    );
+
+    const backgroundVideo = document.querySelector<HTMLVideoElement>("[data-day-streak-background]")!;
+    const audio = document.querySelector<HTMLAudioElement>("[data-day-streak-audio]")!;
+    let audioCurrentTime = 0;
+    const audioSeek = vi.fn((value: number) => {
+      audioCurrentTime = value;
+    });
+
+    Object.defineProperty(audio, "currentTime", {
+      configurable: true,
+      get: () => audioCurrentTime,
+      set: audioSeek,
+    });
+    Object.defineProperty(backgroundVideo, "currentTime", {
+      configurable: true,
+      get: () => 1,
+    });
+    Object.defineProperty(backgroundVideo, "duration", {
+      configurable: true,
+      value: 4,
+    });
+
+    fireEvent.timeUpdate(backgroundVideo);
+
+    expect(audioSeek).not.toHaveBeenCalled();
+  });
 });

@@ -130,7 +130,7 @@ describe("RankProgressPopover", () => {
 
     expect(vibrate).toHaveBeenCalledWith("streak-reward-tap");
     expect(playSoundEffect).toHaveBeenCalledTimes(1);
-    expect(playSoundEffect).toHaveBeenCalledWith("rank-up-reveal");
+    expect(playSoundEffect).toHaveBeenCalledWith("rank-up-reveal", { playbackRate: 1.2 });
     expect(sendTwaAnalyticsEvent).toHaveBeenCalledWith("fd_rank_up", {
       params: {
         rank_id: nextStats.rank.id,

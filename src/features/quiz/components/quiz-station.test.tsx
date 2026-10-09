@@ -550,17 +550,22 @@ describe("ResultView medal stages", () => {
 
     expect(document.querySelector('[data-quiz-result-stage="summary"]')).toBeInTheDocument();
     expect(document.querySelector("[data-result-summary-metrics]")).toBeInTheDocument();
+    expect(document.querySelector("[data-result-summary-box]")).toHaveClass("quiz-flow-exit-left");
 
     act(() => {
-      vi.advanceTimersByTime(260);
+      vi.advanceTimersByTime(360);
     });
 
     expect(document.querySelector('[data-quiz-result-stage="medals"]')).toBeInTheDocument();
+    expect(document.querySelector("[data-result-summary-box]")).toHaveClass("quiz-flow-enter-right");
     expect(document.querySelector("[data-result-summary-metrics]")).not.toBeInTheDocument();
     expect(document.querySelector("[data-result-medal-content]")).toBeInTheDocument();
     expect(document.querySelector("[data-result-earned-medals]")).toBeInTheDocument();
     expect(document.querySelector("[data-main-medals-display]")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Madalyaları al" })).not.toBeInTheDocument();
+    const hiddenClaimButton = document.querySelector('[data-result-claim-medals="true"]');
+    expect(hiddenClaimButton).toBeInTheDocument();
+    expect(hiddenClaimButton).toHaveClass("opacity-0");
+    expect(hiddenClaimButton).toBeDisabled();
 
     act(() => {
       vi.advanceTimersByTime(2500);
@@ -598,7 +603,7 @@ describe("ResultView medal stages", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Devam et" }));
     act(() => {
-      vi.advanceTimersByTime(260);
+      vi.advanceTimersByTime(360);
     });
     act(() => {
       vi.advanceTimersByTime(2500);
@@ -641,7 +646,7 @@ describe("ResultView medal stages", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Devam et" }));
     act(() => {
-      vi.advanceTimersByTime(260);
+      vi.advanceTimersByTime(360);
     });
     act(() => {
       vi.advanceTimersByTime(2500);
@@ -686,7 +691,7 @@ describe("ResultView medal stages", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Devam et" }));
     act(() => {
-      vi.advanceTimersByTime(260);
+      vi.advanceTimersByTime(360);
     });
     act(() => {
       vi.advanceTimersByTime(2500);
@@ -753,7 +758,7 @@ describe("ResultView medal stages", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Devam et" }));
     act(() => {
-      vi.advanceTimersByTime(260);
+      vi.advanceTimersByTime(360);
     });
     act(() => {
       vi.advanceTimersByTime(2500);
@@ -804,7 +809,7 @@ describe("ResultView medal stages", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Devam et" }));
     act(() => {
-      vi.advanceTimersByTime(260);
+      vi.advanceTimersByTime(360);
     });
     act(() => {
       vi.advanceTimersByTime(2500);

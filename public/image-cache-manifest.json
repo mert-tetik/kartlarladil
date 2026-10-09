@@ -1,5 +1,5 @@
 {
-  "version": "9ad8f45751933850b4f0cc06aecb67e5fd188569ea743bd5c4fa6867717a8d4d",
+  "version": "c730dee7f5194593de438be6d5589a38077db20f85965205c0d644f5faa59cea",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -3864,6 +3864,250 @@
     {
       "url": "/quiz/count-options/50.png",
       "revision": "a433773111150b00abb140495bb089d865b04ebee00a3e19839ec34b0d7e2c18"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-001.webp",
+      "revision": "5a0d7f0e16dc6b43166177e1567e547ea0d78d3bc641e9c22543678217db76c0"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-002.webp",
+      "revision": "1c89f1f240b4df56e02457d170590d10b3f2b0e066e88678711818904c915e2f"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-003.webp",
+      "revision": "19c2f6ad88b98ec33761c77b8112956ffdc71faf4e454ceb16d8af9227447c1a"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-004.webp",
+      "revision": "ba959e3d1ea66f0c398cebe66c91645c75ca788a0c7f6510a8d33c315a60c1a5"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-005.webp",
+      "revision": "0f284457f428c8721a8779d5f4ebec61f0343de0570ee17be67cbe497569042a"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-006.webp",
+      "revision": "28bf8c8be013c7c5517a5d5b28b6c4b852c46d12dc4106fbdf995cb0d2ebfb19"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-007.webp",
+      "revision": "b0fecdfef1b12d85e9bd4a490dd266c53fbf0bfba5dee93e321949ad03b0ac7b"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-008.webp",
+      "revision": "0c7a283c91f9f55a5f142d8ca6d5822252601a3feebd51e9408b771088ab5552"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-009.webp",
+      "revision": "5cca0ebdb1a01489cd942399e2abd1c23f7e801d7914ae6a9ba03c9862f7f511"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-010.webp",
+      "revision": "40c01f48726987cabff8d89b6a47da97a4950d1d8a239fd94dafc5957653f22a"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-011.webp",
+      "revision": "32fdf47f19986495b9c2871430aa167b261f9f77086a3cbf43e40339db9bc01d"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-012.webp",
+      "revision": "115c078cd823401840cd2fa66e372b847d5ecc3304b374b153bfa38f11e2b845"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-013.webp",
+      "revision": "3475cf4d523849583e171a18433b929ed80f61219b8ed5ee3e86e5f1d6ae6ea6"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-014.webp",
+      "revision": "c304a14fc0f841e17243324af547fd2482539bd83137acda590b77614a42a1b0"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-015.webp",
+      "revision": "45fc4484439560faf34cbe0c0fe8e19543e21aa48a454193841cc384c9bc94a4"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-016.webp",
+      "revision": "9e158987fb53a86b23c4689fe225d0a705b9990678b03b3b2567f283d9cb2320"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-017.webp",
+      "revision": "1efb18e9512e64addb591fc5c59d6b9cbbe4fed292ce653eefd99778aeca5239"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-018.webp",
+      "revision": "ea0e4204d75673d69e7ca8c3a5f336dab7a73b5cdc02f716f0b6c243147d876d"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-019.webp",
+      "revision": "fd5bafa772dcff807ce1ba65cef683770859a0573c0171e23bff7791cdbd131e"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-020.webp",
+      "revision": "35429cd74dda1c746d814ace1b6cb5f7f305fd6671424e7d80179f71f852f579"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-021.webp",
+      "revision": "83b98c5371044b99f8822077b80e95f02ddd845ce384db266cee2f30077fdce3"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-022.webp",
+      "revision": "8bddcfb5eb13b951c6627fee704365e6db3e299eb0f55577505182f35590c5e2"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-023.webp",
+      "revision": "6a1dd9eb8e6c23b2ec18ac656cbc5ecba16f9b60ee1b3737bf187d9f943a5786"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-024.webp",
+      "revision": "75cdb3ca2a8307607083092f16893df0106287ff6396f004f5014632758d24f3"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-025.webp",
+      "revision": "b6187ce0d81f68311abc6c8882d30c74fa56b331654ef2c1984d2bfb7bd96c42"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-026.webp",
+      "revision": "1d914bf11a6bcc04c72ba7401ee8f4b2456a47bf29bf907e8a69901319baf2eb"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-027.webp",
+      "revision": "2c5ff6d6b073b3ab9b2d0b5bdde2db4a510e6d4b6603b08e50b7556be91363b2"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-028.webp",
+      "revision": "33cd3fac5217732240efcb1275919abe00d6a5b01f884f8af5d6b81098e76cf6"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-029.webp",
+      "revision": "f335066834c3e81584f088f6adbea61c286e90131ea5b2100792b1e360d59852"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-030.webp",
+      "revision": "8a15e70698d769a1814b169bb338b35cbf6bf967266adee7270746912fd01663"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-031.webp",
+      "revision": "718159aa12a27023d143f9f41b45cfd36edfe8a489c6c2279b90244dab79d00c"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-032.webp",
+      "revision": "c6a84684c88a44ac810703fcd4100744390303f9f41fe09fed9819e0726662a7"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-033.webp",
+      "revision": "19097c9c10d46f72b84b2bdff560304ae894f4acdd3545cc7ef05761c7f8ad77"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-034.webp",
+      "revision": "25002cba81b61c7e10f5e171d9ae181620eeeaf673e5dc9d337575b5af081268"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-035.webp",
+      "revision": "6a2e9e1ca3ee9a232ffc5969fd713c153530a45add1937b0132f9c7dc76ad298"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-036.webp",
+      "revision": "460e6f924c88f9b4f2805169fe5147e140eb6ff54ddbac85b3352584f8131470"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-037.webp",
+      "revision": "e12060e90c778398b386277304f0a7d4c5cb21a2fe2e323fd0ba943d0724c056"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-038.webp",
+      "revision": "4924460cf399ad6a7b2b41c60a17edd9ae398fdea97adb97e0c049420599ae92"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-039.webp",
+      "revision": "34bc4cb41b311800646b48c0026a4db1a00dfef91655d03635109e092d5f13ea"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-040.webp",
+      "revision": "c6793d89d57e56c7960fff91f8418ebca4a7556a5c88024197d329f9d449d978"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-041.webp",
+      "revision": "bfca697d8966aa7f00e699aeee2147d7060881ef3a4ea9b0808ae5599071f7f8"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-042.webp",
+      "revision": "2b7c3fad8a482fe9acaa2b7993c8a5c8a64c96a971b11baf79458ee1f5e1c7fe"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-043.webp",
+      "revision": "2becb582a1592752bef08e8624e4a5867556fc284ce930d3ce0ce423594c4a8d"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-044.webp",
+      "revision": "688fd25e8e4cc9b58f1b5d62e1a792608470c5de80d759b4a50bcc19fa642673"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-045.webp",
+      "revision": "ab3f764919379393ecd8db6be5bc0c9c514fa1786b7b25cb5d6f1776c2bc95de"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-046.webp",
+      "revision": "2eefdd74c157b8b34e83380adb0c2a1e77ff1af426eadae442a996078d4a813b"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-047.webp",
+      "revision": "db5c88980bd687a9b1f0db04a8d1aeef1a3e385a0a99593772284e3be4a9a61d"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-048.webp",
+      "revision": "ad78cea0943e58231f002d6f65863235c4a6cada3f827d83ed850d4365faef4f"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-049.webp",
+      "revision": "8ae98717bf3429bb27ee747abb7ab0a85509ea7654f9821fb333676af61f6dde"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-050.webp",
+      "revision": "a38bd16910e594d15119b02f4a755caf51b4b4da4acb2d930d092691ad0c9b89"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-051.webp",
+      "revision": "43c97b228a62b94073b90266c6d2f74ad0c1721c0b2d6fa54abe154c374e84fc"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-052.webp",
+      "revision": "bbd5b381848d62090ae4a72d16ab32e03f94164775d24aba0e2eed2a6e20ab73"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-053.webp",
+      "revision": "981a7a79c875876eb9455c196094922feda40e21c0a5f14fe5f02d7528a262ae"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-054.webp",
+      "revision": "e671d2736759d24b0d22591ca82a3825ef9f016d5854b3558913400e62d71d0d"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-055.webp",
+      "revision": "757734b0841c6a384aedbff650c6516825f8d2b34dc8c8a84c1a4ed02d30a73b"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-056.webp",
+      "revision": "65290aace18da3ce58820ffcfacdf1bf2d12fcaa642d5649785f2f3ff13af811"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-057.webp",
+      "revision": "1c9f764a84a39ca078542f95ace2baa930fdfed21fd022218ee1efb2253c90f3"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-058.webp",
+      "revision": "3bd3d325e56f03bc4c0ef4e52e84e8ec5b39d913cb982f5905c1a614882328b9"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-059.webp",
+      "revision": "ec13edf4b5e1f83bae14f8f8ac1c16a9eff1881a7f05af58f8f53f1f8c4fa7c1"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-060.webp",
+      "revision": "2cd9e6e082fdbab6dd3cde1bdca829450a68e36404441e71f8b11967dc61e51b"
+    },
+    {
+      "url": "/quiz/count-selection-frames/frame-061.webp",
+      "revision": "4bb305822b703ac83cd9c1a767d047a6f78ee346490f0ecf30402a696d70229f"
     },
     {
       "url": "/quiz/quiz-word-repetition-teacher-1.png",

@@ -155,8 +155,8 @@ export function QuizContinuationMotivationView({
 
   const leaderboardSection = (
     <div
-      className="quiz-continuation-stagger-enter relative top-10 flex w-full shrink-0 flex-col items-center gap-3 pb-1 pt-1 sm:pt-2"
-      style={{ "--quiz-continuation-delay": "410ms" } as CSSProperties}
+      className="quiz-continuation-stagger-enter relative z-20 pointer-events-auto top-10 flex w-full shrink-0 flex-col items-center gap-3 pb-1 pt-1 sm:pt-2"
+      style={{ "--quiz-continuation-delay": "0ms" } as CSSProperties}
       data-quiz-continuation-leaderboard
     >
       <p
@@ -178,7 +178,7 @@ export function QuizContinuationMotivationView({
               key={display.mode}
               type="button"
               onClick={() => openLeaderboard(display.mode)}
-              className="flex min-w-16 flex-col items-center gap-1 rounded-lg px-1 py-0.5 text-foreground transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+              className="relative z-10 pointer-events-auto flex min-w-16 flex-col items-center gap-1 rounded-lg px-1 py-0.5 text-foreground transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
               aria-label={`${t("leaderboard.title")}: ${t(display.labelKey)}`}
               data-leaderboard-motivation-display={display.mode}
             >
@@ -234,20 +234,19 @@ export function QuizContinuationMotivationView({
 
   return (
     <section
-      className={cn(
-        "absolute inset-0 z-[55] flex h-full w-full flex-col overflow-hidden bg-[var(--background)] px-4 text-center sm:px-6",
-        enterWithTransition && "quiz-continuation-motivation-enter",
-      )}
+      className="absolute inset-0 z-[55] flex h-full w-full flex-col overflow-hidden bg-[var(--background)] px-4 text-center sm:px-6"
       data-quiz-continuation-motivation
       data-has-more-cards={hasMoreCardsToLearn || isReviewQuiz ? "true" : "false"}
       data-review-quiz={isReviewQuiz ? "true" : "false"}
+      data-quiz-continuation-enter={enterWithTransition ? "true" : "false"}
     >
       {leaderboardSection}
 
       <div className="relative -top-10 flex min-h-0 w-full flex-1 flex-col items-center justify-center">
         <div
           className="quiz-continuation-stagger-enter mx-auto flex w-full max-w-3xl flex-col items-center"
-          style={{ "--quiz-continuation-delay": "0ms" } as CSSProperties}
+          style={{ "--quiz-continuation-delay": "90ms" } as CSSProperties}
+          data-quiz-continuation-speech
         >
           <div className="relative mx-auto flex w-full max-w-xl items-center gap-2 px-1 sm:gap-3">
             <div className="relative h-28 w-28 shrink-0 sm:h-32 sm:w-32">
@@ -282,7 +281,7 @@ export function QuizContinuationMotivationView({
             "quiz-continuation-stagger-enter mx-auto mt-6 w-full max-w-3xl overflow-hidden rounded-xl border-[3px] border-[#AAAAAA] bg-background-card/60 shadow-sm sm:mt-8",
             !SHOW_CONTINUATION_MOTIVATION_CARDS && "hidden",
           )}
-          style={{ "--quiz-continuation-delay": "70ms" } as CSSProperties}
+          style={{ "--quiz-continuation-delay": "180ms" } as CSSProperties}
           data-quiz-continuation-motivation-list
           aria-hidden={!SHOW_CONTINUATION_MOTIVATION_CARDS}
         >
@@ -378,7 +377,7 @@ export function QuizContinuationMotivationView({
 
         <div
           className="quiz-continuation-stagger-enter mt-8 flex w-full items-center justify-center gap-4 pb-1 sm:gap-7 sm:pb-2"
-          style={{ "--quiz-continuation-delay": "350ms" } as CSSProperties}
+          style={{ "--quiz-continuation-delay": "280ms" } as CSSProperties}
           data-quiz-continuation-actions
         >
           {hasMoreCardsToLearn || isReviewQuiz ? (

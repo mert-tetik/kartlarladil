@@ -214,14 +214,6 @@ export function MobileDayStreakMenu({
   };
   const handleVideoTimeUpdate = (event: SyntheticEvent<HTMLVideoElement>) => {
     const video = event.currentTarget;
-    const audio = audioRef.current;
-    if (audio && Number.isFinite(video.currentTime) && Math.abs(audio.currentTime - video.currentTime) > 0.1) {
-      try {
-        audio.currentTime = video.currentTime;
-      } catch {
-        // Some native media implementations reject seeking until the audio metadata is ready.
-      }
-    }
 
     if (!contentReady && video.duration > 0 && video.duration - video.currentTime <= DAY_STREAK_UI_EARLY_REVEAL / 1000) {
       revealContent();

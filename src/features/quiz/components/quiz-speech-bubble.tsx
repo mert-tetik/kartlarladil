@@ -14,9 +14,10 @@ import type { AiPracticeCharacter, LanguageCode } from "@/types/domain";
 import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 import {
-  preloadQuizVideo,
-  QUIZ_COUNT_SELECTION_VIDEO_SOURCE,
-  subscribeToQuizVideoReady,
+  areQuizCountSelectionFramesReady,
+  preloadQuizCountSelectionFrames,
+  QUIZ_COUNT_SELECTION_FRAME_FPS,
+  subscribeToQuizCountSelectionFramesReady,
 } from "@/features/quiz/quiz-video-preload";
 
 export function getRandomQuizCharacter() {
@@ -40,6 +41,7 @@ export function QuizSpeechBubble({
   largeCharacter = false,
   showCharacter = true,
   characterVideoSrc,
+  characterFrameSources,
   characterClassName,
   bubbleClassName,
   disableEntryOffset = false,
@@ -60,6 +62,7 @@ export function QuizSpeechBubble({
   largeCharacter?: boolean;
   showCharacter?: boolean;
   characterVideoSrc?: string;
+  characterFrameSources?: readonly string[];
   characterClassName?: string;
   bubbleClassName?: string;
   disableEntryOffset?: boolean;
@@ -68,8 +71,10 @@ export function QuizSpeechBubble({
   const t = useT();
   const characterName = getCharacterName(character, language);
   const voiceProfile = getCharacterVoiceProfile(character);
-  const hasCharacterVideo = Boolean(characterVideoSrc && showCharacter);
-  const [characterVideoReady, setCharacterVideoReady] = useState(!hasCharacterVideo);
+  const hasCharacterMedia = Boolean(
+    showCharacter && (characterVideoSrc || characterFrameSources?.length),
+  );
+  const [characterMediaReady, setCharacterMediaReady] = useState(!hasCharacterMedia);
   const arrowClassName = arrowPosition === "bottom"
     ? "before:left-1/2 before:top-auto before:bottom-[-0.55rem] before:-translate-x-1/2 before:rotate-45 before:border-b-[3px] before:border-r-[3px] before:border-l-0 before:border-t-0"
     : "before:left-[-0.55rem] before:top-1/2 before:-translate-y-1/2 before:rotate-45 before:border-b-[3px] before:border-l-[3px]";
@@ -78,7 +83,7 @@ export function QuizSpeechBubble({
     <div className={cn(
       "relative mx-auto flex w-full max-w-xl items-center gap-2 border-b border-[#AAAAAA] px-1 transition-opacity duration-150 sm:gap-3",
       !disableEntryOffset && "-translate-y-5 sm:-translate-y-6",
-      hasCharacterVideo && (characterVideoReady ? "opacity-100" : "pointer-events-none opacity-0"),
+      hasCharacterMedia && (characterMediaReady ? "opacity-100" : "pointer-events-none opacity-0"),
       className,
     )}>
       {showCharacter ? (
@@ -89,13 +94,20 @@ export function QuizSpeechBubble({
             characterClassName,
           )}
         >
-          {characterVideoSrc ? (
+          {characterFrameSources?.length ? (
+            <QuizSpeechCharacterFrames
+              frames={characterFrameSources}
+              label={characterName}
+              onReady={() => setCharacterMediaReady(true)}
+              onError={() => setCharacterMediaReady(false)}
+            />
+          ) : characterVideoSrc ? (
             <QuizSpeechCharacterVideo
               key={characterVideoSrc}
               src={characterVideoSrc}
               label={characterName}
-              onReady={() => setCharacterVideoReady(true)}
-              onError={() => setCharacterVideoReady(false)}
+              onReady={() => setCharacterMediaReady(true)}
+              onError={() => setCharacterMediaReady(false)}
             />
           ) : (
             <Image
@@ -185,13 +197,6 @@ function QuizSpeechCharacterVideo({
   }, [onReady]);
 
   useEffect(() => {
-    if (src !== QUIZ_COUNT_SELECTION_VIDEO_SOURCE) return;
-
-    preloadQuizVideo(src);
-    return subscribeToQuizVideoReady(src, handleVideoReady);
-  }, [handleVideoReady, src]);
-
-  useEffect(() => {
     return () => {
       if (replayTimerRef.current !== null) {
         window.clearTimeout(replayTimerRef.current);
@@ -237,6 +242,86 @@ function QuizSpeechCharacterVideo({
         videoState === "ready" ? "visible opacity-100" : "invisible opacity-0",
       )}
       data-quiz-speech-character-video
+    />
+  );
+}
+
+function QuizSpeechCharacterFrames({
+  frames,
+  label,
+  onReady,
+  onError,
+}: {
+  frames: readonly string[];
+  label: string;
+  onReady: () => void;
+  onError: () => void;
+}) {
+  const [framesReady, setFramesReady] = useState(areQuizCountSelectionFramesReady);
+  const [frameIndex, setFrameIndex] = useState(0);
+  const handleFramesReady = useCallback(() => {
+    setFramesReady(true);
+    onReady();
+  }, [onReady]);
+
+  useEffect(() => {
+    preloadQuizCountSelectionFrames();
+
+    if (areQuizCountSelectionFramesReady()) {
+      handleFramesReady();
+    }
+
+    return subscribeToQuizCountSelectionFramesReady(handleFramesReady);
+  }, [handleFramesReady]);
+
+  useEffect(() => {
+    if (!framesReady) return;
+
+    let animationFrameId = 0;
+    let frameStartedAt = performance.now();
+    let idleUntil = 0;
+    let currentFrame = 0;
+
+    const tick = (now: number) => {
+      if (idleUntil > 0) {
+        if (now >= idleUntil) {
+          idleUntil = 0;
+          currentFrame = 0;
+          frameStartedAt = now;
+          setFrameIndex(0);
+        }
+      } else {
+        const nextFrame = Math.min(
+          frames.length - 1,
+          Math.floor(((now - frameStartedAt) * QUIZ_COUNT_SELECTION_FRAME_FPS) / 1000),
+        );
+
+        if (nextFrame !== currentFrame) {
+          currentFrame = nextFrame;
+          setFrameIndex(nextFrame);
+        }
+
+        if (currentFrame === frames.length - 1) {
+          idleUntil = now + CHARACTER_VIDEO_REPLAY_DELAY_MS;
+        }
+      }
+
+      animationFrameId = window.requestAnimationFrame(tick);
+    };
+
+    animationFrameId = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(animationFrameId);
+  }, [frames, framesReady]);
+
+  if (!frames.length) return null;
+
+  return (
+    <img
+      src={frames[frameIndex]}
+      alt={label}
+      onError={onError}
+      className="absolute inset-0 size-full object-contain object-bottom"
+      data-quiz-speech-character-frames
     />
   );
 }

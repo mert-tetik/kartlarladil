@@ -3451,35 +3451,6 @@ body:has([data-quiz-count-selection]:not([data-quiz-transition-fallback-old])) [
   background-color: transparent !important;
 }
 
-/* Fade the result video through opacity instead of painting the page color
-   over its edges. This keeps the transition smooth even when the video and
-   page backgrounds are not pixel-identical. */
-[data-result-animation-video] .result-animation-video {
-  -webkit-mask-image:
-    linear-gradient(to right, transparent 0%, #000 14%, #000 86%, transparent 100%),
-    linear-gradient(to bottom, transparent 0%, #000 10%, #000 90%, transparent 100%);
-  -webkit-mask-composite: source-in;
-  mask-image:
-    linear-gradient(to right, transparent 0%, #000 14%, #000 86%, transparent 100%),
-    linear-gradient(to bottom, transparent 0%, #000 10%, #000 90%, transparent 100%);
-  mask-composite: intersect;
-}
-
-/* Never let a not-yet-decoded video paint the browser's gray canvas/play
-   affordance. The React inline style is the immediate guard; this selector
-   keeps the rule true even while a WebView applies media styles. */
-[data-result-animation-video] .result-animation-video[data-video-ready="false"] {
-  display: none !important;
-}
-
-/* The source video is encoded over #171717. Match both surrounding layers so
-   the opacity fade blends into the screen instead of revealing a square video
-   canvas against a different theme surface. */
-[data-result-animation-video],
-[data-result-animation-video] > div {
-  background-color: #171717 !important;
-}
-
 /* Hide the Learn page header and site footer while a quiz or result screen is active */
 body:has([data-learn-page]) {
   --background: #171717;

@@ -219,7 +219,7 @@ const { locale } = useLocale();
           </div>
           <div
             className={cn(
-              opening && "quiz-chest-reward-ui-exit",
+              opening && "pointer-events-none opacity-0",
               "translate-y-[20px]",
             )}
           >
@@ -239,7 +239,7 @@ const { locale } = useLocale();
           <p
             className={cn(
               opening
-                ? "quiz-chest-reward-ui-exit"
+                ? "opacity-0"
                 : chestLanded
                 ? "quiz-chest-reward-label-enter"
                 : "opacity-0",
@@ -254,7 +254,7 @@ const { locale } = useLocale();
           <div
             className={cn(
               opening
-                ? "quiz-chest-reward-ui-exit"
+                ? "pointer-events-none opacity-0"
                 : chestLanded
                   ? "quiz-chest-reward-button-enter"
                   : "opacity-0",
@@ -354,15 +354,17 @@ const { locale } = useLocale();
             : "pointer-events-none opacity-0",
         )}
       >
-        <ChestOpeningView
-          tier={tier!}
-          totalPoints={totalPoints}
-          enterWithCss={false}
-          onComplete={onComplete}
-          autoPlay={false}
-          onVideoReady={handleOpeningVideoReady}
-          onRewardReady={opening ? onRewardReady : undefined}
-        />
+        {tier ? (
+          <ChestOpeningView
+            tier={tier}
+            totalPoints={totalPoints}
+            enterWithCss={false}
+            onComplete={onComplete}
+            autoPlay={false}
+            onVideoReady={handleOpeningVideoReady}
+            onRewardReady={opening ? onRewardReady : undefined}
+          />
+        ) : null}
       </div>
     </div>
   );

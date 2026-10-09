@@ -38,8 +38,8 @@ const PACKAGE_ID =
   process.env.TWA_PACKAGE_ID || "com.LigidTools.Glidecore";
 const APP_VERSION_CODE = process.env.TWA_VERSION_CODE
   ? Number.parseInt(process.env.TWA_VERSION_CODE, 10)
-  : 144;
-const APP_VERSION_NAME = process.env.TWA_VERSION_NAME || "4.3.30";
+  : 148;
+const APP_VERSION_NAME = process.env.TWA_VERSION_NAME || "4.3.34";
 const KEYSTORE_PATH = process.env.TWA_KEYSTORE_PATH
   ? path.resolve(process.env.TWA_KEYSTORE_PATH)
   : undefined;

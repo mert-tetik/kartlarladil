@@ -35,7 +35,7 @@ vi.mock("@/features/quiz/components/quiz-station", () => ({
 }));
 
 describe("QuizResultTest", () => {
-  it("renders a successful active quiz result without a quiz session", () => {
+  it("renders a missed-chest active quiz result without a quiz session", () => {
     render(<QuizResultTest />);
 
     expect(document.querySelector("[data-quiz-result-test]")).toBeInTheDocument();
@@ -47,7 +47,7 @@ describe("QuizResultTest", () => {
     expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-chest-opened", "true");
     expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-result-message", "true");
     expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-chest-gate", "true");
-    expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-chest-tier", "iron");
+    expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-chest-tier", "missed");
     expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-learned-cards", "14");
     expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-advanced-cards", "14");
   });

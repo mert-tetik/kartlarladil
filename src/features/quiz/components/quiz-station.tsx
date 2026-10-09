@@ -126,8 +126,9 @@ import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibili
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import type { ChestRewardOutcome, GemBalances, GemRewards } from "@/features/gems/gem-types";
 import { createChestRewardPreview } from "@/features/gems/chest-reward-preview";
-import { spendGemAction } from "@/features/gems/gem-actions";
+import { awardProgressGemRewardAction, spendGemAction } from "@/features/gems/gem-actions";
 import { ChestCelebrationView } from "@/features/quiz/components/chest-celebration-view";
+import { QuizResultMessageView } from "@/features/quiz/components/quiz-result-message-view";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import { QuizChestRewardGate } from "@/features/quiz/components/quiz-chest-reward-gate";
 import { QuizContinuationMotivationView } from "@/features/quiz/components/quiz-continuation-motivation-view";
@@ -137,7 +138,6 @@ import {
   BonusQuestionView,
 } from "@/features/quiz/components/bonus-question-view";
 import { QuizStreakCelebrationView } from "@/features/quiz/components/quiz-streak-celebration-view";
-import { QuizStreakRewardView } from "@/features/quiz/components/quiz-streak-reward-view";
 import { QuizCompletionProgressView } from "@/features/quiz/components/quiz-completion-progress-view";
 import { QuizWordRepetitionIntroView } from "@/features/quiz/components/quiz-word-repetition-intro-view";
 import { QuizWordRepetitionView } from "@/features/quiz/components/quiz-word-repetition-view";
@@ -681,7 +681,6 @@ export function QuizStation({
   const [quizDurationSeconds, setQuizDurationSeconds] = useState<number | null>(null);
   const [pendingAnswerWrites, setPendingAnswerWrites] = useState(0);
   const [pendingChestAward, setPendingChestAward] = useState(false);
-  const [pendingStreakAward, setPendingStreakAward] = useState(false);
   const [rerollingQuestion, setRerollingQuestion] = useState(false);
   const [pendingRankUp, setPendingRankUp] = useState<RankDefinition | null>(null);
   const [pendingRankUpFromRank, setPendingRankUpFromRank] = useState<RankDefinition | null>(null);
@@ -699,6 +698,8 @@ export function QuizStation({
   const [resultMessageOnResult, setResultMessageOnResult] = useState(false);
   const [bonusPointFlightEnabled, setBonusPointFlightEnabled] = useState(false);
   const [bonusGemRewards, setBonusGemRewards] = useState<GemRewards>([]);
+  const [streakGemRewards, setStreakGemRewards] = useState<GemRewards>([]);
+  const [streakGemBalances, setStreakGemBalances] = useState<GemBalances | null>(null);
   const [bonusPointsDisplayed, setBonusPointsDisplayed] = useState(0);
   const [bonusScorePulse, setBonusScorePulse] = useState(0);
   const [supportsViewTransition, setSupportsViewTransition] = useState(false);
@@ -1956,6 +1957,8 @@ export function QuizStation({
       setQuizCompletionTestNextIndex(null);
       setStreak(0);
       setMaxStreak(0);
+      setStreakGemRewards([]);
+      setStreakGemBalances(null);
       setQuizSessionId(sessionId);
       awardedStreakSessionRef.current = null;
       quizStartRankRef.current = stats.rank;
@@ -1966,7 +1969,6 @@ export function QuizStation({
       setPendingAnswerWrites(0);
       pendingAnswerWritesRef.current = 0;
       setPendingChestAward(false);
-      setPendingStreakAward(false);
       setPendingRankUp(null);
       setPendingRankUpFromRank(null);
       setRankUpReturn(null);
@@ -2637,7 +2639,6 @@ export function QuizStation({
   const finishBonusRewardFlow = useCallback((force = false) => {
     if (!force && (
       bonusRewardFlowCompletedRef.current ||
-      !bonusRewardServerSettledRef.current ||
       !bonusPointFlightDoneRef.current ||
       !bonusGemFlightDoneRef.current
     )) {
@@ -2650,14 +2651,17 @@ export function QuizStation({
     }
     bonusRewardFlowCompletedRef.current = true;
     setBonusFlightActive(false);
+    // Rank reconciliation is background work here. It must not hold the
+    // bonus-reward overlay open while the answer/reward write settles.
+    deferPendingRankCheck();
     void refreshStats();
     refreshLeaderboardPositions();
     if (pendingStreak) {
       transitionToStreakCelebration();
       return;
     }
-    advanceQuizRef.current();
-  }, [pendingStreak, refreshStats]);
+    advanceQuizRef.current({ skipRankUpCheck: true });
+  }, [deferPendingRankCheck, pendingStreak, refreshStats, transitionToStreakCelebration]);
 
   function handleBonusRewardCollect() {
     if (bonusRewardClaimedRef.current) return;
@@ -2672,7 +2676,12 @@ export function QuizStation({
     setBonusPointFlightEnabled(false);
     setBonusGemRewards([]);
     bonusPointFlightDoneRef.current = false;
-    bonusGemFlightDoneRef.current = false;
+    // Gem rewards arrive from the server asynchronously. They are an
+    // enhancement to the reveal, not a reason to keep the user on this
+    // screen. If they arrive before the point flight finishes, the gem
+    // scatter still runs; otherwise the quiz advances without waiting for
+    // the request.
+    bonusGemFlightDoneRef.current = true;
     bonusRewardFlowCompletedRef.current = false;
     const rewardRequestId = ++bonusRewardRequestRef.current;
 
@@ -2683,8 +2692,13 @@ export function QuizStation({
       bonusRewardAutoAdvanceTimeoutRef.current = window.setTimeout(() => {
         bonusRewardAutoAdvanceTimeoutRef.current = null;
         finishBonusRewardFlow(true);
-      }, 2_000);
+      }, 1_200);
     };
+
+    // Keep the animation self-contained. The server award is intentionally
+    // fire-and-forget from the UI flow and must never delay closing this
+    // reveal.
+    scheduleRewardFallback();
 
     if (quizSessionId) {
       void awardQuizBonusPoints(quizSessionId, item.bonusId)
@@ -2705,6 +2719,14 @@ export function QuizStation({
             });
           }
 
+          // The visual flow may already have advanced. Do not write late
+          // reward-response state into the next question or reopen the
+          // reward scatter after the reveal has closed.
+          if (bonusRewardFlowCompletedRef.current) {
+            void refreshStats();
+            return;
+          }
+
           if (!awarded && result.success) {
             bonusPointFlightDoneRef.current = true;
           }
@@ -2715,18 +2737,21 @@ export function QuizStation({
 
           if (!awarded && result.success) {
             finishBonusRewardFlow();
-          } else {
-            scheduleRewardFallback();
           }
         })
         .catch(() => {
           if (rewardRequestId !== bonusRewardRequestRef.current) return;
           bonusRewardServerSettledRef.current = true;
+
+          if (bonusRewardFlowCompletedRef.current) {
+            void refreshStats();
+            return;
+          }
+
           bonusPointFlightDoneRef.current = false;
           bonusGemFlightDoneRef.current = true;
           setBonusPointFlightEnabled(true);
           setBonusRewardReady(true);
-          scheduleRewardFallback();
         });
     } else {
       bonusRewardServerSettledRef.current = true;
@@ -2734,7 +2759,6 @@ export function QuizStation({
       bonusGemFlightDoneRef.current = true;
       setBonusPointFlightEnabled(true);
       setBonusRewardReady(true);
-      scheduleRewardFallback();
     }
   }
 
@@ -3172,12 +3196,13 @@ export function QuizStation({
     setAiValidatingSentenceAnswer(null);
     setStreak(0);
     setMaxStreak(0);
+    setStreakGemRewards([]);
+    setStreakGemBalances(null);
     setCorrectAnswerAnimationDurationMs(QUIZ_BUTTON_FEEDBACK_DURATION_MS);
     setQuizSessionId(null);
     setQuizDurationSeconds(null);
     setPendingAnswerWrites(0);
     setPendingChestAward(false);
-    setPendingStreakAward(false);
     setRerollingQuestion(false);
     setPendingRankUp(null);
     setPendingRankUpFromRank(null);
@@ -3217,10 +3242,68 @@ export function QuizStation({
     setPhase(getQuizStreakRewardPoints(maxStreak) > 0 ? "streak-reward" : "result-pending");
   }
 
+  function handleStreakRewardPress() {
+    if (quizFlowTest || !user || !quizSessionId) return;
+    if (awardedStreakSessionRef.current === quizSessionId) return;
+
+    const rewardableStreak = getRewardableQuizStreak(maxStreak);
+    const streakPoints = getQuizStreakRewardPoints(maxStreak);
+    if (rewardableStreak <= 0 || streakPoints <= 0) return;
+
+    // Claim is locked before starting either request so a touch/key repeat can
+    // never award the same quiz session twice. Neither request participates in
+    // the visual transition; the result screen is allowed to continue while
+    // the server settles both idempotent claims in the background.
+    awardedStreakSessionRef.current = quizSessionId;
+    setStreakGemRewards([]);
+    setStreakGemBalances(null);
+    updateProfileField({
+      streakPoints: (user.profile.streakPoints ?? 0) + streakPoints,
+    });
+
+    const streakRewardRequest = awardQuizStreakPoints(quizSessionId, maxStreak);
+    const gemRewardRequest = awardProgressGemRewardAction({
+      source: "quiz-streak",
+      claimKey: `quiz-streak:${quizSessionId}`,
+      streak: maxStreak,
+    });
+
+    // Keep the two idempotent server claims independent. A slow streak-points
+    // response must not prevent the gem HUD/scatter from receiving its own
+    // already-completed response.
+    void Promise.allSettled([streakRewardRequest, gemRewardRequest]).then(async ([streakOutcome, gemOutcome]) => {
+      const streakSucceeded = streakOutcome.status === "fulfilled" && streakOutcome.value.success;
+      const gemSucceeded = gemOutcome.status === "fulfilled" && gemOutcome.value.success;
+
+      if (gemOutcome.status === "fulfilled") {
+        const gemResult = gemOutcome.value;
+        const rewards = gemResult.success && gemResult.awarded
+          ? gemResult.rewards ?? []
+          : [];
+        setStreakGemRewards(rewards);
+        setStreakGemBalances(gemResult.success ? gemResult.balances ?? null : null);
+
+        if (gemResult.success && gemResult.balances) {
+          updateProfileField({
+            blueGems: gemResult.balances.blue,
+            greenGems: gemResult.balances.green,
+            purpleGems: gemResult.balances.purple,
+          });
+        }
+      }
+
+      if (streakSucceeded || gemSucceeded) {
+        await refreshStats();
+        refreshLeaderboardPositions();
+      }
+    });
+  }
+
   function handleStreakRewardComplete() {
-    // Returning through result-pending lets the streak award finish before a
-    // queued rank-up is presented.
-    setPhase("result-pending");
+    runQuizViewTransition(
+      () => setPhase("result-pending"),
+      { delayIncomingMs: QUIZ_FLOW_INCOMING_DELAY_MS },
+    );
   }
 
   function handleQuizCompletionComplete() {
@@ -3333,64 +3416,10 @@ export function QuizStation({
   }
 
   useEffect(() => {
-    if (phase !== "result-pending" || !user || !quizSessionId) {
-      return;
-    }
-
-    if (quizFlowTest) {
-      awardedStreakSessionRef.current = quizSessionId;
-      return;
-    }
-
-    if (awardedStreakSessionRef.current === quizSessionId) {
-      return;
-    }
-
-    awardedStreakSessionRef.current = quizSessionId;
-
-    const rewardableStreak = getRewardableQuizStreak(maxStreak);
-    const streakPoints = getQuizStreakRewardPoints(maxStreak);
-
-    if (rewardableStreak <= 0 || streakPoints <= 0) {
-      return;
-    }
-
-    setPendingStreakAward(true);
-    updateProfileField({
-      streakPoints: (user.profile.streakPoints ?? 0) + streakPoints,
-    });
-
-    void (async () => {
-      try {
-        const result = await awardQuizStreakPoints(quizSessionId, maxStreak);
-
-        if (result.success) {
-          await refreshStats();
-          refreshLeaderboardPositions();
-          return;
-        }
-
-        await refreshStats();
-      } finally {
-        setPendingStreakAward(false);
-      }
-    })();
-  }, [maxStreak, phase, quizFlowTest, quizSessionId, refreshStats, updateProfileField, user]);
-
-  const requiresStreakAward =
-    phase === "result-pending" &&
-    user !== null &&
-    quizSessionId !== null &&
-    awardedStreakSessionRef.current !== quizSessionId &&
-    getQuizStreakRewardPoints(maxStreak) > 0;
-
-  useEffect(() => {
     if (
       phase !== "result-pending" ||
       pendingAnswerWrites > 0 ||
-      pendingChestAward ||
-      pendingStreakAward ||
-      requiresStreakAward
+      pendingChestAward
     ) {
       return;
     }
@@ -3428,10 +3457,8 @@ export function QuizStation({
   }, [
     pendingAnswerWrites,
     pendingChestAward,
-    pendingStreakAward,
     phase,
     pendingRankUp,
-    requiresStreakAward,
     announceQuizRankUp,
     quizFlowTest,
     stats.rank,
@@ -3562,6 +3589,15 @@ export function QuizStation({
 
   if (phase === "result") {
     const achievementCards = getQuizAchievementCards(results);
+    const quizFlowTestCards = VOCABULARY_CARDS.filter(
+      (card) => card.language === (selectedLanguage ?? "en"),
+    ).slice(0, 20);
+    const resultAchievementCards = quizFlowTest
+      ? {
+          learnedCards: quizFlowTestCards.slice(0, 10),
+          advancedCards: quizFlowTestCards.slice(10, 20),
+        }
+      : achievementCards;
     const currentNormalItems = deck.filter((item) => !isBonusQuizItem(item));
     const nearLearnedCards = new Set(
       currentNormalItems
@@ -3583,7 +3619,7 @@ export function QuizStation({
         }).length
       : 0;
     const advancedCardProgress = Object.fromEntries(
-      achievementCards.advancedCards.map((card) => {
+      resultAchievementCards.advancedCards.map((card) => {
         const quizItem = deck.find((item) => item.card.id === card.id && item.isBonus !== true);
         const requirement = getTierRequirement(card.tier);
         const progressAfterAnswer = (quizItem?.inventoryCard.correctCount ?? 0) + 1;
@@ -3617,12 +3653,12 @@ export function QuizStation({
             streakRewardPoints={getQuizStreakRewardPoints(maxStreak)}
             locked={false}
             showResultMessage={resultMessageOnResult}
-            learnedCards={achievementCards.learnedCards}
-            advancedCards={achievementCards.advancedCards}
+            learnedCards={resultAchievementCards.learnedCards}
+            advancedCards={resultAchievementCards.advancedCards}
             advancedCardProgress={advancedCardProgress}
             remainingActiveCards={remainingActiveCards}
             nearLearnedCards={nearLearnedCards}
-            nearLevelUpCards={achievementCards.advancedCards.length}
+            nearLevelUpCards={resultAchievementCards.advancedCards.length}
             rankProgressPercent={stats.rankProgressPercent}
             pointsToNextRank={stats.pointsToNextRank}
             currentRankIcon={stats.rank.icon}
@@ -3685,12 +3721,20 @@ export function QuizStation({
   }
 
   if (phase === "streak-reward") {
+    const testGemRewards: GemRewards = [
+      { type: "blue", amount: 1 },
+      { type: "green", amount: 1 },
+      { type: "purple", amount: 1 },
+    ];
     return (
-      <QuizStreakRewardView
+      <QuizStreakCelebrationView
         streak={getRewardableQuizStreak(maxStreak)}
-        points={getQuizStreakRewardPoints(maxStreak)}
+        enterWithCss={useCssQuizTransition}
+        onPress={handleStreakRewardPress}
+        rewardPoints={getQuizStreakRewardPoints(maxStreak)}
         totalPoints={stats.totalPoints}
-        quizSessionId={quizSessionId ?? undefined}
+        gemRewards={quizFlowTest ? testGemRewards : streakGemRewards}
+        gemBalances={quizFlowTest ? { blue: 51, green: 31, purple: 16 } : streakGemBalances}
         onComplete={handleStreakRewardComplete}
       />
     );
@@ -6873,12 +6917,12 @@ export function ResultFlowView({
   if (messageStageVisible) {
     return (
       <div className="relative h-full w-full overflow-hidden" data-quiz-result-flow>
-        <ChestCelebrationView
+        <QuizResultMessageView
+          enterWithCss
           learnedCards={learnedCards}
           advancedCards={advancedCards}
           advancedCardProgress={advancedCardProgress}
           onResultActionPress={playResultActionPress}
-          preserveMessageOnComplete
           onComplete={() => {
             setResultStageVisible(true);
             onResultMessageComplete?.();
@@ -6886,7 +6930,7 @@ export function ResultFlowView({
         />
         {resultStageVisible ? (
           <div
-            className="absolute inset-0 z-30 flex items-center justify-center overflow-hidden bg-[var(--background)]"
+            className="quiz-flow-enter-right absolute inset-0 z-30 flex items-center justify-center overflow-hidden bg-[var(--background)]"
             data-quiz-result-main-layer
           >
             <ResultView
@@ -6964,23 +7008,7 @@ const RESULT_MEDAL_CENTER_ICON_SIZE = 58;
 const RESULT_MEDAL_COLLECT_PLAYBACK_RATE_STEP = 0.2;
 const RESULT_MEDAL_COLLECT_MAX_PLAYBACK_RATE = 2.5;
 const RESULT_MEDAL_HUD_PULSE_DURATION_MS = 350;
-const RESULT_VIDEO_AUDIO_FADE_OUT_MS = 700;
-const RESULT_SUMMARY_EXIT_DURATION_MS = 260;
-const RESULT_ANIMATION_VIDEO_SOURCES = [
-  "/quiz/result_animation_1.mp4?v=20261007-2",
-  "/quiz/result_animation_2.mp4?v=20261007-2",
-] as const;
-const RESULT_ANIMATION_AUDIO_SOURCES = {
-  "result_animation_1": "/quiz/result-animation-1-audio.m4a?v=20261007-2",
-  "result_animation_2": "/quiz/result-animation-2-audio.m4a?v=20261007-2",
-} as const;
-let resultAnimationVideoIndex = 0;
-
-function getNextResultAnimationVideoSource() {
-  const source = RESULT_ANIMATION_VIDEO_SOURCES[resultAnimationVideoIndex];
-  resultAnimationVideoIndex = (resultAnimationVideoIndex + 1) % RESULT_ANIMATION_VIDEO_SOURCES.length;
-  return source;
-}
+const RESULT_SUMMARY_EXIT_DURATION_MS = QUIZ_FLOW_TRANSITION_DURATION_MS;
 
 type ResultMedalFlightRequest = {
   flightId: number;
@@ -7058,6 +7086,7 @@ export function ResultView({
   const [resultMedalStage, setResultMedalStage] = useState<"summary" | "medals">("summary");
   const [isResultSummaryExiting, setIsResultSummaryExiting] = useState(false);
   const [medalRevealComplete, setMedalRevealComplete] = useState(false);
+  const [medalClaimButtonVisible, setMedalClaimButtonVisible] = useState(false);
   const [openMenu, setOpenMenu] = useState<
     "correct" | "incorrect" | "learned" | null
   >(null);
@@ -7086,22 +7115,6 @@ export function ResultView({
   const medalAdvanceScheduledRef = useRef(false);
   const medalContinueNotifiedRef = useRef(false);
   const isResultTest = !quizSessionId;
-  const resultAnimationSourceInitializedRef = useRef(false);
-  const resultAnimationAudioRef = useRef<HTMLAudioElement | null>(null);
-  const [resultAnimationVideoSource, setResultAnimationVideoSource] = useState<
-    (typeof RESULT_ANIMATION_VIDEO_SOURCES)[number]
-  >(
-    RESULT_ANIMATION_VIDEO_SOURCES[0],
-  );
-  const [resultAnimationVideoReadySource, setResultAnimationVideoReadySource] = useState<
-    (typeof RESULT_ANIMATION_VIDEO_SOURCES)[number] | null
-  >(null);
-
-  useLayoutEffect(() => {
-    if (resultAnimationSourceInitializedRef.current) return;
-    resultAnimationSourceInitializedRef.current = true;
-    setResultAnimationVideoSource(getNextResultAnimationVideoSource());
-  }, []);
 
   useEffect(() => {
     return () => {
@@ -7112,10 +7125,6 @@ export function ResultView({
         window.clearTimeout(resultSummaryExitTimerRef.current);
       }
     };
-  }, []);
-
-  useEffect(() => () => {
-    resultAnimationAudioRef.current?.pause();
   }, []);
 
   useEffect(() => {
@@ -7154,6 +7163,16 @@ export function ResultView({
       setDisplayedMedals(user?.profile.quizResultMedals ?? 0);
     }
   }, [claimingMedals, claimedMedals, user?.profile.quizResultMedals]);
+
+  useEffect(() => {
+    if (!medalRevealComplete) return;
+
+    const revealTimer = window.setTimeout(() => {
+      setMedalClaimButtonVisible(true);
+    });
+
+    return () => window.clearTimeout(revealTimer);
+  }, [medalRevealComplete]);
 
   const playMedalCollectSound = useCallback(() => {
     const playbackRate = Math.min(
@@ -7422,23 +7441,6 @@ export function ResultView({
     : t("quiz.continue");
   const isMedalStage = resultMedalStage === "medals";
   const isCollectingMedals = claimingMedals && !claimedMedals;
-  const resultAnimationVideoIsReady =
-    resultAnimationVideoReadySource === resultAnimationVideoSource;
-
-  const scheduleResultAnimationVideoReveal = (video: HTMLVideoElement) => {
-    // Reveal only after the browser has had a paint opportunity for a real
-    // decoded frame. This prevents the native mobile video placeholder and
-    // the previous video's first/last frame from flashing during a source swap.
-    window.requestAnimationFrame(() => {
-      if (
-        video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
-        !video.ended
-      ) {
-        setResultAnimationVideoReadySource(resultAnimationVideoSource);
-      }
-    });
-  };
-
   const handleResultPrimaryAction = useCallback(() => {
     onResultActionPress?.();
     if (!onResultActionPress) {
@@ -7466,93 +7468,19 @@ export function ResultView({
       data-quiz-result-stage={isMedalStage ? "medals" : "summary"}
       className="relative isolate flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--background)] text-center"
     >
-      <div
-        className={cn(
-          "flex min-h-0 min-w-0 flex-1 items-start justify-center overflow-hidden bg-[var(--background)] transition-opacity duration-500",
-          !isCollectingMedals && "result-stagger-enter",
-          isCollectingMedals ? "opacity-0" : "opacity-100",
-        )}
-        style={{ "--result-stagger-delay": "0ms" } as CSSProperties}
-        data-result-animation-video
-      >
-        <div className="relative h-full max-h-full aspect-square max-w-full overflow-hidden bg-[var(--background)]">
-          <video
-            key={resultAnimationVideoSource}
-            className={cn(
-              "result-animation-video h-full w-full object-contain",
-              resultAnimationVideoIsReady ? "opacity-100" : "opacity-0",
-            )}
-            data-video-ready={resultAnimationVideoIsReady ? "true" : "false"}
-            style={{ display: resultAnimationVideoIsReady ? "block" : "none" }}
-            src={resultAnimationVideoSource}
-            autoPlay
-            muted
-            playsInline
-            preload="auto"
-            onLoadStart={() => setResultAnimationVideoReadySource(null)}
-            onLoadedData={(event) => scheduleResultAnimationVideoReveal(event.currentTarget)}
-            onCanPlay={(event) => scheduleResultAnimationVideoReveal(event.currentTarget)}
-            onPlaying={(event) => scheduleResultAnimationVideoReveal(event.currentTarget)}
-            onWaiting={() => setResultAnimationVideoReadySource(null)}
-            onStalled={() => setResultAnimationVideoReadySource(null)}
-            onEmptied={() => setResultAnimationVideoReadySource(null)}
-            onError={() => setResultAnimationVideoReadySource(null)}
-            onPlay={(event) => {
-              const audio = resultAnimationAudioRef.current;
-              if (!audio) return;
-              try {
-                audio.currentTime = event.currentTarget.currentTime;
-              } catch {
-                // Audio/video synchronization is best effort on older WebViews.
-              }
-              audio.volume = 1;
-              void audio.play().catch(() => undefined);
-            }}
-            onLoadedMetadata={(event) => {
-              event.currentTarget.volume = 0;
-            }}
-            onTimeUpdate={(event) => {
-              const audio = resultAnimationAudioRef.current;
-              if (audio && Math.abs(audio.currentTime - event.currentTarget.currentTime) > 0.18) {
-                try {
-                  audio.currentTime = event.currentTarget.currentTime;
-                } catch {
-                  // Keep rendering if a WebView rejects a seek during startup.
-                }
-              }
-              if (audio && Number.isFinite(event.currentTarget.duration) && event.currentTarget.duration > 0) {
-                const remainingMs = Math.max(0, (event.currentTarget.duration - event.currentTarget.currentTime) * 1000);
-                audio.volume = remainingMs < RESULT_VIDEO_AUDIO_FADE_OUT_MS
-                  ? Math.min(1, remainingMs / RESULT_VIDEO_AUDIO_FADE_OUT_MS)
-                  : 1;
-              }
-            }}
-            onEnded={(event) => {
-              event.currentTarget.volume = 0;
-              setResultAnimationVideoReadySource(null);
-              resultAnimationAudioRef.current?.pause();
-            }}
-            aria-hidden="true"
-          />
-          <audio
-            ref={resultAnimationAudioRef}
-            src={resultAnimationVideoSource.includes("result_animation_2")
-              ? RESULT_ANIMATION_AUDIO_SOURCES.result_animation_2
-              : RESULT_ANIMATION_AUDIO_SOURCES.result_animation_1}
-            preload="auto"
-            aria-hidden="true"
-          />
-        </div>
-      </div>
-
       <main
         className={cn(
-          "h-[515px] min-h-0 w-full shrink-0 overflow-hidden transition-opacity duration-500",
+          "flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden transition-opacity duration-500",
           isCollectingMedals ? "pointer-events-none opacity-0" : "opacity-100",
         )}
       >
         <div
-          className="flex h-full w-full flex-col items-center overflow-y-auto rounded-2xl border border-transparent bg-transparent px-3 pb-0 pt-3 sm:px-4 sm:pt-4"
+          key={isMedalStage ? "result-medals" : "result-summary"}
+          className={cn(
+            "flex h-full max-h-full w-full flex-col items-center justify-center overflow-y-auto px-3 py-3 sm:px-4 sm:py-4",
+            isResultSummaryExiting && "quiz-flow-exit-left",
+            isMedalStage && "quiz-flow-enter-right",
+          )}
           data-result-summary-box
         >
         <h1
@@ -7570,129 +7498,130 @@ export function ResultView({
         <p
           data-result-performance-message
           className={cn(
-            "result-stagger-enter shrink-0 text-sm font-bold uppercase leading-none text-white/55 sm:text-base",
+            "result-stagger-enter mt-1 shrink-0 text-sm font-bold uppercase leading-none text-white/55 sm:text-base",
           )}
           style={{ "--result-stagger-delay": "160ms" } as CSSProperties}
         >
           {performanceMessageText}
         </p>
 
-          {!isMedalStage ? (
-          <div
-            className={cn(
-              "relative top-[30px] w-full",
-              isResultSummaryExiting && "result-medal-summary-exit",
-            )}
-            data-result-summary-metrics
-          >
-            <div
-              className="result-stagger-enter relative top-[30px] flex w-full items-center justify-center gap-2 sm:gap-3"
-              style={{ "--result-stagger-delay": "220ms" } as CSSProperties}
-              data-result-stats
-            >
-              {resultStats.map(({ key, label, value, icon: Icon, className, headerClassName }) => (
-                <div
-                  key={key}
-                  className={cn(
-                    "flex aspect-[778/700] w-[98px] shrink-0 flex-col items-center overflow-hidden rounded-2xl border-2 bg-transparent p-0 text-center",
-                    className,
-                  )}
-                >
-                  <span className={cn(
-                    "flex w-full shrink-0 items-center justify-center px-1 py-2 text-[0.58rem] font-bold uppercase leading-none text-[var(--background)] sm:py-2.5 sm:text-xs",
-                    headerClassName,
-                  )}>
-                    {label}
-                  </span>
-                  <div className="flex min-h-0 flex-1 items-center justify-center gap-1 text-lg font-bold leading-none sm:text-xl">
-                    <Icon className="size-5 shrink-0" strokeWidth={3} aria-hidden="true" />
-                    <span>{value}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div
-              className="result-stagger-enter relative top-[30px] mt-3 flex w-full items-center justify-center gap-2 sm:mt-4 sm:gap-3"
-              style={{ "--result-stagger-delay": "340ms" } as CSSProperties}
-              data-result-summary-cards
-            >
-              {resultCards.map((card) => (
-                <ResultCard
-                  key={card.key}
-                  resultKey={card.key}
-                  icon={card.icon}
-                  label={card.label}
-                  count={card.count}
-                  disabled={card.count === 0}
-                  onClick={() => setOpenMenu(card.key)}
-                />
-              ))}
-            </div>
-          </div>
-          ) : null}
-
-          {isMedalStage ? (
-            <div
-              className="w-full"
-              style={{ transform: "translateY(51px)" }}
-              data-result-medal-content
-            >
+          <div className="mt-8 flex min-h-[188px] w-full items-center justify-center">
+            {!isMedalStage ? (
               <div
-                className="relative top-[4px] mt-4 h-4 w-full max-w-[310px] shrink-0 sm:mt-5 sm:h-5"
-                data-result-medals-heading
-                aria-hidden="true"
-              />
-              <div
-                ref={medalSourceRef}
-                className={cn(
-                  "relative top-[4px] mx-auto w-full max-w-[310px] shrink-0 transition-opacity duration-200",
-                  (claimingMedals || claimedMedals) && medalsFlightMounted
-                    ? "opacity-0"
-                    : "result-stagger-enter",
-                )}
-                style={{ "--result-stagger-delay": "220ms" } as CSSProperties}
-                data-result-earned-medals
+                className="w-full"
+                data-result-summary-metrics
               >
-                <QuizMedalRating
-                  rating={medalRating}
-                  className="origin-center scale-[1.06] w-full max-w-[310px] justify-center px-2 sm:px-4"
-                  sequentialReveal
-                  onRevealComplete={() => setMedalRevealComplete(true)}
-                />
+                <div
+                  className="result-stagger-enter flex w-full items-center justify-center gap-2 sm:gap-3"
+                  style={{ "--result-stagger-delay": "220ms" } as CSSProperties}
+                  data-result-stats
+                >
+                  {resultStats.map(({ key, label, value, icon: Icon, className, headerClassName }) => (
+                    <div
+                      key={key}
+                      className={cn(
+                        "flex aspect-[778/700] w-[98px] shrink-0 flex-col items-center overflow-hidden rounded-2xl border-2 bg-transparent p-0 text-center",
+                        className,
+                      )}
+                    >
+                      <span className={cn(
+                        "flex w-full shrink-0 items-center justify-center px-1 py-2 text-[0.58rem] font-bold uppercase leading-none text-[var(--background)] sm:py-2.5 sm:text-xs",
+                        headerClassName,
+                      )}>
+                        {label}
+                      </span>
+                      <div className="flex min-h-0 flex-1 items-center justify-center gap-1 text-lg font-bold leading-none sm:text-xl">
+                        <Icon className="size-5 shrink-0" strokeWidth={3} aria-hidden="true" />
+                        <span>{value}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div
+                  className="result-stagger-enter mt-3 flex w-full items-center justify-center gap-2 sm:mt-4 sm:gap-3"
+                  style={{ "--result-stagger-delay": "340ms" } as CSSProperties}
+                  data-result-summary-cards
+                >
+                  {resultCards.map((card) => (
+                    <ResultCard
+                      key={card.key}
+                      resultKey={card.key}
+                      icon={card.icon}
+                      label={card.label}
+                      count={card.count}
+                      disabled={card.count === 0}
+                      onClick={() => setOpenMenu(card.key)}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-          ) : null}
+            ) : (
+              <div
+                className="flex w-full items-center justify-center"
+                data-result-medal-content
+              >
+                <div
+                  ref={medalSourceRef}
+                  className={cn(
+                    "mx-auto w-full max-w-[310px] shrink-0 transition-opacity duration-200",
+                    (claimingMedals || claimedMedals) && medalsFlightMounted
+                      ? "opacity-0"
+                      : "result-stagger-enter",
+                  )}
+                  style={{ "--result-stagger-delay": "220ms" } as CSSProperties}
+                  data-result-earned-medals
+                >
+                  <QuizMedalRating
+                    rating={medalRating}
+                    className="origin-center scale-[1.06] w-full max-w-[310px] justify-center px-2 sm:px-4"
+                    sequentialReveal
+                    onRevealComplete={() => setMedalRevealComplete(true)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
 
           <div
             className={cn(
-              "relative mt-auto flex w-full shrink-0 justify-center pt-3 sm:pt-4",
+              "relative flex w-full shrink-0 justify-center pt-3 sm:pt-4",
+              "mt-8 translate-y-[30px]",
               !isMedalStage && !isResultSummaryExiting && "result-stagger-enter",
-              isResultSummaryExiting && "result-medal-summary-exit pointer-events-none",
+              isResultSummaryExiting && "pointer-events-none",
             )}
-            style={{ "--result-stagger-delay": "460ms", top: "-60px" } as CSSProperties}
+            style={{
+              "--result-stagger-delay": "460ms",
+            } as CSSProperties}
           >
             {isMedalStage ? (
-              medalRevealComplete ? (
-                <button
-                  type="button"
-                  onClick={handleResultPrimaryAction}
-                  disabled={claimingMedals || claimedMedals}
-                  data-no-tap-vibrate
-                  data-result-primary-action
-                  data-result-claim-medals="true"
-                  style={{ "--result-stagger-delay": "0ms" } as CSSProperties}
-                  className={cn(
-                    "result-stagger-enter pointer-events-auto flex h-14 w-[calc(100%-2rem)] max-w-[400px] items-center justify-center rounded-xl px-5 text-lg font-bold shadow-[0_6px_0_rgba(0,0,0,0.22)] transition-transform active:translate-y-1 active:shadow-[0_2px_0_rgba(0,0,0,0.22)] disabled:pointer-events-none disabled:opacity-60 sm:h-16 sm:text-xl",
-                    canUseSuperWater(locale) && "font-super-water",
-                    "bg-[#f5a900] text-white",
-                  )}
-                >
-                  {claimLabel}
-                </button>
-              ) : null
+              <button
+                key="claim-medals"
+                type="button"
+                onClick={handleResultPrimaryAction}
+                disabled={!medalRevealComplete || claimingMedals || claimedMedals}
+                data-no-tap-vibrate
+                data-result-primary-action
+                data-result-claim-medals="true"
+                style={
+                  {
+                    "--result-stagger-delay": "0ms",
+                    opacity: medalClaimButtonVisible ? undefined : 0,
+                  } as CSSProperties
+                }
+                className={cn(
+                  "pointer-events-auto flex h-14 w-[calc(100%-2rem)] max-w-[400px] items-center justify-center rounded-xl px-5 text-lg font-bold shadow-[0_6px_0_rgba(0,0,0,0.22)] transition-[opacity,transform] active:translate-y-1 active:shadow-[0_2px_0_rgba(0,0,0,0.22)] disabled:pointer-events-none disabled:opacity-60 sm:h-16 sm:text-xl",
+                  !medalClaimButtonVisible && "pointer-events-none opacity-0 disabled:!opacity-0",
+                  medalClaimButtonVisible && "result-stagger-enter",
+                  canUseSuperWater(locale) && "font-super-water",
+                  "bg-[#f5a900] text-white",
+                )}
+              >
+                {claimLabel}
+              </button>
             ) : (
               <button
+                key="continue"
                 type="button"
                 onClick={handleResultPrimaryAction}
                 disabled={isResultSummaryExiting}

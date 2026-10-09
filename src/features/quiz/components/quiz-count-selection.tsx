@@ -14,7 +14,7 @@ import { formatNumber } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
 import type { LocaleCode, PracticeMode } from "@/types/domain";
-import { QUIZ_COUNT_SELECTION_VIDEO_SOURCE } from "@/features/quiz/quiz-video-preload";
+import { QUIZ_COUNT_SELECTION_FRAME_SOURCES } from "@/features/quiz/quiz-video-preload";
 
 const COUNT_OPTION_NAMES: Record<LocaleCode, Record<number, string>> = {
   tr: { 10: "Hızlı", 20: "Dengeli", 30: "Uzun", 50: "Maraton" },
@@ -77,7 +77,7 @@ export function QuizCountSelection({
             language={locale}
             showSpeaker={false}
             largeCharacter
-            characterVideoSrc={QUIZ_COUNT_SELECTION_VIDEO_SOURCE}
+            characterFrameSources={QUIZ_COUNT_SELECTION_FRAME_SOURCES}
             characterClassName="quiz-count-selection-character"
             bubbleClassName="quiz-count-selection-bubble"
             disableEntryOffset

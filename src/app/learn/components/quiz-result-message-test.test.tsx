@@ -1,10 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { QuizResultMessageTest } from "./quiz-result-message-test";
 
-vi.mock("@/features/quiz/components/chest-celebration-view", () => ({
-  ChestCelebrationView: ({ onComplete }: { onComplete: () => void }) => (
-    <button type="button" data-testid="chest-celebration-test-view" onClick={onComplete}>
-      celebration
+vi.mock("@/features/quiz/components/quiz-result-message-view", () => ({
+  QuizResultMessageView: ({ onComplete }: { onComplete: () => void }) => (
+    <button type="button" data-testid="quiz-result-message-test-view" onClick={onComplete}>
+      result message
     </button>
   ),
 }));
@@ -15,15 +15,15 @@ describe("QuizResultMessageTest", () => {
 
     render(<QuizResultMessageTest />);
 
-    expect(screen.getByTestId("chest-celebration-test-view")).toBeInTheDocument();
-    expect(screen.getByTestId("chest-celebration-test-view").parentElement).toHaveAttribute(
+    expect(screen.getByTestId("quiz-result-message-test-view")).toBeInTheDocument();
+    expect(screen.getByTestId("quiz-result-message-test-view").parentElement).toHaveAttribute(
       "data-quiz-result-message-test-round",
       "0",
     );
 
-    await user.click(screen.getByTestId("chest-celebration-test-view"));
+    await user.click(screen.getByTestId("quiz-result-message-test-view"));
 
-    expect(screen.getByTestId("chest-celebration-test-view").parentElement).toHaveAttribute(
+    expect(screen.getByTestId("quiz-result-message-test-view").parentElement).toHaveAttribute(
       "data-quiz-result-message-test-round",
       "1",
     );

@@ -22,6 +22,7 @@ export const PLAY_BILLING_VERSION = "8.0.0";
 export const PLAY_APP_UPDATE_VERSION = "2.1.0";
 export const ASSET_DELIVERY_VERSION = "2.3.0";
 export const PLAY_REVIEW_VERSION = "2.0.2";
+export const GOOGLE_SERVICES_PLUGIN_VERSION = "4.4.2";
 export const ANDROID_JAVA_TEMPLATE_FILES = [
   "Application.java",
   "LauncherActivity.java",
@@ -68,6 +69,22 @@ function matchValue(contents, expression, fallback) {
 
 function quoteGroovy(value) {
   return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function patchRootBuildGradle(contents) {
+  if (contents.includes("com.google.gms:google-services:")) return contents;
+
+  const androidPluginLine = "classpath 'com.android.tools.build:gradle:8.9.1'";
+  if (!contents.includes(androidPluginLine)) {
+    throw new Error(
+      "Generated root build.gradle is missing the Android Gradle plugin classpath.",
+    );
+  }
+
+  return contents.replace(
+    androidPluginLine,
+    `${androidPluginLine}\n        classpath 'com.google.gms:google-services:${GOOGLE_SERVICES_PLUGIN_VERSION}'`,
+  );
 }
 
 function buildAppGradle({ packageName, host, versionCode, versionName, minSdkVersion }) {
@@ -344,6 +361,8 @@ export async function patchGeneratedAndroidProject(
   const versionCode = matchValue(existingGradle, /versionCode\s+(\d+)/, "1");
   const versionName = matchValue(existingGradle, /versionName\s+["']([^"']+)["']/, "1.0.0");
   const minSdkVersion = matchValue(existingGradle, /minSdk(?:Version)?\s+(\d+)/, "24");
+  const rootGradlePath = path.join(projectDir, "build.gradle");
+  const existingRootGradle = await readText(rootGradlePath);
 
   // The Google Services plugin can build a Firebase-enabled shell even when
   // the JSON belongs to a different Android package, so check the identity
@@ -354,6 +373,7 @@ export async function patchGeneratedAndroidProject(
     appGradlePath,
     buildAppGradle({ packageName, host, versionCode, versionName, minSdkVersion }),
   );
+  await writeText(rootGradlePath, patchRootBuildGradle(existingRootGradle));
   await writeText(path.join(projectDir, "settings.gradle"), "include ':app', ':ui-media'\n");
   await writeText(path.join(projectDir, "ui-media", "build.gradle"), ASSET_PACK_GRADLE);
   await writeText(

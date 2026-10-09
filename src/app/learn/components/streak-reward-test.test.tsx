@@ -2,18 +2,25 @@ import { fireEvent, render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { StreakRewardTest } from "./streak-reward-test";
 
-vi.mock("@/features/quiz/components/quiz-streak-reward-view", () => ({
-  QuizStreakRewardView: ({
+vi.mock("@/features/quiz/components/quiz-streak-celebration-view", () => ({
+  QuizStreakCelebrationView: ({
     streak,
-    points,
+    onPress,
     onComplete,
   }: {
     streak: number;
-    points: number;
+    onPress?: () => void;
     onComplete: () => void;
   }) => (
-    <button type="button" data-streak-reward-complete onClick={onComplete}>
-      {streak}:{points}
+    <button
+      type="button"
+      data-streak-reward-complete
+      onClick={() => {
+        onPress?.();
+        onComplete();
+      }}
+    >
+      {streak}
     </button>
   ),
 }));

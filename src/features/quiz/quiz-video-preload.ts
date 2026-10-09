@@ -1,84 +1,80 @@
-export const QUIZ_COUNT_SELECTION_VIDEO_SOURCE =
-  "/quiz/kac-kartla-calisacaksin.mp4?v=20261008-1";
+export const QUIZ_COUNT_SELECTION_FRAME_FPS = 30;
+export const QUIZ_COUNT_SELECTION_FRAME_SOURCES = Array.from(
+  { length: 61 },
+  (_, index) =>
+    `/quiz/count-selection-frames/frame-${String(index + 1).padStart(3, "0")}.webp?v=20261009-1`,
+);
 
-const preloadedVideos = new Map<string, HTMLVideoElement>();
-const readySources = new Set<string>();
-const readyListeners = new Map<string, Set<() => void>>();
+const preloadedFrameImages = new Map<string, HTMLImageElement>();
+const frameReadyListeners = new Set<() => void>();
+let framesLoading = false;
+let framesReady = false;
 
-function markVideoReady(source: string, video: HTMLVideoElement) {
-  if (readySources.has(source)) return;
+function loadFrame(source: string) {
+  const existingImage = preloadedFrameImages.get(source);
+  if (existingImage) {
+    if (existingImage.complete && existingImage.naturalWidth > 0) {
+      return Promise.resolve();
+    }
 
-  readySources.add(source);
-  try {
-    video.pause();
-    video.currentTime = 0;
-  } catch {
-    // Some test/WebView media implementations expose the events but reject
-    // pause or seeking until the element is fully attached.
+    return new Promise<void>((resolve, reject) => {
+      existingImage.addEventListener("load", () => resolve(), { once: true });
+      existingImage.addEventListener(
+        "error",
+        () => {
+          preloadedFrameImages.delete(source);
+          reject(new Error(`Frame failed to load: ${source}`));
+        },
+        { once: true },
+      );
+    });
   }
 
-  const listeners = readyListeners.get(source);
-  listeners?.forEach((listener) => listener());
-  listeners?.clear();
+  const image = new window.Image();
+  image.decoding = "async";
+  preloadedFrameImages.set(source, image);
+
+  return new Promise<void>((resolve, reject) => {
+    image.addEventListener("load", () => resolve(), { once: true });
+    image.addEventListener(
+      "error",
+      () => {
+        preloadedFrameImages.delete(source);
+        reject(new Error(`Frame failed to load: ${source}`));
+      },
+      { once: true },
+    );
+    image.src = source;
+  });
 }
 
-export function preloadQuizVideo(source: string) {
-  if (typeof document === "undefined") return;
+export function preloadQuizCountSelectionFrames() {
+  if (typeof window === "undefined" || framesLoading || framesReady) return;
 
-  const existingVideo = preloadedVideos.get(source);
-  if (existingVideo) return;
-
-  const video = document.createElement("video");
-  video.preload = "auto";
-  video.muted = true;
-  video.playsInline = true;
-  video.setAttribute("aria-hidden", "true");
-  video.tabIndex = -1;
-  video.style.position = "fixed";
-  video.style.left = "-2px";
-  video.style.top = "-2px";
-  video.style.width = "1px";
-  video.style.height = "1px";
-  video.style.opacity = "0";
-  video.style.pointerEvents = "none";
-
-  const handleReady = () => markVideoReady(source, video);
-  video.addEventListener("loadeddata", handleReady);
-  video.addEventListener("canplay", handleReady);
-  video.src = source;
-  document.body.appendChild(video);
-  preloadedVideos.set(source, video);
-  video.load();
-
-  // Muted autoplay makes the browser decode the first frame instead of only
-  // fetching metadata. The video is paused again as soon as that frame is ready.
-  try {
-    void video.play().catch(() => undefined);
-  } catch {
-    // Loading the resource is still useful when autoplay is unavailable.
-  }
+  framesLoading = true;
+  void Promise.all(QUIZ_COUNT_SELECTION_FRAME_SOURCES.map((source) => loadFrame(source)))
+    .then(() => {
+      framesReady = true;
+      frameReadyListeners.forEach((listener) => listener());
+      frameReadyListeners.clear();
+    })
+    .catch(() => {
+      framesLoading = false;
+    });
 }
 
-export function isQuizVideoReady(source: string) {
-  return readySources.has(source);
+export function areQuizCountSelectionFramesReady() {
+  return framesReady;
 }
 
-export function subscribeToQuizVideoReady(source: string, listener: () => void) {
-  if (readySources.has(source)) {
+export function subscribeToQuizCountSelectionFramesReady(listener: () => void) {
+  if (framesReady) {
     listener();
     return () => undefined;
   }
 
-  const listeners = readyListeners.get(source) ?? new Set<() => void>();
-  listeners.add(listener);
-  readyListeners.set(source, listeners);
-
+  frameReadyListeners.add(listener);
   return () => {
-    listeners.delete(listener);
-    if (listeners.size === 0) readyListeners.delete(source);
+    frameReadyListeners.delete(listener);
   };
-}
-
-export function preloadQuizCountSelectionVideo() {
-  preloadQuizVideo(QUIZ_COUNT_SELECTION_VIDEO_SOURCE);
 }

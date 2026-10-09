@@ -22,6 +22,7 @@ import { LocaleSwitcher } from "@/components/locale-switcher";
 import { buttonClassName } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import {
+  getMobileNavbarBackOverride,
   requestMobileNavbarBack,
   subscribeMobileNavbarBackOverride,
 } from "@/components/mobile-navbar-back";
@@ -89,7 +90,11 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const { locale } = useLocale();
   const t = useT();
   const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const [mobileBackOverride, setMobileBackOverride] = useState(false);
+  const mobileBackOverride = useSyncExternalStore(
+    subscribeMobileNavbarBackOverride,
+    getMobileNavbarBackOverride,
+    () => false,
+  );
   const [themeOpen, setThemeOpen] = useState(false);
   const subscriptionHydrated = useSyncExternalStore(
     subscribeToHydration,
@@ -159,8 +164,6 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
       mediaQuery.removeEventListener("change", syncViewport);
     };
   }, []);
-
-  useEffect(() => subscribeMobileNavbarBackOverride(setMobileBackOverride), []);
 
   return (
     <>

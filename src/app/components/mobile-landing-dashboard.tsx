@@ -80,7 +80,7 @@ import { requestGooglePlayReview } from "@/lib/twa-analytics";
 import type { ActiveCardLimitDetails, LanguageCode, LimitErrorCode, Tier, VocabularyCard } from "@/types/domain";
 import type { GemType } from "@/features/gems/gem-types";
 import { RewardMedalHud } from "@/features/progress/components/reward-medal-hud";
-import { preloadQuizCountSelectionVideo } from "@/features/quiz/quiz-video-preload";
+import { preloadQuizCountSelectionFrames } from "@/features/quiz/quiz-video-preload";
 
 function parseLandingLanguage(value: string | null): LanguageCode | null {
   return value && LANGUAGES.some((item) => item.code === value) ? (value as LanguageCode) : null;
@@ -105,7 +105,7 @@ export function MobileLandingDashboard() {
 
   useEffect(() => {
     preloadDayStreakVideo(themeMode);
-    preloadQuizCountSelectionVideo();
+    preloadQuizCountSelectionFrames();
   }, [themeMode]);
 
   const router = useRouter();

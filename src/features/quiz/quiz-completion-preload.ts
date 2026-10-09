@@ -21,16 +21,12 @@ const COMPLETION_VIDEO_SOURCES = [
   "/rank-up/rank-up-background-first.mp4?v=20261007-2",
   "/rank-up/rank-up-background-loopedvideo.mp4?v=20261007-1",
   "/quiz/result_message_video.mp4?v=20261007-2",
-  "/quiz/result_animation_1.mp4?v=20261007-2",
-  "/quiz/result_animation_2.mp4?v=20261007-2",
 ] as const;
 
 const COMPLETION_AUDIO_SOURCES = [
   "/quiz/result-message-video-audio.m4a?v=20261007-2",
   "/quiz/streak-reward-intro-audio.m4a?v=20261007-2",
   "/quiz/streak-reward-background-20260921-continuation-audio.m4a?v=20261007-2",
-  "/quiz/result-animation-1-audio.m4a?v=20261007-2",
-  "/quiz/result-animation-2-audio.m4a?v=20261007-2",
 ] as const;
 
 const COMPLETION_SOUND_EFFECTS = [

@@ -86,6 +86,33 @@ describe("QuizContinuationMotivationView", () => {
     expect(container.querySelector('[data-continuation-action="menu"]')).toBeInTheDocument();
   });
 
+  it("enters its visible UI from top to bottom without the horizontal flow transition", () => {
+    const { container } = render(
+      <QuizContinuationMotivationView
+        input={input}
+        hasMoreCardsToLearn
+        enterWithTransition
+        onContinue={vi.fn()}
+        onExit={vi.fn()}
+      />,
+    );
+
+    const root = container.querySelector("[data-quiz-continuation-motivation]");
+    const leaderboard = container.querySelector("[data-quiz-continuation-leaderboard]");
+    const speech = container.querySelector("[data-quiz-continuation-speech]");
+    const actions = container.querySelector("[data-quiz-continuation-actions]");
+
+    expect(root).not.toHaveClass("quiz-flow-enter-right", "quiz-flow-exit-left");
+    expect(root).not.toHaveClass("quiz-continuation-motivation-enter");
+    expect(leaderboard).toHaveClass("quiz-continuation-stagger-enter");
+    expect(leaderboard).toHaveClass("z-20", "pointer-events-auto");
+    expect(speech).toHaveClass("quiz-continuation-stagger-enter");
+    expect(actions).toHaveClass("quiz-continuation-stagger-enter");
+    expect(leaderboard).toHaveAttribute("style", expect.stringContaining("--quiz-continuation-delay: 0ms"));
+    expect(speech).toHaveAttribute("style", expect.stringContaining("--quiz-continuation-delay: 90ms"));
+    expect(actions).toHaveAttribute("style", expect.stringContaining("--quiz-continuation-delay: 280ms"));
+  });
+
   it("keeps the leaderboard card last and replaces its placeholder when data arrives", () => {
     const { container, rerender, getByText } = render(
       <QuizContinuationMotivationView

@@ -408,7 +408,7 @@ export function RankUpMenu({
     }
 
     vibrate("streak-reward-tap");
-    playSoundEffect("rank-up-reveal");
+    playSoundEffect("rank-up-reveal", { playbackRate: 1.2 });
     setRevealed(true);
   }
 
