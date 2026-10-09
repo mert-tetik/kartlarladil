@@ -66,7 +66,7 @@ export function QuizCountSelection({
     <section
       data-quiz-count-selection
       className={cn(
-        "quiz-flow-screen relative isolate flex h-full min-h-0 w-full flex-1 flex-col items-center justify-start overflow-hidden bg-background px-3 py-5 max-lg:pt-[calc(1.25rem+var(--app-header-height))] sm:px-5 sm:py-7",
+        "quiz-flow-screen relative isolate flex h-full min-h-0 w-full flex-1 flex-col items-center justify-start overflow-hidden bg-transparent px-3 py-5 max-lg:pt-[calc(1.25rem+var(--app-header-height))] sm:px-5 sm:py-7",
       )}
     >
       <div className="w-full max-w-xl">
@@ -79,6 +79,7 @@ export function QuizCountSelection({
             largeCharacter
             characterVideoSrc={QUIZ_COUNT_SELECTION_VIDEO_SOURCE}
             characterClassName="quiz-count-selection-character"
+            bubbleClassName="quiz-count-selection-bubble"
             disableEntryOffset
             className="quiz-count-selection-speech"
           />
@@ -101,7 +102,7 @@ export function QuizCountSelection({
                 onClick={() => handleSelect(count)}
                 onAnimationEnd={(event) => handleFeedbackEnd(count, event.animationName)}
                 className={cn(
-                  "h-20 min-h-0 w-full justify-center px-4 py-2 sm:h-24 sm:px-5",
+                  "quiz-count-selection-option h-20 min-h-0 w-full justify-center px-4 py-2 sm:h-24 sm:px-5",
                   unavailable && "grayscale opacity-45",
                 )}
               >

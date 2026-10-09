@@ -4,7 +4,14 @@ export type BonusQuestionKind =
   | "category-sort"
   | "imposter";
 
-export const BONUS_QUESTION_PROBABILITY = 1 / 4;
+export const BONUS_QUESTION_PROBABILITY = 1 / 10;
+
+export const BONUS_QUESTION_TYPE_WEIGHTS: Record<BonusQuestionKind, number> = {
+  matching: 0.55,
+  "sentence-order": 0.1,
+  "category-sort": 0.35,
+  imposter: 0,
+};
 
 export function getMaxBonusQuestionCount(regularQuestionCount: number) {
   const normalizedCount = Math.max(0, Math.floor(regularQuestionCount));

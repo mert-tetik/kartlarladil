@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type SyntheticEvent } from "react";
 import { ChevronLeft, ChevronRight, Flame, Loader2, X } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import type { ThemeMode } from "@/lib/themes";
@@ -17,8 +17,8 @@ const DAY_STREAK_CLOSE_DURATION = 360;
 const DAY_STREAK_CALENDAR_TRANSITION_DURATION = 560;
 const DAY_STREAK_VIDEO_FALLBACK_DURATION = 4500;
 const DAY_STREAK_UI_EARLY_REVEAL = 1500;
-const DAY_STREAK_IDLE_BACKGROUND_LEAD_TIME = 350;
-const DAY_STREAK_IDLE_BACKGROUND_SOURCE = "/day-streak/day-streak-idle-hq-v2-20260923.mp4?v=20261007-1";
+const DAY_STREAK_AUDIO_SOURCE = "/day-streak/daily_streak_sfx.mp3?v=20261009-1";
+const DAY_STREAK_DOUBLE_TAP_WINDOW = 320;
 const DAY_STREAK_VIDEO_SOURCES: Record<ThemeMode, string> = {
   dark: "/day-streak/day-streak-dark-v3.mp4?v=20261007-1",
 };
@@ -73,16 +73,14 @@ export function MobileDayStreakMenu({
   const [mounted, setMounted] = useState(false);
   const [phase, setPhase] = useState<"opening" | "open" | "closing">("opening");
   const [contentReady, setContentReady] = useState(false);
-  const [idleBackgroundReady, setIdleBackgroundReady] = useState(false);
   const [openingVideoSource, setOpeningVideoSource] = useState(videoSource);
-  const [idleVideoSource, setIdleVideoSource] = useState(DAY_STREAK_IDLE_BACKGROUND_SOURCE);
   const [openingVideoUnavailable, setOpeningVideoUnavailable] = useState(false);
-  const [idleVideoUnavailable, setIdleVideoUnavailable] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [calendarClosing, setCalendarClosing] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(parseDateKey(snapshot?.today ?? getLocalDateKey(new Date()))));
   const videoRef = useRef<HTMLVideoElement>(null);
-  const idleVideoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const lastTapAtRef = useRef<number | null>(null);
   const todayKey = snapshot?.today ?? getLocalDateKey(new Date());
   const loggedDates = useMemo(() => new Set(snapshot?.loggedDates ?? []), [snapshot?.loggedDates]);
   const weekDays = useMemo(() => getWeekDays(parseDateKey(todayKey)), [todayKey]);
@@ -93,20 +91,17 @@ export function MobileDayStreakMenu({
       setMounted(true);
       setPhase("opening");
       setContentReady(false);
-      setIdleBackgroundReady(false);
       setOpeningVideoSource(videoSource);
-      setIdleVideoSource(DAY_STREAK_IDLE_BACKGROUND_SOURCE);
       setOpeningVideoUnavailable(false);
-      setIdleVideoUnavailable(false);
       setCalendarOpen(false);
       setCalendarClosing(false);
+      lastTapAtRef.current = null;
       setCalendarMonth(startOfMonth(parseDateKey(todayKey)));
       preloadDayStreakVideo(mode);
 
       const fallbackTimer = window.setTimeout(() => {
         setPhase("open");
         setContentReady(true);
-        setIdleBackgroundReady(true);
       }, DAY_STREAK_VIDEO_FALLBACK_DURATION);
 
       return () => window.clearTimeout(fallbackTimer);
@@ -114,6 +109,8 @@ export function MobileDayStreakMenu({
 
     if (!mounted) return;
 
+    videoRef.current?.pause();
+    audioRef.current?.pause();
     setPhase("closing");
     const closeTimer = window.setTimeout(() => {
       setMounted(false);
@@ -130,15 +127,6 @@ export function MobileDayStreakMenu({
     }
     setOpeningVideoUnavailable(true);
     finishOpeningVideo();
-  };
-
-  const handleIdleVideoError = () => {
-    if (!isNativeMediaFallbackSource(idleVideoSource)) {
-      setIdleVideoSource(getNativeMediaFallbackSource(idleVideoSource));
-      return;
-    }
-    setIdleVideoUnavailable(true);
-    setIdleBackgroundReady(true);
   };
 
   useEffect(() => {
@@ -166,6 +154,16 @@ export function MobileDayStreakMenu({
 
     const startVideo = () => {
       video.currentTime = 0;
+      const audio = audioRef.current;
+      if (audio) {
+        try {
+          audio.currentTime = 0;
+        } catch {
+          // Audio metadata may still be loading; playback can still begin at its default position.
+        }
+        audio.volume = 1;
+        void audio.play().catch(() => undefined);
+      }
       void video.play().catch(() => undefined);
     };
 
@@ -184,27 +182,9 @@ export function MobileDayStreakMenu({
       return;
     }
 
+    audioRef.current?.pause();
     revealContent();
-    setIdleBackgroundReady(true);
   };
-
-  useEffect(() => {
-    if (!mounted || !open || !idleBackgroundReady) {
-      return;
-    }
-
-    const video = idleVideoRef.current;
-    if (!video) {
-      return;
-    }
-
-    video.currentTime = 0;
-    void Promise.resolve(video.play()).catch(() => undefined);
-
-    return () => {
-      video.pause();
-    };
-  }, [idleBackgroundReady, mounted, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -234,15 +214,53 @@ export function MobileDayStreakMenu({
   };
   const handleVideoTimeUpdate = (event: SyntheticEvent<HTMLVideoElement>) => {
     const video = event.currentTarget;
-    if (
-      !idleBackgroundReady &&
-      video.duration > 0 &&
-      video.duration - video.currentTime <= DAY_STREAK_IDLE_BACKGROUND_LEAD_TIME / 1000
-    ) {
-      setIdleBackgroundReady(true);
+    const audio = audioRef.current;
+    if (audio && Number.isFinite(video.currentTime) && Math.abs(audio.currentTime - video.currentTime) > 0.1) {
+      try {
+        audio.currentTime = video.currentTime;
+      } catch {
+        // Some native media implementations reject seeking until the audio metadata is ready.
+      }
     }
+
     if (!contentReady && video.duration > 0 && video.duration - video.currentTime <= DAY_STREAK_UI_EARLY_REVEAL / 1000) {
       revealContent();
+    }
+  };
+  const skipOpeningVideo = () => {
+    if (!open) {
+      return;
+    }
+
+    const video = videoRef.current;
+    if (!video || video.ended) {
+      return;
+    }
+
+    if (Number.isFinite(video.duration) && video.duration > 0) {
+      try {
+        video.currentTime = Math.max(0, video.duration - 0.001);
+      } catch {
+        // The final frame is best effort on native media implementations.
+      }
+    }
+
+    video.pause();
+    audioRef.current?.pause();
+    finishOpeningVideo();
+  };
+  const handleOpeningPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== "touch" && event.pointerType !== "pen") {
+      return;
+    }
+
+    const now = performance.now();
+    const previousTapAt = lastTapAtRef.current;
+    lastTapAtRef.current = now;
+
+    if (previousTapAt !== null && now - previousTapAt <= DAY_STREAK_DOUBLE_TAP_WINDOW) {
+      lastTapAtRef.current = null;
+      skipOpeningVideo();
     }
   };
 
@@ -258,6 +276,8 @@ export function MobileDayStreakMenu({
       data-mobile-day-streak-menu
       data-mobile-day-streak-phase={phase}
       data-day-streak-content-ready={contentReady}
+      onPointerUp={handleOpeningPointerUp}
+      onDoubleClick={skipOpeningVideo}
     >
       {!openingVideoUnavailable ? <video
         ref={videoRef}
@@ -275,22 +295,13 @@ export function MobileDayStreakMenu({
         data-day-streak-background
         className="day-streak-opening-background absolute inset-0 h-full w-full object-cover"
       /> : null}
-      {!idleVideoUnavailable ? <video
-        ref={idleVideoRef}
-        key={idleVideoSource}
-        src={idleVideoSource}
-        loop
-        muted
-        playsInline
+      <audio
+        ref={audioRef}
+        src={DAY_STREAK_AUDIO_SOURCE}
         preload="auto"
         aria-hidden="true"
-        data-day-streak-idle-background
-        className={cn(
-          "day-streak-idle-background absolute inset-0 h-full w-full object-cover transition-opacity duration-[580ms] ease-linear",
-          idleBackgroundReady ? "opacity-100" : "opacity-0",
-        )}
-        onError={handleIdleVideoError}
-      /> : null}
+        data-day-streak-audio
+      />
       <button
         type="button"
         onClick={() => {
@@ -464,7 +475,7 @@ export function MobileDayStreakMenu({
 
         <div
           className={cn(
-            "relative -top-8 z-40 mx-auto grid w-full max-w-[32rem] grid-cols-2 gap-3 pointer-events-auto",
+            "relative -top-[25px] z-40 mx-auto grid w-full max-w-[32rem] grid-cols-2 gap-3 pointer-events-auto",
             contentReady ? "day-streak-ui-enter" : "day-streak-ui-pending",
           )}
           style={getDayStreakEnterStyle(480)}

@@ -16,7 +16,6 @@ const COMPLETION_IMAGE_SOURCES = [
 ] as const;
 
 const COMPLETION_VIDEO_SOURCES = [
-  "/quiz/streak-animation.mp4?v=20261007-2",
   "/quiz/streak-reward-background-20260921-intro.mp4?v=20261007-2",
   "/quiz/streak-reward-background-20260921-continuation.mp4?v=20261007-2",
   "/rank-up/rank-up-background-first.mp4?v=20261007-2",
@@ -36,13 +35,13 @@ const COMPLETION_AUDIO_SOURCES = [
 
 const COMPLETION_SOUND_EFFECTS = [
   "quiz-completion-progress-pop",
-  "streak-video-whoosh",
   "streak-count-reveal",
   "rank-up-reveal",
   "chest-crack",
   "chest-open",
   "quiz-medal-reveal",
   "result-medal-collect",
+  "word-repetition-complete",
   "bonus-reward-loot",
 ] as const satisfies readonly SoundEffectName[];
 

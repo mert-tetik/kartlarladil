@@ -25,6 +25,11 @@
   --control-outline-bottom: #c084fc;
 }
 
+.mobile-custom-card-content .control-gradient-outline {
+  --control-outline-top: #7c3aed;
+  --control-outline-bottom: #c084fc;
+}
+
 @font-face {
   font-family: "Super Water";
   src: url("/fonts/super-water.ttf") format("truetype");
@@ -649,7 +654,7 @@ html[data-mobile-keyboard-open="true"] .mobile-main-nav-frame {
 }
 
 .route-transition-curtain {
-  background: var(--background);
+    background: var(--background);
   inset: 0;
   overflow: hidden;
   pointer-events: none;
@@ -1139,6 +1144,22 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   }
 }
 
+.quiz-continuation-motivation-enter {
+  animation: quiz-continuation-motivation-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
+}
+
+@keyframes quiz-continuation-motivation-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
 .quiz-continuation-stagger-enter {
   animation: quiz-continuation-stagger-scale-in 320ms cubic-bezier(0.85, 0, 0.15, 1) var(--quiz-continuation-delay, 0ms) both;
   transform-origin: center;
@@ -1190,7 +1211,9 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   .result-stagger-exit,
   .result-medal-summary-exit,
   .result-medal-center-flight,
-  .result-medal-center-wobble {
+  .result-medal-center-wobble,
+  .quiz-word-repetition-intro-character,
+  .quiz-word-repetition-intro-bubble {
     animation-duration: 1ms;
     animation-delay: 0ms;
   }
@@ -1225,6 +1248,50 @@ html[data-route-transition="entering"] [data-route-transition-item] {
 .quiz-flow-enter-right {
   animation: quiz-flow-enter-right 360ms cubic-bezier(0.85, 0, 0.15, 1) both;
   will-change: transform;
+}
+
+@keyframes quiz-word-repetition-intro-character-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0) scale(0.62);
+  }
+
+  72% {
+    opacity: 1;
+    transform: translate3d(0, -3px, 0) scale(1.06);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.quiz-word-repetition-intro-character {
+  animation: quiz-word-repetition-intro-character-enter 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
+}
+
+@keyframes quiz-word-repetition-intro-bubble-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(18px, 0, 0) scale(0.82);
+  }
+
+  70% {
+    opacity: 1;
+    transform: translate3d(-2px, 0, 0) scale(1.03);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.quiz-word-repetition-intro-bubble {
+  animation: quiz-word-repetition-intro-bubble-enter 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
 }
 
 @keyframes quiz-completion-label-enter {
@@ -1322,23 +1389,39 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   will-change: filter;
 }
 
-@keyframes streak-count-label-enter {
-  from {
-    opacity: 0;
-    transform: translate3d(0, calc(-50% + 42px), 0) scale(0.72);
+@keyframes streak-count-idle {
+  0%,
+  100% {
+    transform: rotate(-4deg);
   }
-  72% {
-    opacity: 1;
-    transform: translate3d(0, calc(-50% - 4px), 0) scale(1.06);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, -50%, 0) scale(1);
+  50% {
+    transform: rotate(4deg);
   }
 }
 
-.animate-streak-count-label-enter {
-  animation: streak-count-label-enter 530ms cubic-bezier(0.85, 0, 0.15, 1) both;
+.animate-streak-count-idle {
+  animation: streak-count-idle 620ms ease-in-out infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@keyframes streak-count-exit {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  22% {
+    opacity: 1;
+    transform: scale(1.16);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.38);
+  }
+}
+
+.animate-streak-count-exit {
+  animation: streak-count-exit 260ms cubic-bezier(0.7, 0, 0.84, 0.2) both;
   transform-origin: center;
   will-change: opacity, transform;
 }
@@ -1448,7 +1531,7 @@ html[data-route-transition="entering"] [data-route-transition-item] {
 }
 
 .streak-count-particle {
-  animation: streak-count-particle-burst 760ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: streak-count-particle-burst 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: opacity, transform;
 }
 
@@ -2750,7 +2833,7 @@ html[data-route-transition="entering"] [data-route-transition-item] {
     flex-direction: column;
     justify-content: center;
     overflow-y: auto;
-    background: var(--background);
+    background: transparent;
     padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
   }
 
@@ -2764,65 +2847,12 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   }
 
   .quiz-count-selection-character {
-    --quiz-count-video-fade-strength: 1%;
     overflow: hidden;
     isolation: isolate;
   }
 
   .quiz-count-selection-character [data-quiz-speech-character-video] {
     z-index: 0;
-    -webkit-mask-image:
-      linear-gradient(
-        to right,
-        transparent 0%,
-        #000 var(--quiz-count-video-fade-strength),
-        #000 calc(100% - var(--quiz-count-video-fade-strength)),
-        transparent 100%
-      ),
-      linear-gradient(
-        to bottom,
-        transparent 0%,
-        #000 var(--quiz-count-video-fade-strength),
-        #000 100%
-      );
-    -webkit-mask-composite: source-in;
-    mask-image:
-      linear-gradient(
-        to right,
-        transparent 0%,
-        #000 22%,
-        #000 78%,
-        transparent 100%
-      ),
-      linear-gradient(
-        to bottom,
-        transparent 0%,
-        #000 24%,
-        #000 100%
-      );
-    mask-composite: intersect;
-  }
-
-  .quiz-count-selection-character::after {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    pointer-events: none;
-    content: "";
-    background:
-      linear-gradient(
-        to right,
-        var(--background) 0%,
-        transparent var(--quiz-count-video-fade-strength),
-        transparent calc(100% - var(--quiz-count-video-fade-strength)),
-        var(--background) 100%
-      ),
-      linear-gradient(
-        to bottom,
-        var(--background) 0%,
-        transparent var(--quiz-count-video-fade-strength),
-        transparent 100%
-      );
   }
 
   .quiz-count-selection-mobile-stack [data-quiz-count-options] {
@@ -3020,7 +3050,9 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   );
   opacity: 0.48;
   animation: quiz-tier-ray-rotate-reverse 14s linear infinite;
-  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--quiz-tier-ray-color) 60%, transparent));
+  filter: none !important;
+  -webkit-filter: none !important;
+  box-shadow: none !important;
 }
 
 @keyframes quiz-card-idle-attention {
@@ -3138,6 +3170,8 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   .animate-bonus-category-word-enter,
   .animate-bonus-category-word-exit,
   .animate-bonus-category-word-return,
+  .animate-streak-count-idle,
+  .animate-streak-count-exit,
   .animate-streak-celebration-background-enter,
   .animate-streak-celebration-copy-enter,
   .animate-streak-shockwave-ring,
@@ -3392,6 +3426,60 @@ body:has([data-ask-chat-page]) [data-ask-chat-page] > section {
   }
 }
 
+/* The count screen changes the Learn page surface itself. Keeping the color
+   on the persistent page root lets the return to the normal surface animate
+   after the count phase unmounts. */
+[data-learn-page] {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--background);
+  transition: background-color 520ms linear;
+}
+
+body:has([data-quiz-count-selection]:not([data-quiz-transition-fallback-old])) [data-learn-page] {
+  background-color: #000000;
+}
+
+[data-learn-page][data-count-background-active="true"] {
+  background-color: #000000;
+}
+
+/* Keep subsequent quiz surfaces transparent so the page-level surface owns
+   the count-to-quiz background transition. */
+[data-learn-page] [data-learn-quiz-page="quiz"],
+[data-learn-page] [data-quiz-word-repetition-intro] {
+  background-color: transparent !important;
+}
+
+/* Fade the result video through opacity instead of painting the page color
+   over its edges. This keeps the transition smooth even when the video and
+   page backgrounds are not pixel-identical. */
+[data-result-animation-video] .result-animation-video {
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, #000 14%, #000 86%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 10%, #000 90%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent 0%, #000 14%, #000 86%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 10%, #000 90%, transparent 100%);
+  mask-composite: intersect;
+}
+
+/* Never let a not-yet-decoded video paint the browser's gray canvas/play
+   affordance. The React inline style is the immediate guard; this selector
+   keeps the rule true even while a WebView applies media styles. */
+[data-result-animation-video] .result-animation-video[data-video-ready="false"] {
+  display: none !important;
+}
+
+/* The source video is encoded over #171717. Match both surrounding layers so
+   the opacity fade blends into the screen instead of revealing a square video
+   canvas against a different theme surface. */
+[data-result-animation-video],
+[data-result-animation-video] > div {
+  background-color: #171717 !important;
+}
+
 /* Hide the Learn page header and site footer while a quiz or result screen is active */
 body:has([data-learn-page]) {
   --background: #171717;
@@ -3401,6 +3489,10 @@ body:has([data-learn-page]) [data-route-transition-navigation],
 body:has([data-learn-page]) .mobile-main-nav-bar {
   background-color: #171717;
   border-color: transparent;
+}
+
+body:has([data-quiz-count-selection]:not([data-quiz-transition-fallback-old])) [data-route-transition-navigation] {
+  background-color: #000000 !important;
 }
 
 body:has([data-learn-quiz-page]) [data-learn-page-header],
@@ -3419,6 +3511,15 @@ body:has([data-learn-page]) footer {
   body:has([data-learn-page]):has([data-quiz-count-selection]:not([data-quiz-transition-fallback-old])) [data-route-transition-navigation] {
     display: block;
   }
+
+}
+
+/* The count screen uses a true black surface for its speech bubble and
+   choices, including the bubble tail and the button feedback backgrounds. */
+[data-quiz-count-selection]:not([data-quiz-transition-fallback-old]) .quiz-count-selection-bubble,
+[data-quiz-count-selection]:not([data-quiz-transition-fallback-old]) .quiz-count-selection-bubble::before,
+[data-quiz-count-selection]:not([data-quiz-transition-fallback-old]) .quiz-count-selection-option {
+  background-color: #000000 !important;
 }
 
 /* Hide the site footer on the card draw page */
@@ -4248,18 +4349,24 @@ body:has([data-ask-page]) footer {
 }
 
 @keyframes bonus-reward-reveal-exit {
-  from {
+  0% {
+    opacity: 1;
     transform: scale(1);
   }
-  to {
-    transform: scale(0);
+  24% {
+    opacity: 0.86;
+    transform: scale(0.82);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.16);
   }
 }
 
 .animate-bonus-reward-reveal-exit {
-  animation: bonus-reward-reveal-exit 320ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  animation: bonus-reward-reveal-exit 180ms cubic-bezier(0.7, 0, 0.84, 0.2) both;
   transform-origin: center;
-  will-change: transform;
+  will-change: opacity, transform;
 }
 
 @keyframes bonus-sentence-token-enter {
@@ -4582,10 +4689,6 @@ body:has([data-ask-page]) footer {
   animation: day-streak-calendar-slide-out 560ms cubic-bezier(0.85, 0, 0.15, 1) both;
   pointer-events: none;
   will-change: transform;
-}
-
-.day-streak-idle-background {
-  filter: saturate(1.14);
 }
 
 .day-streak-opening-background {
@@ -5818,7 +5921,7 @@ body:has([data-games-active]) {
 }
 
 .animate-quiz-word-button-correct {
-  animation: quiz-word-button-correct 700ms both;
+  animation: quiz-word-button-correct var(--quiz-correct-animation-duration, 700ms) both;
   transform-origin: center;
   will-change: transform;
 }
@@ -5856,7 +5959,7 @@ body:has([data-games-active]) {
   width: 12%;
   background-color: rgb(255 255 255 / 0.5);
   z-index: 20;
-  animation: quiz-word-button-correct-shine 620ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  animation: quiz-word-button-correct-shine var(--quiz-correct-animation-duration, 700ms) cubic-bezier(0.85, 0, 0.15, 1) both;
   will-change: left;
 }
 

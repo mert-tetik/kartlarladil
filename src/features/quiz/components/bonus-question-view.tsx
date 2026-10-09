@@ -7,7 +7,6 @@ import { Loader2, Star } from "lucide-react";
 import {
   getBonusCopy,
   getMatchingColumnCopy,
-  MATCHING_BONUS_TITLES,
   type BonusQuestion,
   type CategorySortBonusQuestion,
   type ImposterBonusQuestion,
@@ -39,9 +38,6 @@ import {
 const SENTENCE_TOKEN_ANIMATION_MS = 360;
 const CATEGORY_WORD_ANIMATION_MS = 260;
 const BONUS_REWARD_IMAGE = "/quiz/bonus_img.png?v=20261001-1";
-const BONUS_REWARD_LOOT_MUSIC_SRC = "/sounds/bonus-reward-loot-loop.wav?v=20261008-9";
-const BONUS_REWARD_LOOT_FADE_IN_MS = 2_800;
-const BONUS_REWARD_LOOT_FADE_OUT_MS = 650;
 const BONUS_INTRO_FRAME_COUNT = 13;
 const BONUS_INTRO_FRAME_DURATION_MS = 1_000 / 22;
 const BONUS_INTRO_HOLD_DURATION_MS = 800;
@@ -606,7 +602,7 @@ export function BonusQuestionView({
   const { locale, t } = useLocale();
   const copy = getBonusCopy(locale);
   const sourceRef = useRef<HTMLDivElement | null>(null);
-  const rewardMusicRef = useRef<HTMLAudioElement | null>(null);
+  const rewardCollectStartedRef = useRef(false);
   const points = getBonusQuestionPoints(question.kind);
   const isSentenceOrder = question.kind === "sentence-order";
   const [sentenceDecorationMounted] = useState(true);
@@ -615,71 +611,18 @@ export function BonusQuestionView({
     const characters = getAiPracticeCharacters();
     return characters[Math.floor(Math.random() * characters.length)] ?? characters[0]!;
   });
-  const rewardDelivered = rewardRevealCollected && showingAnswer && answerAccepted === true && rewardReady;
-  const rewardFlightReady = rewardDelivered && (showPointFlight || Boolean(gemRewards?.length));
+  const rewardFlightReady = rewardRevealCollected && showingAnswer && answerAccepted === true;
   const showRewardHud = rewardFlightReady;
 
   useEffect(() => {
-    const audio = rewardMusicRef.current;
-    if (!audio) return;
-
-    if (!rewardRevealVisible) {
-      audio.pause();
-      audio.currentTime = 0;
-      audio.volume = 0;
-      return;
-    }
-
-    const targetVolume = 0.55;
-    const fadeStartedAt = performance.now();
-    let animationFrame = 0;
-    audio.volume = 0;
-    audio.currentTime = 0;
-
-    const animateFadeIn = (now: number) => {
-      const progress = Math.min(1, (now - fadeStartedAt) / BONUS_REWARD_LOOT_FADE_IN_MS);
-      audio.volume = targetVolume * progress;
-      if (progress < 1) animationFrame = requestAnimationFrame(animateFadeIn);
-    };
-
-    animationFrame = requestAnimationFrame(animateFadeIn);
-    void audio.play().catch(() => undefined);
-
-    return () => {
-      cancelAnimationFrame(animationFrame);
-      audio.pause();
-      audio.currentTime = 0;
-      audio.volume = 0;
-    };
+    if (rewardRevealVisible) return;
+    rewardCollectStartedRef.current = false;
+    setRewardRevealCollected(false);
   }, [rewardRevealVisible]);
 
-  useEffect(() => {
-    const audio = rewardMusicRef.current;
-    if (!audio || !rewardRevealVisible || !rewardRevealCollected) return;
-
-    const startingVolume = audio.volume;
-    const fadeStartedAt = performance.now();
-    let animationFrame = 0;
-
-    const animateFadeOut = (now: number) => {
-      const progress = Math.min(1, (now - fadeStartedAt) / BONUS_REWARD_LOOT_FADE_OUT_MS);
-      audio.volume = startingVolume * (1 - progress);
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(animateFadeOut);
-        return;
-      }
-      audio.pause();
-      audio.currentTime = 0;
-      audio.volume = 0;
-    };
-
-    animationFrame = requestAnimationFrame(animateFadeOut);
-
-    return () => cancelAnimationFrame(animationFrame);
-  }, [rewardRevealCollected, rewardRevealVisible]);
-
   function handleRewardRevealCollect() {
-    if (!rewardRevealVisible || rewardRevealCollected) return;
+    if (!rewardRevealVisible || rewardCollectStartedRef.current) return;
+    rewardCollectStartedRef.current = true;
     playSoundEffect("bonus-reward-loot");
     setRewardRevealCollected(true);
     onRewardCollect?.();
@@ -751,6 +694,7 @@ export function BonusQuestionView({
           tabIndex={0}
           aria-label={t("quiz.tapToContinue")}
           data-bonus-reward-reveal
+          onPointerDown={handleRewardRevealCollect}
           onClick={handleRewardRevealCollect}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
@@ -759,20 +703,13 @@ export function BonusQuestionView({
             }
           }}
         >
-          <audio
-            ref={rewardMusicRef}
-            src={BONUS_REWARD_LOOT_MUSIC_SRC}
-            loop
-            preload="auto"
-            aria-hidden="true"
-          />
           <div className="quiz-flow-enter-right flex min-h-full w-full flex-col items-center justify-center gap-5 px-5">
             <div
               ref={sourceRef}
               className="relative aspect-[1536/1000] w-[min(74vw,27rem)] overflow-visible"
               data-bonus-reward-source
-              data-bonus-reward-source-state={rewardFlightReady ? "exiting" : "idle"}
-              >
+              data-bonus-reward-source-state={rewardRevealCollected ? "exiting" : "idle"}
+            >
                 <div
                   className={cn(
                     "bonus-reward-ray-field",
@@ -803,13 +740,13 @@ export function BonusQuestionView({
           {rewardHudPortal}
           {rewardFlightReady
             ? <RewardScatter
-                points={showPointFlight ? {
+                points={{
                   amount: points,
                   source: sourceRef,
                   targetSelector: "[data-bonus-reward-score]",
                   placement: { origin: "center" },
                   zIndex: 80,
-                } : null}
+                }}
                 gems={{
                   rewards: gemRewards ?? [],
                   source: sourceRef,
@@ -841,24 +778,22 @@ export function BonusQuestionView({
         data-bonus-question={question.kind}
       >
 
-      <div className="relative z-10 flex flex-col items-center gap-1 text-center">
-        <h2
-          className={cn(
-            question.kind === "sentence-order"
-              ? "-translate-y-7 text-4xl font-semibold text-white sm:text-5xl"
-              : question.kind === "imposter"
-                ? "text-4xl font-semibold text-white sm:text-5xl"
-              : question.kind === "category-sort"
-                ? "-translate-y-5 text-2xl font-semibold text-white sm:text-3xl"
-                : "text-2xl font-semibold text-white sm:text-3xl",
-            canUseSuperWater(locale) && "font-super-water",
-          )}
-        >
-          {question.kind === "matching"
-            ? formatSuperWaterUppercaseText(locale, MATCHING_BONUS_TITLES[locale])
-            : formatSuperWaterText(locale, getBonusTitle(copy, question.kind))}
-        </h2>
-      </div>
+      {question.kind !== "matching" ? (
+        <div className="relative z-10 flex flex-col items-center gap-1 text-center">
+          <h2
+            className={cn(
+              question.kind === "sentence-order"
+                ? "-translate-y-7 text-4xl font-semibold text-white sm:text-5xl"
+                : question.kind === "imposter"
+                  ? "text-4xl font-semibold text-white sm:text-5xl"
+                : "-translate-y-5 text-2xl font-semibold text-white sm:text-3xl",
+              canUseSuperWater(locale) && "font-super-water",
+            )}
+          >
+            {formatSuperWaterText(locale, getBonusTitle(copy, question.kind))}
+          </h2>
+        </div>
+      ) : null}
 
       <div className="relative z-10 flex w-full flex-col items-center">
         {question.kind === "matching" ? (

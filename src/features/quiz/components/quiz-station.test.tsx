@@ -10,6 +10,7 @@ import { LegacyResultView, MobileQuizFeedback, QuizStation, ResultView } from "@
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
+import { QUIZ_BUTTON_FEEDBACK_DURATION_MS } from "@/features/quiz/quiz-answer-feedback-timing";
 import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibility";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { LOCALE_COOKIE_NAME } from "@/i18n/config";
@@ -23,6 +24,8 @@ const progressStatsMock = vi.hoisted(() => ({
   stats: null as ProgressStats | null,
   refreshStats: vi.fn(async () => undefined),
 }));
+
+const claimQuizResultMedalsMock = vi.hoisted(() => vi.fn());
 
 const routerMock = vi.hoisted(() => ({
   push: vi.fn(),
@@ -48,6 +51,7 @@ beforeEach(() => {
   progressStatsMock.stats = null;
   progressStatsMock.refreshStats.mockReset();
   progressStatsMock.refreshStats.mockResolvedValue(undefined);
+  claimQuizResultMedalsMock.mockReset();
 });
 
 afterAll(() => {
@@ -76,6 +80,7 @@ vi.mock("@/features/quiz/actions", () => ({
   awardQuizStreakPoints: vi.fn(async () => ({ success: true, awarded: true, points: 20, streak: 5 })),
   awardQuizResultPoints: vi.fn(async () => ({ success: true, awarded: true, points: 5 })),
   awardQuizBonusPoints: vi.fn(async () => ({ success: true, awarded: true, points: 5 })),
+  claimQuizResultMedals: (...args: unknown[]) => claimQuizResultMedalsMock(...args),
 }));
 
 vi.mock("@/data/card-definitions.generated", () => ({
@@ -497,6 +502,22 @@ describe("ResultView star rating", () => {
 });
 
 describe("ResultView medal stages", () => {
+  function mockMedalGeometry() {
+    const rect = {
+      x: 100,
+      y: 100,
+      left: 100,
+      top: 100,
+      right: 200,
+      bottom: 200,
+      width: 100,
+      height: 100,
+      toJSON: () => ({}),
+    } as DOMRect;
+
+    return vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(rect);
+  }
+
   it("keeps the summary and medal collection screens separate", () => {
     vi.useFakeTimers();
 
@@ -549,6 +570,256 @@ describe("ResultView medal stages", () => {
       "text-white",
       "font-super-water",
     );
+  });
+
+  it("keeps the medal stage open when scatter geometry is not measurable yet", () => {
+    vi.useFakeTimers();
+    const onContinue = vi.fn();
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={null}>
+          <ResultView
+            mode="active"
+            results={{
+              correct: VOCABULARY_CARDS.slice(0, 7),
+              incorrect: VOCABULARY_CARDS.slice(7, 10),
+              learned: [],
+            }}
+            selectedCount={10}
+            chestOpened={false}
+            onContinue={onContinue}
+            onRestart={vi.fn()}
+            onExit={vi.fn()}
+          />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Devam et" }));
+    act(() => {
+      vi.advanceTimersByTime(260);
+    });
+    act(() => {
+      vi.advanceTimersByTime(2500);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Madalyaları al" }));
+    act(() => {
+      vi.advanceTimersByTime(2500);
+    });
+
+    expect(onContinue).not.toHaveBeenCalled();
+    expect(document.querySelector('[data-quiz-result-stage="medals"]')).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Madalyaları al" })).toBeInTheDocument();
+  });
+
+  it("does not reuse the claim tap as a medal collection tap", () => {
+    vi.useFakeTimers();
+    const geometrySpy = mockMedalGeometry();
+    const onContinue = vi.fn();
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={null}>
+          <ResultView
+            mode="active"
+            results={{
+              correct: [],
+              incorrect: VOCABULARY_CARDS.slice(0, 10),
+              learned: [],
+            }}
+            selectedCount={10}
+            chestOpened={false}
+            onContinue={onContinue}
+            onRestart={vi.fn()}
+            onExit={vi.fn()}
+          />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Devam et" }));
+    act(() => {
+      vi.advanceTimersByTime(260);
+    });
+    act(() => {
+      vi.advanceTimersByTime(2500);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Madalyaları al" }));
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(onContinue).not.toHaveBeenCalled();
+    expect(document.querySelector("[data-result-medal-center-flight]")).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-reward-flight-channel="medals"]')).toHaveLength(0);
+
+    geometrySpy.mockRestore();
+  });
+
+  it("starts collection only after an explicit center tap", () => {
+    vi.useFakeTimers();
+    const geometrySpy = mockMedalGeometry();
+    const onContinue = vi.fn();
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={null}>
+          <ResultView
+            mode="active"
+            results={{
+              correct: [],
+              incorrect: VOCABULARY_CARDS.slice(0, 10),
+              learned: [],
+            }}
+            selectedCount={10}
+            chestOpened={false}
+            onContinue={onContinue}
+            onRestart={vi.fn()}
+            onExit={vi.fn()}
+          />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Devam et" }));
+    act(() => {
+      vi.advanceTimersByTime(260);
+    });
+    act(() => {
+      vi.advanceTimersByTime(2500);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Madalyaları al" }));
+    act(() => {
+      vi.advanceTimersByTime(0);
+    });
+
+    const centerTap = document.querySelector<HTMLButtonElement>(
+      "[data-result-medal-center-flight] button",
+    );
+    expect(centerTap).toBeInTheDocument();
+    // The center collector intentionally uses pointerdown instead of click so
+    // Android cannot reuse the claim button's delayed synthetic click.
+    fireEvent.click(centerTap!);
+
+    expect(document.querySelector('[data-reward-flight-channel="medals"]')).not.toBeInTheDocument();
+
+    fireEvent.pointerDown(centerTap!);
+
+    const medalFlight = document.querySelector('[data-reward-flight-channel="medals"]');
+    expect(medalFlight).toBeInTheDocument();
+
+    expect(onContinue).not.toHaveBeenCalled();
+    expect(document.querySelector("[data-result-medal-center-flight] button")).toBeInTheDocument();
+
+    geometrySpy.mockRestore();
+  });
+
+  it("keeps the collector open when the server reports an already-claimed session", async () => {
+    vi.useFakeTimers();
+    const geometrySpy = mockMedalGeometry();
+    const onContinue = vi.fn();
+    claimQuizResultMedalsMock.mockResolvedValueOnce({
+      success: true,
+      awarded: false,
+      medals: 3,
+      totalMedals: 17,
+    });
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={testUser}>
+          <ResultView
+            mode="active"
+            results={{
+              correct: VOCABULARY_CARDS.slice(0, 10),
+              incorrect: [],
+              learned: [],
+            }}
+            selectedCount={10}
+            quizSessionId="00000000-0000-4000-8000-000000000001"
+            quizFlowTest
+            chestOpened={false}
+            onContinue={onContinue}
+            onRestart={vi.fn()}
+            onExit={vi.fn()}
+          />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Devam et" }));
+    act(() => {
+      vi.advanceTimersByTime(260);
+    });
+    act(() => {
+      vi.advanceTimersByTime(2500);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Madalyaları al" }));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(claimQuizResultMedalsMock).toHaveBeenCalledWith(
+      "00000000-0000-4000-8000-000000000001",
+      3,
+    );
+    expect(document.querySelector("[data-result-medal-center-flight]")).toBeInTheDocument();
+    expect(onContinue).not.toHaveBeenCalled();
+
+    geometrySpy.mockRestore();
+  });
+
+  it("keeps the collector open and offers retry when the medal claim fails", async () => {
+    vi.useFakeTimers();
+    const geometrySpy = mockMedalGeometry();
+    const onContinue = vi.fn();
+    claimQuizResultMedalsMock.mockRejectedValueOnce(new Error("offline"));
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={testUser}>
+          <ResultView
+            mode="active"
+            results={{
+              correct: VOCABULARY_CARDS.slice(0, 10),
+              incorrect: [],
+              learned: [],
+            }}
+            selectedCount={10}
+            quizSessionId="00000000-0000-4000-8000-000000000002"
+            quizFlowTest
+            chestOpened={false}
+            onContinue={onContinue}
+            onRestart={vi.fn()}
+            onExit={vi.fn()}
+          />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Devam et" }));
+    act(() => {
+      vi.advanceTimersByTime(260);
+    });
+    act(() => {
+      vi.advanceTimersByTime(2500);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Madalyaları al" }));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(screen.getByRole("button", { name: "Tekrar dene" })).toBeInTheDocument();
+    expect(document.querySelector("[data-result-medal-center-flight]")).toBeInTheDocument();
+    expect(onContinue).not.toHaveBeenCalled();
+
+    geometrySpy.mockRestore();
   });
 });
 
@@ -1402,7 +1673,7 @@ describe("QuizStation sound feedback", () => {
     fireEvent.click(screen.getByRole("button", { name: correctAnswer }));
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(701);
+      await vi.advanceTimersByTimeAsync(QUIZ_BUTTON_FEEDBACK_DURATION_MS + 51);
     });
 
     expect(document.querySelector("[data-quiz-celebration]")).toBeInTheDocument();

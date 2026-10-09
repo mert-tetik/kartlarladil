@@ -89,6 +89,11 @@ function parseBonusTest(value: string | string[] | undefined): boolean {
   return rawValue === "1" || rawValue === "true";
 }
 
+function parseBonusMatchingTest(value: string | string[] | undefined): boolean {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return rawValue === "1" || rawValue === "true";
+}
+
 function parseBonusRewardTest(value: string | string[] | undefined): boolean {
   const rawValue = Array.isArray(value) ? value[0] : value;
   return rawValue === "1" || rawValue === "true";
@@ -115,6 +120,11 @@ function parseQuizCompletionTest(value: string | string[] | undefined): boolean 
 }
 
 function parseQuizFlowTest(value: string | string[] | undefined): boolean {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return rawValue === "1" || rawValue === "true";
+}
+
+function parseQuizWordRepetitionTest(value: string | string[] | undefined): boolean {
   const rawValue = Array.isArray(value) ? value[0] : value;
   return rawValue === "1" || rawValue === "true";
 }
@@ -164,6 +174,7 @@ export default async function LearnPage({
       params["quiz-continuation-test"],
   );
   const bonusTest = parseBonusTest(params["bonus-test"]);
+  const bonusMatchingTest = parseBonusMatchingTest(params["bonus-matching-test"]);
   const bonusRewardTest = parseBonusRewardTest(params["bonus-reward-test"]);
   const bonusAfterEach = parseBonusAfterEach(params["bonus-after-each"]);
   const normalTestValue = params["normal-test"] ?? params["quiz-normal-test"];
@@ -179,6 +190,11 @@ export default async function LearnPage({
   );
   const quizCompletionTest = parseQuizCompletionTest(params["quiz-completion-test"]);
   const quizFlowTest = parseQuizFlowTest(params["quiz-flow-test"]);
+  const quizWordRepetitionTest = parseQuizWordRepetitionTest(
+    params["quiz-word-repetition-test"] ??
+      params["word-repetition-test"] ??
+      params["quiz-repeat-test"],
+  );
 
   return (
     <section
@@ -200,6 +216,7 @@ export default async function LearnPage({
         chestRewardTest={chestRewardTest}
         continuationMotivationTest={continuationMotivationTest}
         bonusTest={bonusTest}
+        bonusMatchingTest={bonusMatchingTest}
         bonusRewardTest={bonusRewardTest}
         bonusAfterEach={bonusAfterEach}
         normalTest={normalTest}
@@ -207,6 +224,7 @@ export default async function LearnPage({
         quizWordButtonTest={quizWordButtonTest}
         quizCompletionTest={quizCompletionTest}
         quizFlowTest={quizFlowTest}
+        quizWordRepetitionTest={quizWordRepetitionTest}
       />
     </section>
   );

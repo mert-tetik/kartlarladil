@@ -1,13 +1,14 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { MobileDayStreakMenu } from "@/app/components/mobile-day-streak-menu";
 import { useAuthSession } from "@/features/auth/auth-client";
 import type { DailyStreakSnapshot } from "@/features/daily-streak/daily-streak-actions";
 import { useOptionalDailyStreak } from "@/features/daily-streak/daily-streak-client";
 import { useLeaderboardOverlay } from "@/features/leaderboard/components/leaderboard-overlay-provider";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
+import { consumeQuizReturnToLanding } from "@/features/daily-streak/daily-streak-landing-return";
 
 const DAILY_STREAK_TEST_REOPEN_DELAY = 400;
 const DAILY_STREAK_RESULT_REMINDER_STORAGE_KEY = "foxiesdeck:daily-streak:result-reminder";
@@ -15,7 +16,6 @@ const DAILY_STREAK_RESULT_REMINDER_STORAGE_KEY = "foxiesdeck:daily-streak:result
 interface MobileDayStreakOverlayContextValue {
   openDayStreak: () => void;
   closeDayStreak: () => void;
-  requestAutoOpenAfterQuizResult: (onClosed: () => void) => void;
   isOpen: boolean;
   snapshot: DailyStreakSnapshot | null;
   loading: boolean;
@@ -61,6 +61,7 @@ function isMobileViewport() {
 
 export function MobileDayStreakOverlayProvider({ children }: { children: ReactNode }) {
   const { user } = useAuthSession();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const dailyStreakContext = useOptionalDailyStreak();
   const { openLeaderboard } = useLeaderboardOverlay();
@@ -69,7 +70,6 @@ export function MobileDayStreakOverlayProvider({ children }: { children: ReactNo
   const testStartedRef = useRef(false);
   const testReopenTimerRef = useRef<number | null>(null);
   const claimedReminderRef = useRef<string | null>(null);
-  const pendingResultContinuationRef = useRef<(() => void) | null>(null);
   const dailyStreakTestMode = isDailyStreakTestMode(searchParams);
   const syncedSnapshot = dailyStreakContext?.snapshot ?? null;
   const syncedLoading = dailyStreakContext?.loading ?? false;
@@ -88,42 +88,6 @@ export function MobileDayStreakOverlayProvider({ children }: { children: ReactNo
     setIsOpen(true);
   }, [dailyStreakContext]);
 
-  const requestAutoOpenAfterQuizResult = useCallback(
-    (onClosed: () => void) => {
-      if (!user || dailyStreakTestMode || !isMobileViewport()) {
-        onClosed();
-        return;
-      }
-
-      const reminderKey = `${user.id}:${getLocalDateKey(new Date())}`;
-      if (claimedReminderRef.current === reminderKey) {
-        onClosed();
-        return;
-      }
-
-      try {
-        if (window.localStorage.getItem(DAILY_STREAK_RESULT_REMINDER_STORAGE_KEY) === reminderKey) {
-          claimedReminderRef.current = reminderKey;
-          onClosed();
-          return;
-        }
-
-        window.localStorage.setItem(
-          DAILY_STREAK_RESULT_REMINDER_STORAGE_KEY,
-          reminderKey,
-        );
-      } catch {
-        // The in-memory claim below still prevents repeated opens in this session
-        // when storage is unavailable or blocked.
-      }
-
-      claimedReminderRef.current = reminderKey;
-      pendingResultContinuationRef.current = onClosed;
-      openDayStreak();
-    },
-    [dailyStreakTestMode, openDayStreak, user],
-  );
-
   const closeDayStreak = useCallback(() => {
     if (!dailyStreakTestMode) {
       setIsOpen(false);
@@ -141,14 +105,7 @@ export function MobileDayStreakOverlayProvider({ children }: { children: ReactNo
     }, DAILY_STREAK_TEST_REOPEN_DELAY);
   }, [dailyStreakTestMode]);
 
-  const handleDayStreakExited = useCallback(() => {
-    const continuation = pendingResultContinuationRef.current;
-    pendingResultContinuationRef.current = null;
-    continuation?.();
-  }, []);
-
   const handleOpenLeaderboard = useCallback(() => {
-    pendingResultContinuationRef.current = null;
     if (testReopenTimerRef.current !== null) {
       window.clearTimeout(testReopenTimerRef.current);
       testReopenTimerRef.current = null;
@@ -156,6 +113,37 @@ export function MobileDayStreakOverlayProvider({ children }: { children: ReactNo
     setIsOpen(false);
     openLeaderboard("streaks");
   }, [openLeaderboard]);
+
+  useEffect(() => {
+    if (pathname !== "/" || dailyStreakTestMode || isOpen || !user || !isMobileViewport()) {
+      return;
+    }
+
+    if (!consumeQuizReturnToLanding()) {
+      return;
+    }
+
+    const reminderKey = `${user.id}:${getLocalDateKey(new Date())}`;
+    if (claimedReminderRef.current === reminderKey) {
+      return;
+    }
+
+    try {
+      if (window.localStorage.getItem(DAILY_STREAK_RESULT_REMINDER_STORAGE_KEY) === reminderKey) {
+        claimedReminderRef.current = reminderKey;
+        return;
+      }
+
+      window.localStorage.setItem(DAILY_STREAK_RESULT_REMINDER_STORAGE_KEY, reminderKey);
+    } catch {
+      // The in-memory claim below still prevents repeated opens in this session
+      // when storage is unavailable or blocked.
+    }
+
+    claimedReminderRef.current = reminderKey;
+    void dailyStreakContext?.refresh();
+    setIsOpen(true);
+  }, [dailyStreakContext, dailyStreakTestMode, isOpen, pathname, user]);
 
   useEffect(() => {
     if (!dailyStreakTestMode) {
@@ -184,7 +172,6 @@ export function MobileDayStreakOverlayProvider({ children }: { children: ReactNo
     () => ({
       openDayStreak,
       closeDayStreak,
-      requestAutoOpenAfterQuizResult,
       isOpen,
       snapshot,
       loading: dailyStreakTestMode ? false : syncedLoading,
@@ -194,7 +181,6 @@ export function MobileDayStreakOverlayProvider({ children }: { children: ReactNo
       dailyStreakTestMode,
       isOpen,
       openDayStreak,
-      requestAutoOpenAfterQuizResult,
       snapshot,
       syncedLoading,
     ],
@@ -209,7 +195,6 @@ export function MobileDayStreakOverlayProvider({ children }: { children: ReactNo
         streakPosition={leaderboardData?.viewer.streakPosition ?? null}
         onOpenLeaderboard={handleOpenLeaderboard}
         onClose={closeDayStreak}
-        onExited={handleDayStreakExited}
         snapshot={snapshot}
         loading={dailyStreakTestMode ? false : syncedLoading}
       />

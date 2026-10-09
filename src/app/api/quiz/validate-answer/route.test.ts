@@ -248,4 +248,32 @@ describe("POST /api/quiz/validate-answer", () => {
     expect(payload.accepted).toBe(false);
     expect(mockCreate).not.toHaveBeenCalled();
   });
+
+  it("uses semantic vocabulary validation for target-language case variants", async () => {
+    mockCreate.mockResolvedValue({ output_text: '{"accepted": true}' });
+
+    const response = await POST(
+      makeRequest({
+        userAnswer: "us",
+        correctAnswers: ["we"],
+        sourceAnswers: ["biz"],
+        targetLanguage: "en",
+        sourceLanguage: "tr",
+        promptContext: "biz",
+      }),
+    );
+
+    const payload = (await response.json()) as { accepted: boolean };
+    expect(response.status).toBe(200);
+    expect(payload.accepted).toBe(true);
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+
+    const call = mockCreate.mock.calls[0]?.[0] as {
+      input?: Array<{ role: string; content: string }>;
+      text?: { format?: { type?: string } };
+    };
+    const systemMessage = call.input?.find((message) => message.role === "system")?.content ?? "";
+    expect(systemMessage).toContain("we -> us");
+    expect(call.text?.format?.type).toBe("json_schema");
+  });
 });

@@ -380,8 +380,10 @@ export function RankUpMenu({
   const [revealed, setRevealed] = useState(false);
   const [closing, setClosing] = useState(false);
   const [backgroundClosing, setBackgroundClosing] = useState(false);
-  const [backgroundPhase, setBackgroundPhase] = useState<"first" | "loop">("first");
-  const backgroundVideoRef = useRef<HTMLVideoElement>(null);
+  const [backgroundLoopVisible, setBackgroundLoopVisible] = useState(false);
+  const backgroundFirstVideoRef = useRef<HTMLVideoElement>(null);
+  const backgroundLoopVideoRef = useRef<HTMLVideoElement>(null);
+  const backgroundLoopRequestedRef = useRef(false);
   const foregroundCloseTimerRef = useRef<number | null>(null);
   const backgroundCloseTimerRef = useRef<number | null>(null);
 
@@ -415,11 +417,32 @@ export function RankUpMenu({
       return;
     }
 
-    const playResult = backgroundVideoRef.current?.play();
+    const playResult = backgroundFirstVideoRef.current?.play();
     if (playResult && typeof playResult.catch === "function") {
       void playResult.catch(() => undefined);
     }
-  }, [backgroundPhase, revealed]);
+  }, [revealed]);
+
+  const startBackgroundLoop = () => {
+    if (backgroundLoopRequestedRef.current) return;
+    backgroundLoopRequestedRef.current = true;
+
+    const loopVideo = backgroundLoopVideoRef.current;
+    if (!loopVideo) return;
+
+    const playResult = loopVideo.play();
+    if (playResult && typeof playResult.catch === "function") {
+      void playResult.catch(() => {
+        backgroundLoopRequestedRef.current = false;
+      });
+    }
+  };
+
+  const revealBackgroundLoop = () => {
+    window.requestAnimationFrame(() => {
+      setBackgroundLoopVisible(true);
+    });
+  };
 
   useEffect(() => {
     return () => {
@@ -447,23 +470,36 @@ export function RankUpMenu({
         aria-hidden="true"
       >
         <video
-          key={backgroundPhase}
-          ref={backgroundVideoRef}
-          src={
-            backgroundPhase === "first"
-              ? "/rank-up/rank-up-background-first.mp4?v=20261007-2"
-              : "/rank-up/rank-up-background-loopedvideo.mp4?v=20261007-1"
-          }
+          ref={backgroundFirstVideoRef}
+          src="/rank-up/rank-up-background-first.mp4?v=20261007-2"
           muted
           playsInline
-          loop={backgroundPhase === "loop"}
-          onEnded={() => {
-            if (backgroundPhase === "first") {
-              setBackgroundPhase("loop");
+          preload="auto"
+          onEnded={startBackgroundLoop}
+          aria-hidden="true"
+          data-rank-up-background-first
+          className="absolute inset-0 z-10 size-full object-cover object-center"
+          style={{ filter: "hue-rotate(-30deg) saturate(1.35)" }}
+        />
+        <video
+          ref={backgroundLoopVideoRef}
+          src="/rank-up/rank-up-background-loopedvideo.mp4?v=20261007-1"
+          muted
+          playsInline
+          loop
+          preload="auto"
+          onPlaying={revealBackgroundLoop}
+          onCanPlay={() => {
+            if (backgroundLoopRequestedRef.current) {
+              startBackgroundLoop();
             }
           }}
           aria-hidden="true"
-          className="absolute inset-0 size-full object-cover object-center"
+          data-rank-up-background-loop
+          className={cn(
+            "absolute inset-0 size-full object-cover object-center",
+            backgroundLoopVisible ? "visible z-20" : "invisible z-0",
+          )}
           style={{ filter: "hue-rotate(-30deg) saturate(1.35)" }}
         />
         <div className="absolute inset-0 bg-black/40" />

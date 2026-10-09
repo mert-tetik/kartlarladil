@@ -258,10 +258,25 @@ const APP_THEME_V31 = `<?xml version="1.0" encoding="utf-8"?>
         <item name="android:navigationBarColor">#000000</item>
         <item name="android:windowBackground">#000000</item>
         <item name="android:windowSplashScreenBackground">#000000</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash</item>
+        <!-- Keep the Android 12 launch window blank until the WebView paints
+             the orange app surface. The social/video splash bitmap is not a
+             valid native launch icon and must not be shown here. -->
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/transparent_splash</item>
         <item name="android:windowSplashScreenIconBackgroundColor">#000000</item>
     </style>
 </resources>
+`;
+
+const TRANSPARENT_SPLASH = `<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="1dp"
+    android:height="1dp"
+    android:viewportWidth="1"
+    android:viewportHeight="1">
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M0,0h1v1h-1z" />
+</vector>
 `;
 
 const ASSET_PACK_GRADLE = `plugins {
@@ -349,6 +364,10 @@ export async function patchGeneratedAndroidProject(
   await writeText(
     path.join(projectDir, "app", "src", "main", "res", "values-v31", "styles.xml"),
     APP_THEME_V31,
+  );
+  await writeText(
+    path.join(projectDir, "app", "src", "main", "res", "drawable-anydpi", "transparent_splash.xml"),
+    TRANSPARENT_SPLASH,
   );
   await writeText(
     path.join(projectDir, "app", "src", "main", "res", "xml", "file_paths.xml"),

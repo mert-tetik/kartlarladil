@@ -4,6 +4,7 @@ import {
   NORMAL_QUIZ_FEEDBACK_MASCOTS,
   pickQuizFeedbackMascotAnimation,
   QUIZ_FEEDBACK_MASCOT_CHANCE,
+  TEXT_QUIZ_FEEDBACK_MASCOTS,
 } from "./quiz-feedback-mascot-animation";
 
 describe("quiz feedback mascot selection", () => {
@@ -23,5 +24,13 @@ describe("quiz feedback mascot selection", () => {
     expect(pickQuizFeedbackMascotAnimation(false, 0, 0.99)?.id).toBe(
       NORMAL_QUIZ_FEEDBACK_MASCOTS.at(-1)?.id,
     );
+  });
+
+  it("keeps text mascot preload order aligned with the quiz sequence", () => {
+    expect(TEXT_QUIZ_FEEDBACK_MASCOTS.map((animation) => animation.id)).toEqual([
+      "animation-5",
+      "animation-4",
+      "animation-2",
+    ]);
   });
 });

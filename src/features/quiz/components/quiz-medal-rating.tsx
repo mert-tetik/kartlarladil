@@ -88,21 +88,6 @@ export function QuizMedalRating({
     };
   }, [clampedRating, max, revealStepMs]);
 
-  useEffect(() => {
-    if (clampedRating === 0) return;
-
-    const timers = Array.from({ length: clampedRating }, (_, index) =>
-      window.setTimeout(() => {
-        playSoundEffect(sequentialReveal ? "quiz-medal-reveal" : "points", {
-          playbackRate: sequentialReveal ? 1 + index * 0.08 : 1,
-        });
-        vibrate("tap");
-      }, PANEL_REVEAL_DELAY_MS + index * revealStepMs + DROP_DURATION_MS),
-    );
-
-    return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [clampedRating, revealStepMs, sequentialReveal]);
-
   return (
     <div
       className={cn(
@@ -136,6 +121,13 @@ export function QuizMedalRating({
                 )}
                 style={{
                   animationDelay: `${index * revealStepMs}ms`,
+                }}
+                onAnimationEnd={(event) => {
+                  if (event.animationName !== "star-drop") return;
+                  playSoundEffect(sequentialReveal ? "quiz-medal-reveal" : "points", {
+                    playbackRate: sequentialReveal ? 1 + index * 0.08 : 1,
+                  });
+                  vibrate("tap");
                 }}
                 data-quiz-medal="filled"
                 data-quiz-medal-index={index}

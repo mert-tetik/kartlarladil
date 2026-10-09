@@ -62,6 +62,7 @@ export function RewardScatter({
   onGemsComplete,
   onMedalArrive,
   onMedalsStart,
+  onMedalsUnavailable,
   onMedalsComplete,
 }: {
   points?: PointsScatterRequest | null;
@@ -77,6 +78,7 @@ export function RewardScatter({
   onGemsComplete?: () => void;
   onMedalArrive?: (amountAwarded: number, arrivalIndex: number) => void;
   onMedalsStart?: () => void;
+  onMedalsUnavailable?: () => void;
   onMedalsComplete?: () => void;
 }) {
   const [flights, setFlights] = useState<RewardScatterFlight[]>([]);
@@ -95,6 +97,7 @@ export function RewardScatter({
     onGemsComplete,
     onMedalArrive,
     onMedalsStart,
+    onMedalsUnavailable,
     onMedalsComplete,
   });
   callbacksRef.current = {
@@ -108,6 +111,7 @@ export function RewardScatter({
     onGemsComplete,
     onMedalArrive,
     onMedalsStart,
+    onMedalsUnavailable,
     onMedalsComplete,
   };
 
@@ -327,7 +331,7 @@ export function RewardScatter({
           frame = window.requestAnimationFrame(startWhenReady);
           return;
         }
-        completeGroup("medals");
+        callbacksRef.current.onMedalsUnavailable?.();
         return;
       }
 
@@ -349,7 +353,7 @@ export function RewardScatter({
       }).filter((flight) => flight.channel === "medals");
 
       if (!medalFlights.length) {
-        completeGroup("medals");
+        callbacksRef.current.onMedalsUnavailable?.();
         return;
       }
 

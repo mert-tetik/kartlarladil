@@ -217,9 +217,9 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
       panelClassName="h-[78dvh] max-h-[94dvh]"
       contentRef={setSheetElement}
       visual={<Plus className="size-[3.25rem] stroke-[3.25] text-purple-600" aria-hidden="true" />}
-      contentClassName="relative overflow-hidden p-5"
+      contentClassName="mobile-custom-card-content relative overflow-hidden p-5"
     >
-      <div className={cn("relative z-10 flex flex-1 flex-col justify-center transition-[opacity,transform] duration-300 ease-out", preview ? "pointer-events-none -translate-y-4 opacity-0" : "-translate-y-6 opacity-100")}>
+      <div className={cn("relative z-10 flex flex-1 flex-col justify-start transition-[opacity,transform] duration-300 ease-out", preview ? "pointer-events-none -translate-y-4 opacity-0" : "opacity-100")}>
         <div className="mt-3">
           <CustomCardDirectionToggle value={direction} onChange={setDirection} learningLanguage={targetLanguage} />
         </div>

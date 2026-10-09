@@ -1,5 +1,5 @@
 {
-  "version": "a9d57441aeb797a4c4b47c8211392f006918d18871ea2f7babf9d97312fc32f2",
+  "version": "9ad8f45751933850b4f0cc06aecb67e5fd188569ea743bd5c4fa6867717a8d4d",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -3866,6 +3866,14 @@
       "revision": "a433773111150b00abb140495bb089d865b04ebee00a3e19839ec34b0d7e2c18"
     },
     {
+      "url": "/quiz/quiz-word-repetition-teacher-1.png",
+      "revision": "8b82a9723db32abea370ae515dc9fe8f88c3799643bfbdd65fae0491834033da"
+    },
+    {
+      "url": "/quiz/quiz-word-repetition-teacher.png",
+      "revision": "f699256c0c0a4bf69fdfdb139c3d61b9601b256d0b978b0bede49a23abdf675f"
+    },
+    {
       "url": "/quiz/result-cards/correct.png",
       "revision": "b6107e2af0877ddb1c1afdb4df845dd82c9698dddf55e918d42536c9958cdaef"
     },
@@ -3888,6 +3896,10 @@
     {
       "url": "/quiz/result-learned-trophy.svg",
       "revision": "0b094dab78d8bfa3e307d9df52ab89d0534cee94ff119e11967578550f4b1cef"
+    },
+    {
+      "url": "/quiz/result-message-bubble.png",
+      "revision": "5f1b511f0af66be20e7e3c9ce53dc296359c0500bcbe2b1d1aa78c3fd4fac00b"
     },
     {
       "url": "/quiz/result-message-wave-20261003-1.png",

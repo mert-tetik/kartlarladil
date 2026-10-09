@@ -1,7 +1,7 @@
 "use client";
 
 import { GraduationCap, RotateCcw } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
@@ -46,6 +46,7 @@ interface LearnQuizShellProps {
   chestRewardTest?: boolean;
   continuationMotivationTest?: boolean;
   bonusTest?: boolean;
+  bonusMatchingTest?: boolean;
   bonusRewardTest?: boolean;
   bonusAfterEach?: boolean;
   normalTest?: boolean;
@@ -53,6 +54,7 @@ interface LearnQuizShellProps {
   quizWordButtonTest?: boolean;
   quizCompletionTest?: boolean;
   quizFlowTest?: boolean;
+  quizWordRepetitionTest?: boolean;
 }
 
 export function LearnQuizShell({
@@ -69,6 +71,7 @@ export function LearnQuizShell({
   chestRewardTest = false,
   continuationMotivationTest = false,
   bonusTest = false,
+  bonusMatchingTest = false,
   bonusRewardTest = false,
   bonusAfterEach = false,
   normalTest = false,
@@ -76,6 +79,7 @@ export function LearnQuizShell({
   quizWordButtonTest = false,
   quizCompletionTest = false,
   quizFlowTest = false,
+  quizWordRepetitionTest = false,
 }: LearnQuizShellProps) {
   const [selectedMode, setSelectedMode] = useState<PracticeMode | null>(initialMode);
   const initialPhase: LearnShellPhase = initialMode
@@ -127,6 +131,21 @@ export function LearnQuizShell({
 
     return () => window.cancelAnimationFrame(frameId);
   }, [initialMode]);
+
+  useLayoutEffect(() => {
+    const learnPage = document.querySelector<HTMLElement>("[data-learn-page]");
+    if (!learnPage) return;
+
+    if (phase === "count") {
+      learnPage.setAttribute("data-count-background-active", "true");
+    } else {
+      learnPage.removeAttribute("data-count-background-active");
+    }
+
+    return () => {
+      learnPage.removeAttribute("data-count-background-active");
+    };
+  }, [phase]);
 
   useEffect(() => {
     if (bonusTest || bonusRewardTest || normalTest || chestRewardTest || continuationMotivationTest) return;
@@ -207,6 +226,10 @@ export function LearnQuizShell({
     return <BonusQuestionsTest />;
   }
 
+  if (bonusMatchingTest) {
+    return <BonusQuestionsTest onlyMatching />;
+  }
+
   if (bonusRewardTest) {
     return <BonusRewardTest />;
   }
@@ -256,6 +279,7 @@ export function LearnQuizShell({
               bonusAfterEachNormalQuestion={bonusAfterEach}
               quizCompletionTest={quizCompletionTest}
               quizFlowTest={quizFlowTest}
+              quizWordRepetitionTest={quizWordRepetitionTest}
               onPhaseChange={setPhase}
               onBackToMode={() => {
                 setSelectedMode(null);

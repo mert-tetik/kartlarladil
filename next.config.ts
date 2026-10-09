@@ -60,6 +60,14 @@ const nextConfig: NextConfig = {
         search: "?v=20261003-2",
       },
       {
+        pathname: "/quiz/quiz-word-repetition-teacher.png",
+        search: "?v=20261008-2",
+      },
+      {
+        pathname: "/quiz/quiz-word-repetition-teacher-1.png",
+        search: "?v=20261008-1",
+      },
+      {
         pathname: "/quiz/continuation-motivations/**",
         search: "?v=20261005-1",
       },

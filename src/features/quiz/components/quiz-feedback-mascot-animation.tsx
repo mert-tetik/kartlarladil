@@ -2,29 +2,36 @@
 
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type QuizFeedbackMascotAnimation = {
   id: "animation-1" | "animation-2" | "animation-3" | "animation-4" | "animation-5" | "Bonus-Celebration";
+  videoSrc: string;
   frameCount: number;
   fps: number;
   width: number;
   height: number;
 };
 
-const MASCOT_BASE_PATH = "/quiz-feedback-mascots-v1";
-
 export const NORMAL_QUIZ_FEEDBACK_MASCOTS: readonly QuizFeedbackMascotAnimation[] = [
-  { id: "animation-1", frameCount: 104, fps: 24, width: 480, height: 480 },
-  { id: "animation-2", frameCount: 97, fps: 24, width: 752, height: 560 },
-  { id: "animation-3", frameCount: 122, fps: 30, width: 640, height: 480 },
-  { id: "animation-4", frameCount: 95, fps: 30, width: 480, height: 480 },
-  { id: "animation-5", frameCount: 104, fps: 30, width: 640, height: 480 },
+  { id: "animation-1", videoSrc: "/quiz-feedback-mascots-v1/animation-1.mp4?v=20261009-2", frameCount: 104, fps: 24, width: 480, height: 480 },
+  { id: "animation-2", videoSrc: "/quiz-feedback-mascots-v1/animation-2.mp4?v=20261009-2", frameCount: 97, fps: 24, width: 752, height: 560 },
+  { id: "animation-3", videoSrc: "/quiz-feedback-mascots-v1/animation-3.mp4?v=20261009-2", frameCount: 122, fps: 30, width: 640, height: 480 },
+  { id: "animation-4", videoSrc: "/quiz-feedback-mascots-v1/animation-4.mp4?v=20261009-3", frameCount: 95, fps: 30, width: 480, height: 480 },
+  { id: "animation-5", videoSrc: "/quiz-feedback-mascots-v1/animation-5.mp4?v=20261009-2", frameCount: 104, fps: 30, width: 640, height: 480 },
+];
+
+// Text questions cycle through these animations in this order. Keeping the
+// order explicit lets the critical mobile preload follow the quiz sequence.
+export const TEXT_QUIZ_FEEDBACK_MASCOTS: readonly QuizFeedbackMascotAnimation[] = [
+  NORMAL_QUIZ_FEEDBACK_MASCOTS[4]!,
+  NORMAL_QUIZ_FEEDBACK_MASCOTS[3]!,
+  NORMAL_QUIZ_FEEDBACK_MASCOTS[1]!,
 ];
 
 export const BONUS_QUIZ_FEEDBACK_MASCOT: QuizFeedbackMascotAnimation = {
   id: "Bonus-Celebration",
+  videoSrc: "/quiz-feedback-mascots-v1/Bonus-Celebration.mp4?v=20261009-2",
   frameCount: 43,
   fps: 30,
   width: 480,
@@ -33,7 +40,8 @@ export const BONUS_QUIZ_FEEDBACK_MASCOT: QuizFeedbackMascotAnimation = {
 
 export const QUIZ_FEEDBACK_MASCOT_CHANCE = 1 / 7;
 
-const mascotAnimationPreloadCache = new Map<string, Promise<void>>();
+const mascotVideoPreloadCache = new Map<string, Promise<void>>();
+const preloadedMascotVideos = new Map<string, HTMLVideoElement>();
 
 const QUIZ_FEEDBACK_BAR_MASCOTS = NORMAL_QUIZ_FEEDBACK_MASCOTS.filter(
   (animation) => animation.id === "animation-1" || animation.id === "animation-3",
@@ -74,39 +82,89 @@ export function preloadQuizFeedbackMascotAnimation(
 ): Promise<void> {
   if (typeof window === "undefined") return Promise.resolve();
 
-  const cacheKey = `${animation.id}:${animation.frameCount}`;
-  const cached = mascotAnimationPreloadCache.get(cacheKey);
+  const cacheKey = animation.videoSrc;
+  const cached = mascotVideoPreloadCache.get(cacheKey);
   if (cached) return cached;
 
-  const preload = Promise.all(
-    Array.from({ length: animation.frameCount }, (_, index) => {
-      const image = new window.Image();
-      const source = getQuizFeedbackMascotFramePath(animation, index + 1);
+  const preload = new Promise<void>((resolve, reject) => {
+    const video = document.createElement("video");
+    let settled = false;
 
-      return new Promise<void>((resolve, reject) => {
-        image.onload = () => {
-          const decode = image.decode?.();
-          if (decode) {
-            void decode.then(() => resolve()).catch(() => resolve());
-          } else {
-            resolve();
-          }
-        };
-        image.onerror = () => reject(new Error(`Mascot frame failed to load: ${source}`));
-        image.src = source;
-      });
-    }),
-  ).then(() => undefined);
+    video.preload = "auto";
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute("playsinline", "true");
+    video.setAttribute("aria-hidden", "true");
+    video.tabIndex = -1;
+    video.style.position = "fixed";
+    video.style.left = "-2px";
+    video.style.top = "-2px";
+    video.style.width = "1px";
+    video.style.height = "1px";
+    video.style.opacity = "0";
+    video.style.pointerEvents = "none";
 
-  mascotAnimationPreloadCache.set(cacheKey, preload);
-  return preload;
+    const cleanup = () => {
+      video.removeEventListener("loadeddata", handleReady);
+      video.removeEventListener("canplay", handleReady);
+      video.removeEventListener("error", handleError);
+    };
+    const handleReady = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      try {
+        video.pause();
+        video.currentTime = 0;
+      } catch {
+        // WebView media implementations can reject seeking before attachment.
+      }
+      resolve();
+    };
+    const handleError = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      video.remove();
+      reject(new Error(`Mascot video failed to load: ${animation.videoSrc}`));
+    };
+
+    video.addEventListener("loadeddata", handleReady);
+    video.addEventListener("canplay", handleReady);
+    video.addEventListener("error", handleError);
+    video.src = animation.videoSrc;
+    document.body.appendChild(video);
+    preloadedMascotVideos.set(cacheKey, video);
+    video.load();
+
+    // Muted playback encourages Android WebView to decode the first frame
+    // instead of stopping after metadata is available.
+    try {
+      void video.play().catch(() => undefined);
+    } catch {
+      // The load is still useful when autoplay is unavailable.
+    }
+  });
+
+  const resilientPreload = preload.catch((error) => {
+    // A transient WebView failure must be retryable on a later mount.
+    mascotVideoPreloadCache.delete(cacheKey);
+    preloadedMascotVideos.delete(cacheKey);
+    throw error;
+  });
+
+  mascotVideoPreloadCache.set(cacheKey, resilientPreload);
+  return resilientPreload;
 }
 
-function getQuizFeedbackMascotFramePath(
-  animation: QuizFeedbackMascotAnimation,
-  frame: number,
-) {
-  return `${MASCOT_BASE_PATH}/${animation.id}/${frame}.png`;
+export function preloadTextQuizFeedbackMascots(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+
+  return Promise.all(
+    TEXT_QUIZ_FEEDBACK_MASCOTS.map((animation) =>
+      preloadQuizFeedbackMascotAnimation(animation),
+    ),
+  ).then(() => undefined);
 }
 
 export function QuizFeedbackMascotAnimationView({
@@ -118,70 +176,50 @@ export function QuizFeedbackMascotAnimationView({
   onReady?: () => void;
   onError?: () => void;
 }) {
-  const [frame, setFrame] = useState(1);
+  const readyNotifiedRef = useRef(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-    let animationFrame = 0;
+    readyNotifiedRef.current = false;
     setReady(false);
-    setFrame(1);
+    void preloadQuizFeedbackMascotAnimation(animation).catch(() => undefined);
+  }, [animation]);
 
-    void preloadQuizFeedbackMascotAnimation(animation)
-      .then(() => {
-        if (cancelled) return;
-        setReady(true);
-        onReady?.();
-        const startedAt = window.performance.now();
+  function handleVideoReady() {
+    if (readyNotifiedRef.current) return;
+    readyNotifiedRef.current = true;
+    setReady(true);
+    onReady?.();
+  }
 
-        const advance = (now: number) => {
-          if (cancelled) return;
-          const nextFrame = Math.min(
-            animation.frameCount,
-            Math.floor(((now - startedAt) * animation.fps) / 1000) + 1,
-          );
-
-          setFrame((currentFrame) => (currentFrame === nextFrame ? currentFrame : nextFrame));
-
-          if (nextFrame < animation.frameCount) {
-            animationFrame = window.requestAnimationFrame(advance);
-          }
-        };
-
-        animationFrame = window.requestAnimationFrame(advance);
-      })
-      .catch(() => {
-        if (!cancelled) onError?.();
-      });
-
-    return () => {
-      cancelled = true;
-      if (animationFrame) window.cancelAnimationFrame(animationFrame);
-    };
-  }, [animation, onError, onReady]);
+  function handleVideoError() {
+    readyNotifiedRef.current = false;
+    setReady(false);
+    onError?.();
+  }
 
   return (
     <div
-      className="pointer-events-none relative h-[clamp(5.5rem,24vw,9rem)] w-[clamp(6.5rem,30vw,11rem)] origin-bottom-left shrink-0 scale-[1.7]"
+      className="pointer-events-none relative z-0 isolate h-[clamp(5.5rem,24vw,9rem)] w-[clamp(6.5rem,30vw,11rem)] origin-bottom-left shrink-0 scale-[1.7]"
       style={{ aspectRatio: `${animation.width} / ${animation.height}` }}
       aria-hidden="true"
       data-quiz-feedback-mascot={animation.id}
-      data-quiz-feedback-mascot-frame={frame}
       data-quiz-feedback-mascot-ready={ready}
     >
-      {ready ? (
-        <div className="absolute inset-0">
-          <Image
-            src={getQuizFeedbackMascotFramePath(animation, frame)}
-            alt=""
-            fill
-            unoptimized
-            loading="eager"
-            sizes="(max-width: 640px) 30vw, 176px"
-            className="object-contain object-bottom [filter:contrast(1.12)]"
-          />
-        </div>
-      ) : null}
+      <video
+        key={animation.id}
+        className="absolute inset-0 z-[-1] h-full w-full object-contain object-bottom"
+        style={{ opacity: ready ? 1 : 0 }}
+        src={animation.videoSrc}
+        autoPlay
+        muted
+        playsInline
+        preload="auto"
+        onLoadedData={handleVideoReady}
+        onCanPlay={handleVideoReady}
+        onError={handleVideoError}
+        aria-hidden="true"
+      />
     </div>
   );
 }

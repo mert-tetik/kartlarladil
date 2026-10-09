@@ -13,7 +13,7 @@ export type SoundEffectName =
   | "quiz-completion-progress-pop"
   | "quiz-select"
   | "word-select"
-  | "streak-video-whoosh"
+  | "word-repetition-complete"
   | "streak-count-reveal"
   | "rank-highlight"
   | "bonus-select"
@@ -57,8 +57,7 @@ const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   "quiz-completion-progress-pop": "/sounds/quiz-completion-progress-pop.mp3",
   "quiz-medal-reveal": "/sounds/medal-reveal-universfield-bonus-03.mp3?v=20261008-1",
   "quiz-select": "/sounds/quiz-select-elevenlabs-v1.mp3",
-  // Source: user-provided Downloads/1002.mp3, packaged as an MP4 audio track.
-  "streak-video-whoosh": "/sounds/streak-video-whoosh.mp4",
+  "word-repetition-complete": "/sounds/word-repetition-complete.mp3?v=20261008-3",
   // Source: user-provided achievement badge pop sound from Downloads.
   "streak-count-reveal": "/sounds/streak-count-reveal.mp3?v=20261002-2",
   "card-swipe-right": "/sounds/card-swipe-right-elevenlabs-v1.mp3",
@@ -77,7 +76,6 @@ const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
 };
 const SOUND_EFFECT_VOLUMES: Partial<Record<SoundEffectName, number>> = {
   "mission-passed": 0.6,
-  "streak-video-whoosh": 0.8,
 };
 
 let audioContext: AudioContext | null = null;
@@ -503,32 +501,6 @@ function wordSelect(context: AudioContext, now: number) {
   });
 }
 
-function streakVideoWhoosh(context: AudioContext, now: number) {
-  // Fast, bright launch cue for the streak animation video.
-  playTone(context, {
-    frequency: 920,
-    endFrequency: 2_800,
-    startTime: now,
-    duration: 0.16,
-    gain: 0.065,
-    type: "sine",
-  });
-  playTone(context, {
-    frequency: 1_500,
-    endFrequency: 4_200,
-    startTime: now + 0.012,
-    duration: 0.12,
-    gain: 0.032,
-    type: "triangle",
-  });
-  playNoise(context, {
-    startTime: now + 0.015,
-    duration: 0.1,
-    gain: 0.022,
-    filterFrequency: 4_800,
-  });
-}
-
 function streakCountReveal(context: AudioContext, now: number) {
   // A compact, satisfying pop followed by a bright two-note reveal chime.
   playTone(context, {
@@ -849,7 +821,7 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "quiz-completion-progress-pop": quizCompletionProgressPop,
   "quiz-select": quizSelect,
   "word-select": wordSelect,
-  "streak-video-whoosh": streakVideoWhoosh,
+  "word-repetition-complete": resultActionPress,
   "streak-count-reveal": streakCountReveal,
   "rank-highlight": rankHighlight,
   "bonus-select": bonusSelect,

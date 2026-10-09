@@ -3,9 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 import { QuizContinuationMotivationView } from "./quiz-continuation-motivation-view";
 
 const routerPushMock = vi.hoisted(() => vi.fn());
+const openLeaderboardMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: routerPushMock }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock("@/i18n/locale-provider", () => ({
@@ -15,7 +17,16 @@ vi.mock("@/i18n/locale-provider", () => ({
 }));
 
 vi.mock("@/features/leaderboard/components/leaderboard-overlay-provider", () => ({
-  useLeaderboardOverlay: () => ({ openLeaderboard: vi.fn() }),
+  useLeaderboardOverlay: () => ({ openLeaderboard: openLeaderboardMock }),
+}));
+
+vi.mock("@/features/leaderboard/use-leaderboard", () => ({
+  useLeaderboardData: () => ({
+    data: null,
+    loading: false,
+    error: "",
+    refresh: vi.fn(),
+  }),
 }));
 
 vi.mock("@/lib/route-transition", () => ({
@@ -170,6 +181,49 @@ describe("QuizContinuationMotivationView", () => {
     expect(container.querySelector('[data-quiz-continuation-motivation-card="drawCards"]')).toBeInTheDocument();
     expect(container.querySelector('[data-continuation-action="draw-cards"]')).toBeInTheDocument();
     expect(container.querySelector('[data-continuation-action="continue"]')).not.toBeInTheDocument();
+  });
+
+  it("shows each leaderboard position and opens the matching mode", () => {
+    openLeaderboardMock.mockReset();
+
+    const { container } = render(
+      <QuizContinuationMotivationView
+        input={input}
+        hasMoreCardsToLearn
+        leaderboardData={{
+          mode: "points",
+          viewer: {
+            userId: "user-1",
+            position: 7,
+            pointsPosition: 7,
+            streakPosition: 3,
+            medalsPosition: 5,
+            displayName: "Fox",
+            totalPoints: 420,
+            streak: 8,
+            medals: 12,
+            leaderboardVisible: true,
+          },
+          entries: [],
+          canViewLeaderboard: true,
+        }}
+        onContinue={vi.fn()}
+        onExit={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector('[data-leaderboard-motivation-display="points"]'))
+      .toHaveTextContent("7.");
+    expect(container.querySelector('[data-leaderboard-motivation-display="streaks"]'))
+      .toHaveTextContent("3.");
+    expect(container.querySelector('[data-leaderboard-motivation-display="medals"]'))
+      .toHaveTextContent("5.");
+
+    fireEvent.click(container.querySelector('[data-leaderboard-motivation-display="streaks"]')!);
+    fireEvent.click(container.querySelector('[data-leaderboard-motivation-display="medals"]')!);
+
+    expect(openLeaderboardMock).toHaveBeenNthCalledWith(1, "streaks");
+    expect(openLeaderboardMock).toHaveBeenNthCalledWith(2, "medals");
   });
 
   it("uses the review character, title, motivations, and replay action for learned quizzes", () => {

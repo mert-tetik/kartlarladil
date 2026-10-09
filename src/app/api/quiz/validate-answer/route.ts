@@ -13,6 +13,20 @@ export const dynamic = "force-dynamic";
 const REQUEST_TIMEOUT_MS = 5_000;
 const MAX_OUTPUT_TOKENS = 128;
 
+const ANSWER_VALIDATION_FORMAT = {
+  type: "json_schema",
+  name: "quiz_answer_validation",
+  strict: true,
+  schema: {
+    type: "object",
+    additionalProperties: false,
+    required: ["accepted"],
+    properties: {
+      accepted: { type: "boolean" },
+    },
+  },
+} as const;
+
 function normalizeValidationText(value: string) {
   return value
     .trim()
@@ -64,29 +78,40 @@ export async function POST(request: Request) {
   const targetLanguageName = getLanguageDisplayName(targetLanguage, "en");
   const sourceLanguageName = getLanguageDisplayName(sourceLanguage, "en");
   const normalizedUserAnswer = normalizeValidationText(userAnswer);
+  const normalizedCorrectAnswers = new Set(correctAnswers.map(normalizeValidationText));
   const normalizedSourceAnswers = new Set(sourceAnswers.map(normalizeValidationText));
 
-  if (normalizedSourceAnswers.has(normalizedUserAnswer)) {
+  // A word can legitimately be spelled the same in both languages. Only
+  // reject a source-language collision when it is not also a target answer.
+  if (
+    normalizedSourceAnswers.has(normalizedUserAnswer) &&
+    !normalizedCorrectAnswers.has(normalizedUserAnswer)
+  ) {
     return Response.json({ accepted: false });
   }
 
   const textAnswerSystemContent = [
-    "You are a helpful language tutor validating a vocabulary quiz answer.",
+    "You are the final semantic judge for a vocabulary quiz answer.",
     `The user is learning ${targetLanguageName}; the quiz UI is in ${sourceLanguageName}.`,
-    `They were asked to produce the target word or phrase in ${targetLanguageName}.`,
+    `They were asked to produce the target word or phrase in ${targetLanguageName}. The answer is a standalone vocabulary response unless the context explicitly provides a sentence or grammatical constraint.`,
     "",
-    "Accept the user's answer if it matches any of these:",
-    "- Exact match or minor typo.",
-    "- Another valid inflectional or lemma form of the same word in either direction (e.g., run -> ran, ran -> run, find -> found, found -> find).",
-    "- A close synonym or semantic equivalent that preserves the core meaning in this context (e.g., warm -> hot, big -> huge).",
+    "Accept the user's answer when it is a valid target-language realization of the same vocabulary meaning:",
+    "- Exact match, capitalization/spacing/punctuation variation, or a minor typo.",
+    "- A valid inflection, declension, conjugation, tense, number, gender, person, or grammatical case of the same lexical item.",
+    "- Pronoun case variants when the meaning is unchanged; for example we -> us, I -> me, he -> him, she -> her, they -> them, who -> whom.",
+    "- Other ordinary lemma-family variants; for example run -> ran, ran -> run, find -> found, found -> find, child -> children.",
+    "- A close synonym or natural semantic equivalent that preserves the core meaning when the context does not require a specific form (for example warm -> hot, big -> huge).",
+    "- If the canonical answer is a standalone word, do not reject a valid target-language form merely because it is not the same grammatical case as the canonical form.",
     "",
     "Reject the answer if it is:",
     `- Written in ${sourceLanguageName} instead of ${targetLanguageName}.`,
-    "- A translation, paraphrase, or explanation in the source/UI language.",
+    "- A translation, paraphrase, or explanation in the source/UI language rather than the target language.",
     "- A mixed-language answer that includes source-language wording.",
     "- An antonym or opposite meaning (e.g., warm -> cold).",
     "- A related but different word that changes the core meaning (e.g., run -> walk).",
     "- Unrelated or clearly wrong.",
+    "",
+    "Important: judge meaning and valid target-language grammar, not exact string identity. Do not require the user to reproduce only the canonical surface form.",
     "",
     "Respond ONLY with a JSON object and no other text:",
     '{"accepted": true}',
@@ -99,6 +124,9 @@ export async function POST(request: Request) {
     'Correct: run, User: ran -> {"accepted": true}',
     'Correct: ran, User: run -> {"accepted": true}',
     'Correct: found, User: find -> {"accepted": true}',
+    'Correct: we, User: us -> {"accepted": true}',
+    'Correct: I, User: me -> {"accepted": true}',
+    'Correct: they, User: them -> {"accepted": true}',
     'Correct: run, User: walk -> {"accepted": false}',
     'Correct: big, User: huge -> {"accepted": true}',
     'Correct: big, User: small -> {"accepted": false}',
@@ -123,8 +151,8 @@ export async function POST(request: Request) {
     : textAnswerSystemContent;
 
   const userContent = [
-    `Correct answers: ${correctAnswers.join(", ")}`,
-    `Source-language answers to reject: ${sourceAnswers.join(", ")}`,
+    `Correct target-language answers: ${JSON.stringify(correctAnswers)}`,
+    `Source/UI-language meanings to reject unless also listed as a target answer: ${JSON.stringify(sourceAnswers)}`,
     `Target language: ${targetLanguageName}`,
     `UI language: ${sourceLanguageName}`,
     `Context: ${promptContext}`,
@@ -150,6 +178,7 @@ export async function POST(request: Request) {
         ],
         max_output_tokens: MAX_OUTPUT_TOKENS,
         reasoning: { effort: "minimal" },
+        text: { format: ANSWER_VALIDATION_FORMAT, verbosity: "low" },
         store: false,
       },
       { signal: controller.signal },

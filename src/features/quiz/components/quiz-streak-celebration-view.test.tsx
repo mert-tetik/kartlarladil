@@ -1,8 +1,21 @@
 import { act, fireEvent, render } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { QuizStreakCelebrationView } from "./quiz-streak-celebration-view";
 import { LocaleProvider } from "@/i18n/locale-provider";
+import { QuizStreakCelebrationView } from "./quiz-streak-celebration-view";
+
+const mocks = vi.hoisted(() => ({
+  playSoundEffect: vi.fn(),
+  vibrate: vi.fn(),
+}));
+
+vi.mock("@/lib/sound-effects", () => ({
+  playSoundEffect: mocks.playSoundEffect,
+}));
+
+vi.mock("@/lib/vibration", () => ({
+  vibrate: mocks.vibrate,
+}));
 
 describe("QuizStreakCelebrationView", () => {
   function renderView(props: ComponentProps<typeof QuizStreakCelebrationView>) {
@@ -15,56 +28,45 @@ describe("QuizStreakCelebrationView", () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
-    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
+    mocks.playSoundEffect.mockReset();
+    mocks.vibrate.mockReset();
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
-  it("keeps the first video frame paused until the entrance transition ends", () => {
-    const onComplete = vi.fn();
-    renderView({ streak: 5, enterWithCss: true, onComplete });
+  it("renders the streak text immediately without a video or entrance animation", () => {
+    renderView({ streak: 5, enterWithCss: true });
 
     const view = document.querySelector("[data-streak-celebration-view]");
-    const video = document.querySelector("video");
-    const play = HTMLMediaElement.prototype.play as unknown as ReturnType<typeof vi.spyOn>;
+    const label = document.querySelector("[data-streak-count-label]");
 
     expect(view).toHaveClass("quiz-flow-enter-right");
-    expect(video).toHaveAttribute("src", "/quiz/streak-animation.mp4?v=20261007-2");
-    expect(play).not.toHaveBeenCalled();
-
-    act(() => {
-      vi.advanceTimersByTime(359);
-    });
-    expect(play).not.toHaveBeenCalled();
-
-    act(() => {
-      vi.advanceTimersByTime(1);
-    });
-    expect(play).toHaveBeenCalledTimes(1);
-    expect(onComplete).not.toHaveBeenCalled();
+    expect(document.querySelector("video")).not.toBeInTheDocument();
+    expect(label).toHaveTextContent("ÜST ÜSTE 5");
+    expect(label).toHaveClass("animate-streak-count-idle");
+    expect(label).not.toHaveClass("animate-streak-count-exit");
   });
 
-  it("shows the localized streak label at the middle of the video and waits after it ends", () => {
+  it("plays the tap feedback, starts particles, scales out, and completes after 700ms", () => {
     const onComplete = vi.fn();
-    renderView({ streak: 5, onComplete });
-    const video = document.querySelector("video") as HTMLVideoElement;
+    renderView({ streak: 10, onComplete });
+    const view = document.querySelector("[data-streak-celebration-view]")!;
+
+    fireEvent.pointerUp(view, { pointerType: "touch" });
+
+    expect(mocks.playSoundEffect).toHaveBeenCalledWith("streak-count-reveal");
+    expect(mocks.vibrate).toHaveBeenCalledWith("streak-reward-tap");
+    expect(document.querySelector("[data-streak-particle-layer]")).toBeInTheDocument();
+    expect(document.querySelector("[data-streak-particle-layer]")?.parentElement).not.toBe(
+      document.querySelector("[data-streak-count-label]"),
+    );
+    expect(document.querySelector("[data-streak-count-label]")).toHaveClass("animate-streak-count-exit");
+    expect(onComplete).not.toHaveBeenCalled();
 
     act(() => {
-      vi.advanceTimersByTime(360);
-    });
-
-    Object.defineProperty(video, "duration", { configurable: true, value: 1.555 });
-    Object.defineProperty(video, "currentTime", { configurable: true, value: 0.8 });
-    fireEvent.timeUpdate(video);
-    expect(document.querySelector("[data-streak-count-label]")).toHaveTextContent("ÜST ÜSTE 5");
-
-    fireEvent.ended(video);
-    act(() => {
-      vi.advanceTimersByTime(599);
+      vi.advanceTimersByTime(699);
     });
     expect(onComplete).not.toHaveBeenCalled();
 
@@ -74,14 +76,20 @@ describe("QuizStreakCelebrationView", () => {
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
-  it("skips the video hold on a double tap", () => {
+  it("ignores additional taps after the first press", () => {
     const onComplete = vi.fn();
-    renderView({ streak: 10, onComplete });
+    renderView({ streak: 15, onComplete });
     const view = document.querySelector("[data-streak-celebration-view]")!;
 
     fireEvent.pointerUp(view, { pointerType: "touch" });
     fireEvent.pointerUp(view, { pointerType: "touch" });
 
+    expect(mocks.playSoundEffect).toHaveBeenCalledTimes(1);
+    expect(mocks.vibrate).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 });

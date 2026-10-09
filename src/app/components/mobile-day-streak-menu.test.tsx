@@ -35,6 +35,7 @@ describe("MobileDayStreakMenu", () => {
 
     const backgroundVideo = document.querySelector<HTMLVideoElement>("[data-day-streak-background]");
     expect(backgroundVideo).toBeInTheDocument();
+    expect(document.querySelector("[data-day-streak-idle-background]")).not.toBeInTheDocument();
     fireEvent.ended(backgroundVideo!);
 
     await waitFor(() => expect(dialog).toHaveAttribute("data-day-streak-content-ready", "true"));
@@ -87,5 +88,45 @@ describe("MobileDayStreakMenu", () => {
       expect(document.querySelector("[data-day-streak-current-streak-loading]")).toBeInTheDocument();
     });
     expect(document.querySelector("[data-day-streak-current-streak]")).not.toBeInTheDocument();
+  });
+
+  it("skips the opening animation on a mobile double tap and keeps the audio asset attached", async () => {
+    render(
+      <LocaleProvider initialLocale="tr">
+        <ThemeProvider initialTheme="default-dark">
+          <MobileDayStreakMenu
+            open
+            onClose={vi.fn()}
+            snapshot={{
+              currentStreak: 4,
+              today: "2026-09-15",
+              loggedDates: [],
+            }}
+          />
+        </ThemeProvider>
+      </LocaleProvider>,
+    );
+
+    const dialog = screen.getByRole("dialog");
+    const backgroundVideo = document.querySelector<HTMLVideoElement>("[data-day-streak-background]");
+    const audio = document.querySelector<HTMLAudioElement>("[data-day-streak-audio]");
+    expect(backgroundVideo).toBeInTheDocument();
+    expect(audio).toHaveAttribute("src", "/day-streak/daily_streak_sfx.mp3?v=20261009-1");
+
+    let currentTime = 0;
+    Object.defineProperty(backgroundVideo, "duration", { configurable: true, value: 4.5 });
+    Object.defineProperty(backgroundVideo, "currentTime", {
+      configurable: true,
+      get: () => currentTime,
+      set: (value: number) => {
+        currentTime = value;
+      },
+    });
+
+    fireEvent.pointerUp(dialog, { pointerType: "touch" });
+    fireEvent.pointerUp(dialog, { pointerType: "touch" });
+
+    await waitFor(() => expect(dialog).toHaveAttribute("data-day-streak-content-ready", "true"));
+    expect(currentTime).toBeCloseTo(4.499, 3);
   });
 });

@@ -36,6 +36,7 @@ const STREAK_REWARD_CONTINUATION_AUDIO_SOURCE =
   "/quiz/streak-reward-background-20260921-continuation-audio.m4a?v=20261007-2";
 const VIDEO_AUDIO_FADE_IN_DURATION_MS = 500;
 const VIDEO_AUDIO_FADE_OUT_DURATION_MS = 2000;
+const STREAK_REWARD_INTRO_AUDIO_FADE_OUT_DURATION_MS = 900;
 const VIDEO_AUDIO_MAX_VOLUME = 0.75;
 const VIDEO_FADE_OUT_DURATION_MS = 250;
 const STREAK_REWARD_CONTINUATION_DURATION_MS = 1933;
@@ -67,6 +68,7 @@ export function QuizStreakRewardView({
   const onCompleteRef = useRef(onComplete);
   const breakTimerRef = useRef<number | null>(null);
   const audioFadeInFrameRef = useRef<number | null>(null);
+  const introAudioFadeOutFrameRef = useRef<number | null>(null);
   const audioFadeOutTimerRef = useRef<number | null>(null);
   const audioFadeOutFrameRef = useRef<number | null>(null);
   const uiExitTimerRef = useRef<number | null>(null);
@@ -76,6 +78,7 @@ export function QuizStreakRewardView({
   const breakStartedRef = useRef(false);
   const interactionStartedRef = useRef(false);
   const audioFadeInStartedRef = useRef(false);
+  const introAudioFadeOutStartedRef = useRef(false);
   const audioFadeOutStartedRef = useRef(false);
   const videoPlaybackStartedRef = useRef(false);
   const introAudioStartedRef = useRef(false);
@@ -191,6 +194,41 @@ export function QuizStreakRewardView({
     };
 
     audioFadeInFrameRef.current = window.requestAnimationFrame(fade);
+  }, []);
+
+  const startIntroAudioFadeOut = useCallback(() => {
+    const audio = introAudioRef.current;
+    if (!audio || introAudioFadeOutStartedRef.current) return;
+
+    introAudioFadeOutStartedRef.current = true;
+    if (audioFadeInFrameRef.current !== null) {
+      window.cancelAnimationFrame(audioFadeInFrameRef.current);
+      audioFadeInFrameRef.current = null;
+    }
+    if (introAudioFadeOutFrameRef.current !== null) {
+      window.cancelAnimationFrame(introAudioFadeOutFrameRef.current);
+      introAudioFadeOutFrameRef.current = null;
+    }
+
+    const initialVolume = audio.volume;
+    const startedAt = performance.now();
+    const fade = (timestamp: number) => {
+      const progress = Math.min(
+        1,
+        (timestamp - startedAt) / STREAK_REWARD_INTRO_AUDIO_FADE_OUT_DURATION_MS,
+      );
+      audio.volume = Math.max(0, initialVolume * (1 - progress));
+
+      if (progress < 1) {
+        introAudioFadeOutFrameRef.current = window.requestAnimationFrame(fade);
+      } else {
+        introAudioFadeOutFrameRef.current = null;
+        audio.volume = 0;
+        audio.pause();
+      }
+    };
+
+    introAudioFadeOutFrameRef.current = window.requestAnimationFrame(fade);
   }, []);
 
   const startVideoAudioFadeOut = useCallback(() => {
@@ -313,6 +351,30 @@ export function QuizStreakRewardView({
     }
   }, [startVideoAudioFadeIn]);
 
+  const handleIntroVideoTimeUpdate = useCallback(() => {
+    const video = introVideoRef.current;
+    const audio = introAudioRef.current;
+    if (video && audio && introAudioStartedRef.current && Math.abs(audio.currentTime - video.currentTime) > 0.16) {
+      try {
+        audio.currentTime = video.currentTime;
+      } catch {
+        // Keep the intro usable if a WebView rejects a seek during playback.
+      }
+    }
+
+    if (
+      video &&
+      video.duration > 0 &&
+      video.duration - video.currentTime <= STREAK_REWARD_INTRO_AUDIO_FADE_OUT_DURATION_MS / 1000
+    ) {
+      startIntroAudioFadeOut();
+    }
+  }, [startIntroAudioFadeOut]);
+
+  const handleIntroVideoEnded = useCallback(() => {
+    startIntroAudioFadeOut();
+  }, [startIntroAudioFadeOut]);
+
   const handleContinuationVideoPlay = useCallback(() => {
     const video = continuationVideoRef.current;
     if (!video) return;
@@ -388,7 +450,7 @@ export function QuizStreakRewardView({
     if (introVideo && !introVideo.paused && !introVideo.ended) return;
 
     interactionStartedRef.current = true;
-    introAudioRef.current?.pause();
+    startIntroAudioFadeOut();
     startRewardScatter();
 
     hardCompletionTimeoutRef.current = window.setTimeout(() => {
@@ -408,7 +470,7 @@ export function QuizStreakRewardView({
     if (typeof playResult?.catch === "function") {
       void playResult.catch(() => startBreak());
     }
-  }, [continuationVideoUnavailable, startBreak, startRewardScatter]);
+  }, [continuationVideoUnavailable, startBreak, startIntroAudioFadeOut, startRewardScatter]);
 
   useEffect(() => {
     const introAudio = introAudioRef.current;
@@ -416,6 +478,9 @@ export function QuizStreakRewardView({
     return () => {
       if (audioFadeInFrameRef.current !== null) {
         window.cancelAnimationFrame(audioFadeInFrameRef.current);
+      }
+      if (introAudioFadeOutFrameRef.current !== null) {
+        window.cancelAnimationFrame(introAudioFadeOutFrameRef.current);
       }
       if (audioFadeOutTimerRef.current !== null) {
         window.clearTimeout(audioFadeOutTimerRef.current);
@@ -474,6 +539,8 @@ export function QuizStreakRewardView({
           preload="auto"
           onPlay={handleIntroVideoPlay}
           onPlaying={handleIntroVideoPlay}
+          onTimeUpdate={handleIntroVideoTimeUpdate}
+          onEnded={handleIntroVideoEnded}
           onError={handleIntroVideoError}
           aria-hidden="true"
         />

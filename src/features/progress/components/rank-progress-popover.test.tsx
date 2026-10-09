@@ -148,7 +148,7 @@ describe("RankProgressPopover", () => {
 
     expect(screen.getByRole("dialog", { name: /Rütbe atlad/ })).toBeInTheDocument();
     act(() => {
-      vi.advanceTimersByTime(940);
+      vi.advanceTimersByTime(1140);
     });
     expect(screen.queryByRole("dialog", { name: /Rütbe atlad/ })).not.toBeInTheDocument();
   });
@@ -210,7 +210,7 @@ describe("RankProgressPopover", () => {
     expect(screen.getByRole("dialog", { name: /Rütbe atlad/ })).toBeInTheDocument();
 
     act(() => {
-      vi.advanceTimersByTime(940);
+      vi.advanceTimersByTime(1140);
     });
     expect(screen.queryByRole("dialog", { name: /Rütbe atlad/ })).not.toBeInTheDocument();
 

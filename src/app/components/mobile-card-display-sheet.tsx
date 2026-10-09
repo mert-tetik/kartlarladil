@@ -109,6 +109,11 @@ export function MobileCardDisplaySheet({
 
   const currentCard = displayedCard;
   const definition = getCardDefinition(currentCard, getStudyLocale(currentCard.language, locale));
+  const learningStatus = inventory?.status === "learned"
+    ? { label: t("cards.learned"), className: "text-sky-400" }
+    : inventory?.status === "active"
+      ? { label: t("cards.toLearn"), className: "text-emerald-400" }
+      : null;
 
   function handleBackdropClick() {
     onClose();
@@ -219,31 +224,44 @@ export function MobileCardDisplaySheet({
       >
         {renderContentItem(
           0,
-          <div className="mx-auto flex w-full max-w-[340px] -translate-y-9 items-center justify-between gap-3">
-            <CardGrammarDetailsButton
-              onClick={() => setGrammarDetailsOpen(true)}
-              showIcon={false}
-              className="h-10 w-[11.5rem] max-w-none justify-center border-black/10 bg-white text-sm leading-none text-black hover:bg-white/90"
-            />
-            <div className="flex shrink-0 items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={handleAskClick}
-                aria-label={`${currentCard.term} ${t("cards.ask")}`}
-                title={t("cards.ask")}
-                className={actionButtonClass}
+          <div className="relative mx-auto w-full max-w-[340px] -translate-y-9">
+            {learningStatus ? (
+              <p
+                className={cn(
+                  "pointer-events-none absolute inset-x-0 -top-12 text-center text-xl font-bold uppercase leading-none font-super-water",
+                  learningStatus.className,
+                )}
+                data-card-learning-status
               >
-                <MessageCircleQuestion className="size-5" aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label={t("common.close")}
-                title={t("common.close")}
-                className={actionButtonClass}
-              >
-                <X className="size-5" aria-hidden="true" />
-              </button>
+                {learningStatus.label}
+              </p>
+            ) : null}
+            <div className="flex w-full items-center justify-between gap-3">
+              <CardGrammarDetailsButton
+                onClick={() => setGrammarDetailsOpen(true)}
+                showIcon={false}
+                className="h-10 w-[11.5rem] max-w-none justify-center border-black/10 bg-white text-sm leading-none text-black hover:bg-white/90"
+              />
+              <div className="flex shrink-0 items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleAskClick}
+                  aria-label={`${currentCard.term} ${t("cards.ask")}`}
+                  title={t("cards.ask")}
+                  className={actionButtonClass}
+                >
+                  <MessageCircleQuestion className="size-5" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label={t("common.close")}
+                  title={t("common.close")}
+                  className={actionButtonClass}
+                >
+                  <X className="size-5" aria-hidden="true" />
+                </button>
+              </div>
             </div>
           </div>,
           "w-full",
@@ -261,7 +279,7 @@ export function MobileCardDisplaySheet({
               flippable={false}
               showActions={false}
               frontFit
-              className="h-auto w-full max-w-[230px] max-sm:min-h-[300px]"
+              className="mx-auto h-auto w-full max-w-[230px] max-sm:min-h-[300px]"
             />
           </div>,
           "w-full",

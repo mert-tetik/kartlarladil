@@ -21,7 +21,10 @@ import type { GemHudPulse } from "@/features/progress/components/reward-gem-hud"
 
 const TEST_LANGUAGE = "en" as const;
 
-function buildBonusTestQuestions(locale: Parameters<typeof buildMatchingBonusQuestion>[1]): BonusQuestion[] {
+function buildBonusTestQuestions(
+  locale: Parameters<typeof buildMatchingBonusQuestion>[1],
+  onlyMatching = false,
+): BonusQuestion[] {
   const languageCards = VOCABULARY_CARDS.filter((card) => card.language === TEST_LANGUAGE);
   const questions = [
     buildMatchingBonusQuestion(languageCards, locale, "bonus-test-matching"),
@@ -30,17 +33,22 @@ function buildBonusTestQuestions(locale: Parameters<typeof buildMatchingBonusQue
     buildImposterBonusQuestion(TEST_LANGUAGE, "bonus-test-imposter"),
   ];
 
-  return questions.filter((question): question is BonusQuestion => question !== null);
+  return questions.filter(
+    (question): question is BonusQuestion =>
+      question !== null && (!onlyMatching || question.kind === "matching"),
+  );
 }
 
-export function BonusQuestionsTest() {
+export function BonusQuestionsTest({ onlyMatching = false }: { onlyMatching?: boolean }) {
   const { locale } = useLocale();
   const { stats } = useProgressStats();
   const session = useOptionalAuthSession();
   const [questions, setQuestions] = useState<BonusQuestion[]>([]);
   useEffect(() => {
-    const nextQuestions = buildBonusTestQuestions(locale);
+    const nextQuestions = buildBonusTestQuestions(locale, onlyMatching);
     setQuestions(nextQuestions);
+
+    if (onlyMatching) return;
 
     let cancelled = false;
     const languageCards = VOCABULARY_CARDS.filter((card) => card.language === TEST_LANGUAGE);
@@ -71,7 +79,7 @@ export function BonusQuestionsTest() {
     return () => {
       cancelled = true;
     };
-  }, [locale]);
+  }, [locale, onlyMatching]);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [showingAnswer, setShowingAnswer] = useState(false);
   const [answerAccepted, setAnswerAccepted] = useState<boolean | null>(null);

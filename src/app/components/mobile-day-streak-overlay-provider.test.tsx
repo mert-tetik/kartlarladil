@@ -4,10 +4,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import type { AuthShellUser } from "@/features/auth/auth-types";
-import {
-  MobileDayStreakOverlayProvider,
-  useOptionalMobileDayStreakOverlay,
-} from "@/app/components/mobile-day-streak-overlay-provider";
+import { MobileDayStreakOverlayProvider } from "@/app/components/mobile-day-streak-overlay-provider";
+import { markQuizReturnToLanding } from "@/features/daily-streak/daily-streak-landing-return";
 
 vi.mock("@/features/leaderboard/use-leaderboard", () => ({
   useLeaderboardData: () => ({ data: null }),
@@ -15,23 +13,11 @@ vi.mock("@/features/leaderboard/use-leaderboard", () => ({
 
 const user = { id: "user-for-streak-reminder-test" } as AuthShellUser;
 
-function ReminderTrigger({ onContinue }: { onContinue: () => void }) {
-  const overlay = useOptionalMobileDayStreakOverlay();
-
-  return (
-    <button
-      type="button"
-      data-reminder-trigger
-      onClick={() => overlay?.requestAutoOpenAfterQuizResult(onContinue)}
-    >
-      Trigger reminder
-    </button>
-  );
-}
-
-describe("MobileDayStreakOverlayProvider result reminder", () => {
-  it("opens once per user and local day, then continues after the close animation", () => {
+describe("MobileDayStreakOverlayProvider landing reminder", () => {
+  it("opens once after a quiz returns to landing and does not reopen on the same day", () => {
     vi.useFakeTimers();
+    window.localStorage.clear();
+    window.sessionStorage.clear();
     vi.spyOn(window, "matchMedia").mockImplementation((query: string) => ({
       matches: query === "(max-width: 1023px)",
       media: query,
@@ -43,34 +29,32 @@ describe("MobileDayStreakOverlayProvider result reminder", () => {
       dispatchEvent: vi.fn(),
     }));
 
-    const firstContinue = vi.fn();
-    const secondContinue = vi.fn();
+    markQuizReturnToLanding();
 
     render(
       <LocaleProvider initialLocale="tr">
         <AuthSessionProvider user={user}>
           <ThemeProvider initialTheme="default-dark">
             <MobileDayStreakOverlayProvider>
-              <ReminderTrigger onContinue={firstContinue} />
-              <ReminderTrigger onContinue={secondContinue} />
+              <div>Landing page</div>
             </MobileDayStreakOverlayProvider>
           </ThemeProvider>
         </AuthSessionProvider>
       </LocaleProvider>,
     );
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Trigger reminder" })[0]);
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(firstContinue).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "Kapat" }));
     act(() => {
       vi.advanceTimersByTime(360);
     });
-    expect(firstContinue).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Trigger reminder" })[1]);
-    expect(secondContinue).toHaveBeenCalledOnce();
+    markQuizReturnToLanding();
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
     vi.restoreAllMocks();

@@ -1,5 +1,5 @@
 export const QUIZ_COUNT_SELECTION_VIDEO_SOURCE =
-  "/quiz/kac-kartla-calisacaksin.mp4?v=20261007-2";
+  "/quiz/kac-kartla-calisacaksin.mp4?v=20261008-1";
 
 const preloadedVideos = new Map<string, HTMLVideoElement>();
 const readySources = new Set<string>();
