@@ -82,7 +82,7 @@ function renderReward(onComplete = vi.fn()) {
       points={20}
       totalPoints={1000}
       testMode
-      testGemRewards={[{ type: "blue", amount: 1 }]}
+      testGemRewards={[]}
       onComplete={onComplete}
     />,
   );
@@ -174,6 +174,11 @@ describe("QuizStreakRewardView timing", () => {
 
     act(() => {
       vi.advanceTimersByTime(300);
+    });
+    expect(onComplete).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
     });
     expect(onComplete).toHaveBeenCalledTimes(1);
   });

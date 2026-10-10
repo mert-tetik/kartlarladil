@@ -45,6 +45,22 @@ interface AddCardsResult extends AddCardResult {
   remainingCardIds: string[];
 }
 
+export type OptimisticCardMutationKind = "remove" | "mark-learned";
+
+export interface OptimisticCardMutation {
+  id: number;
+  cardId: string;
+  kind: OptimisticCardMutationKind;
+  previousCard: InventoryCard;
+  previousCardIndex: number;
+  previousAttempts: Array<{ attempt: PracticeAttempt; index: number }>;
+  optimisticLearnedAt?: string;
+}
+
+export interface PendingCardMutation extends OptimisticCardMutation {
+  state: "pending" | "settled";
+}
+
 export class InventoryActionError extends Error {
   constructor(message: string, readonly errorCode?: LimitErrorCode) {
     super(message);
@@ -63,6 +79,11 @@ interface InventoryState {
   cloudError: string;
   activeCardLimit: number | null;
   pendingCardIds: Set<string>;
+  pendingCardMutations: Map<string, PendingCardMutation>;
+  optimisticallyRemoveCard: (cardId: string) => OptimisticCardMutation | null;
+  optimisticallyMarkCardLearned: (cardId: string) => OptimisticCardMutation | null;
+  settleOptimisticCardMutation: (mutation: OptimisticCardMutation) => void;
+  rollbackOptimisticCardMutation: (mutation: OptimisticCardMutation) => void;
   setHydrated: (hydrated: boolean) => void;
   setCloudEnabled: (enabled: boolean) => void;
   setOwnerUserId: (userId: string | null) => void;
@@ -105,6 +126,7 @@ export const useInventoryStore = create<InventoryState>()(
       cloudError: "",
       activeCardLimit: null,
       pendingCardIds: new Set(),
+      pendingCardMutations: new Map(),
 
       setHydrated(hydrated) {
         set({ hydrated });
@@ -132,7 +154,13 @@ export const useInventoryStore = create<InventoryState>()(
       },
 
       clearLocalInventory() {
-        set({ cards: [], attempts: [], ownerUserId: null, pendingCardIds: new Set() });
+        set({
+          cards: [],
+          attempts: [],
+          ownerUserId: null,
+          pendingCardIds: new Set(),
+          pendingCardMutations: new Map(),
+        });
       },
 
       async loadCloudInventory() {
@@ -161,13 +189,19 @@ export const useInventoryStore = create<InventoryState>()(
           }
 
           const currentState = get();
+          const nextPendingCardMutations = reconcileSettledCardMutations(
+            inventoryResult.data.cards,
+            currentState.pendingCardMutations,
+          );
           set({
             cards: mergeCloudInventoryCards(
               inventoryResult.data.cards,
               currentState.cards,
               currentState.pendingCardIds,
+              currentState.pendingCardMutations,
             ),
             attempts: inventoryResult.data.attempts,
+            pendingCardMutations: nextPendingCardMutations,
             cloudLoading: false,
             cloudLoadComplete: true,
             cloudError: "",
@@ -179,6 +213,115 @@ export const useInventoryStore = create<InventoryState>()(
             cloudError: error instanceof Error ? error.message : "Failed to load cloud inventory",
           });
         }
+      },
+
+      optimisticallyRemoveCard(cardId) {
+        const state = get();
+        if (state.pendingCardMutations.has(cardId)) return null;
+
+        const cardIndex = state.cards.findIndex((card) => card.cardId === cardId);
+        if (cardIndex < 0) return null;
+
+        const previousCard = state.cards[cardIndex];
+        const previousAttempts = state.attempts.flatMap((attempt, index) =>
+          attempt.cardId === cardId ? [{ attempt, index }] : [],
+        );
+        const mutation: OptimisticCardMutation = {
+          id: nextOptimisticCardMutationId(),
+          cardId,
+          kind: "remove",
+          previousCard,
+          previousCardIndex: cardIndex,
+          previousAttempts,
+        };
+        const pendingCardMutations = new Map(state.pendingCardMutations);
+        pendingCardMutations.set(cardId, { ...mutation, state: "pending" });
+        set({
+          cards: state.cards.filter((card) => card.cardId !== cardId),
+          attempts: state.attempts.filter((attempt) => attempt.cardId !== cardId),
+          pendingCardMutations,
+        });
+        return mutation;
+      },
+
+      optimisticallyMarkCardLearned(cardId) {
+        const state = get();
+        if (state.pendingCardMutations.has(cardId)) return null;
+
+        const cardIndex = state.cards.findIndex((card) => card.cardId === cardId);
+        if (cardIndex < 0 || state.cards[cardIndex].status === "learned") return null;
+
+        const previousCard = state.cards[cardIndex];
+        const optimisticLearnedAt = new Date().toISOString();
+        const mutation: OptimisticCardMutation = {
+          id: nextOptimisticCardMutationId(),
+          cardId,
+          kind: "mark-learned",
+          previousCard,
+          previousCardIndex: cardIndex,
+          previousAttempts: [],
+          optimisticLearnedAt,
+        };
+        const pendingCardMutations = new Map(state.pendingCardMutations);
+        pendingCardMutations.set(cardId, { ...mutation, state: "pending" });
+        set({
+          cards: state.cards.map((card, index) =>
+            index === cardIndex
+              ? { ...card, status: "learned", learnedAt: optimisticLearnedAt }
+              : card,
+          ),
+          pendingCardMutations,
+        });
+        return mutation;
+      },
+
+      settleOptimisticCardMutation(mutation) {
+        const state = get();
+        const current = state.pendingCardMutations.get(mutation.cardId);
+        if (!current || current.id !== mutation.id) return;
+
+        const pendingCardMutations = new Map(state.pendingCardMutations);
+        pendingCardMutations.set(mutation.cardId, { ...current, state: "settled" });
+        set({ pendingCardMutations });
+      },
+
+      rollbackOptimisticCardMutation(mutation) {
+        const state = get();
+        const current = state.pendingCardMutations.get(mutation.cardId);
+        if (!current || current.id !== mutation.id) return;
+
+        let cards = state.cards;
+        let attempts = state.attempts;
+        if (mutation.kind === "remove") {
+          if (!cards.some((card) => card.cardId === mutation.cardId)) {
+            const nextCards = [...cards];
+            nextCards.splice(
+              Math.min(mutation.previousCardIndex, nextCards.length),
+              0,
+              mutation.previousCard,
+            );
+            cards = nextCards;
+          }
+
+          const existingAttemptIds = new Set(attempts.map((attempt) => attempt.id));
+          const nextAttempts = [...attempts];
+          mutation.previousAttempts.forEach(({ attempt, index }) => {
+            if (existingAttemptIds.has(attempt.id)) return;
+            nextAttempts.splice(Math.min(index, nextAttempts.length), 0, attempt);
+          });
+          attempts = nextAttempts;
+        } else {
+          const currentCard = cards.find((card) => card.cardId === mutation.cardId);
+          if (currentCard?.learnedAt === mutation.optimisticLearnedAt) {
+            cards = cards.map((card) =>
+              card.cardId === mutation.cardId ? mutation.previousCard : card,
+            );
+          }
+        }
+
+        const pendingCardMutations = new Map(state.pendingCardMutations);
+        pendingCardMutations.delete(mutation.cardId);
+        set({ cards, attempts, pendingCardMutations });
       },
 
       async migrateLocalInventoryToCloud() {
@@ -244,6 +387,7 @@ export const useInventoryStore = create<InventoryState>()(
                 result.data.cards,
                 currentState.cards,
                 currentState.pendingCardIds,
+                currentState.pendingCardMutations,
               ),
               attempts: result.data.attempts,
               cloudLoading: currentState.pendingCardIds.size > 0,
@@ -339,6 +483,7 @@ export const useInventoryStore = create<InventoryState>()(
           set({
             cards: result.data.cards,
             attempts: result.data.attempts,
+            pendingCardMutations: new Map(),
             cloudLoading: false,
             cloudError: "",
           });
@@ -621,6 +766,7 @@ export const useInventoryStore = create<InventoryState>()(
           cards: [],
           attempts: [],
           ownerUserId: null,
+          pendingCardMutations: new Map(),
         });
 
         void syncMissionsFromClientState();
@@ -744,18 +890,61 @@ function enqueueCloudCardAddition<T>(ownerUserId: string | null, operation: () =
   return queuedOperation;
 }
 
-function mergeCloudInventoryCards(
+export function mergeCloudInventoryCards(
   cloudCards: InventoryCard[],
   localCards: InventoryCard[],
   pendingCardIds: ReadonlySet<string>,
+  pendingCardMutations: ReadonlyMap<string, PendingCardMutation> = new Map(),
 ) {
   const pendingCards = localCards.filter((card) => pendingCardIds.has(card.cardId));
   const pendingIds = new Set(pendingCards.map((card) => card.cardId));
+  const pendingMutationCards = localCards.filter((card) => {
+    const mutation = pendingCardMutations.get(card.cardId);
+    return mutation?.kind === "mark-learned";
+  });
+  pendingMutationCards.forEach((card) => pendingIds.add(card.cardId));
+
+  const removedCardIds = new Set(
+    [...pendingCardMutations.values()]
+      .filter((mutation) => mutation.kind === "remove")
+      .map((mutation) => mutation.cardId),
+  );
 
   return [
     ...pendingCards,
-    ...cloudCards.filter((card) => !pendingIds.has(card.cardId)),
+    ...pendingMutationCards.filter((card) => !pendingCardIds.has(card.cardId)),
+    ...cloudCards.filter(
+      (card) => !pendingIds.has(card.cardId) && !removedCardIds.has(card.cardId),
+    ),
   ];
+}
+
+export function reconcileSettledCardMutations(
+  cloudCards: InventoryCard[],
+  pendingCardMutations: ReadonlyMap<string, PendingCardMutation>,
+) {
+  const cloudCardsById = new Map(cloudCards.map((card) => [card.cardId, card]));
+  const next = new Map(pendingCardMutations);
+
+  for (const [cardId, mutation] of pendingCardMutations) {
+    if (mutation.state !== "settled") continue;
+
+    const cloudCard = cloudCardsById.get(cardId);
+    const mutationCommitted =
+      mutation.kind === "remove"
+        ? !cloudCard
+        : cloudCard?.status === "learned";
+    if (mutationCommitted) next.delete(cardId);
+  }
+
+  return next;
+}
+
+let optimisticCardMutationId = 0;
+
+function nextOptimisticCardMutationId() {
+  optimisticCardMutationId += 1;
+  return optimisticCardMutationId;
 }
 
 function getCloudActionErrorMessage(result: { message?: string; errorCode?: string }) {

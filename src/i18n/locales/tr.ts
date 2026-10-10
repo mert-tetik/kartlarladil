@@ -554,6 +554,7 @@ const dictionary = {
   "quiz.chooseCountDescription": "{language} haznende {count} kart var. Bu sefer kaç kartla çalışmak istersin?",
   "quiz.countAvailable": "{language} haznende {count} kart var",
   "quiz.countLabel": "Kart sayısı",
+  "quiz.chestNeedMoreCards": "Sandık kazanabilmek için {count} kart daha ekle",
   "quiz.recallPrompt": "Doğru anlamı seç",
   "quiz.groupMeaningPrompt": "Kelimenin anlamını seç",
   "quiz.learningPrompt": "Anlamını hatırla",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GEM_POINTS, getGemBalancesBeforeRewards, normalizeGemRewards } from "./gem-types";
+import { GEM_COSTS, GEM_POINTS, getGemBalancesBeforeRewards, getMarkLearnedGemCost, normalizeGemRewards } from "./gem-types";
 
 describe("gem reward payloads", () => {
   it("normalizes a multi-gem payload in the stable display order", () => {
@@ -26,6 +26,16 @@ describe("gem reward payloads", () => {
 
   it("keeps the intended conversion values", () => {
     expect(GEM_POINTS).toEqual({ blue: 5, green: 20, purple: 40 });
+  });
+
+  it("keeps subscription-bypass actions expensive", () => {
+    expect(GEM_COSTS.removeCard).toEqual({ type: "blue", amount: 40 });
+    expect(GEM_COSTS.rerollQuestion).toEqual({ type: "green", amount: 3 });
+    expect(getMarkLearnedGemCost("A1")).toBe(8);
+    expect(getMarkLearnedGemCost("A2")).toBe(8);
+    expect(getMarkLearnedGemCost("B1")).toBe(10);
+    expect(getMarkLearnedGemCost("B2")).toBe(10);
+    expect(getMarkLearnedGemCost("C1")).toBe(12);
   });
 
   it("derives the pre-reward totals for the animated HUD", () => {

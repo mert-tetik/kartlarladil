@@ -3,54 +3,6 @@ import type { LanguageCode } from "@/types/domain";
 export type SpeechVoiceGender = "female" | "male";
 export type SpeechVoiceAge = "young" | "adult" | "elder";
 
-const FEMALE_VOICE_HINTS = [
-  "female",
-  "woman",
-  "zira",
-  "samantha",
-  "susan",
-  "karen",
-  "hazel",
-  "sara",
-  "ava",
-  "jenny",
-  "aria",
-  "libby",
-  "salli",
-  "joanna",
-  "emma",
-  "olivia",
-  "victoria",
-  "monica",
-  "helena",
-  "anna",
-  "yuna",
-  "kyoko",
-  "mei-jia",
-] as const;
-
-const MALE_VOICE_HINTS = [
-  "male",
-  "man",
-  "david",
-  "mark",
-  "guy",
-  "daniel",
-  "alex",
-  "george",
-  "james",
-  "thomas",
-  "arthur",
-  "frank",
-  "leo",
-  "enrique",
-  "jorge",
-] as const;
-
-const YOUNG_VOICE_HINTS = ["young", "teen", "child", "kid", "junior", "youth"] as const;
-const ELDER_VOICE_HINTS = ["elder", "elderly", "senior", "grandma", "grandmother", "grandpa", "grandfather", "old"] as const;
-const BROWSER_VOICE_LOAD_TIMEOUT_MS = 1_200;
-
 const SPEECH_LANG_BY_LANGUAGE: Record<LanguageCode, string> = {
   tr: "tr-TR",
   en: "en-US",
@@ -68,6 +20,74 @@ const SPEECH_LANG_BY_LANGUAGE: Record<LanguageCode, string> = {
   "zh-CN": "zh-CN",
 };
 
+type BrowserSpeechRequest = {
+  text: string;
+  lang: string;
+  rate: number;
+};
+
+let browserSpeechActivationWindow: Window | null = null;
+let pendingBrowserSpeechRequest: BrowserSpeechRequest | null = null;
+
+function installBrowserSpeechActivationListeners() {
+  if (typeof window === "undefined" || browserSpeechActivationWindow === window) return;
+  browserSpeechActivationWindow = window;
+
+  const resumeSpeech = () => {
+    if (!("speechSynthesis" in window)) return;
+    // Mobile Safari/Chromium can leave the speech queue paused after a page
+    // transition. Resuming from a real user interaction is the most portable
+    // way to unlock that queue without making the first automatic utterance
+    // depend on a browser-specific autoplay heuristic.
+    window.speechSynthesis.resume?.();
+
+    const pendingRequest = pendingBrowserSpeechRequest;
+    if (pendingRequest) {
+      pendingBrowserSpeechRequest = null;
+      speakWithBrowserSpeech(pendingRequest);
+    }
+  };
+
+  window.addEventListener("pointerup", resumeSpeech, { capture: true, passive: true });
+  window.addEventListener("touchend", resumeSpeech, { capture: true, passive: true });
+  window.addEventListener("keydown", resumeSpeech, { capture: true, passive: true });
+}
+
+function speakWithBrowserSpeech(request: BrowserSpeechRequest) {
+  if (
+    typeof window === "undefined" ||
+    !("speechSynthesis" in window) ||
+    !("SpeechSynthesisUtterance" in window)
+  ) {
+    return false;
+  }
+
+  const speechSynthesis = window.speechSynthesis;
+  const utterance = new SpeechSynthesisUtterance(request.text);
+
+  utterance.lang = request.lang;
+  utterance.rate = request.rate;
+  utterance.onerror = (event) => {
+    // Mobile browsers may reject automatic speech until a user gesture has
+    // unlocked the synthesis queue. Keep only that latest utterance and retry
+    // from the capture-phase gesture listener; interrupted/cancelled speech
+    // must never resurrect an older question's pronunciation.
+    if (event.error === "not-allowed") {
+      pendingBrowserSpeechRequest = request;
+    }
+  };
+
+  try {
+    speechSynthesis.cancel();
+    speechSynthesis.resume?.();
+    speechSynthesis.speak(utterance);
+    return true;
+  } catch {
+    pendingBrowserSpeechRequest = request;
+    return false;
+  }
+}
+
 export function getSpeechLanguage(language: LanguageCode) {
   return SPEECH_LANG_BY_LANGUAGE[language];
 }
@@ -81,73 +101,46 @@ export function speakText(
     voiceAge?: SpeechVoiceAge;
   },
 ) {
-  if (typeof window === "undefined") {
+  if (typeof window === "undefined" || !text.trim()) {
     return false;
   }
 
   const lang = getSpeechLanguage(language);
   const nativeSpeech = window.FoxiesDeckNativeSpeech;
   if (nativeSpeech) {
-    if (options?.voiceGender || options?.voiceAge) {
-      const speakWithProfile = nativeSpeech.speakWithProfile;
-      if (typeof speakWithProfile === "function") {
-        return speakWithProfile(
-          text,
-          lang,
-          options.rate ?? 0.95,
-          options.voiceGender,
-          options.voiceAge,
-        );
+    try {
+      // Android TTS voice metadata is not reliable across engines. A voice
+      // can match the requested gender/age but still be unavailable or fail
+      // silently when selected. The native path therefore always uses the
+      // engine's known-good voice for the requested language. The browser
+      // fallback follows the same language-only rule below.
+      if (nativeSpeech.speak(text, lang, options?.rate ?? 0.95) !== false) {
+        return true;
       }
+    } catch {
+      // A stale bridge can survive a WebView navigation for one turn. Let the
+      // browser implementation take over instead of silently dropping speech.
     }
-
-    return nativeSpeech.speak(text, lang, options?.rate ?? 0.95);
   }
 
   if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
     return false;
   }
 
-  const speechSynthesis = window.speechSynthesis;
-  const speakWithLoadedVoices = () => {
-    const utterance = new SpeechSynthesisUtterance(text);
-    const matchingVoice = findMatchingVoice(lang, options?.voiceGender, options?.voiceAge);
-
-    utterance.lang = lang;
-    utterance.rate = options?.rate ?? 0.95;
-
-    if (matchingVoice) {
-      utterance.voice = matchingVoice;
-    }
-
-    speechSynthesis.cancel();
-    speechSynthesis.speak(utterance);
-  };
-
-  // Mobile browsers often expose an empty voice list on the first render.
-  // Waiting for voiceschanged prevents the first automatic quiz pronunciation
-  // from falling back to the browser's default (usually male) voice.
-  if (speechSynthesis.getVoices().length === 0) {
-    let spoken = false;
-    const speakWhenReady = () => {
-      if (spoken || speechSynthesis.getVoices().length === 0) return;
-      spoken = true;
-      speechSynthesis.removeEventListener("voiceschanged", speakWhenReady);
-      speakWithLoadedVoices();
-    };
-
-    speechSynthesis.addEventListener("voiceschanged", speakWhenReady);
-    window.setTimeout(() => {
-      if (spoken) return;
-      spoken = true;
-      speechSynthesis.removeEventListener("voiceschanged", speakWhenReady);
-      speakWithLoadedVoices();
-    }, BROWSER_VOICE_LOAD_TIMEOUT_MS);
-  } else {
-    speakWithLoadedVoices();
-  }
-
-  return true;
+  installBrowserSpeechActivationListeners();
+  pendingBrowserSpeechRequest = null;
+  // `voiceschanged` is only a notification that a preferred voice list has
+  // changed; it is not a prerequisite for speaking. On mobile the event can
+  // arrive late or not at all, while the browser can still synthesize using
+  // the requested utterance.lang and its default language voice. Voice
+  // gender/age metadata is intentionally ignored: mobile engines expose it
+  // inconsistently and selecting a profile can make an otherwise valid voice
+  // request fail silently.
+  return speakWithBrowserSpeech({
+    text,
+    lang,
+    rate: Math.max(0.5, Math.min(options?.rate ?? 0.95, 2)),
+  });
 }
 
 export function speakCardTerm(
@@ -157,67 +150,4 @@ export function speakCardTerm(
   voiceAge?: SpeechVoiceAge,
 ) {
   return speakText(term, language, { rate: 0.9, voiceGender, voiceAge });
-}
-
-function findMatchingVoice(
-  lang: string,
-  voiceGender?: SpeechVoiceGender,
-  voiceAge?: SpeechVoiceAge,
-) {
-  const voices = window.speechSynthesis.getVoices();
-  const normalizedLang = lang.toLocaleLowerCase();
-  const baseLang = normalizedLang.split("-")[0];
-  const languageVoices = voices.filter((voice) => {
-    const normalizedVoiceLanguage = voice.lang.toLocaleLowerCase();
-    return (
-      normalizedVoiceLanguage === normalizedLang ||
-      normalizedVoiceLanguage.startsWith(`${baseLang}-`)
-    );
-  });
-
-  const genderVoices = voiceGender
-    ? languageVoices.filter((voice) => {
-      const voiceLabel = `${voice.name} ${voice.voiceURI}`.toLocaleLowerCase();
-        const genderHints = voiceGender === "female" ? FEMALE_VOICE_HINTS : MALE_VOICE_HINTS;
-        return genderHints.some((hint) => hasVoiceHint(voiceLabel, hint));
-      })
-    : languageVoices;
-
-  if (voiceAge) {
-    const ageHints = voiceAge === "young"
-      ? YOUNG_VOICE_HINTS
-      : voiceAge === "elder"
-        ? ELDER_VOICE_HINTS
-        : null;
-
-    if (ageHints) {
-      const ageVoice = genderVoices.find((voice) => {
-        const voiceLabel = `${voice.name} ${voice.voiceURI}`.toLocaleLowerCase();
-        return ageHints.some((hint) => hasVoiceHint(voiceLabel, hint));
-      });
-
-      if (ageVoice) return ageVoice;
-    }
-  }
-
-  if (voiceGender) {
-    const genderHints = voiceGender === "female" ? FEMALE_VOICE_HINTS : MALE_VOICE_HINTS;
-    const genderVoice = languageVoices.find((voice) => {
-      const voiceLabel = `${voice.name} ${voice.voiceURI}`.toLocaleLowerCase();
-      return genderHints.some((hint) => hasVoiceHint(voiceLabel, hint));
-    });
-
-    if (genderVoice) return genderVoice;
-  }
-
-  return (
-    languageVoices.find((voice) => voice.lang.toLocaleLowerCase() === normalizedLang) ??
-    languageVoices[0] ??
-    null
-  );
-}
-
-function hasVoiceHint(voiceLabel: string, hint: string) {
-  const escapedHint = hint.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
-  return new RegExp(`(?:^|[^a-z])${escapedHint}(?:$|[^a-z])`, "u").test(voiceLabel);
 }

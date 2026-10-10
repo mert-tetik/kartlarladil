@@ -549,6 +549,7 @@ const dictionary = {
   "quiz.chooseCountDescription": "Je hebt {count} {language} kaarten. Hoeveel wil je deze keer oefenen?",
   "quiz.countAvailable": "You have {count} {language} cards",
   "quiz.countLabel": "Card count",
+  "quiz.chestNeedMoreCards": "Voeg nog {count} kaarten toe om een kist te verdienen",
   "quiz.recallPrompt": "Kies de juiste betekenis",
   "quiz.groupMeaningPrompt": "Kies de betekenis van het woord",
   "quiz.learningPrompt": "Herinner je de betekenis",

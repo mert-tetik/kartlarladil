@@ -77,7 +77,14 @@ import { vibrate } from "@/lib/vibration";
 import { beginNavigationIntent, isActiveNavigationIntent } from "@/lib/navigation-intent";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { requestGooglePlayReview } from "@/lib/twa-analytics";
-import type { ActiveCardLimitDetails, LanguageCode, LimitErrorCode, Tier, VocabularyCard } from "@/types/domain";
+import type {
+  ActiveCardLimitDetails,
+  LanguageCode,
+  LimitErrorCode,
+  Tier,
+  UserEntitlements,
+  VocabularyCard,
+} from "@/types/domain";
 import type { GemType } from "@/features/gems/gem-types";
 import { RewardMedalHud } from "@/features/progress/components/reward-medal-hud";
 import { preloadQuizCountSelectionFrames } from "@/features/quiz/quiz-video-preload";
@@ -122,7 +129,7 @@ export function MobileLandingDashboard() {
   const t = useT();
   const requireAuthAction = useRequireAuthAction();
   const { openLeaderboard } = useLeaderboardOverlay();
-  const { refreshEntitlements } = useSubscription();
+  const { entitlements, refreshEntitlements } = useSubscription();
   const cards = useInventoryStore((state) => state.cards);
   const addCards = useInventoryStore((state) => state.addCards);
   const hydrated = useInventoryStore((state) => state.hydrated);
@@ -512,6 +519,13 @@ export function MobileLandingDashboard() {
     const nextPath = `/learn?mode=learned&language=${encodeURIComponent(selectedLanguage)}`;
     const navigationIntent = beginNavigationIntent();
     requireAuthAction(() => {
+      if (entitlements) {
+        continueLearnedReviewAccess(nextPath, navigationIntent, entitlements);
+        return;
+      }
+
+      // A first-ever load has no local snapshot yet. In that case only this
+      // genuinely unknown entitlement check is allowed to delay navigation.
       void verifyLearnedReviewAccess(nextPath, navigationIntent);
     }, { nextPath });
   }
@@ -557,12 +571,20 @@ export function MobileLandingDashboard() {
 
   async function verifyLearnedReviewAccess(nextPath: string, navigationIntent: number) {
     const verifiedEntitlements = await refreshEntitlements();
+    continueLearnedReviewAccess(nextPath, navigationIntent, verifiedEntitlements);
+  }
+
+  function continueLearnedReviewAccess(
+    nextPath: string,
+    navigationIntent: number,
+    resolvedEntitlements: UserEntitlements | null,
+  ) {
 
     if (!isActiveNavigationIntent(navigationIntent)) {
       return;
     }
 
-    if ((verifiedEntitlements?.effectivePlan ?? "free") === "free") {
+    if ((resolvedEntitlements?.effectivePlan ?? "free") === "free") {
       setShowLearnedReviewUpgrade(true);
       return;
     }

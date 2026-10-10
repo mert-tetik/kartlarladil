@@ -25,6 +25,7 @@ const {
   refreshEntitlementsMock,
   requestGooglePlayReviewMock,
   routerPushMock,
+  subscriptionEntitlementsMock,
   subscriptionPlanMock,
   dayStreakOverlayMock,
   useLeaderboardDataMock,
@@ -37,6 +38,9 @@ const {
   refreshEntitlementsMock: vi.fn(),
   requestGooglePlayReviewMock: vi.fn(),
   routerPushMock: vi.fn(),
+  subscriptionEntitlementsMock: {
+    value: null as null | { effectivePlan: SubscriptionPlan },
+  },
   subscriptionPlanMock: { value: "free" as SubscriptionPlan },
   dayStreakOverlayMock: {
     value: null as null | {
@@ -81,6 +85,13 @@ vi.mock("@/features/auth/auth-client", () => ({
       },
     },
   }),
+  useOptionalAuthSession: () => ({
+    user: {
+      profile: {
+        quizResultMedals: 0,
+      },
+    },
+  }),
   useRequireAuthAction: () => (action: () => void) => action(),
 }));
 
@@ -90,7 +101,7 @@ vi.mock("@/features/progress/progress-client", () => ({
 
 vi.mock("@/features/subscriptions/subscription-client", () => ({
   useSubscription: () => ({
-    entitlements: { effectivePlan: subscriptionPlanMock.value },
+    entitlements: subscriptionEntitlementsMock.value,
     isLoading: false,
     refreshEntitlements: refreshEntitlementsMock,
   }),
@@ -164,6 +175,7 @@ describe("MobileLandingDashboard language sync", () => {
     consumePlayReviewEligibilityMock.mockReturnValue(null);
     requestGooglePlayReviewMock.mockReset();
     subscriptionPlanMock.value = "free";
+    subscriptionEntitlementsMock.value = { effectivePlan: subscriptionPlanMock.value };
     dayStreakOverlayMock.value = null;
     refreshEntitlementsMock.mockReset();
     refreshEntitlementsMock.mockImplementation(async () => ({
@@ -427,7 +439,7 @@ describe("MobileLandingDashboard language sync", () => {
     await user.click(screen.getByRole("button", { name: "Öğrenilenleri Tekrar Et" }));
 
     expect(await screen.findByRole("heading", { name: /abonelik gerekli/i })).toBeInTheDocument();
-    expect(refreshEntitlementsMock).toHaveBeenCalledOnce();
+    expect(refreshEntitlementsMock).not.toHaveBeenCalled();
     expect(routerPushMock).not.toHaveBeenCalledWith(expect.stringContaining("mode=learned"));
   });
 
@@ -435,6 +447,7 @@ describe("MobileLandingDashboard language sync", () => {
     const user = userEvent.setup();
     const englishCard = VOCABULARY_CARDS.find((card) => card.language === "en")!;
     subscriptionPlanMock.value = "basic";
+    subscriptionEntitlementsMock.value = { effectivePlan: subscriptionPlanMock.value };
     inventoryCardsMock.value = [{
       cardId: englishCard.id,
       status: "learned",
@@ -456,10 +469,11 @@ describe("MobileLandingDashboard language sync", () => {
     });
   });
 
-  it("blocks review when a stale paid cache is rejected by the server", async () => {
+  it("waits for the first entitlement load when there is no cached snapshot", async () => {
     const user = userEvent.setup();
     const englishCard = VOCABULARY_CARDS.find((card) => card.language === "en")!;
     subscriptionPlanMock.value = "basic";
+    subscriptionEntitlementsMock.value = null;
     refreshEntitlementsMock.mockResolvedValue({ effectivePlan: "free" });
     inventoryCardsMock.value = [{
       cardId: englishCard.id,

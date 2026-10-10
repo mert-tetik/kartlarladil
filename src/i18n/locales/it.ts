@@ -549,6 +549,7 @@ const dictionary = {
   "quiz.chooseCountDescription": "Hai {count} carte in {language}. Quante vuoi praticare questa volta?",
   "quiz.countAvailable": "You have {count} {language} cards",
   "quiz.countLabel": "Card count",
+  "quiz.chestNeedMoreCards": "Aggiungi ancora {count} carte per ottenere un forziere",
   "quiz.recallPrompt": "Scegli il significato corretto",
   "quiz.groupMeaningPrompt": "Scegli il significato della parola",
   "quiz.learningPrompt": "Ricorda il significato",

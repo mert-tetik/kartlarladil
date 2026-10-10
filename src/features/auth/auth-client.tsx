@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { normalizePreferredTier } from "@/features/auth/preferred-tier";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -9,6 +9,8 @@ import { beginNavigationIntent } from "@/lib/navigation-intent";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { setTwaAnalyticsUserId } from "@/lib/twa-analytics";
 import type { AuthProfile, AuthShellUser } from "@/features/auth/auth-types";
+import { GemOptimisticLedger, type GemSpendReservation } from "@/features/gems/gem-optimistic-ledger";
+import type { GemBalances, GemType } from "@/features/gems/gem-types";
 import { DEFAULT_AUTH_REDIRECT, getSafeNextPath } from "@/features/auth/auth-redirects";
 import type { LanguageCode, LocaleCode } from "@/types/domain";
 
@@ -16,6 +18,9 @@ interface AuthSessionContextValue {
   user: AuthShellUser | null;
   refreshProfile: () => Promise<void>;
   updateProfileField: (updates: Partial<AuthProfile>) => void;
+  reserveGemSpend: (type: GemType, amount: number) => GemSpendReservation | null;
+  settleGemSpend: (reservation: GemSpendReservation) => void;
+  rollbackGemSpend: (reservation: GemSpendReservation) => void;
   clearUser: () => void;
 }
 
@@ -105,6 +110,14 @@ function normalizeClientProfile(row: {
   };
 }
 
+function getGemBalances(profile: AuthProfile | null | undefined): GemBalances {
+  return {
+    blue: profile?.blueGems ?? 0,
+    green: profile?.greenGems ?? 0,
+    purple: profile?.purpleGems ?? 0,
+  };
+}
+
 export function AuthSessionProvider({
   user: initialUser,
   children,
@@ -114,6 +127,54 @@ export function AuthSessionProvider({
 }) {
   const [user, setUser] = useState(initialUser);
   const client = useMemo(() => (hasSupabaseBrowserConfig() ? createSupabaseBrowserClient() : null), []);
+  const activeUserIdRef = useRef<string | null>(initialUser?.id ?? null);
+  const gemLedgerRef = useRef(new GemOptimisticLedger(getGemBalances(initialUser?.profile)));
+
+  const getVisibleGemBalances = useCallback((): GemBalances => ({
+    ...gemLedgerRef.current.getVisibleBalances(),
+  }), []);
+
+  const applyVisibleGemBalances = useCallback(() => {
+    const balances = getVisibleGemBalances();
+    setUser((current) => current
+      ? {
+          ...current,
+          profile: {
+            ...current.profile,
+            blueGems: balances.blue,
+            greenGems: balances.green,
+            purpleGems: balances.purple,
+          },
+        }
+      : current);
+  }, [getVisibleGemBalances]);
+
+  const reserveGemSpend = useCallback((type: GemType, amount: number): GemSpendReservation | null => {
+    const userId = activeUserIdRef.current;
+    if (!userId) return null;
+
+    const reservation = gemLedgerRef.current.reserve(userId, type, amount);
+    if (!reservation) return null;
+    applyVisibleGemBalances();
+    return reservation;
+  }, [applyVisibleGemBalances]);
+
+  const settleGemSpend = useCallback((reservation: GemSpendReservation) => {
+    if (!gemLedgerRef.current.settle(reservation)) return;
+    applyVisibleGemBalances();
+  }, [applyVisibleGemBalances]);
+
+  const rollbackGemSpend = useCallback((reservation: GemSpendReservation) => {
+    if (!gemLedgerRef.current.rollback(reservation)) return;
+    applyVisibleGemBalances();
+  }, [applyVisibleGemBalances]);
+
+  useEffect(() => {
+    if (activeUserIdRef.current === user?.id) return;
+
+    activeUserIdRef.current = user?.id ?? null;
+    gemLedgerRef.current.reset(getGemBalances(user?.profile));
+  }, [user?.id]);
 
   useEffect(() => {
     setTwaAnalyticsUserId(user?.id ?? null);
@@ -128,6 +189,8 @@ export function AuthSessionProvider({
       data: { subscription },
     } = client.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
+        activeUserIdRef.current = null;
+        gemLedgerRef.current.reset();
         setUser(null);
       }
     });
@@ -168,30 +231,62 @@ export function AuthSessionProvider({
       return;
     }
 
+    const nextProfile = normalizeClientProfile(data);
+    gemLedgerRef.current.setConfirmedBalances(getGemBalances(nextProfile));
+    const visibleGemBalances = getVisibleGemBalances();
     setUser((current) =>
       current
         ? {
             ...current,
-            profile: normalizeClientProfile(data),
+            profile: {
+              ...nextProfile,
+              blueGems: visibleGemBalances.blue,
+              greenGems: visibleGemBalances.green,
+              purpleGems: visibleGemBalances.purple,
+            },
           }
         : current,
     );
-  }, [client, user]);
+  }, [client, user, getVisibleGemBalances]);
 
   const updateProfileField = useCallback((updates: Partial<AuthProfile>) => {
+    const hasGemBalanceUpdate = updates.blueGems !== undefined || updates.greenGems !== undefined || updates.purpleGems !== undefined;
+    if (hasGemBalanceUpdate) {
+      const confirmedGemBalances = gemLedgerRef.current.getConfirmedBalances();
+      gemLedgerRef.current.setConfirmedBalances({
+        blue: updates.blueGems ?? confirmedGemBalances.blue,
+        green: updates.greenGems ?? confirmedGemBalances.green,
+        purple: updates.purpleGems ?? confirmedGemBalances.purple,
+      });
+    }
+
     setUser((current) => {
       if (!current) {
         return current;
       }
 
+      const visibleGemBalances = hasGemBalanceUpdate ? getVisibleGemBalances() : null;
+
       return {
         ...current,
-        profile: { ...current.profile, ...updates },
+        profile: {
+          ...current.profile,
+          ...updates,
+          ...(visibleGemBalances
+            ? {
+                blueGems: visibleGemBalances.blue,
+                greenGems: visibleGemBalances.green,
+                purpleGems: visibleGemBalances.purple,
+              }
+            : {}),
+        },
       };
     });
-  }, []);
+  }, [getVisibleGemBalances]);
 
   const clearUser = useCallback(() => {
+    activeUserIdRef.current = null;
+    gemLedgerRef.current.reset();
     setUser(null);
   }, []);
 
@@ -200,9 +295,12 @@ export function AuthSessionProvider({
       user,
       refreshProfile,
       updateProfileField,
+      reserveGemSpend,
+      settleGemSpend,
+      rollbackGemSpend,
       clearUser,
     }),
-    [user, refreshProfile, updateProfileField, clearUser],
+    [user, refreshProfile, updateProfileField, reserveGemSpend, settleGemSpend, rollbackGemSpend, clearUser],
   );
 
   return <AuthSessionContext.Provider value={value}>{children}</AuthSessionContext.Provider>;

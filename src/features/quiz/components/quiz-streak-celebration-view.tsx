@@ -279,6 +279,7 @@ export function QuizStreakCelebrationView({
             isPressed ? "animate-streak-count-exit" : "animate-streak-count-idle",
           )}
           data-streak-count-label
+          data-streak-count-state={isPressed ? "exiting" : "visible"}
         >
           <span className="relative z-10 font-super-water">
             {formatSuperWaterText(

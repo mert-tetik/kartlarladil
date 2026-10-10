@@ -549,6 +549,7 @@ const dictionary = {
   "quiz.chooseCountDescription": "您有 {count} {language} 卡片。您想这次练习多少张？",
   "quiz.countAvailable": "You have {count} {language} cards",
   "quiz.countLabel": "Card count",
+  "quiz.chestNeedMoreCards": "再添加 {count} 张卡即可获得宝箱",
   "quiz.recallPrompt": "选择正确释义",
   "quiz.groupMeaningPrompt": "选择单词的含义",
   "quiz.learningPrompt": "回想含义",

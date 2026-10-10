@@ -33,6 +33,25 @@ const COUNT_OPTION_NAMES: Record<LocaleCode, Record<number, string>> = {
   "zh-CN": { 10: "快速", 20: "均衡", 30: "较长", 50: "马拉松" },
 };
 
+export function getQuizCountOptions(availableCount: number) {
+  const quickCount =
+    availableCount > 0 && availableCount < QUIZ_COUNT_OPTIONS[0]
+      ? availableCount
+      : QUIZ_COUNT_OPTIONS[0];
+
+  return QUIZ_COUNT_OPTIONS.map((count, index) =>
+    index === 0 ? quickCount : count,
+  );
+}
+
+export function getAdditionalCardsNeededForChest(availableCount: number) {
+  const minimumChestCount = QUIZ_COUNT_OPTIONS[0];
+
+  return availableCount > 0 && availableCount < minimumChestCount
+    ? minimumChestCount - availableCount
+    : 0;
+}
+
 export function QuizCountSelection({
   mode,
   availableCount,
@@ -49,6 +68,13 @@ export function QuizCountSelection({
   const showChestTiers = mode === "active";
   const [character] = useState(getRandomQuizCharacter);
   const [animatingCount, setAnimatingCount] = useState<number | null>(null);
+  const countOptions = getQuizCountOptions(availableCount);
+  const firstChestPreview = showChestTiers
+    ? getChestPreviewPairForCount(QUIZ_COUNT_OPTIONS[0])
+    : undefined;
+  const additionalCardsNeededForChest = firstChestPreview
+    ? getAdditionalCardsNeededForChest(availableCount)
+    : 0;
 
   function handleSelect(count: number) {
     if (locked || animatingCount !== null || count > availableCount) return;
@@ -87,18 +113,31 @@ export function QuizCountSelection({
           className="mx-auto mt-3 flex w-full flex-col gap-3 sm:mt-5 sm:gap-4"
           data-quiz-count-options
         >
-          {QUIZ_COUNT_OPTIONS.map((count) => {
+          {countOptions.map((count, index) => {
             const unavailable = locked || count > availableCount;
             const selectionLocked = animatingCount !== null;
-            const previewPair = showChestTiers ? getChestPreviewPairForCount(count) : undefined;
-            const name = COUNT_OPTION_NAMES[locale][count];
+            const isFirstOption = index === 0;
+            const showChestRequirement = isFirstOption && additionalCardsNeededForChest > 0;
+            const previewPair = showChestTiers
+              ? showChestRequirement
+                ? undefined
+                : getChestPreviewPairForCount(count)
+              : undefined;
+            const name = COUNT_OPTION_NAMES[locale][QUIZ_COUNT_OPTIONS[index]];
+            const chestRequirementText = showChestRequirement
+              ? t("quiz.chestNeedMoreCards", {
+                  count: formatNumber(locale, additionalCardsNeededForChest),
+                })
+              : undefined;
 
             return (
               <QuizWordButton
-                key={count}
+                key={QUIZ_COUNT_OPTIONS[index]}
                 wordType="correct"
                 disabled={unavailable || selectionLocked}
-                aria-label={`${name}: ${formatNumber(locale, count)}`}
+                aria-label={
+                  chestRequirementText ?? `${name}: ${formatNumber(locale, count)}`
+                }
                 onClick={() => handleSelect(count)}
                 onAnimationEnd={(event) => handleFeedbackEnd(count, event.animationName)}
                 className={cn(
@@ -113,7 +152,11 @@ export function QuizCountSelection({
                       {formatNumber(locale, count)} {t("quiz.countLabel")}
                     </span>
                   </span>
-                  {previewPair ? (
+                  {chestRequirementText ? (
+                    <span className="max-w-[19rem] text-center text-xs font-semibold leading-tight sm:text-sm">
+                      {chestRequirementText}
+                    </span>
+                  ) : previewPair ? (
                     <span className="flex items-center justify-center gap-2 pb-1 sm:gap-3">
                       {previewPair.map((tier) => (
                         <ChestIcon key={tier} tier={tier} className="size-8 shrink-0 sm:size-9" />

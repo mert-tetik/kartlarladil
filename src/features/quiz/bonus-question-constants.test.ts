@@ -11,10 +11,10 @@ describe("bonus question limits", () => {
 
   it("uses the requested bonus type weights", () => {
     expect(BONUS_QUESTION_TYPE_WEIGHTS).toEqual({
-      matching: 0.55,
-      "sentence-order": 0.1,
-      "category-sort": 0.35,
-      imposter: 0,
+      matching: 0.4,
+      "sentence-order": 0.2,
+      "category-sort": 0.2,
+      imposter: 0.2,
     });
   });
 

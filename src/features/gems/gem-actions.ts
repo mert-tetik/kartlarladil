@@ -2,11 +2,14 @@
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { VOCABULARY_CARDS } from "@/data/cards";
+import { TIERS } from "@/data/tiers";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireAuthUser } from "@/features/auth/auth-session";
 import { getChestRewardPoints, type ChestTier } from "@/features/quiz/chest-rewards";
 import { QUIZ_COUNT_OPTIONS } from "@/features/quiz/chest-rewards";
-import { normalizeGemRewards, type ChestRewardOutcome, type GemBalances, type GemReward, type GemRewards, type GemType, type ProgressGemRewardSource } from "./gem-types";
+import { getMarkLearnedGemCost, GEM_COSTS, normalizeGemRewards, type ChestRewardOutcome, type GemBalances, type GemReward, type GemRewards, type GemType, type ProgressGemRewardSource } from "./gem-types";
+import type { Tier } from "@/types/domain";
 
 const GEM_TYPES = new Set<GemType>(["blue", "green", "purple"]);
 const CHEST_TIERS = new Set<ChestTier>(["wood", "iron", "gold", "diamond", "emerald", "ruby"]);
@@ -169,20 +172,13 @@ export async function removeCardWithGemAction(sourceKey: string): Promise<{ succ
   try {
     const user = await requireAuthUser("/");
     const admin = createSupabaseAdminClient();
-    const { data: card, error: cardError } = await admin
-      .from("user_cards")
-      .select("status")
-      .eq("user_id", user.id)
-      .eq("card_source_key", sourceKey)
-      .maybeSingle<{ status: string }>();
-    if (cardError) return { success: false, error: cardError.message };
-    if (!card) return { success: false, error: "card_not_found" };
-    if (card.status !== "active") {
-      return { success: false, error: "card_removal_only_active" };
-    }
-    const { data, error } = await admin.rpc("spend_gem_and_remove_card", { p_user_id: user.id, p_source_key: sourceKey, p_cost: 10 }).maybeSingle<{ success: boolean; blue_gems: number; green_gems: number; purple_gems: number }>();
+    const { data, error } = await admin.rpc("spend_gem_and_remove_card", {
+      p_user_id: user.id,
+      p_source_key: sourceKey,
+      p_cost: GEM_COSTS.removeCard.amount,
+    }).maybeSingle<{ success: boolean; blue_gems: number; green_gems: number; purple_gems: number }>();
     if (error || !data) return { success: false, error: error?.message ?? "database_error" };
-    revalidatePath("/"); revalidatePath("/my-cards");
+    revalidatePath("/"); revalidatePath("/my-cards"); revalidatePath("/learn");
     return { success: data.success, balances: readBalances(data) };
   } catch (error) { return { success: false, error: error instanceof Error ? error.message : "database_error" }; }
 }
@@ -192,7 +188,30 @@ export async function markCardLearnedWithGemAction(sourceKey: string): Promise<{
   try {
     const user = await requireAuthUser("/");
     const admin = createSupabaseAdminClient();
-    const { data, error } = await admin.rpc("spend_gem_and_mark_card_learned", { p_user_id: user.id, p_source_key: sourceKey, p_cost: 2 }).maybeSingle<{ success: boolean; blue_gems: number; green_gems: number; purple_gems: number }>();
+    const bundledCard = VOCABULARY_CARDS.find((card) => card.sourceKey === sourceKey || card.id === sourceKey);
+    let tier: Tier | undefined = bundledCard?.tier;
+
+    if (!tier) {
+      const { data: customCard, error: customCardError } = await admin
+        .from("custom_cards")
+        .select("tier")
+        .eq("user_id", user.id)
+        .eq("source_key", sourceKey)
+        .maybeSingle<{ tier: Tier }>();
+
+      if (customCardError) return { success: false, error: customCardError.message };
+      tier = customCard?.tier && TIERS.includes(customCard.tier)
+        ? customCard.tier
+        : undefined;
+    }
+
+    if (!tier) return { success: false, error: "card_not_found" };
+
+    const { data, error } = await admin.rpc("spend_gem_and_mark_card_learned", {
+      p_user_id: user.id,
+      p_source_key: sourceKey,
+      p_cost: getMarkLearnedGemCost(tier),
+    }).maybeSingle<{ success: boolean; blue_gems: number; green_gems: number; purple_gems: number }>();
     if (error || !data) return { success: false, error: error?.message ?? "database_error" };
     revalidatePath("/"); revalidatePath("/my-cards"); revalidatePath("/learn");
     return { success: data.success, balances: readBalances(data) };

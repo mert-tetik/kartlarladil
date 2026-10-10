@@ -16,12 +16,13 @@ import { getStudyLocale } from "@/features/cards/card-localization";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { useAuthSession } from "@/features/auth/auth-client";
+import { useAppMessage } from "@/components/app-message-provider";
 import { markCardLearnedWithGemAction, removeCardWithGemAction } from "@/features/gems/gem-actions";
-import { GEM_ASSETS, type GemType } from "@/features/gems/gem-types";
+import { GEM_ASSETS, GEM_COSTS, getMarkLearnedGemCost, type GemType } from "@/features/gems/gem-types";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import type { VocabularyCard } from "@/types/domain";
-import { canUseSuperWater } from "@/lib/super-water";
+import { canUseSuperWater, formatSuperWaterUppercaseText } from "@/lib/super-water";
 
 interface MobileCardDisplaySheetProps {
   card: VocabularyCard | null;
@@ -54,10 +55,21 @@ export function MobileCardDisplaySheet({
 }: MobileCardDisplaySheetProps) {
   const { locale } = useLocale();
   const t = useT();
+  const { showMessage } = useAppMessage();
   const { openAsk } = useAskOverlay();
   const requireAuth = useRequireAuthAction();
-  const { user, updateProfileField, refreshProfile } = useAuthSession();
+  const {
+    user,
+    refreshProfile,
+    reserveGemSpend,
+    settleGemSpend,
+    rollbackGemSpend,
+  } = useAuthSession();
   const loadCloudInventory = useInventoryStore((state) => state.loadCloudInventory);
+  const optimisticallyRemoveCard = useInventoryStore((state) => state.optimisticallyRemoveCard);
+  const optimisticallyMarkCardLearned = useInventoryStore((state) => state.optimisticallyMarkCardLearned);
+  const settleOptimisticCardMutation = useInventoryStore((state) => state.settleOptimisticCardMutation);
+  const rollbackOptimisticCardMutation = useInventoryStore((state) => state.rollbackOptimisticCardMutation);
   const [confirmation, setConfirmation] = useState<GemType | null>(null);
   const [confirmationSourceRect, setConfirmationSourceRect] = useState<DOMRect | null>(null);
   const [confirmationClosing, setConfirmationClosing] = useState(false);
@@ -102,7 +114,11 @@ export function MobileCardDisplaySheet({
   }, []);
 
   const inventory = useInventoryStore((state) =>
-    displayedCard ? state.cards.find((item) => item.cardId === displayedCard.id) : undefined,
+    displayedCard
+      ? state.cards.find(
+          (item) => item.cardId === displayedCard.id || item.cardId === displayedCard.sourceKey,
+        )
+      : undefined,
   );
 
   if (!displayedCard || !presented) return null;
@@ -137,6 +153,8 @@ export function MobileCardDisplaySheet({
 
   const blueBalance = user?.profile.blueGems ?? 0;
   const purpleBalance = user?.profile.purpleGems ?? 0;
+  const removeCardCost = GEM_COSTS.removeCard.amount;
+  const markLearnedCost = getMarkLearnedGemCost(currentCard.tier);
 
   function requestGemAction(type: GemType, source?: DOMRect) {
     if (!user) {
@@ -164,20 +182,66 @@ export function MobileCardDisplaySheet({
   async function confirmGemAction() {
     if (!confirmation || !user || busy || confirmationClosing) return;
     const confirmedType = confirmation;
-    setBusy(true);
-    const result = confirmedType === "blue"
-      ? await removeCardWithGemAction(currentCard.sourceKey)
-      : await markCardLearnedWithGemAction(currentCard.sourceKey);
-    if (result.success && result.balances) {
-      updateProfileField({ blueGems: result.balances.blue, greenGems: result.balances.green, purpleGems: result.balances.purple });
-      playSoundEffect("gem-spend");
-      vibrate("tap");
-      await Promise.all([refreshProfile(), loadCloudInventory()]);
-      closeConfirmation(() => {
-        if (confirmedType === "blue") onClose();
-      });
+    const cost = confirmedType === "blue" ? removeCardCost : markLearnedCost;
+    const reservation = reserveGemSpend(confirmedType, cost);
+    if (!reservation) {
+      showMessage("insufficient_gems", "error");
+      return;
     }
+
+    const inventoryMutation = confirmedType === "blue"
+      ? inventory?.cardId
+        ? optimisticallyRemoveCard(inventory.cardId)
+        : null
+      : inventory?.cardId
+        ? optimisticallyMarkCardLearned(inventory.cardId)
+        : null;
+    if (!inventoryMutation) {
+      rollbackGemSpend(reservation);
+      showMessage(t("inventory.error.operationFailed"), "error");
+      return;
+    }
+
+    setBusy(true);
+    playSoundEffect("gem-spend");
+    vibrate("tap");
+    closeConfirmation(() => {
+      if (confirmedType === "blue") onClose();
+    });
     setBusy(false);
+
+    // The UI has already committed the spend locally. Keep the server action
+    // completely off the interaction path and reconcile it in the background.
+    void (async () => {
+      try {
+        const result = confirmedType === "blue"
+          ? await removeCardWithGemAction(currentCard.sourceKey)
+          : await markCardLearnedWithGemAction(currentCard.sourceKey);
+        if (!result.success) {
+          rollbackGemSpend(reservation);
+          rollbackOptimisticCardMutation(inventoryMutation);
+          void Promise.all([refreshProfile(), loadCloudInventory()]).catch(() => undefined);
+          showMessage(result.error?.trim() || t("inventory.error.operationFailed"), "error");
+          return;
+        }
+
+        settleGemSpend(reservation);
+        settleOptimisticCardMutation(inventoryMutation);
+        void Promise.all([refreshProfile(), loadCloudInventory()]).catch(() => undefined);
+      } catch (error) {
+        rollbackGemSpend(reservation);
+        rollbackOptimisticCardMutation(inventoryMutation);
+        void Promise.all([refreshProfile(), loadCloudInventory()]).catch(() => undefined);
+        showMessage(
+          error instanceof Error && error.message.trim()
+            ? error.message
+            : t("inventory.error.operationFailed"),
+          "error",
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
   }
 
   const contentItemCount = 4;
@@ -225,17 +289,6 @@ export function MobileCardDisplaySheet({
         {renderContentItem(
           0,
           <div className="relative mx-auto w-full max-w-[340px] -translate-y-9">
-            {learningStatus ? (
-              <p
-                className={cn(
-                  "pointer-events-none absolute inset-x-0 -top-12 text-center text-xl font-bold uppercase leading-none font-super-water",
-                  learningStatus.className,
-                )}
-                data-card-learning-status
-              >
-                {learningStatus.label}
-              </p>
-            ) : null}
             <div className="flex w-full items-center justify-between gap-3">
               <CardGrammarDetailsButton
                 onClick={() => setGrammarDetailsOpen(true)}
@@ -290,17 +343,18 @@ export function MobileCardDisplaySheet({
             2,
             <div className="mx-auto mt-3 flex w-full max-w-[300px] flex-col items-center gap-2.5" data-card-supporting-content>
               <section className="w-full px-2 py-1 text-center" data-card-definition>
+                <p className="text-sm font-semibold leading-5 text-foreground dark:text-white">
+                  {definition}
+                </p>
                 <p
                   className={cn(
-                    "text-base font-bold uppercase tracking-wider",
+                    "mt-1 text-base font-bold uppercase tracking-wider",
                     canUseSuperWater(locale) && "font-super-water",
+                    learningStatus?.className,
                   )}
-                  style={{ color: TIER_COLORS[currentCard.tier] }}
+                  style={{ color: learningStatus ? undefined : TIER_COLORS[currentCard.tier] }}
                 >
-                  {t("cards.definition")}
-                </p>
-                <p className="mt-1 text-sm font-semibold leading-5 text-foreground dark:text-white">
-                  {definition}
+                  {formatSuperWaterUppercaseText(locale, learningStatus?.label ?? t("cards.definition"))}
                 </p>
               </section>
             </div>,
@@ -312,8 +366,8 @@ export function MobileCardDisplaySheet({
           ? renderContentItem(
               3,
               <div className="mx-auto mt-3 flex w-full max-w-[300px] flex-col items-center gap-2" data-card-gem-actions>
-                <GemCardAction type="blue" cost={10} disabled={!user || blueBalance < 10} label={t("gems.removeCard")} onClick={(event) => requestGemAction("blue", event.currentTarget.getBoundingClientRect())} />
-                <GemCardAction type="purple" cost={2} disabled={!user || purpleBalance < 2} label={t("gems.markLearned")} onClick={(event) => requestGemAction("purple", event.currentTarget.getBoundingClientRect())} />
+                <GemCardAction type="blue" cost={removeCardCost} disabled={!user || blueBalance < removeCardCost} label={t("gems.removeCard")} onClick={(event) => requestGemAction("blue", event.currentTarget.getBoundingClientRect())} />
+                <GemCardAction type="purple" cost={markLearnedCost} disabled={!user || purpleBalance < markLearnedCost} label={t("gems.markLearned")} onClick={(event) => requestGemAction("purple", event.currentTarget.getBoundingClientRect())} />
               </div>,
               "w-full",
             )
@@ -340,7 +394,7 @@ export function MobileCardDisplaySheet({
             <div className="mt-4 flex gap-2">
               <button type="button" disabled={busy || confirmationClosing} onClick={() => closeConfirmation()} className="min-h-11 flex-1 rounded-full bg-black px-3 py-2 text-sm font-bold text-[var(--brand)] disabled:opacity-50">{t("gems.cancel")}</button>
               <button type="button" disabled={busy || confirmationClosing} onClick={() => void confirmGemAction()} className="inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-full bg-[var(--brand)] px-3 py-2 text-sm font-bold text-[var(--brand-foreground)] disabled:opacity-50">
-                {t("gems.confirm")} {confirmation === "blue" ? 10 : 2}<Image src={GEM_ASSETS[confirmation]} alt="" width={20} height={20} className="size-5 object-contain" />
+                {t("gems.confirm")} {confirmation === "blue" ? removeCardCost : markLearnedCost}<Image src={GEM_ASSETS[confirmation]} alt="" width={20} height={20} className="size-5 object-contain" />
               </button>
             </div>
           </div>

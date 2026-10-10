@@ -6,7 +6,6 @@ import {
   containsRequiredTargetScript,
   requiresNativeWritingSystem,
 } from "@/features/cards/create-card-language";
-import { normalizeSearch } from "@/lib/utils";
 import type { LanguageCode } from "@/types/domain";
 
 export const CREATE_CARD_DIRECTIONS = ["native-to-learning", "learning-to-native"] as const;
@@ -139,10 +138,6 @@ export function shouldRetryForDictionaryLemma(
     candidateTerm.split(/\s+/u).length !== 1 ||
     /[^\p{L}\p{M}'’ʼ-]/u.test(candidateTerm)
   ) {
-    return true;
-  }
-
-  if (normalizeSearch(card.term) === normalizeSearch(inputTerm)) {
     return true;
   }
 

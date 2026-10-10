@@ -6,7 +6,8 @@ import Image from "next/image";
 import { X } from "lucide-react";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { convertGemToPointsAction } from "@/features/gems/gem-actions";
-import { GEM_ASSETS, GEM_POINTS, type GemBalances, type GemType } from "@/features/gems/gem-types";
+import { GEM_ASSETS, GEM_POINTS, type GemType } from "@/features/gems/gem-types";
+import type { GemSpendReservation } from "@/features/gems/gem-optimistic-ledger";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { RewardScatter } from "@/features/progress/components/reward-scatter";
 import { useLocale, useT } from "@/i18n/locale-provider";
@@ -16,6 +17,7 @@ import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { vibrate } from "@/lib/vibration";
 import { cn } from "@/lib/utils";
 import { ScoreIcon } from "@/components/score-icon";
+import { useAppMessage } from "@/components/app-message-provider";
 
 const GEM_LABEL_KEYS = {
   blue: "gems.blueName",
@@ -53,6 +55,7 @@ interface PendingConversion {
   id: number;
   type: GemType;
   idempotencyKey: string;
+  reservation: GemSpendReservation;
 }
 
 export function MobileGemDetailsSheet({
@@ -63,7 +66,15 @@ export function MobileGemDetailsSheet({
 }: MobileGemDetailsSheetProps) {
   const { locale } = useLocale();
   const t = useT();
-  const { user, updateProfileField, refreshProfile } = useAuthSession();
+  const { showMessage } = useAppMessage();
+  const {
+    user,
+    updateProfileField,
+    refreshProfile,
+    reserveGemSpend,
+    settleGemSpend,
+    rollbackGemSpend,
+  } = useAuthSession();
   const { refreshStats } = useProgressStats();
   const [mounted, setMounted] = useState(false);
   const [displayedType, setDisplayedType] = useState<GemType | null>(type);
@@ -76,8 +87,6 @@ export function MobileGemDetailsSheet({
   const convertButtonRef = useRef<HTMLButtonElement>(null);
   const conversionQueueRef = useRef<PendingConversion[]>([]);
   const conversionRunningRef = useRef(false);
-  const balanceRef = useRef(0);
-  const optimisticBalancesRef = useRef<GemBalances>({ blue: 0, green: 0, purple: 0 });
   const gemPointsRef = useRef(0);
   const flightIdRef = useRef(0);
   const selectedType = type ?? displayedType;
@@ -134,22 +143,13 @@ export function MobileGemDetailsSheet({
   }, [onClose, presented]);
 
   useEffect(() => {
-    const profileBalances: GemBalances = {
-      blue: user?.profile.blueGems ?? 0,
-      green: user?.profile.greenGems ?? 0,
-      purple: user?.profile.purpleGems ?? 0,
-    };
-    if (conversionQueueRef.current.length === 0) {
-      optimisticBalancesRef.current = profileBalances;
-    }
-    balanceRef.current = selectedType ? optimisticBalancesRef.current[selectedType] : balanceForType;
     gemPointsRef.current = user?.profile.gemPoints ?? 0;
-  }, [balanceForType, selectedType, user?.profile.blueGems, user?.profile.greenGems, user?.profile.purpleGems, user?.profile.gemPoints]);
+  }, [user?.profile.gemPoints]);
 
   if (!mounted || !presented || !selectedType || typeof document === "undefined") return null;
   const balance = balanceForType;
   const points = GEM_POINTS[selectedType];
-  const availableToQueue = Math.max(0, balanceRef.current);
+  const availableToQueue = Math.max(0, balanceForType);
   const useSuperWater = canUseSuperWater(locale);
   const gemName = formatSuperWaterText(locale, t(GEM_LABEL_KEYS[selectedType]));
   const gemDescription = formatSuperWaterText(locale, t(GEM_DESCRIPTION_KEYS[selectedType]));
@@ -178,17 +178,6 @@ export function MobileGemDetailsSheet({
     );
   }
 
-  function updateOptimisticProfile(type: GemType, nextBalance: number, nextPoints: number) {
-    optimisticBalancesRef.current[type] = nextBalance;
-    if (type === "blue") {
-      updateProfileField({ blueGems: nextBalance, gemPoints: nextPoints });
-    } else if (type === "green") {
-      updateProfileField({ greenGems: nextBalance, gemPoints: nextPoints });
-    } else {
-      updateProfileField({ purpleGems: nextBalance, gemPoints: nextPoints });
-    }
-  }
-
   function getPendingCount(type: GemType) {
     return conversionQueueRef.current.reduce((count, item) => count + (item.type === type ? 1 : 0), 0);
   }
@@ -207,26 +196,34 @@ export function MobileGemDetailsSheet({
         const pending = conversionQueueRef.current[0];
         const pendingType = pending.type;
         if (!user) {
-          conversionQueueRef.current.forEach((item) => removeFlight(item.id));
+          conversionQueueRef.current.forEach((item) => {
+            rollbackGemSpend(item.reservation);
+            removeFlight(item.id);
+          });
           conversionQueueRef.current = [];
           setQueuedConversions(0);
           break;
         }
 
-        const result = await convertGemToPointsAction(pendingType, pending.idempotencyKey);
+        let result: Awaited<ReturnType<typeof convertGemToPointsAction>>;
+        try {
+          result = await convertGemToPointsAction(pendingType, pending.idempotencyKey);
+        } catch {
+          result = { success: false, error: "database_error" };
+        }
         conversionQueueRef.current.shift();
         setQueuedConversions((current) => Math.max(0, current - 1));
 
         if (!result.success || !result.balances || result.points === undefined) {
           removeFlight(pending.id);
-          const restoredBalance = optimisticBalancesRef.current[pendingType] + 1;
-          optimisticBalancesRef.current[pendingType] = restoredBalance;
-          balanceRef.current = selectedType === pendingType ? restoredBalance : balanceRef.current;
+          rollbackGemSpend(pending.reservation);
+          showMessage(result.error?.trim() || t("inventory.error.operationFailed"), "error");
           gemPointsRef.current = Math.max(0, gemPointsRef.current - GEM_POINTS[pendingType]);
-          updateOptimisticProfile(pendingType, restoredBalance, gemPointsRef.current);
+          updateProfileField({ gemPoints: gemPointsRef.current });
           continue;
         }
 
+        settleGemSpend(pending.reservation);
         const pendingByType = {
           blue: getPendingCount("blue"),
           green: getPendingCount("green"),
@@ -239,26 +236,16 @@ export function MobileGemDetailsSheet({
           );
           gemPointsRef.current = result.gemPoints + pendingPoints;
         }
-        const optimisticBalances = {
-          blue: Math.max(0, result.balances.blue - pendingByType.blue),
-          green: Math.max(0, result.balances.green - pendingByType.green),
-          purple: Math.max(0, result.balances.purple - pendingByType.purple),
-        };
-
-        optimisticBalancesRef.current = optimisticBalances;
-        balanceRef.current = selectedType ? optimisticBalances[selectedType] : 0;
-        updateProfileField({
-          blueGems: optimisticBalances.blue,
-          greenGems: optimisticBalances.green,
-          purpleGems: optimisticBalances.purple,
-          gemPoints: gemPointsRef.current,
-        });
+        updateProfileField({ gemPoints: gemPointsRef.current });
       }
 
       // Reconcile the optimistic UI with the atomic server result once all
       // queued conversions have settled. This is intentionally one refresh,
       // so rapid clicks do not make the display flicker between responses.
-      await Promise.all([refreshProfile(), refreshStats()]);
+      // The conversion RPCs have already committed by this point. Reconcile
+      // the surrounding screens in the background so the conversion UI stays
+      // responsive and cannot look stuck on a profile refresh.
+      void Promise.all([refreshProfile(), refreshStats()]).catch(() => undefined);
     } finally {
       conversionRunningRef.current = false;
       setConverting(false);
@@ -268,18 +255,20 @@ export function MobileGemDetailsSheet({
   function handleConvert() {
     if (closing || !user || availableToQueue < 1) return;
 
+    const reservation = reserveGemSpend(conversionType, 1);
+    if (!reservation) return;
+
     const conversionId = flightIdRef.current++;
     const source = convertButtonRef.current?.getBoundingClientRect();
-    const nextBalance = Math.max(0, optimisticBalancesRef.current[conversionType] - 1);
-    balanceRef.current = nextBalance;
     gemPointsRef.current += points;
     conversionQueueRef.current.push({
       id: conversionId,
       type: conversionType,
       idempotencyKey: `landing:${crypto.randomUUID()}`,
+      reservation,
     });
     setQueuedConversions((current) => current + 1);
-    updateOptimisticProfile(conversionType, nextBalance, gemPointsRef.current);
+    updateProfileField({ gemPoints: gemPointsRef.current });
 
     if (source) {
       setFlights((current) => [

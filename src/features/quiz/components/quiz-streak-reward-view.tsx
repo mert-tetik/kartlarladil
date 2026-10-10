@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
 import { MainPointsDisplay } from "@/features/progress/components/main-points-display";
 import { RewardScatter } from "@/features/progress/components/reward-scatter";
+import { useRewardAnimationGate } from "@/features/progress/reward-animation-gate";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { awardProgressGemRewardAction } from "@/features/gems/gem-actions";
 import type { GemBalances, GemRewards } from "@/features/gems/gem-types";
@@ -83,6 +84,9 @@ export function QuizStreakRewardView({
   const videoPlaybackStartedRef = useRef(false);
   const introAudioStartedRef = useRef(false);
   const continuationAudioStartedRef = useRef(false);
+  const videoHoldCompleteRef = useRef(false);
+  const rewardAnimationsCompleteRef = useRef(false);
+  const gemRewardResolutionRef = useRef(testMode);
   const [displayPoints, setDisplayPoints] = useState(totalPoints);
   const [scorePulse, setScorePulse] = useState(0);
   const [gemRewards, setGemRewards] = useState<GemRewards>([]);
@@ -106,6 +110,21 @@ export function QuizStreakRewardView({
     finish: finishGemRewardDisplay,
   } = useGemRewardDisplay();
 
+  const forceComplete = useCallback(() => {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    onCompleteRef.current();
+  }, []);
+
+  const rewardAnimationGate = useRewardAnimationGate({
+    onComplete: () => {
+      rewardAnimationsCompleteRef.current = true;
+      if (videoHoldCompleteRef.current) forceComplete();
+    },
+  });
+  const resetRewardAnimationGate = rewardAnimationGate.reset;
+  const markGemsScatterComplete = rewardAnimationGate.markGemsScatterComplete;
+
   useEffect(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
@@ -118,6 +137,7 @@ export function QuizStreakRewardView({
 
   useEffect(() => {
     if (testMode) {
+      gemRewardResolutionRef.current = true;
       gemFinalBalancesRef.current = testGemBalances;
       prepareGemRewardDisplay(testGemBalances, testGemRewards);
       // Test rewards are synchronized into the local display when the test inputs change.
@@ -126,16 +146,26 @@ export function QuizStreakRewardView({
       return;
     }
 
-    if (!user || !quizSessionId || streak <= 0) return;
+    if (!user || !quizSessionId || streak <= 0) {
+      gemRewardResolutionRef.current = true;
+      return;
+    }
     let active = true;
+    gemRewardResolutionRef.current = false;
 
     void awardProgressGemRewardAction({
       source: "quiz-streak",
       claimKey: `quiz-streak:${quizSessionId}`,
       streak,
     }).then((result) => {
-      if (!active || !result.success) return;
+      if (!active) return;
+      if (!result.success) {
+        gemRewardResolutionRef.current = true;
+        markGemsScatterComplete();
+        return;
+      }
       const rewards = result.awarded ? result.rewards ?? [] : [];
+      gemRewardResolutionRef.current = true;
       if (result.balances) {
         gemFinalBalancesRef.current = result.balances;
         prepareGemRewardDisplay(result.balances, rewards);
@@ -146,26 +176,32 @@ export function QuizStreakRewardView({
         });
       }
       if (result.awarded && result.rewards?.length) setGemRewards(result.rewards);
+      else markGemsScatterComplete();
+    }).catch(() => {
+      if (!active) return;
+      gemRewardResolutionRef.current = true;
+      markGemsScatterComplete();
     });
 
     return () => {
       active = false;
     };
-  }, [prepareGemRewardDisplay, quizSessionId, streak, testGemBalances, testGemRewards, testMode, updateProfileField, user]);
-
-  const forceComplete = useCallback(() => {
-    if (completedRef.current) return;
-    completedRef.current = true;
-    onCompleteRef.current();
-  }, []);
+  }, [markGemsScatterComplete, prepareGemRewardDisplay, quizSessionId, streak, testGemBalances, testGemRewards, testMode, updateProfileField, user]);
 
   const startRewardScatter = useCallback(() => {
     if (rewardStartedRef.current) return;
     rewardStartedRef.current = true;
 
+    videoHoldCompleteRef.current = false;
+    rewardAnimationsCompleteRef.current = false;
+    resetRewardAnimationGate(true);
+    const configuredGemRewards = testMode ? testGemRewards : gemRewards;
+    if (gemRewardResolutionRef.current && configuredGemRewards.length === 0) {
+      markGemsScatterComplete();
+    }
     setRewardStarted(true);
     vibrate("streak-reward-tap");
-  }, []);
+  }, [gemRewards, markGemsScatterComplete, resetRewardAnimationGate, testGemRewards, testMode]);
 
   const startVideoAudioFadeIn = useCallback((audio: HTMLAudioElement | null) => {
     if (!audio || audioFadeInStartedRef.current || audioFadeOutStartedRef.current) return;
@@ -288,7 +324,8 @@ export function QuizStreakRewardView({
       setUiExiting(true);
     }, VIDEO_FADE_OUT_DURATION_MS + UI_EXIT_DELAY_AFTER_VIDEO_MS);
     completionTimeoutRef.current = window.setTimeout(() => {
-      forceComplete();
+      videoHoldCompleteRef.current = true;
+      if (rewardAnimationsCompleteRef.current) forceComplete();
     }, VIDEO_FADE_OUT_DURATION_MS + POST_VIDEO_HOLD_DURATION_MS);
   }, [forceComplete, startRewardScatter, startVideoAudioFadeOut]);
 
@@ -616,6 +653,8 @@ export function QuizStreakRewardView({
               "animate-streak-reward-text-wiggle whitespace-nowrap text-center text-5xl font-black text-white sm:text-7xl lg:text-8xl",
               canUseSuperWater(locale) && "font-super-water",
             )}
+            data-streak-reward-text
+            data-streak-reward-state={rewardStarted ? "exiting" : "visible"}
           >
             {formatSuperWaterText(
               locale,
@@ -641,13 +680,19 @@ export function QuizStreakRewardView({
             zIndex: 112,
           }}
           onPointsArrive={(awardedTotal, arrivalIndex) => {
+            rewardAnimationGate.notePointsArrival();
             setDisplayPoints(totalPoints + awardedTotal);
             setScorePulse(arrivalIndex);
           }}
-          onGemArrive={handleGemArrive}
+          onPointsComplete={rewardAnimationGate.markPointsScatterComplete}
+          onGemArrive={(type, amountAwarded) => {
+            rewardAnimationGate.noteGemsArrival();
+            handleGemArrive(type, amountAwarded);
+          }}
           onGemsComplete={() => {
             finishGemRewardDisplay(gemFinalBalancesRef.current);
             void refreshProfile();
+            markGemsScatterComplete();
           }}
         />
       ) : null}

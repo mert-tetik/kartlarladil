@@ -63,6 +63,10 @@ describe("QuizStreakCelebrationView", () => {
       document.querySelector("[data-streak-count-label]"),
     );
     expect(document.querySelector("[data-streak-count-label]")).toHaveClass("animate-streak-count-exit");
+    expect(document.querySelector("[data-streak-count-label]")).toHaveAttribute(
+      "data-streak-count-state",
+      "exiting",
+    );
     expect(onComplete).not.toHaveBeenCalled();
 
     act(() => {

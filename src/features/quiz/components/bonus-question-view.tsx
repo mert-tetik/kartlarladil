@@ -30,12 +30,14 @@ import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data
 import { speakCardTerm } from "@/features/cards/card-speech";
 import type { LanguageCode } from "@/types/domain";
 import { QuizMobileActionPortal } from "@/features/quiz/components/quiz-mobile-action-portal";
+import { useRewardAnimationGate } from "@/features/progress/reward-animation-gate";
 import {
   QuizWordButton,
   type QuizWordButtonFeedback,
 } from "@/features/quiz/components/quiz-word-button";
 
 const SENTENCE_TOKEN_ANIMATION_MS = 360;
+const AUTO_PLACED_SENTENCE_TOKEN_COUNT = 3;
 const CATEGORY_WORD_ANIMATION_MS = 260;
 const BONUS_REWARD_IMAGE = "/quiz/bonus_img.png?v=20261001-1";
 const BONUS_INTRO_FRAME_COUNT = 13;
@@ -613,6 +615,18 @@ export function BonusQuestionView({
   });
   const rewardFlightReady = rewardRevealCollected && showingAnswer && answerAccepted === true;
   const showRewardHud = rewardFlightReady;
+  const rewardAnimationGate = useRewardAnimationGate({
+    onPointsComplete: onFlightComplete,
+    onGemsComplete: onGemFlightComplete,
+  });
+
+  useEffect(() => {
+    if (!rewardFlightReady) return;
+    rewardAnimationGate.reset(Boolean(gemRewards?.length));
+    // Reset once when this reward reveal starts. Later gem data updates must
+    // not reset an already-running points scatter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rewardAnimationGate.reset, rewardFlightReady]);
 
   useEffect(() => {
     if (rewardRevealVisible) return;
@@ -756,10 +770,16 @@ export function BonusQuestionView({
                   zIndex: 112,
                 }}
                 onPointsStart={onFlightStart}
-                onPointsArrive={(awardedTotal) => onPointArrive?.(awardedTotal)}
-                onPointsComplete={onFlightComplete}
-                onGemArrive={onGemArrive}
-                onGemsComplete={onGemFlightComplete}
+                onPointsArrive={(awardedTotal) => {
+                  rewardAnimationGate.notePointsArrival();
+                  onPointArrive?.(awardedTotal);
+                }}
+                onPointsComplete={rewardAnimationGate.markPointsScatterComplete}
+                onGemArrive={(type) => {
+                  rewardAnimationGate.noteGemsArrival();
+                  onGemArrive?.(type);
+                }}
+                onGemsComplete={rewardAnimationGate.markGemsScatterComplete}
               />
             : null}
         </div>,
@@ -1058,7 +1078,11 @@ function SentenceOrderBonus({
   onSubmit: (answer: string, isCorrect: boolean) => void;
   onSkip: () => void;
 }) {
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>(() =>
+    question.tokens
+      .slice(0, AUTO_PLACED_SENTENCE_TOKEN_COUNT)
+      .map((token) => token.id),
+  );
   const [displayTokens] = useState(() => shuffleSentenceTokens(question.tokens));
   const [returningTokenId, setReturningTokenId] = useState<string | null>(null);
   const returnAnimationTimerRef = useRef<number | null>(null);
@@ -1440,7 +1464,7 @@ function ImposterBonus({
       <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-5">
         {question.options.map((option) => {
           const correct = showingAnswer && option.id === question.correctOptionId;
-          const wrong = showingAnswer && option.id === selectedId && !option.isImposter;
+          const wrong = showingAnswer && option.id === selectedId && option.isImposter;
           const feedback: QuizWordButtonFeedback = correct
             ? "correct"
             : wrong

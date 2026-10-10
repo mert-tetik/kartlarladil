@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { generatedCardSchema } from "@/features/cards/create-card-schema";
+import {
+  generatedCardSchema,
+  shouldRetryForDictionaryLemma,
+} from "@/features/cards/create-card-schema";
 import { createCardTestLocaleRecord } from "@/test/card-locale-samples";
 
 function createValidCard() {
@@ -46,5 +49,17 @@ describe("generated card writing-system validation", () => {
       ...base,
       examples: [base.examples[0], { ...base.examples[1], sentence: "He threw the old clothes away." }],
     }).success).toBe(false);
+  });
+});
+
+describe("generated card lemma retry detection", () => {
+  it("does not retry an already matching dictionary lemma", () => {
+    expect(
+      shouldRetryForDictionaryLemma(
+        { term: "house", termKind: "word" },
+        "house",
+        "en",
+      ),
+    ).toBe(false);
   });
 });

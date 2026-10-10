@@ -27,8 +27,8 @@ import { useAppMessage } from "@/components/app-message-provider";
 import type { CreateCardDirection, GeneratedCardResponse } from "@/features/cards/create-card-schema";
 import type { LanguageCode, LimitErrorCode, VocabularyCard } from "@/types/domain";
 
-const PREVIEW_EXPAND_DELAY_MS = 400;
 const PREVIEW_REVEAL_DELAY_MS = 1_170;
+const PREVIEW_EXIT_DURATION_MS = 1_080;
 
 export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReached, landingLanguage }: { open: boolean; onClose: () => void; onSubscriptionLimitReached?: (errorCode: LimitErrorCode) => void; landingLanguage: LanguageCode }) {
   const { locale } = useLocale();
@@ -44,7 +44,7 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<VocabularyCard | null>(null);
   const [aiResponse, setAiResponse] = useState<GeneratedCardResponse | null>(null);
-  const [previewExpanded, setPreviewExpanded] = useState(false);
+  const [previewEntranceReady, setPreviewEntranceReady] = useState(false);
   const [previewRevealed, setPreviewRevealed] = useState(false);
   const [previewReturning, setPreviewReturning] = useState(false);
   const [grammarDetailsOpen, setGrammarDetailsOpen] = useState(false);
@@ -60,6 +60,7 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   const termPlaceholder = t("createCard.termPlaceholder", {
     language: getLanguageDisplayName(inputLanguage, locale),
   });
+  const createCardButtonText = loading ? t("createCard.generating") : t("createCard.generate");
 
   useEffect(() => {
     if (!open) return;
@@ -74,11 +75,11 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   useEffect(() => {
     if (!preview || previewReturning) return;
 
-    const expandTimer = window.setTimeout(() => setPreviewExpanded(true), PREVIEW_EXPAND_DELAY_MS);
+    const frame = window.requestAnimationFrame(() => setPreviewEntranceReady(true));
     const revealTimer = window.setTimeout(() => setPreviewRevealed(true), PREVIEW_REVEAL_DELAY_MS);
 
     return () => {
-      window.clearTimeout(expandTimer);
+      window.cancelAnimationFrame(frame);
       window.clearTimeout(revealTimer);
     };
   }, [preview, previewReturning]);
@@ -110,7 +111,7 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   }
 
   const showPreview = (card: VocabularyCard) => {
-    setPreviewExpanded(false);
+    setPreviewEntranceReady(false);
     setPreviewRevealed(false);
     setPreviewReturning(false);
     setPreview(card);
@@ -118,7 +119,7 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   async function generate() {
     const normalized = normalizeSearch(term);
     if (!normalized) return;
-    setLoading(true); setPreview(null); setAiResponse(null); setPreviewExpanded(false); setPreviewRevealed(false); setPreviewReturning(false); setGrammarDetailsOpen(false);
+    setLoading(true); setPreview(null); setAiResponse(null); setPreviewEntranceReady(false); setPreviewRevealed(false); setPreviewReturning(false); setGrammarDetailsOpen(false);
     try {
       const match = findCustomCardMatch({
         cards: localCardRepository.list({ language: targetLanguage }),
@@ -184,28 +185,22 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   const alreadyAdded = preview ? cards.some((card) => card.cardId === preview.sourceKey || card.cardId === preview.id) : false;
   const previewTarget = {
     left: Math.max(0, (sheetSize.width - 190) / 2),
-    top: Math.max(48, (sheetSize.height - 253) / 2 - 120),
+    top: 40,
     width: 190,
     height: 253,
   };
   function closePreview() {
     if (!preview || previewReturning) return;
     setGrammarDetailsOpen(false);
-    setPreviewRevealed(false);
     setPreviewReturning(true);
     returnTimer.current = window.setTimeout(() => {
       setPreview(null);
       setAiResponse(null);
-      setPreviewExpanded(false);
+      setPreviewEntranceReady(false);
       setPreviewReturning(false);
       returnTimer.current = null;
-    }, 320);
+    }, PREVIEW_EXIT_DURATION_MS);
   }
-  const previewPosition = previewExpanded
-    ? previewTarget
-    : { left: previewTarget.left, top: sheetSize.height - 208, width: 92, height: 123 };
-  const previewScale = (previewPosition.width / previewTarget.width) * (previewReturning ? 0.78 : 1);
-  const previewTransform = `translate3d(${previewPosition.left - previewTarget.left}px, ${previewPosition.top - previewTarget.top}px, 0) scale(${previewScale})`;
   return (
     <MobileBottomSheetShell
       open={open}
@@ -227,9 +222,9 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
           <MobileCustomCardLanguagePicker value={targetLanguage} onChange={setTargetLanguage} />
         </div>
         <input id="mobile-custom-term" value={term} onChange={(event) => setTerm(event.target.value)} placeholder={termPlaceholder} className="control-gradient-outline mt-3 h-12 w-full rounded-full px-3 text-black outline-none placeholder:text-black/50" />
-        <button type="button" disabled={!term.trim() || loading} onClick={generate} className="control-gradient-outline mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full text-lg font-semibold font-super-water text-black disabled:opacity-50">
+        <button type="button" disabled={!term.trim() || loading} onClick={generate} className={cn("control-gradient-outline mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full text-lg font-semibold text-black disabled:opacity-50", canUseSuperWater(locale) && "font-super-water")}>
           {loading ? <Loader2 className="size-4 animate-spin" /> : null}
-          {loading ? t("createCard.generating") : t("createCard.generate")}
+          {formatSuperWaterText(locale, createCardButtonText)}
         </button>
         {transliterationHint ? (
           <p
@@ -243,8 +238,14 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
         ) : null}
       </div>
       {preview ? (
-        <>
+        <div
+          data-create-card-preview-state={
+            previewReturning ? "exit" : previewEntranceReady ? "enter" : "pre-enter"
+          }
+          className="contents"
+        >
           <div
+            data-create-card-preview-item="grammar"
             className="absolute left-8 right-8 z-30 mx-auto max-w-[24rem]"
             style={{ top: `${previewTarget.top + previewTarget.height + 12}px` }}
           >
@@ -254,16 +255,29 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
               className="h-12 w-full max-w-none justify-center rounded-md border-0 bg-white px-3 text-lg font-semibold text-black shadow-none backdrop-blur-none hover:bg-white/90 hover:text-black"
             />
           </div>
-          <div className="absolute z-20 h-[253px] w-[190px] -translate-y-8" style={{ left: `${previewTarget.left}px`, top: `${previewTarget.top}px` }}>
-            <div className={cn("size-full origin-top-left transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]", previewReturning && "opacity-0")} style={{ transform: previewTransform }}>
-              <VocabularyCardView card={preview} initialFace="back" face={previewRevealed && !previewReturning ? "front" : "back"} flippable={false} showActions={false} frontFit className="aspect-[3/4] !min-h-0 size-full max-sm:!aspect-[3/4] max-sm:!min-h-0" />
-            </div>
+          <div
+            data-create-card-preview-item="card"
+            className="absolute z-20 h-[253px] w-[190px]"
+            style={{ left: `${previewTarget.left}px`, top: `${previewTarget.top}px` }}
+          >
+            <VocabularyCardView
+              card={preview}
+              initialFace="back"
+              face={previewRevealed ? "front" : "back"}
+              flippable={false}
+              showActions={false}
+              frontFit
+              className="aspect-[3/4] !min-h-0 size-full max-sm:!aspect-[3/4] max-sm:!min-h-0"
+            />
           </div>
-          <div className={cn("absolute left-8 right-8 z-20 mx-auto grid max-w-[24rem] grid-cols-2 gap-2 transition-[opacity,transform] duration-300 ease-out", previewRevealed && !previewReturning ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0")} style={{ top: `${previewTarget.top + previewTarget.height + 72}px` }}>
-            <button data-mobile-custom-card-preview-back type="button" disabled={!previewRevealed || previewReturning} onClick={closePreview} className={cn("h-12 rounded-md bg-red-600 text-lg font-semibold text-white hover:bg-red-500 disabled:pointer-events-none", canUseSuperWater(locale) && "font-super-water")}>{formatSuperWaterText(locale, t("common.back"))}</button>
-            <button type="button" disabled={!previewRevealed || previewReturning || alreadyAdded} onClick={add} className={cn("inline-flex h-12 items-center justify-center gap-2 rounded-md bg-action-learn text-lg font-semibold text-white disabled:opacity-50", canUseSuperWater(locale) && "font-super-water")}>{formatSuperWaterText(locale, alreadyAdded ? t("createCard.alreadyInDeck") : t("createCard.add"))}</button>
+          <div
+            className="absolute left-8 right-8 z-20 mx-auto grid max-w-[24rem] grid-cols-2 gap-2"
+            style={{ top: `${previewTarget.top + previewTarget.height + 72}px` }}
+          >
+            <button data-create-card-preview-item="back" data-mobile-custom-card-preview-back type="button" disabled={!previewRevealed || previewReturning} onClick={closePreview} className={cn("h-12 rounded-md bg-red-600 text-lg font-semibold text-white hover:bg-red-500 disabled:pointer-events-none", canUseSuperWater(locale) && "font-super-water")}>{formatSuperWaterText(locale, t("common.back"))}</button>
+            <button data-create-card-preview-item="add" type="button" disabled={!previewRevealed || previewReturning || alreadyAdded} onClick={add} className={cn("inline-flex h-12 items-center justify-center gap-2 rounded-md bg-action-learn text-lg font-semibold text-white disabled:opacity-50", canUseSuperWater(locale) && "font-super-water")}>{formatSuperWaterText(locale, alreadyAdded ? t("createCard.alreadyInDeck") : t("createCard.add"))}</button>
           </div>
-        </>
+        </div>
       ) : null}
       <CardGrammarDetailsOverlay
         card={preview}

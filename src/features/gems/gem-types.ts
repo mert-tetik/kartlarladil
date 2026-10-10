@@ -1,3 +1,5 @@
+import type { Tier } from "@/types/domain";
+
 export type GemType = "blue" | "green" | "purple";
 export type ProgressGemRewardSource = "game-level" | "quiz-streak" | "quiz-result" | "quiz-bonus";
 
@@ -46,10 +48,23 @@ export const GEM_ASSETS: Record<GemType, string> = {
 };
 
 export const GEM_COSTS = {
-  removeCard: { type: "blue", amount: 10 } satisfies { type: GemType; amount: number },
-  markLearned: { type: "purple", amount: 2 } satisfies { type: GemType; amount: number },
-  rerollQuestion: { type: "green", amount: 1 } satisfies { type: GemType; amount: number },
+  removeCard: { type: "blue", amount: 40 } satisfies { type: GemType; amount: number },
+  markLearned: {
+    type: "purple",
+    amountByTier: {
+      A1: 8,
+      A2: 8,
+      B1: 10,
+      B2: 10,
+      C1: 12,
+    } satisfies Record<Tier, number>,
+  } satisfies { type: GemType; amountByTier: Record<Tier, number> },
+  rerollQuestion: { type: "green", amount: 3 } satisfies { type: GemType; amount: number },
 } as const;
+
+export function getMarkLearnedGemCost(tier: Tier) {
+  return GEM_COSTS.markLearned.amountByTier[tier];
+}
 
 export function normalizeGemRewards(value: unknown): GemRewards {
   if (!Array.isArray(value)) return [];

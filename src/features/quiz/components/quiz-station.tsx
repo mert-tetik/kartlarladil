@@ -49,7 +49,7 @@ import {
   getCardTranslationMeanings,
   getStudyLocale,
 } from "@/features/cards/card-localization";
-import { speakCardTerm } from "@/features/cards/card-speech";
+import { speakCardTerm, speakText } from "@/features/cards/card-speech";
 import { QuizSpeechBubble, getRandomQuizCharacter } from "@/features/quiz/components/quiz-speech-bubble";
 import {
   getCharacterName,
@@ -85,14 +85,12 @@ import {
   buildFallbackSentenceOrderQuestion,
   buildImposterBonusQuestion,
   buildMatchingBonusQuestion,
-  buildSentenceBonusFromGenerated,
   getBonusCopy,
   type BonusQuestion,
   type BonusQuestionKind,
 } from "@/features/quiz/bonus-questions";
 import {
   requestCategoryBonusQuestion,
-  requestSentenceBonusQuestion,
 } from "@/features/quiz/bonus-question-client";
 import {
   BONUS_QUESTION_PROBABILITY,
@@ -177,6 +175,7 @@ import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/component
 import { RewardMedalHud } from "@/features/progress/components/reward-medal-hud";
 import { MainPointsDisplay } from "@/features/progress/components/main-points-display";
 import { RewardScatter } from "@/features/progress/components/reward-scatter";
+import { useRewardAnimationGate } from "@/features/progress/reward-animation-gate";
 import { GEM_ASSETS, GEM_COSTS } from "@/features/gems/gem-types";
 import type { RewardScatterRect } from "@/features/progress/reward-scatter";
 
@@ -197,6 +196,7 @@ import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
+import { useAppMessage } from "@/components/app-message-provider";
 import confetti from "canvas-confetti";
 import type {
   DefinitionQuizQuestion,
@@ -317,7 +317,6 @@ const RESULT_CARD_TONES = {
   learned: "border-amber-400 text-amber-400",
 } as const;
 
-const QUIZ_COUNT_MIN = 10;
 const QUIZ_CARD_FLIP_DURATION_MS = 250;
 const QUIZ_CARD_GROW_DURATION_MS = 480;
 const QUIZ_CARD_LARGE_HOLD_DURATION_MS = 1_400;
@@ -633,9 +632,17 @@ export function QuizStation({
   const { entitlements } = useSubscription();
   const { locale } = useLocale();
   const t = useT();
+  const { showMessage } = useAppMessage();
   const router = useRouter();
   const requireAuthAction = useRequireAuthAction();
-  const { user, updateProfileField } = useAuthSession();
+  const {
+    user,
+    updateProfileField,
+    refreshProfile,
+    reserveGemSpend,
+    settleGemSpend,
+    rollbackGemSpend,
+  } = useAuthSession();
   const { stats, refreshStats } = useProgressStats();
   const chestRewardsEnabled = mode === "active";
 
@@ -742,6 +749,8 @@ export function QuizStation({
   const preparedQuizPoolRef = useRef<PreparedQuizPool | null>(null);
   const quizPoolPreparationTokenRef = useRef(0);
   const currentIndexRef = useRef(0);
+  const showingAnswerRef = useRef(false);
+  showingAnswerRef.current = showingAnswer;
   const wordRepetitionCompletedRef = useRef(false);
   const redirectStartedRef = useRef(false);
   const {
@@ -836,15 +845,22 @@ export function QuizStation({
   }: {
     fadeQuizTopBar?: boolean;
   } = {}): FallbackTransitionSnapshot | null {
-    const quizPage = document.querySelector<HTMLElement>("[data-learn-quiz-page='quiz']");
+    const findLiveTransitionElement = <T extends HTMLElement>(selector: string) =>
+      Array.from(document.querySelectorAll<T>(selector)).find(
+        (element) =>
+          !element.closest(
+            "[data-quiz-transition-fallback-old], [data-quiz-transition-fallback-count]",
+          ),
+      ) ?? null;
+    const quizPage = findLiveTransitionElement<HTMLElement>("[data-learn-quiz-page='quiz']");
     const quizStage = fadeQuizTopBar ? quizPage?.parentElement : null;
     const source =
-      document.querySelector<HTMLElement>("[data-bonus-reward-reveal]") ??
-      document.querySelector<HTMLElement>("[data-streak-celebration-view]") ??
-      document.querySelector<HTMLElement>("[data-quiz-completion-progress]") ??
-      document.querySelector<HTMLElement>("[data-quiz-card-progress-reveal]") ??
-      document.querySelector<HTMLElement>("[data-quiz-celebration]") ??
-      document.querySelector<HTMLElement>("[data-quiz-count-selection]") ??
+      findLiveTransitionElement<HTMLElement>("[data-bonus-reward-reveal]") ??
+      findLiveTransitionElement<HTMLElement>("[data-streak-celebration-view]") ??
+      findLiveTransitionElement<HTMLElement>("[data-quiz-completion-progress]") ??
+      findLiveTransitionElement<HTMLElement>("[data-quiz-card-progress-reveal]") ??
+      findLiveTransitionElement<HTMLElement>("[data-quiz-celebration]") ??
+      findLiveTransitionElement<HTMLElement>("[data-quiz-count-selection]") ??
       quizStage ??
       quizPage;
     if (!source) return null;
@@ -852,8 +868,144 @@ export function QuizStation({
     const isCountSelectionSnapshot = source.matches("[data-quiz-count-selection]");
     const isQuizStageSnapshot = source === quizStage;
     const snapshot = source.cloneNode(true) as HTMLElement;
+    const sourceStreakLabels = Array.from(
+      source.querySelectorAll<HTMLElement>(
+        "[data-streak-count-label], [data-streak-reward-text]",
+      ),
+    );
+    const snapshotStreakLabels = Array.from(
+      snapshot.querySelectorAll<HTMLElement>(
+        "[data-streak-count-label], [data-streak-reward-text]",
+      ),
+    );
     snapshot.removeAttribute("style");
     snapshot.setAttribute("aria-hidden", "true");
+
+    // The streak text may already be part-way through (or finished with) its
+    // exit animation when the next screen transition starts. A cloned element
+    // would restart that CSS animation from opacity 1 and briefly resurrect
+    // the text over the outgoing screen. Freeze the clone at the exact visual
+    // state of the live label and remove the animation that would replay it.
+    sourceStreakLabels.forEach((sourceStreakLabel, index) => {
+      const snapshotStreakLabel = snapshotStreakLabels[index];
+      if (!snapshotStreakLabel) return;
+
+      const computedLabelStyle = window.getComputedStyle(sourceStreakLabel);
+      const streakLabelIsExiting =
+        sourceStreakLabel.dataset.streakCountState === "exiting" ||
+        sourceStreakLabel.dataset.streakRewardState === "exiting" ||
+        sourceStreakLabel.classList.contains("animate-streak-count-exit") ||
+        sourceStreakLabel.classList.contains("animate-streak-reward-break") ||
+        computedLabelStyle.opacity === "0" ||
+        computedLabelStyle.visibility === "hidden";
+
+      if (streakLabelIsExiting) {
+        // A cloned label would restart its CSS animation from opacity 1 while
+        // the horizontal transition promotes the fallback layer. Remove the
+        // label from the snapshot completely instead of relying on an opacity
+        // value that some Android WebViews briefly recompute during promotion.
+        snapshotStreakLabel.remove();
+        sourceStreakLabel.setAttribute(
+          "data-quiz-transition-streak-label-vanished",
+          "true",
+        );
+        sourceStreakLabel.style.setProperty("display", "none", "important");
+        return;
+      }
+
+      snapshotStreakLabel.classList.remove(
+        "animate-streak-count-idle",
+        "animate-streak-count-exit",
+        "animate-streak-reward-text-wiggle",
+        "animate-streak-reward-break",
+      );
+      snapshotStreakLabel.setAttribute(
+        "data-quiz-transition-streak-label-frozen",
+        "visible",
+      );
+      snapshotStreakLabel.style.setProperty("animation", "none", "important");
+      snapshotStreakLabel.style.setProperty(
+        "opacity",
+        computedLabelStyle.opacity || "1",
+        "important",
+      );
+      snapshotStreakLabel.style.setProperty(
+        "transform",
+        computedLabelStyle.transform || "none",
+        "important",
+      );
+      snapshotStreakLabel.style.setProperty(
+        "visibility",
+        computedLabelStyle.visibility || "visible",
+        "important",
+      );
+    });
+
+    // The streak reward particles are already part-way through their CSS burst
+    // when the horizontal transition starts. A cloned snapshot would restart
+    // every particle from its initial position, making the burst visibly spawn
+    // again over the outgoing screen. Freeze each cloned particle at the exact
+    // computed transform/opacity of the live particle instead.
+    const sourceStreakParticles = Array.from(
+      source.querySelectorAll<HTMLElement>(
+        "[data-streak-particle-layer] .streak-count-particle",
+      ),
+    );
+    const snapshotStreakParticles = Array.from(
+      snapshot.querySelectorAll<HTMLElement>(
+        "[data-streak-particle-layer] .streak-count-particle",
+      ),
+    );
+    sourceStreakParticles.forEach((sourceStreakParticle, index) => {
+      const snapshotStreakParticle = snapshotStreakParticles[index];
+      if (!snapshotStreakParticle) return;
+
+      const computedParticleStyle = window.getComputedStyle(sourceStreakParticle);
+      snapshotStreakParticle.style.setProperty("animation", "none", "important");
+      snapshotStreakParticle.style.setProperty(
+        "opacity",
+        computedParticleStyle.opacity || "1",
+        "important",
+      );
+      snapshotStreakParticle.style.setProperty(
+        "transform",
+        computedParticleStyle.transform || "none",
+        "important",
+      );
+      snapshotStreakParticle.style.setProperty(
+        "visibility",
+        computedParticleStyle.visibility || "visible",
+        "important",
+      );
+    });
+
+    // The bonus reward artwork has already exited before the horizontal
+    // transition starts. A cloned snapshot would restart its exit animation
+    // from opacity 1, briefly bringing the artwork back on the outgoing
+    // screen. Keep the snapshot in the same vanished state as the live source.
+    const sourceBonusRewardSources = Array.from(
+      source.querySelectorAll<HTMLElement>("[data-bonus-reward-source]"),
+    );
+    const snapshotBonusRewardSources = Array.from(
+      snapshot.querySelectorAll<HTMLElement>("[data-bonus-reward-source]"),
+    );
+    sourceBonusRewardSources.forEach((sourceBonusRewardSource, index) => {
+      const snapshotBonusRewardSource = snapshotBonusRewardSources[index];
+      if (
+        !snapshotBonusRewardSource ||
+        sourceBonusRewardSource.dataset.bonusRewardSourceState !== "exiting"
+      ) {
+        return;
+      }
+
+      snapshotBonusRewardSource
+        .querySelector<HTMLImageElement>("img")
+        ?.remove();
+      snapshotBonusRewardSource.setAttribute(
+        "data-quiz-transition-bonus-reward-image-vanished",
+        "true",
+      );
+    });
     // The fallback copy is only a visual snapshot. Keep it out of the
     // page-level :has() selectors that control Learn's navbar/viewport mode;
     // otherwise the count screen can briefly re-assert its layout while the
@@ -894,9 +1046,13 @@ export function QuizStation({
         window.setTimeout(removeTopBar, QUIZ_COMPLETION_TOPBAR_FADE_DURATION_MS + 40);
       }
     }
-    snapshot.querySelectorAll<HTMLElement>(".quiz-flow-enter-right, .quiz-flow-exit-left").forEach((element) => {
+    const clearFlowTransitionClass = (element: HTMLElement) => {
       element.classList.remove("quiz-flow-enter-right", "quiz-flow-exit-left");
-    });
+    };
+    clearFlowTransitionClass(snapshot);
+    snapshot.querySelectorAll<HTMLElement>(".quiz-flow-enter-right, .quiz-flow-exit-left").forEach(
+      clearFlowTransitionClass,
+    );
     snapshot.querySelectorAll<HTMLElement>(
       ".animate-quiz-word-button-correct, .quiz-word-button-correct-shine, .animate-quiz-word-button-select, .animate-bonus-incorrect-shake",
     ).forEach((element) => {
@@ -1016,6 +1172,13 @@ export function QuizStation({
     pendingTransition?.finish();
 
     const transitionDocument = document as QuizViewTransitionDocument;
+    const findLiveTransitionElement = <T extends HTMLElement>(selector: string) =>
+      Array.from(document.querySelectorAll<T>(selector)).find(
+        (element) =>
+          !element.closest(
+            "[data-quiz-transition-fallback-old], [data-quiz-transition-fallback-count]",
+          ),
+      ) ?? null;
     // Count selection and the first quiz question do not share the same
     // geometry: count is normal flow, while the quiz is a fixed viewport.
     // Native View Transitions capture the shared stage after that geometry
@@ -1023,16 +1186,16 @@ export function QuizStation({
     // snapshot path for this boundary so the old screen is fully detached
     // before the new fixed viewport mounts.
     const isCountBoundary = Boolean(
-      document.querySelector<HTMLElement>("[data-quiz-count-selection]"),
+      findLiveTransitionElement<HTMLElement>("[data-quiz-count-selection]"),
     );
     const isBonusRewardBoundary = Boolean(
-      document.querySelector<HTMLElement>("[data-bonus-reward-reveal]"),
+      findLiveTransitionElement<HTMLElement>("[data-bonus-reward-reveal]"),
     );
     const isStreakBoundary = Boolean(
-      document.querySelector<HTMLElement>("[data-streak-celebration-view]"),
+      findLiveTransitionElement<HTMLElement>("[data-streak-celebration-view]"),
     );
     const isQuizCompletionBoundary = Boolean(
-      document.querySelector<HTMLElement>("[data-quiz-completion-progress]"),
+      findLiveTransitionElement<HTMLElement>("[data-quiz-completion-progress]"),
     );
     const hasNativeTransition =
       typeof transitionDocument.startViewTransition === "function";
@@ -1790,11 +1953,18 @@ export function QuizStation({
         : normalQuestionType
           ? 0
           : getMaxBonusQuestionCount(regularItems.length);
+      const usedNonMatchingBonusKinds = new Set<BonusQuestionKind>();
       const bonusPlans = regularItems.map((_, index): PreparedBonusPlan => {
-        const preferredKind = getBonusKind();
+        const preferredKind = getBonusKind(usedNonMatchingBonusKinds);
         const candidateKinds = [
           preferredKind,
-          ...shuffle(BONUS_QUESTION_KINDS.filter((kind) => kind !== preferredKind)),
+          ...shuffle(
+            BONUS_QUESTION_KINDS.filter(
+              (kind) =>
+                kind !== preferredKind &&
+                (kind === "matching" || !usedNonMatchingBonusKinds.has(kind)),
+            ),
+          ),
         ];
         let selectedKind = preferredKind;
         let selectedFallback: BonusQuestion | null = null;
@@ -1816,15 +1986,20 @@ export function QuizStation({
           }
         }
 
+        const selectedForMaxDeck = Boolean(
+          selectedFallback && (
+            forceBonusAfterEachQuestion || Math.random() < BONUS_QUESTION_PROBABILITY
+          ),
+        );
+        if (selectedForMaxDeck && selectedKind !== "matching") {
+          usedNonMatchingBonusKinds.add(selectedKind);
+        }
+
         return {
           index,
           kind: selectedKind,
           fallback: selectedFallback,
-          selectedForMaxDeck: Boolean(
-            selectedFallback && (
-              forceBonusAfterEachQuestion || Math.random() < BONUS_QUESTION_PROBABILITY
-            ),
-          ),
+          selectedForMaxDeck,
         };
       });
 
@@ -1892,7 +2067,7 @@ export function QuizStation({
       const items: QuizItem[] = [];
       const gptJobs: Array<{
         bonusId: string;
-        kind: "sentence-order" | "category-sort";
+        kind: "category-sort";
       }> = [];
       const deckToken = bonusDeckTokenRef.current + 1;
       bonusDeckTokenRef.current = deckToken;
@@ -1915,7 +2090,7 @@ export function QuizStation({
           bonusQuestion: fallback,
         });
 
-        if (plan.kind === "sentence-order" || plan.kind === "category-sort") {
+        if (plan.kind === "category-sort") {
           gptJobs.push({ bonusId: plan.bonusId, kind: plan.kind });
         }
       });
@@ -1937,7 +2112,11 @@ export function QuizStation({
       setCurrentIndex(currentIndexRef.current);
       setWordRepetitionCards(startsWithWordRepetition ? repetitionCards : []);
       setWordRepetitionIndex(0);
-      wordRepetitionCompletedRef.current = !startsWithWordRepetition;
+      // Every regular quiz should offer the wrong-card repetition flow after
+      // its last question. The dedicated repetition test starts with that
+      // flow already active, but it must also stay eligible for the same
+      // completion guard until those cards are finished.
+      wordRepetitionCompletedRef.current = false;
       setShowingAnswer(false);
       setTextAnswer("");
       setTextResult("idle");
@@ -1980,61 +2159,6 @@ export function QuizStation({
 
       void Promise.all(
         gptJobs.map(async (job) => {
-          if (job.kind === "sentence-order") {
-            const generated = await requestSentenceBonusQuestion({
-              language,
-              locale,
-              cards: pool.bonusCards,
-            });
-            if (!generated || bonusDeckTokenRef.current !== deckToken) return;
-
-            setDeck((current) => current.map((item, itemIndex) => {
-              if (!item.isBonus || item.bonusId !== job.bonusId) {
-                return item;
-              }
-                const generatedQuestion = buildSentenceBonusFromGenerated(
-                  generated,
-                  pool.bonusCards,
-                  job.bonusId,
-                );
-              if (itemIndex <= currentIndexRef.current) {
-                if (
-                  itemIndex === currentIndexRef.current &&
-                  item.bonusQuestion.kind === "sentence-order" &&
-                  normalizeBonusSentence(item.bonusQuestion.sentence) === normalizeBonusSentence(generated.sentence)
-                ) {
-                  return {
-                    ...item,
-                    bonusQuestion: {
-                      ...item.bonusQuestion,
-                      nativeSentence: generated.nativeSentence,
-                    },
-                  };
-                }
-
-                return item;
-              }
-
-              if (generatedQuestion) return { ...item, bonusQuestion: generatedQuestion };
-
-              if (
-                item.bonusQuestion.kind === "sentence-order" &&
-                normalizeBonusSentence(item.bonusQuestion.sentence) === normalizeBonusSentence(generated.sentence)
-              ) {
-                return {
-                  ...item,
-                  bonusQuestion: {
-                    ...item.bonusQuestion,
-                    nativeSentence: generated.nativeSentence,
-                  },
-                };
-              }
-
-              return item;
-            }));
-            return;
-          }
-
           const generated = await requestCategoryBonusQuestion({
             language,
             cards: pool.bonusCards,
@@ -2085,19 +2209,6 @@ export function QuizStation({
     return () => window.clearTimeout(preparationTimeout);
   }, [phase, prepareQuizPool, selectedLanguage]);
 
-  useEffect(() => {
-    if (phase !== "count" || !selectedLanguage) return;
-    const count = filterInventoryCards({
-      cards,
-      language: selectedLanguage,
-      status: mode,
-    }).length;
-    if (count < QUIZ_COUNT_MIN) {
-      // Auto-start the quiz when not enough cards are available for a count selection.
-      buildDeck(selectedLanguage, null);
-    }
-  }, [phase, selectedLanguage, cards, mode, buildDeck]);
-
   const resetQuestionUi = useCallback(() => {
     clearCardProgressFeedback();
     clearNormalAnswerAdvance();
@@ -2123,7 +2234,7 @@ export function QuizStation({
     bonusRewardClaimedRef.current = false;
   }, [clearCardProgressFeedback, clearNormalAnswerAdvance]);
 
-  async function handleRerollQuestion() {
+  function handleRerollQuestion() {
     const item = deck[currentIndex];
     const cost = GEM_COSTS.rerollQuestion.amount;
 
@@ -2133,43 +2244,104 @@ export function QuizStation({
       isBonusQuizItem(item) ||
       showingAnswer ||
       isAiValidating ||
-      rerollingQuestion ||
-      (user.profile.greenGems ?? 0) < cost
+      rerollingQuestion
     ) {
       return;
     }
 
-    setRerollingQuestion(true);
-    try {
-      const result = await spendGemAction("green", cost, "reroll-question");
-      if (!result.success || !result.balances) {
-        return;
-      }
-
-      const answerLocale = getStudyLocale(item.card.language, locale);
-      const replacement: ChoiceQuizItem = {
-        card: item.card,
-        inventoryCard: item.inventoryCard,
-        questionType: "choice",
-        question: buildQuizQuestion(item.card, VOCABULARY_CARDS, answerLocale),
-        willLearn: item.willLearn,
-        forceLearned: item.forceLearned,
-      };
-
-      setDeck((current) => current.map((candidate, index) => index === currentIndex ? replacement : candidate));
-      resetQuestionUi();
-      updateProfileField({
-        greenGems: result.balances.green,
-        blueGems: result.balances.blue,
-        purpleGems: result.balances.purple,
-      });
-      playSoundEffect("gem-spend");
-      vibrate("tap");
-      await refreshStats();
-      refreshLeaderboardPositions();
-    } finally {
-      setRerollingQuestion(false);
+    const reservation = reserveGemSpend("green", cost);
+    if (!reservation) {
+      showMessage("insufficient_gems", "error");
+      return;
     }
+
+    const rerollIndex = currentIndex;
+    const preparedPool = selectedLanguage && preparedQuizPoolRef.current?.key === getQuizPoolKey(selectedLanguage)
+      ? preparedQuizPoolRef.current
+      : selectedLanguage
+        ? prepareQuizPool(selectedLanguage)
+        : null;
+    const bonusCards = preparedPool?.bonusCards.length
+      ? preparedPool.bonusCards
+      : [item.card];
+    const bonusLearnedCards = preparedPool?.bonusLearnedCards ?? [];
+    const bonusSeed = `${quizSessionId ?? "reroll"}-${item.card.id}-${rerollIndex}-${Date.now()}`;
+    const preferredBonusKind = getBonusKind(new Set());
+    const candidateBonusKinds = [
+      preferredBonusKind,
+      ...shuffle(BONUS_QUESTION_KINDS.filter((kind) => kind !== preferredBonusKind)),
+    ];
+    let bonusQuestion: BonusQuestion | null = null;
+
+    for (const candidateKind of candidateBonusKinds) {
+      bonusQuestion = buildFallbackBonusQuestion(
+        candidateKind,
+        bonusCards,
+        selectedLanguage ?? item.card.language,
+        locale,
+        `${bonusSeed}-${candidateKind}`,
+        bonusLearnedCards,
+      );
+      if (bonusQuestion) break;
+    }
+
+    if (!bonusQuestion) {
+      rollbackGemSpend(reservation);
+      showMessage(t("inventory.error.operationFailed"), "error");
+      return;
+    }
+
+    const replacement: BonusQuizItem = {
+      card: item.card,
+      inventoryCard: item.inventoryCard,
+      willLearn: false,
+      isBonus: true,
+      bonusId: `${bonusSeed}-${bonusQuestion.kind}`,
+      questionType: `bonus-${bonusQuestion.kind}`,
+      bonusQuestion,
+    };
+
+    // Replace the question immediately. The server mutation is deliberately
+    // detached from the quiz interaction so network latency cannot block the UI.
+    setDeck((current) => current.map((candidate, index) => index === rerollIndex ? replacement : candidate));
+    resetQuestionUi();
+    setRerollingQuestion(false);
+    playSoundEffect("gem-spend");
+    vibrate("tap");
+
+    void (async () => {
+      try {
+        const result = await spendGemAction("green", cost, "reroll-question");
+        if (!result.success) {
+          rollbackGemSpend(reservation);
+          if (currentIndexRef.current === rerollIndex && !showingAnswerRef.current) {
+            setDeck((current) => current.map((candidate, index) => index === rerollIndex && candidate === replacement ? item : candidate));
+            resetQuestionUi();
+          }
+          void refreshProfile().catch(() => undefined);
+          showMessage(result.error?.trim() || t("inventory.error.operationFailed"), "error");
+          return;
+        }
+
+        settleGemSpend(reservation);
+        void refreshProfile().catch(() => undefined);
+        void refreshStats().catch(() => undefined);
+        refreshLeaderboardPositions();
+      } catch (error) {
+        rollbackGemSpend(reservation);
+        if (currentIndexRef.current === rerollIndex && !showingAnswerRef.current) {
+          setDeck((current) => current.map((candidate, index) => index === rerollIndex && candidate === replacement ? item : candidate));
+          resetQuestionUi();
+        }
+        void refreshProfile().catch(() => undefined);
+        showMessage(
+          error instanceof Error && error.message.trim()
+            ? error.message
+            : t("inventory.error.operationFailed"),
+          "error",
+        );
+      }
+    })();
   }
 
   const announceQuizRankUp = useCallback((rank: RankDefinition) => {
@@ -2491,17 +2663,6 @@ export function QuizStation({
   function handleSelectLanguage(language: LanguageCode) {
     setSelectedLanguage(language);
     setResultMessageOnResult(false);
-    const count = filterInventoryCards({
-      cards,
-      language,
-      status: mode,
-    }).length;
-
-    if (count < QUIZ_COUNT_MIN) {
-      buildDeck(language, null);
-      return;
-    }
-
     setSelectedCount(null);
     setChestOpened(false);
     setAwardedChestTier(null);
@@ -2636,12 +2797,12 @@ export function QuizStation({
     }
   }
 
-  const finishBonusRewardFlow = useCallback((force = false) => {
-    if (!force && (
+  const finishBonusRewardFlow = useCallback(() => {
+    if (
       bonusRewardFlowCompletedRef.current ||
       !bonusPointFlightDoneRef.current ||
       !bonusGemFlightDoneRef.current
-    )) {
+    ) {
       return;
     }
 
@@ -2676,29 +2837,11 @@ export function QuizStation({
     setBonusPointFlightEnabled(false);
     setBonusGemRewards([]);
     bonusPointFlightDoneRef.current = false;
-    // Gem rewards arrive from the server asynchronously. They are an
-    // enhancement to the reveal, not a reason to keep the user on this
-    // screen. If they arrive before the point flight finishes, the gem
-    // scatter still runs; otherwise the quiz advances without waiting for
-    // the request.
-    bonusGemFlightDoneRef.current = true;
+    // Keep the flow open until the server tells us whether this reward has
+    // gems. If gems are awarded, their scatter and HUD pulse must finish too.
+    bonusGemFlightDoneRef.current = false;
     bonusRewardFlowCompletedRef.current = false;
     const rewardRequestId = ++bonusRewardRequestRef.current;
-
-    const scheduleRewardFallback = () => {
-      if (bonusRewardAutoAdvanceTimeoutRef.current !== null) {
-        window.clearTimeout(bonusRewardAutoAdvanceTimeoutRef.current);
-      }
-      bonusRewardAutoAdvanceTimeoutRef.current = window.setTimeout(() => {
-        bonusRewardAutoAdvanceTimeoutRef.current = null;
-        finishBonusRewardFlow(true);
-      }, 1_200);
-    };
-
-    // Keep the animation self-contained. The server award is intentionally
-    // fire-and-forget from the UI flow and must never delay closing this
-    // reveal.
-    scheduleRewardFallback();
 
     if (quizSessionId) {
       void awardQuizBonusPoints(quizSessionId, item.bonusId)
@@ -2737,6 +2880,8 @@ export function QuizStation({
 
           if (!awarded && result.success) {
             finishBonusRewardFlow();
+          } else if (rewards.length === 0 && bonusPointFlightDoneRef.current) {
+            finishBonusRewardFlow();
           }
         })
         .catch(() => {
@@ -2748,10 +2893,12 @@ export function QuizStation({
             return;
           }
 
-          bonusPointFlightDoneRef.current = false;
+          const pointFlightWasDone = bonusPointFlightDoneRef.current;
+          bonusPointFlightDoneRef.current = pointFlightWasDone;
           bonusGemFlightDoneRef.current = true;
           setBonusPointFlightEnabled(true);
           setBonusRewardReady(true);
+          if (pointFlightWasDone) finishBonusRewardFlow();
         });
     } else {
       bonusRewardServerSettledRef.current = true;
@@ -4487,16 +4634,25 @@ const BONUS_QUESTION_KINDS: readonly BonusQuestionKind[] = [
   "matching",
   "sentence-order",
   "category-sort",
+  "imposter",
 ];
 
-function getBonusKind(): BonusQuestionKind {
-  const roll = Math.random();
-  const matchingLimit = BONUS_QUESTION_TYPE_WEIGHTS.matching;
-  const categoryLimit = matchingLimit + BONUS_QUESTION_TYPE_WEIGHTS["category-sort"];
+function getBonusKind(excludedKinds: ReadonlySet<BonusQuestionKind>): BonusQuestionKind {
+  const availableKinds = BONUS_QUESTION_KINDS.filter(
+    (kind) => kind === "matching" || !excludedKinds.has(kind),
+  );
+  const totalWeight = availableKinds.reduce(
+    (total, kind) => total + BONUS_QUESTION_TYPE_WEIGHTS[kind],
+    0,
+  );
+  let roll = Math.random() * totalWeight;
 
-  if (roll < matchingLimit) return "matching";
-  if (roll < categoryLimit) return "category-sort";
-  return "sentence-order";
+  for (const kind of availableKinds) {
+    roll -= BONUS_QUESTION_TYPE_WEIGHTS[kind];
+    if (roll < 0) return kind;
+  }
+
+  return "matching";
 }
 
 function buildFallbackBonusQuestion(
@@ -4524,14 +4680,6 @@ function buildFallbackBonusQuestion(
 
 function isBonusQuizItem(item: QuizItem): item is BonusQuizItem {
   return item.isBonus === true;
-}
-
-function normalizeBonusSentence(value: string) {
-  return value
-    .trim()
-    .replace(/\s+([,.;!?])/gu, "$1")
-    .replace(/\s+/gu, " ")
-    .toLocaleLowerCase();
 }
 
 function getFeedbackCorrectAnswer(item: QuizItem): string | undefined {
@@ -4594,15 +4742,30 @@ function completeSentence(sentenceWithBlank: string, answer: string) {
 
 function useSpeakQuizTermAfterEntry(
   card: Pick<VocabularyCard, "id" | "term" | "language">,
-  voiceProfile: ReturnType<typeof getCharacterVoiceProfile>,
+  voiceProfile?: ReturnType<typeof getCharacterVoiceProfile>,
 ) {
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      speakCardTerm(card.term, card.language, voiceProfile.gender, voiceProfile.age);
+      speakCardTerm(
+        card.term,
+        card.language,
+        voiceProfile?.gender,
+        voiceProfile?.age,
+      );
     }, QUIZ_QUESTION_ENTRY_DURATION_MS);
 
     return () => window.clearTimeout(timeoutId);
-  }, [card.id, card.language, card.term, voiceProfile.age, voiceProfile.gender]);
+  }, [card.id, card.language, card.term, voiceProfile?.age, voiceProfile?.gender]);
+}
+
+function useSpeakTextAfterEntry(text: string, language: LanguageCode) {
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      speakText(text, language);
+    }, QUIZ_QUESTION_ENTRY_DURATION_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [language, text]);
 }
 
 export function LanguageSelection({
@@ -5464,7 +5627,9 @@ export function GroupQuestion({
   const { locale } = useLocale();
   const t = useT();
   const { question } = item;
-  const nativeTerm = getCardTranslation(item.card, locale);
+  const nativeLocale = getStudyLocale(item.card.language, locale);
+  const nativeTerm = getCardTranslation(item.card, nativeLocale);
+  useSpeakTextAfterEntry(nativeTerm, nativeLocale);
 
   return (
     <div
@@ -5475,14 +5640,14 @@ export function GroupQuestion({
         {formatSuperWaterText(locale, t("quiz.groupMeaningPrompt"))}
       </p>
 
-      <div className="relative -translate-y-[10px] mx-auto flex w-full max-w-xl items-center justify-center border-b border-[#AAAAAA] px-1 pb-2 sm:-translate-y-[14px]">
+      <div className="relative translate-y-[42px] mx-auto flex w-full max-w-xl items-center justify-center border-b border-[#AAAAAA] px-1 pb-2 sm:translate-y-[38px]">
         <div className="flex items-center justify-center gap-2">
           <h2 className="font-display text-3xl font-semibold leading-none text-white sm:text-4xl lg:text-5xl">
             {formatSuperWaterText(locale, nativeTerm)}
           </h2>
           <button
             type="button"
-            onClick={() => speakCardTerm(nativeTerm, locale)}
+            onClick={() => speakText(nativeTerm, nativeLocale)}
             className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground max-sm:size-8"
             aria-label={`${nativeTerm} ${t("cards.speak")}`}
             title={t("cards.speak")}
@@ -5516,17 +5681,19 @@ export function GroupQuestion({
               disabled={showingAnswer}
               wordType={showingAnswer ? "inactive" : isCorrectOption ? "correct" : "incorrect"}
               feedback={feedback}
-              className="min-h-[6.75rem] items-center flex-col gap-1.5 px-2 py-2 text-center text-sm font-semibold leading-tight disabled:cursor-default sm:min-h-[7.5rem] sm:text-base"
+              className="min-h-[6.75rem] flex-col gap-1.5 px-2 py-2 text-center text-xl font-bold leading-tight disabled:cursor-default sm:min-h-[7.5rem] sm:text-2xl"
             >
+              <span className="line-clamp-2">
+                {formatSuperWaterText(locale, optionAnswer)}
+              </span>
               <Image
                 src={CARD_GROUP_IMAGE_PATHS[option.group.id]}
                 alt=""
-                width={72}
-                height={72}
-                className="mx-auto block size-14 shrink-0 object-contain sm:size-16"
+                width={112}
+                height={112}
+                className="mx-auto block size-20 shrink-0 object-contain sm:size-24"
                 aria-hidden="true"
               />
-              <span className="line-clamp-2">{formatSuperWaterText(locale, optionAnswer)}</span>
             </QuizWordButton>
           );
         })}
@@ -5786,13 +5953,7 @@ export function DefinitionQuestion({
   const { locale } = useLocale();
   const t = useT();
   const question = item.question;
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      speakCardTerm(item.card.term, item.card.language);
-    }, QUIZ_QUESTION_ENTRY_DURATION_MS);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [item.card.id, item.card.language, item.card.term]);
+  useSpeakQuizTermAfterEntry(item.card);
 
   return (
       <div
@@ -5816,7 +5977,7 @@ export function DefinitionQuestion({
           >
             <Volume2 className="size-5 max-sm:size-4" aria-hidden="true" />
           </button>
-          <h2 className="font-display text-3xl font-semibold leading-none text-white sm:text-4xl lg:text-6xl">
+          <h2 className="font-display text-4xl font-semibold leading-none text-white sm:text-5xl lg:text-7xl">
             {item.card.term}
           </h2>
         </div>
@@ -5844,7 +6005,7 @@ export function DefinitionQuestion({
               disabled={showingAnswer}
               wordType={showingAnswer ? "inactive" : isCorrectOption ? "correct" : "incorrect"}
               feedback={feedback}
-              className="min-h-[4.5rem] items-center justify-center px-3 py-2 text-center text-sm font-semibold disabled:cursor-default sm:min-h-[5.25rem] sm:text-base"
+              className="min-h-[4.5rem] items-center justify-center px-3 py-2 text-center text-xl font-semibold leading-tight disabled:cursor-default sm:min-h-[5.25rem] sm:text-2xl"
             >
               {option}
             </QuizWordButton>
@@ -6561,6 +6722,14 @@ export function CelebrationView({
   const scoreRef = useRef<HTMLSpanElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const gainedPoints = getPointsForTier(card.tier);
+  const rewardAnimationGate = useRewardAnimationGate({
+    onPointsComplete: () => {
+      if (closeScheduledRef.current) return;
+      closeScheduledRef.current = true;
+      void refreshStats();
+      onContinueRef.current();
+    },
+  });
 
   useEffect(() => {
     onContinueRef.current = onContinue;
@@ -6574,6 +6743,7 @@ export function CelebrationView({
   function handleStartReward() {
     if (rewardStarted) return;
 
+    rewardAnimationGate.reset(false);
     setRewardStarted(true);
     vibrate("learned");
     playSoundEffect("confetti");
@@ -6660,15 +6830,11 @@ export function CelebrationView({
         <RewardScatter
           points={{ amount: gainedPoints, source: cardRef, target: scoreRef, zIndex: 50 }}
           onPointsArrive={(awardedTotal, arrivalIndex) => {
+            rewardAnimationGate.notePointsArrival();
             setDisplayPoints(basePoints + awardedTotal);
             setScorePulse(arrivalIndex);
           }}
-          onPointsComplete={() => {
-            if (closeScheduledRef.current) return;
-            closeScheduledRef.current = true;
-            void refreshStats();
-            onContinueRef.current();
-          }}
+          onPointsComplete={rewardAnimationGate.markPointsScatterComplete}
         />
       ) : null}
     </div>

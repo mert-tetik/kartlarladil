@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
+import { getCardGroupForCard } from "@/features/cards/card-groups";
 import type { Tier } from "@/types/domain";
 import {
   buildCategoryBonusFromGenerated,
@@ -174,8 +175,19 @@ describe("bonus quiz questions", () => {
 
     expect(imposter).not.toBeNull();
     expect(imposter?.options).toHaveLength(6);
-    expect(imposter?.options.filter((option) => !option.isImposter)).toHaveLength(5);
-    expect(imposter?.options.filter((option) => option.isImposter)).toHaveLength(1);
+    expect(imposter?.options.filter((option) => !option.isImposter)).toHaveLength(1);
+    expect(imposter?.options.filter((option) => option.isImposter)).toHaveLength(5);
+
+    const outsiderGroupIds = new Set(
+      imposter?.options
+        .filter((option) => option.isImposter)
+        .map((option) => {
+          const card = ENGLISH_CARDS.find((candidate) => candidate.id === option.cardId);
+          return card ? getCardGroupForCard(card)?.id : undefined;
+        }),
+    );
+    expect(outsiderGroupIds.size).toBe(1);
+    expect(["commonVerbs", "advancedVerbs"]).not.toContain([...outsiderGroupIds][0]);
   });
 
   it("rejects generated category payloads with duplicate or unknown cards", () => {

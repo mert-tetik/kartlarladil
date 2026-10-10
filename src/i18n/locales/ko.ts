@@ -549,6 +549,7 @@ const dictionary = {
   "quiz.chooseCountDescription": "당신은 {count} {language} 카드를 가지고 있습니다. 이번에 몇 장을 연습하고 싶으신가요?",
   "quiz.countAvailable": "You have {count} {language} cards",
   "quiz.countLabel": "Card count",
+  "quiz.chestNeedMoreCards": "상자를 받으려면 카드 {count}장을 더 추가하세요",
   "quiz.recallPrompt": "올바른 뜻을 고르세요",
   "quiz.groupMeaningPrompt": "단어의 뜻을 고르세요",
   "quiz.learningPrompt": "뜻을 떠올려 보세요",

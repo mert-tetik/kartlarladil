@@ -326,20 +326,22 @@ describe("BonusQuestionView", () => {
     expect(onSubmit).toHaveBeenCalledWith("matching", false);
   });
 
-  it("lets sentence tokens be removed from the sentence before checking", () => {
+  it("starts the sentence with its first three tokens already placed", () => {
     const onSubmit = vi.fn();
     const { container } = render(
       <LocaleProvider initialLocale="en">
         <BonusQuestionView
           question={{
             kind: "sentence-order",
-            sentence: "I learn",
+            sentence: "I learn every day",
             nativeSentence: "Ben öğreniyorum",
             sourceCardId: "card-a",
-            acceptedTokenOrders: [["one", "two"]],
+            acceptedTokenOrders: [["one", "two", "three", "four"]],
             tokens: [
               { id: "one", text: "I" },
               { id: "two", text: "learn" },
+              { id: "three", text: "every" },
+              { id: "four", text: "day" },
             ],
           }}
           showingAnswer={false}
@@ -353,17 +355,16 @@ describe("BonusQuestionView", () => {
 
     const token = (id: string) => container.querySelector<HTMLButtonElement>(`[data-bonus-sentence-token="${id}"]`)!;
     expect(document.body.querySelector("[data-bonus-sentence-decoration]")).toBeInTheDocument();
-    expect(container.querySelector("[data-bonus-native-sentence]")).toHaveTextContent("Ben ögreniyorum");
-    fireEvent.click(token("one"));
-    const selectedToken = container.querySelector("[data-bonus-sentence-selected=\"one\"]");
-    expect(selectedToken).toBeInTheDocument();
-    expect(selectedToken).toHaveClass("bg-brand", "border-[3px]", "border-b-[6px]");
-    expect(selectedToken).not.toHaveClass("border-brand");
-    fireEvent.click(token("one"));
-    expect(container.querySelector("[data-bonus-sentence-selected=\"one\"]")).not.toBeInTheDocument();
-
-    fireEvent.click(token("one"));
-    fireEvent.click(token("two"));
+    expect(container.querySelector("[data-bonus-sentence-selected=\"one\"]")).toBeInTheDocument();
+    expect(container.querySelector("[data-bonus-sentence-selected=\"two\"]")).toBeInTheDocument();
+    expect(container.querySelector("[data-bonus-sentence-selected=\"three\"]")).toBeInTheDocument();
+    expect(container.querySelector("[data-bonus-sentence-selected=\"four\"]")).not.toBeInTheDocument();
+    const selectedToken = container.querySelector("[data-bonus-sentence-selected=\"three\"]");
+    expect(selectedToken).toHaveClass("border-brand", "ring-2");
+    fireEvent.click(token("three"));
+    expect(container.querySelector("[data-bonus-sentence-selected=\"three\"]")).not.toBeInTheDocument();
+    fireEvent.click(token("three"));
+    fireEvent.click(token("four"));
     fireEvent.click(container.querySelector<HTMLButtonElement>("[data-bonus-check]")!);
     expect(onSubmit).toHaveBeenCalledWith("sentence-order", true);
   });

@@ -28,6 +28,7 @@ import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { useAppMessage } from "@/components/app-message-provider";
 
 const ADD_TO_DECK_TIMEOUT_MS = 20000;
+const CREATE_CARD_PREVIEW_EXIT_DURATION_MS = 1_080;
 const CREATE_CARD_FRAME_CLASS_NAME =
   "relative flex h-screen w-full items-start justify-center overflow-hidden px-4 py-4 sm:px-6 sm:py-6";
 
@@ -56,6 +57,9 @@ export default function CreateCardPage() {
   const [isExiting, setIsExiting] = useState(false);
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [grammarDetailsOpen, setGrammarDetailsOpen] = useState(false);
+  const createCardButtonText = loading ? t("createCard.generating") : t("createCard.generate");
+  const formattedCreateCardButtonText = formatSuperWaterText(locale, createCardButtonText);
+  const useSuperWaterForCreateCardButton = canUseSuperWater(locale);
 
   useEffect(() => {
     if (!user) {
@@ -127,7 +131,7 @@ export default function CreateCardPage() {
       };
 
       void createCustomCardFromGenerated(aiResponse, createCustomCard).then(() => {
-        window.setTimeout(complete, 300);
+        window.setTimeout(complete, CREATE_CARD_PREVIEW_EXIT_DURATION_MS);
       }).catch(() => {
         setFoundCard(null);
         setAiResponse(null);
@@ -156,7 +160,7 @@ export default function CreateCardPage() {
         setTerm("");
         setIsExiting(false);
         showMessage(t("createCard.success.addedWithLanguage", { language: getLanguageDisplayName(foundCard.language, locale) }), "success");
-      }, 300);
+      }, CREATE_CARD_PREVIEW_EXIT_DURATION_MS);
     } catch {
       setIsExiting(true);
       window.setTimeout(() => {
@@ -164,7 +168,7 @@ export default function CreateCardPage() {
         setAiResponse(null);
         setIsExiting(false);
         showMessage(t("createCard.error.addFailed"), "error");
-      }, 300);
+      }, CREATE_CARD_PREVIEW_EXIT_DURATION_MS);
     } finally {
       setAdding(false);
     }
@@ -177,7 +181,7 @@ export default function CreateCardPage() {
       setAiResponse(null);
       setGrammarDetailsOpen(false);
       setIsExiting(false);
-    }, 300);
+    }, CREATE_CARD_PREVIEW_EXIT_DURATION_MS);
   }
 
   function getErrorMessage(code: string) {
@@ -251,8 +255,10 @@ export default function CreateCardPage() {
             className="control-gradient-outline control-gradient-outline-brand create-card-gradient-outline h-12 w-full gap-2 rounded-full text-brand-foreground hover:bg-brand-hover"
           >
             {loading ? <Loader2 className="size-5 animate-spin" /> : <Library className="size-5" />}
-            <span className={cn(canUseSuperWater(locale) && "font-super-water")}>
-              {formatSuperWaterText(locale, loading ? t("createCard.generating") : t("createCard.generate"))}
+            <span className={cn(useSuperWaterForCreateCardButton && "font-super-water")}>
+              {useSuperWaterForCreateCardButton
+                ? formattedCreateCardButtonText
+                : createCardButtonText}
             </span>
           </Button>
         </div>
@@ -262,43 +268,42 @@ export default function CreateCardPage() {
         <div
           data-create-card-overlay
           className={cn(
-            "absolute inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/80 px-3 py-4 backdrop-blur-sm transition-all duration-300 sm:px-6 sm:py-6",
+            "absolute inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/80 px-3 py-4 backdrop-blur-sm transition-opacity duration-300 sm:px-6 sm:py-6",
             isExiting || !overlayVisible ? "opacity-0" : "opacity-100",
           )}
         >
-          <div className="flex h-full w-full max-w-md flex-col items-center justify-center gap-3 overflow-visible">
+          <div
+            data-create-card-preview-state={
+              isExiting ? "exit" : overlayVisible ? "enter" : "pre-enter"
+            }
+            className="flex h-full w-full max-w-md flex-col items-center justify-center gap-3 overflow-visible"
+          >
             <div
               data-create-card-overlay-panel
-              className={cn(
-                "relative flex w-full min-h-0 max-h-[calc(100%-3.75rem)] flex-col items-center justify-center overflow-visible bg-transparent p-0 transition-all duration-300",
-                isExiting || !overlayVisible ? "scale-95 opacity-0" : "scale-100 opacity-100",
-              )}
+              className="relative flex w-full min-h-0 max-h-[calc(100%-3.75rem)] flex-col items-center justify-center overflow-visible bg-transparent p-0"
             >
               <div className="flex min-h-0 w-full flex-1 items-center justify-center">
                 <div className="relative w-full max-w-[15rem] sm:max-w-[18rem]">
-                  <CardGrammarDetailsButton
-                    onClick={() => setGrammarDetailsOpen(true)}
-                    className="absolute -left-1 top-[-3.25rem] z-30"
-                  />
-                  <VocabularyCardView
-                    card={foundCard}
-                    initialFace="front"
-                    flippable
-                    showActions={false}
-                    frontFit
-                    className="h-auto min-h-0 w-full max-sm:aspect-[3/4]"
-                  />
+                  <div data-create-card-preview-item="grammar" className="absolute -left-1 top-[-3.25rem] z-30">
+                    <CardGrammarDetailsButton onClick={() => setGrammarDetailsOpen(true)} />
+                  </div>
+                  <div data-create-card-preview-item="card">
+                    <VocabularyCardView
+                      card={foundCard}
+                      initialFace="front"
+                      flippable
+                      showActions={false}
+                      frontFit
+                      className="h-auto min-h-0 w-full max-sm:aspect-[3/4]"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div
-              className={cn(
-                "grid w-full shrink-0 grid-cols-2 gap-3 transition-all duration-300",
-                isExiting || !overlayVisible ? "translate-y-4 opacity-0" : "translate-y-0 opacity-100",
-              )}
-            >
+            <div className="grid w-full shrink-0 grid-cols-2 gap-3">
               <Button
+                data-create-card-preview-item="back"
                 variant="secondary"
                 size="sm"
                 onClick={handleBack}
@@ -309,6 +314,7 @@ export default function CreateCardPage() {
                 {t("common.back")}
               </Button>
               <Button
+                data-create-card-preview-item="add"
                 size="sm"
                 onClick={handleAdd}
                 disabled={adding || isAlreadyInDeck}

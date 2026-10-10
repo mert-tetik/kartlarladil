@@ -7,10 +7,10 @@ export type BonusQuestionKind =
 export const BONUS_QUESTION_PROBABILITY = 1 / 10;
 
 export const BONUS_QUESTION_TYPE_WEIGHTS: Record<BonusQuestionKind, number> = {
-  matching: 0.55,
-  "sentence-order": 0.1,
-  "category-sort": 0.35,
-  imposter: 0,
+  matching: 0.4,
+  "sentence-order": 0.2,
+  "category-sort": 0.2,
+  imposter: 0.2,
 };
 
 export function getMaxBonusQuestionCount(regularQuestionCount: number) {

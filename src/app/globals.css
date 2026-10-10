@@ -1575,6 +1575,32 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   visibility: hidden !important;
 }
 
+/* A streak count is already gone before its outgoing screen starts sliding.
+   Keep both the live source and its detached snapshot in that final state;
+   Android WebViews can otherwise briefly restore an animated text layer when
+   promoting the fallback copy for the horizontal transition. */
+[data-quiz-transition-streak-label-vanished] {
+  display: none !important;
+}
+
+/* The bonus reward artwork has already disappeared before its outgoing
+   screen slides away. Never let the detached snapshot restart its exit
+   animation and resurrect the artwork for a frame. */
+[data-quiz-transition-fallback-old]
+  [data-quiz-transition-bonus-reward-image-vanished] img {
+  display: none !important;
+}
+
+[data-quiz-transition-fallback-old]
+  [data-streak-count-label][data-streak-count-state="exiting"],
+[data-quiz-transition-fallback-old]
+  [data-streak-reward-text][data-streak-reward-state="exiting"] {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  animation: none !important;
+}
+
 .quiz-transition-fallback-old[data-quiz-card-progress-reveal] {
   inset: 0 !important;
 }
@@ -3501,6 +3527,58 @@ body:has([data-card-draw-page]) footer {
 /* Hide the site footer on AI practice pages */
 body:has([data-ai-practice-page]) footer {
   display: none;
+}
+
+/* Custom-card preview items enter and leave in place. The stagger follows the
+   visual order from the card down to the details control and the two actions. */
+[data-create-card-preview-item] {
+  --create-card-preview-enter-delay: 0ms;
+  --create-card-preview-exit-delay: 450ms;
+  opacity: 0;
+  transform: scale(0.82);
+  transform-origin: center;
+  transition-property: opacity, transform;
+  transition-duration: 600ms;
+  transition-timing-function: cubic-bezier(0.85, 0, 0.15, 1);
+  will-change: opacity, transform;
+}
+
+[data-create-card-preview-item="card"] {
+  --create-card-preview-enter-delay: 0ms;
+  --create-card-preview-exit-delay: 450ms;
+}
+
+[data-create-card-preview-item="grammar"] {
+  --create-card-preview-enter-delay: 150ms;
+  --create-card-preview-exit-delay: 300ms;
+}
+
+[data-create-card-preview-item="back"] {
+  --create-card-preview-enter-delay: 300ms;
+  --create-card-preview-exit-delay: 150ms;
+}
+
+[data-create-card-preview-item="add"] {
+  --create-card-preview-enter-delay: 450ms;
+  --create-card-preview-exit-delay: 0ms;
+}
+
+[data-create-card-preview-state="enter"] [data-create-card-preview-item] {
+  opacity: 1;
+  transform: scale(1);
+  transition-delay: var(--create-card-preview-enter-delay);
+}
+
+[data-create-card-preview-state="exit"] [data-create-card-preview-item] {
+  opacity: 0;
+  transform: scale(0.82);
+  transition-delay: var(--create-card-preview-exit-delay);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-create-card-preview-item] {
+    transition-duration: 1ms;
+  }
 }
 
 /* Keep create-card inside the viewport band between the app header and bottom nav */

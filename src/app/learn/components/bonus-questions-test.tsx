@@ -7,10 +7,8 @@ import {
   buildFallbackSentenceOrderQuestion,
   buildImposterBonusQuestion,
   buildMatchingBonusQuestion,
-  buildSentenceBonusFromGenerated,
   type BonusQuestion,
 } from "@/features/quiz/bonus-questions";
-import { requestSentenceBonusQuestion } from "@/features/quiz/bonus-question-client";
 import { BonusQuestionView } from "@/features/quiz/components/bonus-question-view";
 import { MobileQuizFeedback } from "@/features/quiz/components/quiz-station";
 import { useLocale } from "@/i18n/locale-provider";
@@ -45,40 +43,7 @@ export function BonusQuestionsTest({ onlyMatching = false }: { onlyMatching?: bo
   const session = useOptionalAuthSession();
   const [questions, setQuestions] = useState<BonusQuestion[]>([]);
   useEffect(() => {
-    const nextQuestions = buildBonusTestQuestions(locale, onlyMatching);
-    setQuestions(nextQuestions);
-
-    if (onlyMatching) return;
-
-    let cancelled = false;
-    const languageCards = VOCABULARY_CARDS.filter((card) => card.language === TEST_LANGUAGE);
-    const fallbackSentence = nextQuestions.find((question) => question.kind === "sentence-order");
-    void requestSentenceBonusQuestion({
-      language: TEST_LANGUAGE,
-      locale,
-      cards: languageCards,
-      sentence: fallbackSentence?.kind === "sentence-order" ? fallbackSentence.sentence : undefined,
-    }).then((generated) => {
-      if (!generated || cancelled) return;
-      const generatedQuestion = buildSentenceBonusFromGenerated(
-        generated,
-        languageCards,
-        "bonus-test-sentence",
-      );
-
-      setQuestions((current) => current.map((question) => {
-        if (question.kind !== "sentence-order") return question;
-        if (generatedQuestion) return generatedQuestion;
-
-        return normalizeBonusSentence(question.sentence) === normalizeBonusSentence(generated.sentence)
-          ? { ...question, nativeSentence: generated.nativeSentence }
-          : question;
-      }));
-    });
-
-    return () => {
-      cancelled = true;
-    };
+    setQuestions(buildBonusTestQuestions(locale, onlyMatching));
   }, [locale, onlyMatching]);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [showingAnswer, setShowingAnswer] = useState(false);
@@ -178,12 +143,4 @@ export function BonusQuestionsTest({ onlyMatching = false }: { onlyMatching?: bo
       />
     </div>
   );
-}
-
-function normalizeBonusSentence(value: string) {
-  return value
-    .trim()
-    .replace(/\s+([,.;!?])/gu, "$1")
-    .replace(/\s+/gu, " ")
-    .toLocaleLowerCase();
 }

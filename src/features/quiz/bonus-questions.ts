@@ -12,7 +12,8 @@ import type { LanguageCode, LocaleCode, Tier, VocabularyCard } from "@/types/dom
 export { BONUS_QUESTION_POINTS, getBonusQuestionPoints } from "@/features/quiz/bonus-question-constants";
 export type { BonusQuestionKind } from "@/features/quiz/bonus-question-constants";
 
-const IMPOSTER_GROUP_WORD_COUNT = 5;
+const IMPOSTER_OUTSIDER_WORD_COUNT = 5;
+const IMPOSTER_VERB_GROUPS: readonly CardGroupIcon[] = ["commonVerbs", "advancedVerbs"];
 
 export interface BonusPair {
   id: string;
@@ -119,20 +120,20 @@ export const BONUS_COPY: Record<LocaleCode, {
   incorrect: string;
   bonusPoints: string;
 }> = {
-  tr: { intro: "BONUS SORU", matchingTitle: "Eşleştir", matchingPrompt: "Eşleştir", sentenceTitle: "Cümleyi kur", sentencePrompt: "Cümleyi kur", categoryTitle: "Kategorilere ayır", categoryPrompt: "Kelimeleri doğru gruba yerleştir", imposterTitle: "Farklı olanı bul", imposterPrompt: "Farklı olanı bul", check: "Kontrol et", correct: "Doğru bildin!", incorrect: "Bu kez olmadı.", bonusPoints: "Bonus puan" },
-  en: { intro: "BONUS QUESTION", matchingTitle: "Match them", matchingPrompt: "Match", sentenceTitle: "Build the sentence", sentencePrompt: "Build the sentence", categoryTitle: "Sort the categories", categoryPrompt: "Place each word in the right group", imposterTitle: "Find the odd one", imposterPrompt: "Find the odd one", check: "Check", correct: "You got it!", incorrect: "Not this time.", bonusPoints: "Bonus points" },
-  de: { intro: "BONUSFRAGE", matchingTitle: "Ordne zu", matchingPrompt: "Zuordnen", sentenceTitle: "Bilde den Satz", sentencePrompt: "Satz bilden", categoryTitle: "Sortiere die Kategorien", categoryPrompt: "Ordne jedes Wort der richtigen Gruppe zu", imposterTitle: "Finde den Außenseiter", imposterPrompt: "Finde den Außenseiter", check: "Prüfen", correct: "Richtig!", incorrect: "Diesmal nicht.", bonusPoints: "Bonuspunkte" },
-  ru: { intro: "БОНУСНЫЙ ВОПРОС", matchingTitle: "Сопоставь", matchingPrompt: "Сопоставь", sentenceTitle: "Составь предложение", sentencePrompt: "Составь предложение", categoryTitle: "Распредели по категориям", categoryPrompt: "Помести каждое слово в нужную группу", imposterTitle: "Найди лишнее", imposterPrompt: "Найди лишнее", check: "Проверить", correct: "Правильно!", incorrect: "Не в этот раз.", bonusPoints: "Бонусные очки" },
-  fr: { intro: "QUESTION BONUS", matchingTitle: "Associe-les", matchingPrompt: "Associe", sentenceTitle: "Construis la phrase", sentencePrompt: "Construis la phrase", categoryTitle: "Trie les catégories", categoryPrompt: "Place chaque mot dans le bon groupe", imposterTitle: "Trouve l'intrus", imposterPrompt: "Trouve l'intrus", check: "Vérifier", correct: "Bonne réponse !", incorrect: "Pas cette fois.", bonusPoints: "Points bonus" },
-  es: { intro: "PREGUNTA EXTRA", matchingTitle: "Relaciona", matchingPrompt: "Relaciona", sentenceTitle: "Forma la frase", sentencePrompt: "Forma la frase", categoryTitle: "Ordena las categorías", categoryPrompt: "Coloca cada palabra en el grupo correcto", imposterTitle: "Encuentra la intrusa", imposterPrompt: "Encuentra la intrusa", check: "Comprobar", correct: "¡Correcto!", incorrect: "Esta vez no.", bonusPoints: "Puntos extra" },
-  it: { intro: "DOMANDA BONUS", matchingTitle: "Abbina", matchingPrompt: "Abbina", sentenceTitle: "Costruisci la frase", sentencePrompt: "Costruisci la frase", categoryTitle: "Dividi per categorie", categoryPrompt: "Metti ogni parola nel gruppo corretto", imposterTitle: "Trova l'intruso", imposterPrompt: "Trova l'intruso", check: "Controlla", correct: "Risposta corretta!", incorrect: "Non questa volta.", bonusPoints: "Punti bonus" },
-  pt: { intro: "PERGUNTA BÔNUS", matchingTitle: "Combine", matchingPrompt: "Combine", sentenceTitle: "Monte a frase", sentencePrompt: "Monte a frase", categoryTitle: "Separe as categorias", categoryPrompt: "Coloque cada palavra no grupo certo", imposterTitle: "Encontre a diferente", imposterPrompt: "Encontre a diferente", check: "Conferir", correct: "Você acertou!", incorrect: "Desta vez não.", bonusPoints: "Pontos bônus" },
-  nl: { intro: "BONUSVRAAG", matchingTitle: "Koppel ze", matchingPrompt: "Koppel", sentenceTitle: "Bouw de zin", sentencePrompt: "Bouw de zin", categoryTitle: "Sorteer de categorieën", categoryPrompt: "Plaats elk woord in de juiste groep", imposterTitle: "Vind de vreemde", imposterPrompt: "Vind de vreemde", check: "Controleren", correct: "Goed gedaan!", incorrect: "Deze keer niet.", bonusPoints: "Bonuspunten" },
-  pl: { intro: "PYTANIE BONUSOWE", matchingTitle: "Dopasuj", matchingPrompt: "Dopasuj", sentenceTitle: "Ułóż zdanie", sentencePrompt: "Ułóż zdanie", categoryTitle: "Sortuj kategorie", categoryPrompt: "Umieść każde słowo w odpowiedniej grupie", imposterTitle: "Znajdź intruza", imposterPrompt: "Znajdź intruza", check: "Sprawdź", correct: "Dobrze!", incorrect: "Tym razem nie.", bonusPoints: "Punkty bonusowe" },
-  ar: { intro: "سؤال إضافي", matchingTitle: "طابقها", matchingPrompt: "طابق", sentenceTitle: "كوّن الجملة", sentencePrompt: "كوّن الجملة", categoryTitle: "رتب الفئات", categoryPrompt: "ضع كل كلمة في المجموعة الصحيحة", imposterTitle: "اعثر على الدخيل", imposterPrompt: "اعثر على الدخيل", check: "تحقق", correct: "إجابة صحيحة!", incorrect: "ليس هذه المرة.", bonusPoints: "نقاط إضافية" },
-  ja: { intro: "ボーナス問題", matchingTitle: "組み合わせ", matchingPrompt: "組み合わせよう", sentenceTitle: "文を作る", sentencePrompt: "文を作ろう", categoryTitle: "カテゴリー分け", categoryPrompt: "単語を正しいグループに入れてください", imposterTitle: "仲間外れを探す", imposterPrompt: "仲間外れを探そう", check: "確認", correct: "正解です！", incorrect: "今回は違います。", bonusPoints: "ボーナスポイント" },
-  ko: { intro: "보너스 문제", matchingTitle: "짝 맞추기", matchingPrompt: "짝을 맞추세요", sentenceTitle: "문장 만들기", sentencePrompt: "문장을 만들어 보세요", categoryTitle: "범주별로 나누기", categoryPrompt: "각 단어를 알맞은 그룹에 넣으세요", imposterTitle: "다른 단어 찾기", imposterPrompt: "다른 단어를 찾으세요", check: "확인", correct: "정답이에요!", incorrect: "이번에는 아니에요.", bonusPoints: "보너스 포인트" },
-  "zh-CN": { intro: "奖励题", matchingTitle: "配对", matchingPrompt: "配对", sentenceTitle: "组成句子", sentencePrompt: "组成句子", categoryTitle: "分类", categoryPrompt: "将每个单词放入正确的类别", imposterTitle: "找出不同的词", imposterPrompt: "找出不同的词", check: "检查", correct: "答对了！", incorrect: "这次不对。", bonusPoints: "奖励积分" },
+  tr: { intro: "BONUS SORU", matchingTitle: "Eşleştir", matchingPrompt: "Eşleştir", sentenceTitle: "Cümleyi kur", sentencePrompt: "Cümleyi kur", categoryTitle: "Kategorilere ayır", categoryPrompt: "Kelimeleri doğru gruba yerleştir", imposterTitle: "Alakalı olanı bul", imposterPrompt: "Alakalı olanı bul", check: "Kontrol et", correct: "Doğru bildin!", incorrect: "Bu kez olmadı.", bonusPoints: "Bonus puan" },
+  en: { intro: "BONUS QUESTION", matchingTitle: "Match them", matchingPrompt: "Match", sentenceTitle: "Build the sentence", sentencePrompt: "Build the sentence", categoryTitle: "Sort the categories", categoryPrompt: "Place each word in the right group", imposterTitle: "Find the related one", imposterPrompt: "Find the related one", check: "Check", correct: "You got it!", incorrect: "Not this time.", bonusPoints: "Bonus points" },
+  de: { intro: "BONUSFRAGE", matchingTitle: "Ordne zu", matchingPrompt: "Zuordnen", sentenceTitle: "Bilde den Satz", sentencePrompt: "Satz bilden", categoryTitle: "Sortiere die Kategorien", categoryPrompt: "Ordne jedes Wort der richtigen Gruppe zu", imposterTitle: "Finde das passende Wort", imposterPrompt: "Finde das passende Wort", check: "Prüfen", correct: "Richtig!", incorrect: "Diesmal nicht.", bonusPoints: "Bonuspunkte" },
+  ru: { intro: "БОНУСНЫЙ ВОПРОС", matchingTitle: "Сопоставь", matchingPrompt: "Сопоставь", sentenceTitle: "Составь предложение", sentencePrompt: "Составь предложение", categoryTitle: "Распредели по категориям", categoryPrompt: "Помести каждое слово в нужную группу", imposterTitle: "Найди подходящее слово", imposterPrompt: "Найди подходящее слово", check: "Проверить", correct: "Правильно!", incorrect: "Не в этот раз.", bonusPoints: "Бонусные очки" },
+  fr: { intro: "QUESTION BONUS", matchingTitle: "Associe-les", matchingPrompt: "Associe", sentenceTitle: "Construis la phrase", sentencePrompt: "Construis la phrase", categoryTitle: "Trie les catégories", categoryPrompt: "Place chaque mot dans le bon groupe", imposterTitle: "Trouve le mot associé", imposterPrompt: "Trouve le mot associé", check: "Vérifier", correct: "Bonne réponse !", incorrect: "Pas cette fois.", bonusPoints: "Points bonus" },
+  es: { intro: "PREGUNTA EXTRA", matchingTitle: "Relaciona", matchingPrompt: "Relaciona", sentenceTitle: "Forma la frase", sentencePrompt: "Forma la frase", categoryTitle: "Ordena las categorías", categoryPrompt: "Coloca cada palabra en el grupo correcto", imposterTitle: "Encuentra la palabra relacionada", imposterPrompt: "Encuentra la palabra relacionada", check: "Comprobar", correct: "¡Correcto!", incorrect: "Esta vez no.", bonusPoints: "Puntos extra" },
+  it: { intro: "DOMANDA BONUS", matchingTitle: "Abbina", matchingPrompt: "Abbina", sentenceTitle: "Costruisci la frase", sentencePrompt: "Costruisci la frase", categoryTitle: "Dividi per categorie", categoryPrompt: "Metti ogni parola nel gruppo corretto", imposterTitle: "Trova la parola collegata", imposterPrompt: "Trova la parola collegata", check: "Controlla", correct: "Risposta corretta!", incorrect: "Non questa volta.", bonusPoints: "Punti bonus" },
+  pt: { intro: "PERGUNTA BÔNUS", matchingTitle: "Combine", matchingPrompt: "Combine", sentenceTitle: "Monte a frase", sentencePrompt: "Monte a frase", categoryTitle: "Separe as categorias", categoryPrompt: "Coloque cada palavra no grupo certo", imposterTitle: "Encontre a palavra relacionada", imposterPrompt: "Encontre a palavra relacionada", check: "Conferir", correct: "Você acertou!", incorrect: "Desta vez não.", bonusPoints: "Pontos bônus" },
+  nl: { intro: "BONUSVRAAG", matchingTitle: "Koppel ze", matchingPrompt: "Koppel", sentenceTitle: "Bouw de zin", sentencePrompt: "Bouw de zin", categoryTitle: "Sorteer de categorieën", categoryPrompt: "Plaats elk woord in de juiste groep", imposterTitle: "Vind het bijbehorende woord", imposterPrompt: "Vind het bijbehorende woord", check: "Controleren", correct: "Goed gedaan!", incorrect: "Deze keer niet.", bonusPoints: "Bonuspunten" },
+  pl: { intro: "PYTANIE BONUSOWE", matchingTitle: "Dopasuj", matchingPrompt: "Dopasuj", sentenceTitle: "Ułóż zdanie", sentencePrompt: "Ułóż zdanie", categoryTitle: "Sortuj kategorie", categoryPrompt: "Umieść każde słowo w odpowiedniej grupie", imposterTitle: "Znajdź powiązane słowo", imposterPrompt: "Znajdź powiązane słowo", check: "Sprawdź", correct: "Dobrze!", incorrect: "Tym razem nie.", bonusPoints: "Punkty bonusowe" },
+  ar: { intro: "سؤال إضافي", matchingTitle: "طابقها", matchingPrompt: "طابق", sentenceTitle: "كوّن الجملة", sentencePrompt: "كوّن الجملة", categoryTitle: "رتب الفئات", categoryPrompt: "ضع كل كلمة في المجموعة الصحيحة", imposterTitle: "اعثر على الكلمة المرتبطة", imposterPrompt: "اعثر على الكلمة المرتبطة", check: "تحقق", correct: "إجابة صحيحة!", incorrect: "ليس هذه المرة.", bonusPoints: "نقاط إضافية" },
+  ja: { intro: "ボーナス問題", matchingTitle: "組み合わせ", matchingPrompt: "組み合わせよう", sentenceTitle: "文を作る", sentencePrompt: "文を作ろう", categoryTitle: "カテゴリー分け", categoryPrompt: "単語を正しいグループに入れてください", imposterTitle: "関連する言葉を探す", imposterPrompt: "関連する言葉を探そう", check: "確認", correct: "正解です！", incorrect: "今回は違います。", bonusPoints: "ボーナスポイント" },
+  ko: { intro: "보너스 문제", matchingTitle: "짝 맞추기", matchingPrompt: "짝을 맞추세요", sentenceTitle: "문장 만들기", sentencePrompt: "문장을 만들어 보세요", categoryTitle: "범주별로 나누기", categoryPrompt: "각 단어를 알맞은 그룹에 넣으세요", imposterTitle: "관련된 단어 찾기", imposterPrompt: "관련된 단어를 찾으세요", check: "확인", correct: "정답이에요!", incorrect: "이번에는 아니에요.", bonusPoints: "보너스 포인트" },
+  "zh-CN": { intro: "奖励题", matchingTitle: "配对", matchingPrompt: "配对", sentenceTitle: "组成句子", sentencePrompt: "组成句子", categoryTitle: "分类", categoryPrompt: "将每个单词放入正确的类别", imposterTitle: "找出相关的词", imposterPrompt: "找出相关的词", check: "检查", correct: "答对了！", incorrect: "这次不对。", bonusPoints: "奖励积分" },
 };
 
 export function getBonusCopy(locale: LocaleCode) {
@@ -421,30 +422,36 @@ export function buildImposterBonusQuestion(
   seed: string,
 ): ImposterBonusQuestion | null {
   const group = shuffle([...CARD_GROUPS]).find(
-    (candidate) => getCardsForGroup(candidate.id, language).length >= IMPOSTER_GROUP_WORD_COUNT,
+    (candidate) => getCardsForGroup(candidate.id, language).length >= 1,
   );
   if (!group) return null;
 
-  const groupCards = shuffle(getCardsForGroup(group.id, language)).slice(0, IMPOSTER_GROUP_WORD_COUNT);
-  const outsider = shuffle(VOCABULARY_CARDS).find(
-    (card) => card.language === language && getCardGroupForCard(card)?.id !== group.id,
+  const relatedCard = shuffle(getCardsForGroup(group.id, language))[0];
+  const outsiderGroup = shuffle([...CARD_GROUPS]).find(
+    (candidate) =>
+      candidate.id !== group.id &&
+      !IMPOSTER_VERB_GROUPS.includes(candidate.id) &&
+      getCardsForGroup(candidate.id, language).length >= IMPOSTER_OUTSIDER_WORD_COUNT,
   );
+  const outsiders = outsiderGroup
+    ? shuffle(getCardsForGroup(outsiderGroup.id, language)).slice(0, IMPOSTER_OUTSIDER_WORD_COUNT)
+    : [];
 
-  if (!outsider) return null;
+  if (!relatedCard || outsiders.length !== IMPOSTER_OUTSIDER_WORD_COUNT) return null;
 
   const options = shuffle([
-    ...groupCards.map((card, index) => ({
+    {
+      id: `${seed}-imposter-related`,
+      cardId: relatedCard.id,
+      text: relatedCard.term,
+      isImposter: false,
+    },
+    ...outsiders.map((card, index) => ({
       id: `${seed}-imposter-${index}`,
       cardId: card.id,
       text: card.term,
-      isImposter: false,
-    })),
-    {
-      id: `${seed}-imposter-outlier`,
-      cardId: outsider.id,
-      text: outsider.term,
       isImposter: true,
-    },
+    })),
   ]);
 
   return {
@@ -452,7 +459,7 @@ export function buildImposterBonusQuestion(
     groupId: group.id,
     groupImageSrc: CARD_GROUP_IMAGE_PATHS[group.id],
     options,
-    correctOptionId: options.find((option) => option.isImposter)!.id,
+    correctOptionId: options.find((option) => !option.isImposter)!.id,
   };
 }
 

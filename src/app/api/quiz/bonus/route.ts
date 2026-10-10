@@ -1,15 +1,12 @@
 import OpenAI from "openai";
 import { z } from "zod";
-import {
-  generatedCategoryBonusSchema,
-  generatedSentenceBonusSchema,
-} from "@/features/quiz/bonus-questions";
+import { generatedCategoryBonusSchema } from "@/features/quiz/bonus-questions";
 import {
   AI_PRACTICE_DEFAULT_MODEL,
   createAiPracticeSafetyIdentifier,
 } from "@/features/ai-practice/ai-practice-openai";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
-import { isLanguageCode, isLocaleCode } from "@/data/languages";
+import { isLanguageCode } from "@/data/languages";
 import { getLanguageDisplayName } from "@/i18n/labels";
 
 export const runtime = "nodejs";
@@ -17,45 +14,13 @@ export const dynamic = "force-dynamic";
 
 const REQUEST_TIMEOUT_MS = 7_500;
 const requestSchema = z.object({
-  kind: z.enum(["sentence-order", "category-sort"]),
+  kind: z.literal("category-sort"),
   language: z.string().min(2).max(8),
-  locale: z.string().min(2).max(8).optional(),
-  sentence: z.string().trim().min(2).max(180).optional(),
   cards: z.array(z.object({
     id: z.string().min(1).max(160),
     term: z.string().trim().min(1).max(100),
   })).min(4).max(40),
 });
-
-const SENTENCE_FORMAT = {
-  type: "json_schema",
-  name: "quiz_bonus_sentence",
-  strict: true,
-  schema: {
-    type: "object",
-    additionalProperties: false,
-    required: ["sentence", "nativeSentence", "tokens", "alternativeTokenOrders", "sourceCardId"],
-    properties: {
-      sentence: { type: "string" },
-      nativeSentence: {
-        type: "string",
-        description: "The actual complete translation in the requested native language. Never use a placeholder or English instruction.",
-      },
-      tokens: { type: "array", minItems: 2, maxItems: 14, items: { type: "string" } },
-      alternativeTokenOrders: {
-        type: "array",
-        maxItems: 4,
-        items: {
-          type: "array",
-          minItems: 2,
-          maxItems: 14,
-          items: { type: "string" },
-        },
-      },
-      sourceCardId: { type: "string" },
-    },
-  },
-} as const;
 
 const CATEGORY_FORMAT = {
   type: "json_schema",
@@ -84,28 +49,6 @@ const CATEGORY_FORMAT = {
   },
 } as const;
 
-const ALTERNATIVE_VALIDATION_FORMAT = {
-  type: "json_schema",
-  name: "quiz_bonus_sentence_alternatives",
-  strict: true,
-  schema: {
-    type: "object",
-    additionalProperties: false,
-    required: ["acceptedAlternativeIndexes"],
-    properties: {
-      acceptedAlternativeIndexes: {
-        type: "array",
-        maxItems: 4,
-        items: { type: "integer", minimum: 0, maximum: 3 },
-      },
-    },
-  },
-} as const;
-
-const alternativeValidationSchema = z.object({
-  acceptedAlternativeIndexes: z.array(z.number().int().min(0).max(3)).max(4),
-});
-
 export async function POST(request: Request) {
   const user = await getCurrentAuthUser();
   if (!user) return Response.json({ errorCode: "auth_required" }, { status: 401 });
@@ -114,49 +57,19 @@ export async function POST(request: Request) {
   if (!apiKey) return Response.json({ errorCode: "not_configured" }, { status: 503 });
 
   const parsed = requestSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) {
-    return Response.json({ errorCode: "invalid_request" }, { status: 400 });
-  }
-  const language = parsed.data.language;
-  if (!isLanguageCode(language)) {
-    return Response.json({ errorCode: "invalid_request" }, { status: 400 });
-  }
-  if (parsed.data.kind === "sentence-order" && (!parsed.data.locale || !isLocaleCode(parsed.data.locale))) {
+  if (!parsed.success || !isLanguageCode(parsed.data.language)) {
     return Response.json({ errorCode: "invalid_request" }, { status: 400 });
   }
 
-  const languageName = getLanguageDisplayName(language, "en");
-  const nativeLanguageName = parsed.data.locale && isLocaleCode(parsed.data.locale)
-    ? getLanguageDisplayName(parsed.data.locale, "en")
-    : null;
+  const languageName = getLanguageDisplayName(parsed.data.language, "en");
   const cardList = parsed.data.cards.map((card) => `${card.id}: ${card.term}`).join("\n");
-  const instructions = parsed.data.kind === "sentence-order"
-    ? [
-        "Create one short, natural vocabulary-learning example sentence.",
-        `Write the sentence in ${languageName}.`,
-        `Also translate that exact sentence into ${nativeLanguageName}. Return the actual complete translation as nativeSentence.`,
-        "nativeSentence must be written in the requested native language. Never write an instruction, an explanation, or placeholder text such as 'translation of the sentence goes here'.",
-        ...(parsed.data.sentence
-          ? [
-              "Use the supplied sentence exactly as the sentence. Do not rewrite, shorten, expand, or replace it.",
-              `Supplied sentence: ${parsed.data.sentence}`,
-            ]
-          : []),
-        "Use exactly one or more of the supplied card terms naturally.",
-        "Return tokens in the exact order of the sentence. Each token should be a tappable chunk; keep punctuation attached to the nearest token.",
-        "For languages without spaces, split the sentence into useful short chunks.",
-        "Also return alternativeTokenOrders: up to 4 alternative grammatically correct orders that use exactly the same token chunks as the primary sentence, each exactly once.",
-        "Only include genuinely natural alternatives. Do not invent, remove, duplicate, translate, or modify any token. If no alternative order is natural, return an empty array.",
-        "sourceCardId must be one of the supplied IDs.",
-        `Cards:\n${cardList}`,
-      ].join("\n")
-    : [
-        "Create two clear semantic categories for a vocabulary sorting bonus question.",
-        `Category names must be written in ${languageName}.`,
-        "Use exactly three supplied card IDs in each category, never repeat an ID, and use six different supplied cards in total.",
-        "Choose categories that are easy to distinguish for a learner.",
-        `Cards:\n${cardList}`,
-      ].join("\n");
+  const instructions = [
+    "Create two clear semantic categories for a vocabulary sorting bonus question.",
+    `Category names must be written in ${languageName}.`,
+    "Use exactly three supplied card IDs in each category, never repeat an ID, and use six different supplied cards in total.",
+    "Choose categories that are easy to distinguish for a learner.",
+    `Cards:\n${cardList}`,
+  ].join("\n");
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -168,59 +81,19 @@ export async function POST(request: Request) {
         model: process.env.OPENAI_AI_PRACTICE_MODEL?.trim() || AI_PRACTICE_DEFAULT_MODEL,
         instructions,
         input: "Return only the requested JSON object.",
-        max_output_tokens: parsed.data.kind === "sentence-order" ? 260 : 260,
+        max_output_tokens: 260,
         reasoning: { effort: "minimal" },
         store: false,
-        text: {
-          format: parsed.data.kind === "sentence-order" ? SENTENCE_FORMAT : CATEGORY_FORMAT,
-          verbosity: "low",
-        },
+        text: { format: CATEGORY_FORMAT, verbosity: "low" },
         safety_identifier: createAiPracticeSafetyIdentifier(user.id),
       },
       { signal: controller.signal },
     );
 
-    const rawText = response.output_text?.trim() ?? "";
-    const parsedOutput = JSON.parse(rawText) as unknown;
-    const schema = parsed.data.kind === "sentence-order"
-      ? generatedSentenceBonusSchema
-      : generatedCategoryBonusSchema;
-    const generated = schema.safeParse(parsedOutput);
-
+    const generated = generatedCategoryBonusSchema.safeParse(
+      JSON.parse(response.output_text?.trim() ?? "{}") as unknown,
+    );
     if (!generated.success) return Response.json({ errorCode: "upstream_error" }, { status: 502 });
-
-    if (parsed.data.kind === "sentence-order") {
-      const sentenceGenerated = generatedSentenceBonusSchema.safeParse(generated.data);
-      if (!sentenceGenerated.success) return Response.json({ errorCode: "upstream_error" }, { status: 502 });
-
-      const sentenceData = sentenceGenerated.data;
-      if (isPlaceholderNativeSentence(sentenceData.nativeSentence)) {
-        return Response.json({ errorCode: "upstream_error" }, { status: 502 });
-      }
-
-      if (sentenceData.alternativeTokenOrders.length === 0) {
-        return Response.json(sentenceData, { headers: { "Cache-Control": "no-store" } });
-      }
-
-      const acceptedAlternativeIndexes = await validateSentenceAlternatives({
-        openai,
-        model: process.env.OPENAI_AI_PRACTICE_MODEL?.trim() || AI_PRACTICE_DEFAULT_MODEL,
-        languageName,
-        sentence: sentenceData.sentence,
-        tokens: sentenceData.tokens,
-        alternatives: sentenceData.alternativeTokenOrders,
-        signal: controller.signal,
-      });
-
-      const acceptedIndexes = new Set(acceptedAlternativeIndexes);
-      return Response.json(
-        {
-          ...sentenceData,
-          alternativeTokenOrders: sentenceData.alternativeTokenOrders.filter((_, index) => acceptedIndexes.has(index)),
-        },
-        { headers: { "Cache-Control": "no-store" } },
-      );
-    }
 
     return Response.json(generated.data, { headers: { "Cache-Control": "no-store" } });
   } catch {
@@ -228,48 +101,4 @@ export async function POST(request: Request) {
   } finally {
     clearTimeout(timeoutId);
   }
-}
-
-function isPlaceholderNativeSentence(value: string) {
-  return /translation\s+of\s+the\s+sentence|goes\s+here|placeholder|write\s+the\s+translation/iu.test(value);
-}
-
-async function validateSentenceAlternatives(input: {
-  openai: OpenAI;
-  model: string;
-  languageName: string;
-  sentence: string;
-  tokens: string[];
-  alternatives: string[][];
-  signal: AbortSignal;
-}) {
-  const response = await input.openai.responses.create(
-    {
-      model: input.model,
-      instructions: [
-        "Act as a strict grammar reviewer for a vocabulary-learning sentence-order question.",
-        `Review the sentence and candidate alternatives in ${input.languageName}.`,
-        "Accept an alternative only when it is a genuinely natural, grammatically correct sentence that preserves the primary sentence's meaning.",
-        "An accepted alternative must use the exact same token chunks as the primary sentence, each exactly once, and must have a different order.",
-        "Reject the primary order repeated as an alternative, awkward or ungrammatical orders, and any alternative that changes, adds, removes, or duplicates a token.",
-        "Return only the zero-based indexes of accepted alternatives. If none are valid, return an empty array.",
-      ].join("\n"),
-      input: JSON.stringify({
-        sentence: input.sentence,
-        primaryTokens: input.tokens,
-        alternatives: input.alternatives,
-      }),
-      max_output_tokens: 80,
-      reasoning: { effort: "minimal" },
-      store: false,
-      text: { format: ALTERNATIVE_VALIDATION_FORMAT, verbosity: "low" },
-    },
-    { signal: input.signal },
-  );
-
-  const parsed = alternativeValidationSchema.safeParse(
-    JSON.parse(response.output_text?.trim() ?? "{}") as unknown,
-  );
-
-  return parsed.success ? [...new Set(parsed.data.acceptedAlternativeIndexes)] : [];
 }
