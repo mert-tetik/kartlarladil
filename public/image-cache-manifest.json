@@ -1,5 +1,5 @@
 {
-  "version": "c730dee7f5194593de438be6d5589a38077db20f85965205c0d644f5faa59cea",
+  "version": "ec4deca4e0aba5e9dfee3b773803226d21d00fb364e6b35e3482bb0e2de4cf9f",
   "assets": [
     {
       "url": "/ai-characters/campus-friend.webp",
@@ -4422,6 +4422,206 @@
       "revision": "da024ff26338ee282f325d5ed79f74854bc64450015147a27afb02993f983200"
     },
     {
+      "url": "/serious-learner-offer-frames-v5/1.png",
+      "revision": "35dc2ad7453a42b4df2a157c00e4d63c36ca3adc551170b633a0640ef8b29710"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/10.png",
+      "revision": "5cc1f9606ca3b59ed99458ce96d9f040bb6104ca1f9a2eaeb8a7db30dcbc63d0"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/11.png",
+      "revision": "0c6b0661c9790b80e15adfe49ca9a84b969ddcdf59f96b6dbb84ef9fa0e03ed5"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/12.png",
+      "revision": "17b60011d887aa08b75f71431555c3e4ff2367581be3c10b8abf73573d20dc53"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/13.png",
+      "revision": "64142736448ddff5cc353d36d292f9903040ad5d2b5d7d1664e03d8294a01000"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/14.png",
+      "revision": "f3d1ecbffe150197bc96ff1a896dd116179868ff6787a65e6aca309170bc666a"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/15.png",
+      "revision": "148b9bdf757a0e0a12e71825d32520af19a12965814e34d95aedc0b51d83f819"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/16.png",
+      "revision": "e1ef737892ce8fba8dbaefd2436b8392376dcd669f64ea7f1482d114bdaf67ef"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/17.png",
+      "revision": "d54098cee36d6bd6deaa3c2b449a850905dd4608dd8330b422be7ea3268fc86a"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/18.png",
+      "revision": "8dd9701aaa71af59d0f99e545507096edc53f3dbb9b2c1516c459375d8e9f4cd"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/19.png",
+      "revision": "e15f15816eeb7fe257656a0b4a3e6dc79197fab424966c5e528b939504e4df43"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/2.png",
+      "revision": "35dc2ad7453a42b4df2a157c00e4d63c36ca3adc551170b633a0640ef8b29710"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/20.png",
+      "revision": "f99346bee1b46e36bbea6f9b73518a6828aa445a7b250ef225697d2f75612179"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/21.png",
+      "revision": "949bb40dc10904948007a38c228692d3606dea82dba3df767cac78bcb3d3ec4b"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/22.png",
+      "revision": "5af261d76c0b877a76cde5fe4f49e696ab294ceba15f26a85445c500611e7a8b"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/23.png",
+      "revision": "828761d6027e1b9d807e29bacde325832279886c5c108cd6a7f3b8bc4a8ce259"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/24.png",
+      "revision": "5f5889ab56c33f69dc1b009fa73a5795a468c2c5e35f397f64cdbf25f95e000a"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/25.png",
+      "revision": "cdd42bc91e60d6742c8e7be4d17e26e81feb05ba4d3b23f68d618e2f70cb5640"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/26.png",
+      "revision": "87798d2a49b88aec3af83cdb57a14e64c8ddbb346bd1357544b0417e4bdc98ed"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/27.png",
+      "revision": "1386b5d4fd194e6a898358ca82b9661ad866f4e8bb6ca3ddde9a65468a7521fb"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/28.png",
+      "revision": "8e02bb5d5068888d399bfa0abbb0fb49122df1790cc75b9881c8df42f2d671bd"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/29.png",
+      "revision": "8429838db22b80d2ac4d9bf8196016aca4d8230d049104e0f8abc4c5086bd205"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/3.png",
+      "revision": "4d49af159142b51025c694399ecb88f270b76c1340f1abe700f7fb6d25970313"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/30.png",
+      "revision": "fd7e77cc5282ca0a697ee914dfa05541a05b1162e7cb1176e5787449300f9679"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/31.png",
+      "revision": "4cbd8aef2620cd3ef5d8fd3e9c99c1174a4d1fc4b5585830e5ddf3fc9081b151"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/32.png",
+      "revision": "cdeca64a4af2f9885b8377d85292d264b5f1935c0dc4380b285192539abadb79"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/33.png",
+      "revision": "6b54a631f19f738fee232a51eec04a02d4758f1f1221d2dac7f1e51f2bd0c18d"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/34.png",
+      "revision": "fede8df7bbf58ee0b8748dba7990c6cc6c686ba18ee7ca7c2399ddfcad45c813"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/35.png",
+      "revision": "d41d457eb7cc4d8123d65d4f31fdfc1c9c91c1a66de8e4110dfe3e7ad99283ca"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/36.png",
+      "revision": "1b70f004ecc8e6ab01411ce32aa8985c411d1236ccc0b5682d09188407eac2dc"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/37.png",
+      "revision": "e595b928448154ae9557abbc732d7551d2d374684197e4a9e8fc4572245df8fb"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/38.png",
+      "revision": "8f5c704f6be042e0dc41e0c9322ad43d50afde4b9e7b47485c623d3db54fa35b"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/39.png",
+      "revision": "6885d7c34641696d08cab5fd8a0099b3b8dee359b3a222222585684edcc45f84"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/4.png",
+      "revision": "f926d7bec2ff9b62ad6e80d1ada315bb3cee4bc3463f2178aef9bfd1597f8b60"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/40.png",
+      "revision": "d299ee7696bbea32d8948bec64d25c6a9c20eab75365eff622ef48668a30b44e"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/41.png",
+      "revision": "23045cc45f2c8b554faac04e9a7d706d342eda82f7a57596715aa8c4f8363643"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/42.png",
+      "revision": "91dc7679356d71526d1495599f2cef0cf75b822a4f226e1e1bfb313c962c9380"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/43.png",
+      "revision": "55534ddd052cabdcf8498b75553a607b98a17f315c030a912d0f47cb5c93c919"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/44.png",
+      "revision": "6e29bf1bb4a9c1bc2d52f3ca2801e7f91191377241e98304086c6612d6bbc3d2"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/45.png",
+      "revision": "eca84ae3c738b6a6e0bfe453835f67ab04a692a8810df46fa5d4655b1fbc2682"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/46.png",
+      "revision": "f79750423f03f7707048be1650ad80bf82deb582d20d21a32eada43e9e4bb7e4"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/47.png",
+      "revision": "7dffc9ecf24e2c48aec58bae349613dd12ccfe12780350d4ce9cdefadd443f22"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/48.png",
+      "revision": "8069343eebce23a7c49a596c9dd167b70711c44179be363917113d1caa35bcdd"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/49.png",
+      "revision": "d4e7b665f3131ce14acacbe6fefcab7dfe5e31862f1e56a11b88b10e020a14ef"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/5.png",
+      "revision": "a941ff87964e19a6f339a012aa6e8bb786422c68f28d69389fbbe4b8492685fe"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/50.png",
+      "revision": "aee6d93ba305db5e7a08122a6910bd3048b13ff074760eca9721378a02546766"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/6.png",
+      "revision": "0bba06c53d3ec6a2c6f1170c737e94f655fdf511b7c699740fa548f0f11fb83f"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/7.png",
+      "revision": "f0183517d672c776efe7b3595aa81d9a6c5ae59b73d67ce6e81cbc864bc48ad6"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/8.png",
+      "revision": "445127321a3f28549f9531ccb922f7f9554554a1cfcd648172dab5038c3264eb"
+    },
+    {
+      "url": "/serious-learner-offer-frames-v5/9.png",
+      "revision": "39d09de91a26c59704d4f9d6f0feb279b83812dc3a14dac0bd0a51888da04091"
+    },
+    {
       "url": "/splash.png",
       "revision": "b5398ff29a40b19ef883927b3343222fc76234ea58aab5eb9aa57fdea8622de7"
     },
@@ -4442,8 +4642,12 @@
       "revision": "daa81113ee7c6ad266fea31d3bb0d20b0f422ae4f3931c78a2b265e69573080a"
     },
     {
+      "url": "/subscriptions/serious-learner-basic-v2.png",
+      "revision": "3d5e4e204a3fca2b54e26ca97b998af70abd34dd5fa2ef5678047f5b58d084e0"
+    },
+    {
       "url": "/subscriptions/serious-learner-basic.png",
-      "revision": "3243b74801e2237c5b4aac808c967ea914d9c895b40b305fb41a52eb4e85d9d8"
+      "revision": "3d5e4e204a3fca2b54e26ca97b998af70abd34dd5fa2ef5678047f5b58d084e0"
     },
     {
       "url": "/tutorial-post-practice/fifth-screen.png",

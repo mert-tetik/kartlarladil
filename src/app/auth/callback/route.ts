@@ -27,7 +27,11 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    return NextResponse.redirect(`${origin}/login?message=${encodeURIComponent(error.message)}`);
+    const isPasswordRecoveryVerifierError =
+      error.code === "pkce_code_verifier_not_found" ||
+      error.message.toLowerCase().includes("code verifier");
+    const fallbackPath = isPasswordRecoveryVerifierError ? "/reset-password" : "/login";
+    return NextResponse.redirect(`${origin}${fallbackPath}?message=${encodeURIComponent(error.message)}`);
   }
 
   const {

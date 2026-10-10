@@ -1,11 +1,12 @@
 # Localization Report
 
-Generated: 2026-06-17
+Generated: 2026-10-11
 
 ## Summary
 
 - UI dictionary keys: 463
 - Supported locales: 14 (tr, en, de, ru, fr, es, it, pt, nl, pl, ar, ja, ko, zh-CN)
+- Legal runtime content uses the selected locale for all five legal pages; non-Turkish locales no longer fall back to English.
 - Legal pages: 5 (terms, privacy, refund, cookies, subscriptions) × 14 locales
 - AI Practice characters: 10
 - AI Practice localized assets per locale: promptProfile + conversationStyle + 3 openingLines
@@ -153,4 +154,3 @@ Generated: 2026-06-17
 - Unit tests: 138 passed
 - Production build: passed
 - Placeholder validation: all locales preserve source placeholders
-

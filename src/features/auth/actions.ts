@@ -24,6 +24,7 @@ import { getUserEntitlements } from "@/features/subscriptions/subscription-servi
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabasePasswordRecoveryClient } from "@/lib/supabase/password-recovery";
 import { THEMES, isThemePaid } from "@/lib/themes";
 import { isLanguageCode, isLocaleCode } from "@/data/languages";
 import type { LocaleCode } from "@/types/domain";
@@ -156,7 +157,7 @@ export async function resetPasswordAction(_state: AuthActionState, formData: For
     return createValidationErrorState(parsed.error, locale);
   }
 
-  const supabase = await createActionSupabaseClient();
+  const supabase = createSupabasePasswordRecoveryClient();
 
   if (!supabase) {
     return authNotConfiguredState(locale);
@@ -164,7 +165,7 @@ export async function resetPasswordAction(_state: AuthActionState, formData: For
 
   const origin = await getRequestOrigin();
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/account/update-password")}`,
+    redirectTo: `${origin}/auth/recovery?next=${encodeURIComponent("/account/update-password")}`,
   });
 
   if (error) {

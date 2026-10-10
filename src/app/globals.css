@@ -1067,6 +1067,115 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   will-change: opacity, transform;
 }
 
+@keyframes gateway-flow-item-enter {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -1.25rem, 0) scale(0.82);
+  }
+
+  68% {
+    opacity: 1;
+    transform: translate3d(0, 0.2rem, 0) scale(1.03);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes gateway-flow-item-exit {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -1.25rem, 0) scale(0.82);
+  }
+}
+
+@keyframes gateway-flow-visual-enter {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes gateway-flow-visual-exit {
+  0% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+.gateway-flow-transition {
+  width: 100%;
+}
+
+.gateway-flow-transition--exit {
+  pointer-events: none;
+}
+
+.gateway-flow-transition--enter [data-gateway-flow-item] {
+  animation: gateway-flow-item-enter 560ms cubic-bezier(0.85, 0, 0.15, 1)
+    var(--gateway-flow-delay, 0ms) both;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+.gateway-flow-transition--exit [data-gateway-flow-item] {
+  animation: gateway-flow-item-exit 360ms cubic-bezier(0.85, 0, 0.15, 1)
+    var(--gateway-flow-exit-delay, 0ms) both;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+.gateway-flow-transition--exit [data-gateway-flow-screen-exit] {
+  animation: gateway-flow-item-exit 360ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+.gateway-flow-shell--enter [data-gateway-flow-visual],
+.gateway-flow-transition--enter [data-gateway-flow-visual] {
+  animation: gateway-flow-visual-enter 520ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: opacity;
+}
+
+.gateway-flow-shell--exit [data-gateway-flow-visual],
+.gateway-flow-transition--exit [data-gateway-flow-visual] {
+  animation: gateway-flow-visual-exit 360ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: opacity;
+}
+
+[data-gateway-flow-order="0"] {
+  --gateway-flow-delay: 0ms;
+  --gateway-flow-exit-delay: 180ms;
+}
+
+[data-gateway-flow-order="1"] {
+  --gateway-flow-delay: 80ms;
+  --gateway-flow-exit-delay: 120ms;
+}
+
+[data-gateway-flow-order="2"] {
+  --gateway-flow-delay: 160ms;
+  --gateway-flow-exit-delay: 60ms;
+}
+
+[data-gateway-flow-order="3"] {
+  --gateway-flow-delay: 240ms;
+  --gateway-flow-exit-delay: 0ms;
+}
+
 /* Shared top-to-bottom entrance for result-flow screens and future result steps. */
 @keyframes result-stagger-scale-in {
   0% {
@@ -3189,6 +3298,13 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   .animate-message-pop,
   .typing-indicator-dot,
   .animate-screen-pop,
+  .gateway-flow-transition--enter [data-gateway-flow-item],
+  .gateway-flow-transition--exit [data-gateway-flow-item],
+  .gateway-flow-transition--exit [data-gateway-flow-screen-exit],
+  .gateway-flow-shell--enter [data-gateway-flow-visual],
+  .gateway-flow-shell--exit [data-gateway-flow-visual],
+  .gateway-flow-transition--enter [data-gateway-flow-visual],
+  .gateway-flow-transition--exit [data-gateway-flow-visual],
   .animate-bonus-reward-pulse,
   .animate-bonus-reward-source-exit,
   .animate-bonus-sentence-token-enter,
@@ -3257,6 +3373,7 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   .rank-up-menu {
     animation: none;
     transform: none;
+    opacity: 1;
     will-change: auto;
   }
 

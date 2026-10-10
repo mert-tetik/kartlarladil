@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileAuthGateway } from "@/features/auth/components/mobile-auth-gateway";
@@ -138,6 +138,6 @@ describe("MobileAuthGateway returning-login flow", () => {
     await user.click(screen.getByTestId("mobile-subscription-offer"));
 
     expect(mocks.activateTutorial).toHaveBeenCalledOnce();
-    expect(mocks.router.replace).toHaveBeenCalledWith("/");
+    await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/"));
   });
 });

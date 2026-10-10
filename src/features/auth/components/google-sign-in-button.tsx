@@ -1,21 +1,22 @@
 "use client";
 
 import { useActionState } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { signInWithGoogleAction } from "@/features/auth/actions";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
+import { AuthConsentText } from "@/features/auth/components/auth-consent-text";
 import { FormMessage } from "@/features/auth/components/form-message";
 import { useT } from "@/i18n/locale-provider";
 
 interface GoogleSignInButtonProps {
   nextPath: string;
   label: string;
+  showConsent?: boolean;
 }
 
 const MOBILE_LOGIN_TUTORIAL_RESET_KEY = "foxiesdeck:mobile-login-tutorial-reset-requested";
 
-export function GoogleSignInButton({ nextPath, label }: GoogleSignInButtonProps) {
+export function GoogleSignInButton({ nextPath, label, showConsent = true }: GoogleSignInButtonProps) {
   const [state, formAction, isPending] = useActionState(signInWithGoogleAction, AUTH_ACTION_IDLE_STATE);
   const t = useT();
 
@@ -39,17 +40,7 @@ export function GoogleSignInButton({ nextPath, label }: GoogleSignInButtonProps)
         <GoogleLogo />
         {isPending ? t("auth.google.pending") : label}
       </Button>
-      <p className="mt-3 text-center text-xs text-foreground-muted">
-        {t("auth.google.consentPrefix")}
-        <Link href="/terms" className="underline hover:text-foreground-secondary">
-          {t("auth.google.consentTerms")}
-        </Link>
-        {t("auth.google.consentAnd")}
-        <Link href="/privacy" className="underline hover:text-foreground-secondary">
-          {t("auth.google.consentPrivacy")}
-        </Link>
-        {t("auth.google.consentSuffix")}
-      </p>
+      {showConsent ? <AuthConsentText /> : null}
     </form>
   );
 }

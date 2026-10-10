@@ -185,7 +185,8 @@ export function MobileOnboardingForm({
       action={formAction}
       data-mobile-onboarding-mode={mode}
       data-mobile-onboarding-step={step}
-      className="animate-screen-pop mx-auto grid h-[min(76vh,44rem)] w-full max-w-sm grid-rows-[auto_minmax(0,1fr)_auto] overflow-visible supports-[height:100dvh]:h-[min(76dvh,44rem)]"
+      data-gateway-flow-screen
+      className="mx-auto grid h-[min(76vh,44rem)] w-full max-w-sm grid-rows-[auto_minmax(0,1fr)_auto] overflow-visible supports-[height:100dvh]:h-[min(76dvh,44rem)]"
     >
       <input type="hidden" name="preferredUiLocale" value={preferredUiLocale} />
       <input type="hidden" name="preferredLanguageCode" value={preferredLanguageCode} />
@@ -197,7 +198,7 @@ export function MobileOnboardingForm({
         </>
       ) : null}
 
-      <div className="relative shrink-0 pb-5 pt-1 text-center">
+      <div data-gateway-flow-item data-gateway-flow-order="0" className="relative shrink-0 pb-5 pt-1 text-center">
         {step !== "native" ? (
           <button
             type="button"
@@ -215,7 +216,7 @@ export function MobileOnboardingForm({
       </div>
 
       {isLanguageStep ? (
-        <div className="min-h-0 flex-1 overflow-y-auto px-1">
+        <div data-gateway-flow-item data-gateway-flow-order="1" className="min-h-0 flex-1 overflow-y-auto px-1">
           <div className="grid grid-cols-2 gap-x-2 gap-y-5 pb-3">
             {orderedLanguages.map((language) => {
               const selected = step === "native"
@@ -266,12 +267,12 @@ export function MobileOnboardingForm({
           </div>
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto px-1">
+        <div data-gateway-flow-item data-gateway-flow-order="1" className="min-h-0 flex-1 overflow-y-auto px-1">
           <ProfilePictureOptionGrid selectedIndex={profilePictureIndex} onSelect={setProfilePictureIndex} className="pb-3" />
         </div>
       )}
 
-      <div className="shrink-0 pt-5">
+      <div data-gateway-flow-item data-gateway-flow-order="2" className="shrink-0 pt-5">
         <FormMessage state={state} />
         {!shouldSubmit ? (
           <div className={cn("mobile-primary-action-depth w-full rounded-lg", actionDepthClass)}>

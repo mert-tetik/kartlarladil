@@ -18,6 +18,7 @@ import {
   MessageCircle,
   MessagesSquare,
   Palette,
+  RotateCcw,
   ScanText,
 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
@@ -48,8 +49,8 @@ import { useAppMessage } from "@/components/app-message-provider";
 
 const SERIOUS_LEARNER_FRAME_COUNT = 50;
 const SERIOUS_LEARNER_FRAME_FPS = 30;
-const SERIOUS_LEARNER_FRAME_BASE_PATH = "/serious-learner-offer-frames-v4";
-const SERIOUS_LEARNER_BASIC_COLOR = "#F4A300";
+const SERIOUS_LEARNER_FRAME_BASE_PATH = "/serious-learner-offer-frames-v5";
+const SERIOUS_LEARNER_BASIC_COLOR = "#2C63E1";
 
 interface MobileSubscriptionOfferScreenProps {
   onContinueFree: () => void;
@@ -153,10 +154,11 @@ export function MobileSubscriptionOfferScreen({
 
   const isLoading = isGooglePlayLoading;
   const usesSuperWater = canUseSuperWater(locale);
-  const period = t("pricing.perMonth");
 
   return (
     <div
+      data-gateway-flow-screen
+      data-gateway-flow-screen-exit
       data-mobile-subscription-offer
       className="relative h-full min-h-0 w-full max-w-none overflow-hidden bg-[#070707] text-center text-white"
     >
@@ -190,7 +192,7 @@ export function MobileSubscriptionOfferScreen({
               style={{ animationDelay: "530ms" }}
             >
               <Image
-                src="/subscriptions/serious-learner-basic.png"
+                src="/subscriptions/serious-learner-basic-v2.png"
                 alt=""
                 width={1254}
                 height={1254}
@@ -200,22 +202,11 @@ export function MobileSubscriptionOfferScreen({
               />
             </div>
 
-            <p
-              className={cn(
-                "subscription-details-intro-item mt-0 flex items-baseline justify-center gap-2 text-center font-display text-4xl font-semibold leading-none sm:text-5xl",
-                usesSuperWater && "font-super-water",
-                isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
-              )}
-              style={{ animationDelay: "590ms", color: SERIOUS_LEARNER_BASIC_COLOR }}
-            >
-              <span>{priceDisplay || "—"}</span>
-              {priceDisplay ? <span className="text-xl font-semibold sm:text-2xl">{period}</span> : null}
-            </p>
           </div>
 
           <h1
             className={cn(
-              "subscription-details-intro-item relative -top-28 mt-12 w-[calc(100%+4rem)] whitespace-nowrap text-center text-[clamp(1.2rem,7vw,2.25rem)] font-semibold leading-tight",
+              "subscription-details-intro-item relative -top-[82px] mt-12 w-[calc(100%+4rem)] whitespace-nowrap text-center text-[clamp(1.2rem,7vw,2.25rem)] font-semibold leading-tight",
               usesSuperWater && "font-super-water",
               isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
             )}
@@ -226,7 +217,7 @@ export function MobileSubscriptionOfferScreen({
 
           <p
             className={cn(
-              "subscription-details-intro-item relative -top-28 mt-1 w-[calc(100%+4rem)] whitespace-nowrap text-center text-[clamp(1.35rem,8vw,2.75rem)] font-semibold leading-tight text-white",
+              "subscription-details-intro-item relative -top-[82px] mt-1 w-[calc(100%+4rem)] whitespace-nowrap text-center text-[clamp(1.35rem,8vw,2.75rem)] font-semibold leading-tight text-white",
               usesSuperWater && "font-super-water",
               isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
             )}
@@ -239,11 +230,11 @@ export function MobileSubscriptionOfferScreen({
             <ul
               ref={featureListRef}
               onScroll={updateFeatureScrollHint}
-              className="h-full min-h-0 w-full overscroll-contain overflow-y-auto pb-12 pr-1"
+              className="h-full min-h-0 w-full overscroll-contain overflow-y-auto pb-12 pr-1 pt-[30px]"
             >
             <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={690} icon={Layers} locale={locale} text={t("pricing.featureCards")} />
             <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={750} icon={BookOpen} locale={locale} text={t("pricing.featureLearned")} />
-            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={810} icon={BookOpen} locale={locale} text={t("pricing.featureLearnedReview")} />
+            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={810} icon={RotateCcw} locale={locale} text={t("pricing.featureLearnedReview")} />
             <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={870} icon={Palette} locale={locale} text={t("pricing.featureThemes")} />
             <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={930} icon={Gamepad2} locale={locale} text={t("pricing.featureGames")} />
             <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={990} icon={MessageCircle} locale={locale} text={t("pricing.featureAiDaily", { count: PLAN_LIMITS.basic.aiDailyMessages ?? 0 })} />
@@ -280,17 +271,15 @@ export function MobileSubscriptionOfferScreen({
             >
               {isLoading ? (
                 t("common.loading")
-              ) : isTestMode ? (
+              ) : (
                 <>
                   <span>{formatSuperWaterUppercaseText(locale, t("pricing.ctaStartFirstMonthFreeTrial"))}</span>
                   {priceDisplay ? (
                     <span className="text-sm font-semibold leading-none">
-                      {formatSuperWaterText(locale, t("pricing.ctaTrialAfter", { price: priceDisplay, period })).replace(/\s+(?=\/)/g, "")}
+                      {formatSuperWaterText(locale, t("pricing.ctaTrialAfter", { price: priceDisplay }))}
                     </span>
                   ) : null}
                 </>
-              ) : (
-                t("pricing.ctaUpgrade")
               )}
             </Button>
 
@@ -378,7 +367,7 @@ function SeriousLearnerOfferFrameAnimation({ onComplete }: { onComplete: () => v
   }, [onComplete]);
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden" aria-hidden="true">
+    <div data-gateway-flow-visual className="pointer-events-none absolute inset-0 z-[1] overflow-hidden" aria-hidden="true">
       <img
         src={`${SERIOUS_LEARNER_FRAME_BASE_PATH}/${frameIndex}.png`}
         alt=""
@@ -407,7 +396,7 @@ function SeriousLearnerOfferFeature({
   return (
     <li
       className={cn(
-        "subscription-details-feature subscription-details-intro-item flex min-h-12 items-center gap-3 px-4 py-2 text-left text-base font-semibold leading-tight text-white sm:text-lg",
+        "subscription-details-feature subscription-details-intro-item flex min-h-12 items-center gap-3 px-4 py-2 text-left text-lg font-semibold leading-tight text-white sm:text-xl",
         unavailable && "opacity-45 line-through",
         introVisible ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
       )}

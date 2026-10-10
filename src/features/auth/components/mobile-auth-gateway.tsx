@@ -8,6 +8,9 @@ import { MobileAppChoiceScreen } from "@/features/auth/components/mobile-app-cho
 import { MobileAuthScreen } from "@/features/auth/components/mobile-auth-screen";
 import { MobileOnboardingForm } from "@/features/auth/components/mobile-onboarding-form";
 import { MobileSubscriptionOfferScreen } from "@/features/auth/components/mobile-subscription-offer-screen";
+import { MobileResetPasswordForm } from "@/features/auth/components/mobile-reset-password-form";
+import { MobileUpdatePasswordForm } from "@/features/auth/components/mobile-update-password-form";
+import { MobilePasswordRecoveryLoading } from "@/features/auth/components/mobile-password-recovery-loading";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { shouldKeepMobileGatewayBootstrapVisible } from "@/features/auth/mobile-gateway-bootstrap";
@@ -21,10 +24,12 @@ import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { cn } from "@/lib/utils";
 
 const BOOTSTRAP_EXIT_DURATION_MS = 320;
+const GATEWAY_FLOW_EXIT_DURATION_MS = 360;
 const MIN_ONBOARDING_VISUAL_HEIGHT_RATIO = 0.72;
 const SERIOUS_LEARNER_TEST_REOPEN_DELAY_MS = 320;
 
 type BootstrapPhase = "visible" | "exiting" | "hidden";
+type GatewayFlowPhase = "enter" | "exit";
 
 function MobileGatewayBootstrap({ phase }: { phase: Exclude<BootstrapPhase, "hidden"> }) {
   return (
@@ -53,7 +58,7 @@ function MobileGatewayBootstrap({ phase }: { phase: Exclude<BootstrapPhase, "hid
 
 function OnboardingBackground({ className }: { className?: string }) {
   return (
-    <div className={cn("pointer-events-none overflow-hidden", className)}>
+    <div data-gateway-flow-visual className={cn("pointer-events-none overflow-hidden", className)}>
       <div
         className="absolute inset-0 bg-[url('/onboarding-bg.jpg')] bg-cover bg-bottom bg-no-repeat"
         aria-hidden="true"
@@ -66,20 +71,86 @@ function OnboardingBackground({ className }: { className?: string }) {
   );
 }
 
+function GatewayFlowTransition({
+  children,
+  transitionKey,
+  forceExit = false,
+  onCommit,
+  onPhaseChange,
+}: {
+  children: ReactNode;
+  transitionKey: string;
+  forceExit?: boolean;
+  onCommit: () => void;
+  onPhaseChange: (phase: GatewayFlowPhase) => void;
+}) {
+  const [displayedChildren, setDisplayedChildren] = useState(children);
+  const [displayedKey, setDisplayedKey] = useState(transitionKey);
+  const childrenRef = useRef(children);
+  const onCommitRef = useRef(onCommit);
+  const onPhaseChangeRef = useRef(onPhaseChange);
+
+  const phase: GatewayFlowPhase = forceExit || transitionKey !== displayedKey ? "exit" : "enter";
+
+  useEffect(() => {
+    childrenRef.current = children;
+    onCommitRef.current = onCommit;
+    onPhaseChangeRef.current = onPhaseChange;
+  }, [children, onCommit, onPhaseChange]);
+
+  useEffect(() => {
+    if (forceExit) {
+      onPhaseChangeRef.current("exit");
+      return;
+    }
+
+    if (transitionKey === displayedKey) return;
+
+    onPhaseChangeRef.current("exit");
+
+    const timer = window.setTimeout(() => {
+      setDisplayedChildren(childrenRef.current);
+      setDisplayedKey(transitionKey);
+      onCommitRef.current();
+      onPhaseChangeRef.current("enter");
+    }, GATEWAY_FLOW_EXIT_DURATION_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [displayedKey, forceExit, transitionKey]);
+
+  return (
+    <div
+      className={cn(
+        "gateway-flow-transition",
+        phase === "exit" ? "gateway-flow-transition--exit" : "gateway-flow-transition--enter",
+      )}
+      data-gateway-flow-phase={phase}
+    >
+      {displayedChildren}
+    </div>
+  );
+}
+
 function GatewayShell({
   children,
   isTestMode,
+  transitionKey,
+  isExiting = false,
   centered = false,
   showBackground = true,
   fullBleed = false,
 }: {
   children: ReactNode;
   isTestMode: boolean;
+  transitionKey: string;
+  isExiting?: boolean;
   centered?: boolean;
   showBackground?: boolean;
   fullBleed?: boolean;
 }) {
   const contentPanelRef = useRef<HTMLDivElement | null>(null);
+  const [flowPhase, setFlowPhase] = useState<GatewayFlowPhase>("enter");
+  const [displayedLayout, setDisplayedLayout] = useState(() => ({ centered, showBackground, fullBleed }));
   const [hideOnboardingVisual, setHideOnboardingVisual] = useState(false);
 
   useEffect(() => {
@@ -90,7 +161,7 @@ function GatewayShell({
     const updateVisualVisibility = () => {
       const remainingVisualHeight = window.innerHeight - contentPanel.getBoundingClientRect().height;
       const minimumVisualHeight = window.innerWidth * MIN_ONBOARDING_VISUAL_HEIGHT_RATIO;
-      const shouldHide = showBackground && remainingVisualHeight < minimumVisualHeight;
+      const shouldHide = displayedLayout.showBackground && remainingVisualHeight < minimumVisualHeight;
 
       setHideOnboardingVisual((current) => (current === shouldHide ? current : shouldHide));
     };
@@ -117,9 +188,21 @@ function GatewayShell({
       resizeObserver?.disconnect();
       window.removeEventListener("resize", scheduleVisualVisibilityUpdate);
     };
-  }, [children, showBackground]);
+  }, [children, displayedLayout.showBackground]);
 
-  const shouldShowOnboardingVisual = showBackground && !hideOnboardingVisual;
+  const shouldShowOnboardingVisual = displayedLayout.showBackground && !hideOnboardingVisual;
+  const transitionedChildren = (
+    <GatewayFlowTransition
+      forceExit={isExiting}
+      transitionKey={transitionKey}
+      onCommit={() => {
+        setDisplayedLayout({ centered, showBackground, fullBleed });
+      }}
+      onPhaseChange={setFlowPhase}
+    >
+      {children}
+    </GatewayFlowTransition>
+  );
 
   return (
     <div
@@ -127,18 +210,19 @@ function GatewayShell({
       className={cn(
         "fixed inset-0 z-[100] isolate overflow-hidden bg-background",
         !isTestMode && "max-lg:block lg:hidden",
+        flowPhase === "exit" ? "gateway-flow-shell--exit" : "gateway-flow-shell--enter",
       )}
     >
-      {(centered || fullBleed) && showBackground ? (
+      {(displayedLayout.centered || displayedLayout.fullBleed) && displayedLayout.showBackground ? (
         <OnboardingBackground className="absolute inset-x-0 top-0 z-0 h-1/2" />
       ) : null}
-      {fullBleed ? (
+      {displayedLayout.fullBleed ? (
         <div className="relative z-10 flex h-full w-full items-stretch justify-center">
-          <div className="flex h-full w-full justify-center">{children}</div>
+          <div className="flex h-full w-full justify-center">{transitionedChildren}</div>
         </div>
-      ) : centered ? (
+      ) : displayedLayout.centered ? (
         <div className="relative z-10 flex h-full w-full items-center justify-center px-6 py-[max(1.5rem,env(safe-area-inset-bottom))]">
-          <div className="flex w-full justify-center">{children}</div>
+          <div className="flex w-full justify-center">{transitionedChildren}</div>
         </div>
       ) : (
         <div className={cn(
@@ -159,7 +243,7 @@ function GatewayShell({
                 shouldShowOnboardingVisual && "pb-[max(4rem,env(safe-area-inset-bottom))]",
               )}
             >
-              {children}
+              {transitionedChildren}
             </div>
           </div>
         </div>
@@ -177,6 +261,10 @@ const MOBILE_BREAKPOINT = 1024;
 
 const PUBLIC_MOBILE_PATHS = ["/add-to-home-screen", "/content-automation", "/visual-test-missions"];
 const SERIOUS_LEARNER_TEST_PARAM = "serious-learner-test";
+const MOBILE_RESET_PASSWORD_PATH = "/reset-password";
+const MOBILE_UPDATE_PASSWORD_PATH = "/account/update-password";
+const MOBILE_PASSWORD_RECOVERY_PATH = "/auth/recovery";
+const MOBILE_GATEWAY_LOGIN_PARAM = "mobile-gateway-login";
 
 function getIsMobileViewport() {
   if (typeof window === "undefined") return false;
@@ -216,15 +304,20 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   const [onboardingCompletedInSession, setOnboardingCompletedInSession] = useState(false);
   const [needsLoginLanguageRefresh, setNeedsLoginLanguageRefresh] = useState(false);
   const [resumeLoginFlowAfterLanguageRefresh, setResumeLoginFlowAfterLanguageRefresh] = useState(false);
+  const [mobileAuthMode, setMobileAuthMode] = useState<
+    "google" | "email-login" | "email-register" | "email-reset"
+  >("google");
   const [offerTriggered, setOfferTriggered] = useState(false);
   const [offerSeen, setOfferSeen] = useState(false);
   const [offerActive, setOfferActive] = useState(false);
+  const [gatewayExitPending, setGatewayExitPending] = useState(false);
   const [seriousLearnerTestOpen, setSeriousLearnerTestOpen] = useState(
     isSeriousLearnerTestMode,
   );
   const [bootstrapPhase, setBootstrapPhase] = useState<BootstrapPhase>("visible");
   const bootstrapFinishedRef = useRef(false);
   const seriousLearnerTestTimerRef = useRef<number | null>(null);
+  const gatewayExitTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -280,6 +373,14 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     hasCompletedOnboarding &&
     (needsLoginLanguageRefresh || searchParams.get(MOBILE_LOGIN_LANGUAGE_REFRESH_PARAM) === "1"),
   );
+  const isMobileResetPasswordPath = pathname === MOBILE_RESET_PASSWORD_PATH;
+  const isMobileUpdatePasswordPath = pathname === MOBILE_UPDATE_PASSWORD_PATH;
+  const isMobilePasswordRecoveryPath = pathname === MOBILE_PASSWORD_RECOVERY_PATH;
+  const loginMessage = searchParams.get("message")?.toLowerCase() ?? "";
+  const isMobilePasswordRecoveryError =
+    pathname === "/login" &&
+    (loginMessage.includes("code verifier") || loginMessage.includes("pkce"));
+  const shouldOpenMobileGatewayLogin = searchParams.get(MOBILE_GATEWAY_LOGIN_PARAM) === "1";
 
   useEffect(() => {
     if (!mounted || !user || needsOnboarding) return;
@@ -300,6 +401,14 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       }
     };
   }, [isSeriousLearnerTestMode]);
+
+  useEffect(() => {
+    return () => {
+      if (gatewayExitTimerRef.current !== null) {
+        window.clearTimeout(gatewayExitTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (isOfferEligible) {
@@ -350,7 +459,18 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   const showGateway =
     isTestMode ||
     isSeriousLearnerTestMode ||
-    (isMobileViewport && (needsAuth || needsOnboarding || shouldRefreshLoginLanguages || shouldShowOffer));
+    gatewayExitPending ||
+    (isMobileViewport && (
+      needsAuth ||
+      needsOnboarding ||
+      shouldRefreshLoginLanguages ||
+      shouldShowOffer ||
+      isMobileResetPasswordPath ||
+      isMobileUpdatePasswordPath ||
+      isMobilePasswordRecoveryPath ||
+      isMobilePasswordRecoveryError ||
+      shouldOpenMobileGatewayLogin
+    ));
 
   const shouldKeepBootstrapVisible = shouldKeepMobileGatewayBootstrapVisible({
     mounted,
@@ -421,12 +541,19 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       return;
     }
 
+    if (gatewayExitTimerRef.current !== null) return;
+
     activateTutorial();
     setResumeLoginFlowAfterLanguageRefresh(false);
-    setOfferSeen(true);
-    setOfferActive(false);
-    setOfferTriggered(false);
-    router.replace("/");
+    setGatewayExitPending(true);
+    gatewayExitTimerRef.current = window.setTimeout(() => {
+      gatewayExitTimerRef.current = null;
+      setOfferSeen(true);
+      setOfferActive(false);
+      setOfferTriggered(false);
+      setGatewayExitPending(false);
+      router.replace("/");
+    }, GATEWAY_FLOW_EXIT_DURATION_MS);
   }
 
   let gateway: ReactNode = null;
@@ -438,9 +565,60 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     !isRankUpTestMode &&
     (!isSeriousLearnerTestMode || seriousLearnerTestOpen)
   ) {
-    if (isSeriousLearnerTestMode) {
+    if (isMobilePasswordRecoveryPath) {
       gateway = (
-        <GatewayShell fullBleed isTestMode={isTestMode || isSeriousLearnerTestMode}>
+        <GatewayShell
+          centered
+          isTestMode={isTestMode}
+          showBackground={false}
+          transitionKey="mobile-password-recovery"
+        >
+          <MobilePasswordRecoveryLoading />
+        </GatewayShell>
+      );
+    } else if (isMobileResetPasswordPath || isMobilePasswordRecoveryError) {
+      gateway = (
+        <GatewayShell
+          centered
+          isTestMode={isTestMode}
+          showBackground={false}
+          transitionKey="mobile-reset-password"
+        >
+          <MobileResetPasswordForm
+            onBack={() => router.replace(`/?${MOBILE_GATEWAY_LOGIN_PARAM}=1`)}
+            onLogin={() => router.replace(`/?${MOBILE_GATEWAY_LOGIN_PARAM}=1`)}
+          />
+        </GatewayShell>
+      );
+    } else if (isMobileUpdatePasswordPath) {
+      gateway = (
+        <GatewayShell
+          centered
+          isTestMode={isTestMode}
+          showBackground={false}
+          transitionKey="mobile-update-password"
+        >
+          <MobileUpdatePasswordForm onBack={() => router.replace(`/?${MOBILE_GATEWAY_LOGIN_PARAM}=1`)} />
+        </GatewayShell>
+      );
+    } else if (shouldOpenMobileGatewayLogin) {
+      gateway = (
+        <GatewayShell
+          centered={mobileAuthMode !== "google"}
+          isTestMode={isTestMode}
+          showBackground={mobileAuthMode === "google"}
+          transitionKey={`auth-${mobileAuthMode}`}
+        >
+          <MobileAuthScreen mode={mobileAuthMode} onModeChange={setMobileAuthMode} />
+        </GatewayShell>
+      );
+    } else if (isSeriousLearnerTestMode) {
+      gateway = (
+        <GatewayShell
+          fullBleed
+          isTestMode={isTestMode || isSeriousLearnerTestMode}
+          transitionKey="serious-learner-offer"
+        >
           <MobileSubscriptionOfferScreen
             isTestMode={isSeriousLearnerTestMode}
             onContinueFree={handleContinueFree}
@@ -449,7 +627,12 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       );
     } else if (!needsOnboarding && shouldRefreshLoginLanguages) {
       gateway = (
-        <GatewayShell isTestMode={isTestMode} centered showBackground={false}>
+        <GatewayShell
+          isTestMode={isTestMode}
+          centered
+          showBackground={false}
+          transitionKey="login-language-refresh"
+        >
           <MobileOnboardingForm
             countryCode={countryCode}
             mode="login-language-refresh"
@@ -459,13 +642,18 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       );
     } else if (shouldShowOffer) {
       gateway = (
-        <GatewayShell fullBleed isTestMode={isTestMode}>
+        <GatewayShell
+          fullBleed
+          isExiting={gatewayExitPending}
+          isTestMode={isTestMode}
+          transitionKey="subscription-offer"
+        >
           <MobileSubscriptionOfferScreen onContinueFree={handleContinueFree} />
         </GatewayShell>
       );
     } else if (isIosTestMode && !hasChosenWeb) {
       gateway = (
-      <GatewayShell isTestMode={isTestMode}>
+      <GatewayShell isTestMode={isTestMode} transitionKey="app-choice">
         <MobileAppChoiceScreen
           forceApple
           onContinueOnWeb={handleContinueOnWeb}
@@ -474,20 +662,30 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       );
     } else if (needsOnboarding) {
       gateway = (
-      <GatewayShell isTestMode={isTestMode} centered showBackground={false}>
+      <GatewayShell
+        isTestMode={isTestMode}
+        centered
+        showBackground={false}
+        transitionKey="onboarding"
+      >
         <MobileOnboardingForm countryCode={countryCode} onComplete={handleOnboardingComplete} />
       </GatewayShell>
       );
     } else if (!isInstalled && !hasChosenWeb) {
       gateway = (
-      <GatewayShell isTestMode={isTestMode}>
+      <GatewayShell isTestMode={isTestMode} transitionKey="app-choice">
         <MobileAppChoiceScreen onContinueOnWeb={handleContinueOnWeb} />
       </GatewayShell>
       );
     } else {
       gateway = (
-        <GatewayShell isTestMode={isTestMode}>
-          <MobileAuthScreen />
+        <GatewayShell
+          isTestMode={isTestMode}
+          centered={mobileAuthMode !== "google"}
+          showBackground={mobileAuthMode === "google"}
+          transitionKey={`auth-${mobileAuthMode}`}
+        >
+          <MobileAuthScreen mode={mobileAuthMode} onModeChange={setMobileAuthMode} />
         </GatewayShell>
       );
     }

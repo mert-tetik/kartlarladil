@@ -15,13 +15,20 @@ interface MobileEmailAuthFormProps {
   authType: "login" | "register";
   onToggleAuthType: () => void;
   onBack: () => void;
+  onForgotPassword?: () => void;
 }
 
 const MOBILE_LOGIN_TUTORIAL_RESET_KEY = "foxiesdeck:mobile-login-tutorial-reset-requested";
 
-export function MobileEmailAuthForm({ authType, onToggleAuthType, onBack }: MobileEmailAuthFormProps) {
+export function MobileEmailAuthForm({
+  authType,
+  onToggleAuthType,
+  onBack,
+  onForgotPassword,
+}: MobileEmailAuthFormProps) {
   const t = useT();
   const isRegister = authType === "register";
+  const mobileGatewayInputClassName = cn(inputClassName, "bg-background-muted");
   const formRef = useRef<HTMLFormElement | null>(null);
   const [registerFormReady, setRegisterFormReady] = useState(false);
   const [state, formAction] = useActionState(
@@ -75,24 +82,26 @@ export function MobileEmailAuthForm({ authType, onToggleAuthType, onBack }: Mobi
       <button
         type="button"
         onClick={onBack}
+        data-gateway-flow-item
+        data-gateway-flow-order="0"
         className="mb-4 flex items-center gap-1 self-start text-sm font-semibold text-foreground-secondary transition-colors hover:text-foreground"
       >
         <ChevronLeft className="size-5" aria-hidden="true" />
         {t("common.back")}
       </button>
 
-      <h2 className="font-display text-2xl font-semibold text-foreground">
+      <h2 data-gateway-flow-item data-gateway-flow-order="1" className="font-display text-2xl font-semibold text-foreground">
         {isRegister ? t("auth.register.title") : t("auth.login.title")}
       </h2>
 
-      <div className="mt-6 flex flex-col gap-4">
+      <div data-gateway-flow-item data-gateway-flow-order="2" className="mt-6 flex flex-col gap-4">
         <FormMessage state={state} />
 
         {isRegister ? (
           <label className="block">
             <span className="text-sm font-semibold text-foreground">{t("common.displayName")}</span>
             <input
-              className={inputClassName}
+              className={mobileGatewayInputClassName}
               name="displayName"
               type="text"
               maxLength={80}
@@ -105,7 +114,7 @@ export function MobileEmailAuthForm({ authType, onToggleAuthType, onBack }: Mobi
         <label className="block">
           <span className="text-sm font-semibold text-foreground">{t("common.email")}</span>
           <input
-            className={inputClassName}
+            className={mobileGatewayInputClassName}
             name="email"
             type="email"
             autoComplete={isRegister ? "email" : "email"}
@@ -117,6 +126,7 @@ export function MobileEmailAuthForm({ authType, onToggleAuthType, onBack }: Mobi
         <label className="block">
           <span className="text-sm font-semibold text-foreground">{t("common.password")}</span>
           <PasswordInput
+            className="bg-background-muted"
             name="password"
             autoComplete={isRegister ? "new-password" : "current-password"}
             minLength={isRegister ? 6 : undefined}
@@ -163,12 +173,24 @@ export function MobileEmailAuthForm({ authType, onToggleAuthType, onBack }: Mobi
           {registerSubmitLocked ? <LockKeyhole className="size-4" aria-hidden="true" /> : null}
           {isRegister ? t("auth.register.title") : t("auth.login.title")}
         </SubmitButton>
+
+        {!isRegister && onForgotPassword ? (
+          <button
+            type="button"
+            onClick={onForgotPassword}
+            className="self-center text-sm font-semibold text-foreground-secondary underline-offset-4 hover:text-foreground hover:underline"
+          >
+            {t("auth.login.forgotPassword")}
+          </button>
+        ) : null}
       </div>
 
       <Button
         type="button"
         variant="ghost"
         onClick={onToggleAuthType}
+        data-gateway-flow-item
+        data-gateway-flow-order="3"
         className="mt-4 h-auto w-full py-2 text-sm font-semibold"
       >
         {isRegister ? t("auth.register.hasAccount") : t("auth.login.noAccount")}

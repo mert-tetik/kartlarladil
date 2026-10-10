@@ -38,8 +38,8 @@ export function MobileAppChoiceScreen({
   const isAndroid = !forceApple && isAndroidMobileDevice();
 
   return (
-    <div className="animate-screen-pop mx-auto flex w-full max-w-sm flex-col items-center text-center">
-      <div className="h-11 w-72 max-w-full overflow-hidden sm:w-80">
+    <div data-gateway-flow-screen className="mx-auto flex w-full max-w-sm flex-col items-center text-center">
+      <div data-gateway-flow-visual className="h-11 w-72 max-w-full overflow-hidden sm:w-80">
         <Image
           src="/splash.png"
           alt={APP_NAME}
@@ -50,11 +50,11 @@ export function MobileAppChoiceScreen({
         />
       </div>
 
-      <p className="mt-6 text-base leading-relaxed text-foreground-secondary">
+      <p data-gateway-flow-item data-gateway-flow-order="0" className="mt-6 text-base leading-relaxed text-foreground-secondary">
         {t("home.mobile.appChoiceDescription")}
       </p>
 
-      <div className="mt-10 flex w-full flex-col gap-3">
+      <div data-gateway-flow-item data-gateway-flow-order="1" className="mt-10 flex w-full flex-col gap-3">
         {isApple ? (
           <Link
             href="/add-to-home-screen"
