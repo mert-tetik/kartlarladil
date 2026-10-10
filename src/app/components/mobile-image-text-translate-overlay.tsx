@@ -104,6 +104,7 @@ export function MobileImageTextTranslateOverlay({
   const [mode, setMode] = useState<ImageTextMode>("image");
   const [answerQuestions, setAnswerQuestions] = useState(true);
   const [images, setImages] = useState<UploadedImage[]>([]);
+  const [previewImage, setPreviewImage] = useState<UploadedImage | null>(null);
   const [text, setText] = useState("");
   const [detailTranslation, setDetailTranslation] = useState<SavedImageTextTranslation | null>(null);
   const [detailOrigin, setDetailOrigin] = useState<"generated" | "saved">("generated");
@@ -145,6 +146,7 @@ export function MobileImageTextTranslateOverlay({
       setMode("image");
       setAnswerQuestions(true);
       setImages([]);
+      setPreviewImage(null);
       setText("");
       setDetailTranslation(null);
       setShowTranslationDetail(false);
@@ -376,6 +378,7 @@ export function MobileImageTextTranslateOverlay({
 
   function removeImage(id: string) {
     setImages((current) => current.filter((image) => image.id !== id));
+    setPreviewImage(null);
   }
 
   async function handleGenerate() {
@@ -677,7 +680,7 @@ export function MobileImageTextTranslateOverlay({
                   aria-label={t("imageTranslate.uploadedImages", { count: images.length, max: MAX_UPLOAD_IMAGES })}
                 >
                   {images.map((image) => (
-                    <button key={image.id} type="button" onClick={() => removeImage(image.id)} aria-label={`${t("imageTranslate.removeImage")}: ${image.name}`} className="group relative aspect-square w-full max-h-[4.5rem] max-w-[4.5rem] justify-self-start overflow-hidden rounded-lg border-2 border-white bg-background-muted shadow-sm transition-transform active:scale-95">
+                    <button key={image.id} type="button" onClick={() => setPreviewImage(image)} aria-label={image.name} data-image-text-image-preview={image.id} className="group relative aspect-square w-full max-h-[4.5rem] max-w-[4.5rem] justify-self-start overflow-hidden rounded-lg border-2 border-white bg-background-muted shadow-sm transition-transform active:scale-95">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={image.dataUrl} alt={image.name} className="size-full object-contain" />
                     </button>
@@ -746,6 +749,47 @@ export function MobileImageTextTranslateOverlay({
         onCancel={cancelImageCrop}
         onConfirm={confirmImageCrop}
       />
+      {open && previewImage && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-[1400] flex min-h-[100dvh] flex-col bg-black text-white"
+              role="dialog"
+              aria-modal="true"
+              aria-label={previewImage.name}
+              data-image-text-image-preview-overlay
+              onPointerDown={(event) => {
+                if (event.target === event.currentTarget) setPreviewImage(null);
+              }}
+            >
+              <div className="flex shrink-0 justify-end px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+                <button
+                  type="button"
+                  onClick={() => setPreviewImage(null)}
+                  aria-label={t("common.close")}
+                  className="inline-flex size-12 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10 active:scale-95"
+                  data-image-text-image-preview-close
+                >
+                  <X className="size-8" strokeWidth={3.5} aria-hidden="true" />
+                </button>
+              </div>
+              <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={previewImage.dataUrl} alt={previewImage.name} className="max-h-full max-w-full object-contain" />
+              </div>
+              <div className="shrink-0 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2">
+                <button
+                  type="button"
+                  onClick={() => removeImage(previewImage.id)}
+                  className="mx-auto flex h-12 w-full max-w-md items-center justify-center rounded-xl bg-transparent px-4 text-base font-bold text-white transition-colors hover:bg-white/10 active:scale-[0.99]"
+                  data-image-text-image-preview-remove
+                >
+                  {t("imageTranslate.removeImage")}
+                </button>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
       <MobileBottomSheetShell
         open={showTranslationsList}
         onClose={() => setShowTranslationsList(false)}
