@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import { createPortal } from "react-dom";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Camera, Check, Image as ImageIcon, Loader2, ScanText, Trash2, Type, Upload, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ClipboardEvent } from "react";
+import { BookOpen, Camera, Check, Copy, Image as ImageIcon, Loader2, ScanText, Trash2, Type, Upload, X } from "lucide-react";
 import type { Area } from "react-easy-crop";
 import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
+import { isImageFile, readImageFileAsDataUrl } from "@/app/components/image-file";
 import { cropImageToDataUrl } from "@/app/components/image-crop";
 import { MobileCustomCardLanguagePicker } from "@/app/components/mobile-custom-card-language-picker";
 import { MobileImageCropSheet } from "@/app/components/mobile-image-crop-sheet";
@@ -48,6 +49,7 @@ import type { LanguageCode, LimitErrorCode, Tier, VocabularyCard } from "@/types
 
 const MAX_UPLOAD_IMAGES = 6;
 const MAX_FILE_SIZE_BYTES = 12 * 1024 * 1024;
+const MAX_TEXT_LENGTH = 4000;
 const IMAGE_TEXT_TRANSLATE_OPENED_KEY = "foxiesdeck:image-text-translate-opened";
 const IMAGE_TEXT_TRANSLATE_TUTORIAL_EXIT_MS = 860;
 
@@ -121,6 +123,7 @@ export function MobileImageTextTranslateOverlay({
   const [loading, setLoading] = useState(false);
   const [cropQueue, setCropQueue] = useState<CropQueueItem[]>([]);
   const [activeCrop, setActiveCrop] = useState<ActiveCropItem | null>(null);
+  const [preparingCrop, setPreparingCrop] = useState(false);
   const [cropConfirming, setCropConfirming] = useState(false);
   const [showFirstOpenTutorial, setShowFirstOpenTutorial] = useState(false);
   const [isFirstOpenTutorialExiting, setIsFirstOpenTutorialExiting] = useState(false);
@@ -162,6 +165,7 @@ export function MobileImageTextTranslateOverlay({
       setLoading(false);
       setCropQueue([]);
       setActiveCrop(null);
+      setPreparingCrop(false);
       setCropConfirming(false);
       setConfirmationClosing(false);
       return;
@@ -181,16 +185,6 @@ export function MobileImageTextTranslateOverlay({
     }
     setShowFirstOpenTutorial(!hasOpenedBefore);
   }, [landingLanguage, open]);
-
-  useEffect(() => {
-    const sourceUrl = activeCrop?.sourceUrl;
-
-    return () => {
-      if (sourceUrl) {
-        URL.revokeObjectURL(sourceUrl);
-      }
-    };
-  }, [activeCrop?.sourceUrl]);
 
   function handleFirstOpenTutorialContinue() {
     if (isFirstOpenTutorialExiting) return;
@@ -292,8 +286,8 @@ export function MobileImageTextTranslateOverlay({
     setDeleteLoading(false);
   }
 
-  function handleFileSelection(fileList: FileList | null) {
-    if (!fileList || fileList.length === 0 || activeCrop || cropQueue.length > 0) return;
+  async function handleFileSelection(fileList: FileList | File[] | null) {
+    if (!fileList || fileList.length === 0 || activeCrop || cropQueue.length > 0 || preparingCrop) return;
 
     const availableSlots = MAX_UPLOAD_IMAGES - images.length - (activeCrop ? 1 : 0) - cropQueue.length;
     if (availableSlots <= 0) {
@@ -305,7 +299,7 @@ export function MobileImageTextTranslateOverlay({
     const validFiles: CropQueueItem[] = [];
 
     for (const file of files) {
-      if (!file.type.startsWith("image/") || file.size > MAX_FILE_SIZE_BYTES) {
+      if (!isImageFile(file) || file.size > MAX_FILE_SIZE_BYTES) {
         showMessage(getErrorMessage("invalid_image", t), "error");
         continue;
       }
@@ -314,13 +308,41 @@ export function MobileImageTextTranslateOverlay({
     }
 
     if (validFiles.length > 0) {
-      const [firstCrop, ...remainingQueue] = validFiles;
-      setCropQueue(remainingQueue);
-      setActiveCrop({
-        ...firstCrop,
-        sourceUrl: URL.createObjectURL(firstCrop.file),
-      });
+      setPreparingCrop(true);
+      try {
+        await activateNextCrop(validFiles);
+      } finally {
+        setPreparingCrop(false);
+      }
     }
+  }
+
+  async function activateNextCrop(queue: CropQueueItem[]) {
+    let remainingQueue = queue;
+
+    while (remainingQueue.length > 0) {
+      const [nextCrop, ...nextQueue] = remainingQueue;
+      try {
+        const sourceUrl = await readImageFileAsDataUrl(nextCrop.file);
+        setCropQueue(nextQueue);
+        setActiveCrop({ ...nextCrop, sourceUrl });
+        return;
+      } catch {
+        showMessage(getErrorMessage("invalid_image", t), "error");
+        remainingQueue = nextQueue;
+      }
+    }
+
+    setCropQueue([]);
+    setActiveCrop(null);
+  }
+
+  function handleFileInputChange(event: ChangeEvent<HTMLInputElement>) {
+    // Snapshot the FileList before clearing the input. Android WebView can
+    // invalidate the live FileList as soon as the input value is reset.
+    const files = event.currentTarget.files ? Array.from(event.currentTarget.files) : [];
+    event.currentTarget.value = "";
+    void handleFileSelection(files);
   }
 
   function openFilePicker(inputRef: React.RefObject<HTMLInputElement | null>) {
@@ -350,6 +372,7 @@ export function MobileImageTextTranslateOverlay({
   function cancelImageCrop() {
     setCropQueue([]);
     setActiveCrop(null);
+    setPreparingCrop(false);
     setCropConfirming(false);
   }
 
@@ -363,11 +386,7 @@ export function MobileImageTextTranslateOverlay({
         ...current,
         { id: activeCrop.id, name: activeCrop.file.name, dataUrl },
       ].slice(0, MAX_UPLOAD_IMAGES));
-      const [nextCrop, ...remainingQueue] = cropQueue;
-      setCropQueue(remainingQueue);
-      setActiveCrop(nextCrop
-        ? { ...nextCrop, sourceUrl: URL.createObjectURL(nextCrop.file) }
-        : null);
+      await activateNextCrop(cropQueue);
     } catch {
       showMessage(getErrorMessage("invalid_image", t), "error");
       cancelImageCrop();
@@ -379,6 +398,37 @@ export function MobileImageTextTranslateOverlay({
   function removeImage(id: string) {
     setImages((current) => current.filter((image) => image.id !== id));
     setPreviewImage(null);
+  }
+
+  function handleTextPaste(event: ClipboardEvent<HTMLTextAreaElement>) {
+    const pastedText = event.clipboardData.getData("text/plain");
+    if (!pastedText) return;
+
+    event.preventDefault();
+    const normalizedText = pastedText.replace(/\r\n?/g, "\n").replace(/[\u2028\u2029]/g, "\n");
+    const textarea = event.currentTarget;
+    const selectionStart = textarea.selectionStart;
+    const selectionEnd = textarea.selectionEnd;
+
+    setText((current) => {
+      const availableLength = Math.max(
+        0,
+        MAX_TEXT_LENGTH - current.length + (selectionEnd - selectionStart),
+      );
+      return current.slice(0, selectionStart)
+        + normalizedText.slice(0, availableLength)
+        + current.slice(selectionEnd);
+    });
+  }
+
+  async function handleCopyText(text: string, kind: "source" | "translation") {
+    const copied = await copyTextToClipboard(text);
+    if (!copied) return;
+
+    showMessage(
+      t(kind === "source" ? "imageTranslate.sourceTextCopied" : "imageTranslate.translationCopied"),
+      "success",
+    );
   }
 
   async function handleGenerate() {
@@ -590,7 +640,7 @@ export function MobileImageTextTranslateOverlay({
   const sourceLanguageName = getLanguageDisplayName(activeDetailSourceLanguage, activeDetailNativeLocale);
   const nativeLanguageName = getLanguageDisplayName(activeDetailNativeLocale, activeDetailNativeLocale);
   const uploadedImageColumns = Math.min(Math.max(images.length, 1), MAX_UPLOAD_IMAGES);
-  const cropInProgress = activeCrop !== null || cropQueue.length > 0;
+  const cropInProgress = preparingCrop || activeCrop !== null || cropQueue.length > 0;
   const translationLocked = translationUsage !== null && !translationUsage.canUse;
 
   return (
@@ -604,7 +654,8 @@ export function MobileImageTextTranslateOverlay({
         fullScreen
         showPanelDecoration={false}
         showBackdrop={false}
-        panelClassName="image-text-translate-surface bg-background text-foreground"
+        panelClassName="image-text-translate-surface !bg-black !text-white"
+        headerClassName="!border-0 !bg-black"
         contentClassName="min-h-0 overflow-y-auto overscroll-contain px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-5"
       >
       <div className="relative z-10 mx-auto my-auto flex w-full max-w-xl flex-col gap-4">
@@ -665,15 +716,20 @@ export function MobileImageTextTranslateOverlay({
                   {t("imageTranslate.gallery")}
                 </button>
               </div>
-              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" aria-hidden="true" tabIndex={-1} className="sr-only" onChange={(event) => { void handleFileSelection(event.target.files); event.currentTarget.value = ""; }} />
-              <input ref={galleryInputRef} type="file" accept="image/*" multiple aria-hidden="true" tabIndex={-1} className="sr-only" onChange={(event) => { void handleFileSelection(event.target.files); event.currentTarget.value = ""; }} />
+              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" aria-hidden="true" tabIndex={-1} className="sr-only" onChange={handleFileInputChange} />
+              <input ref={galleryInputRef} type="file" accept="image/*" multiple aria-hidden="true" tabIndex={-1} className="sr-only" onChange={handleFileInputChange} />
             </div>
 
             <div className="flex flex-col gap-1.5">
               <p className="text-sm font-semibold text-foreground">
                 {t("imageTranslate.uploadedImages", { count: images.length, max: MAX_UPLOAD_IMAGES })}
               </p>
-              {images.length > 0 ? (
+              {preparingCrop ? (
+                <div className="flex h-20 items-center justify-center gap-2 rounded-xl border-2 border-dashed border-white bg-background-card/60 px-4 text-center text-sm text-foreground-secondary" role="status" data-image-text-crop-preparing>
+                  <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+                  {t("imageTranslate.loadingImage")}
+                </div>
+              ) : images.length > 0 ? (
                 <div
                   className="grid h-20 items-center gap-1 overflow-hidden"
                   style={{ gridTemplateColumns: `repeat(${uploadedImageColumns}, minmax(0, 1fr))` }}
@@ -692,7 +748,7 @@ export function MobileImageTextTranslateOverlay({
             </div>
           </>
         ) : (
-          <textarea value={text} onChange={(event) => setText(event.target.value)} maxLength={4000} placeholder={t("imageTranslate.textPlaceholder")} className="control-gradient-outline image-text-translate-plain-outline min-h-40 w-full resize-none rounded-2xl bg-background-card px-4 py-3 text-sm text-foreground outline-none placeholder:text-foreground-muted" />
+          <textarea value={text} onChange={(event) => setText(event.target.value)} onPaste={handleTextPaste} maxLength={MAX_TEXT_LENGTH} placeholder={t("imageTranslate.textPlaceholder")} className="control-gradient-outline image-text-translate-plain-outline min-h-40 w-full resize-none rounded-2xl bg-background-card px-4 py-3 text-sm text-foreground outline-none placeholder:text-foreground-muted" />
         )}
 
         <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-background-card px-4 py-3">
@@ -798,7 +854,8 @@ export function MobileImageTextTranslateOverlay({
         visual={null}
         fullScreen
         showPanelDecoration={false}
-        panelClassName="image-text-translate-surface bg-background text-foreground"
+        panelClassName="image-text-translate-surface !bg-black !text-white"
+        headerClassName="!border-0 !bg-black"
         contentClassName="min-h-0 overflow-y-auto overscroll-contain px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-5"
       >
         <div className="mx-auto flex w-full max-w-xl flex-col gap-4" data-image-text-translations-list>
@@ -810,7 +867,7 @@ export function MobileImageTextTranslateOverlay({
                   type="button"
                   disabled
                   aria-label={t("imageTranslate.loadingTranslations")}
-                  className="flex min-h-16 w-full items-center gap-3 rounded-xl border border-border bg-background-card px-4 py-3 text-left text-sm font-semibold text-foreground-secondary disabled:cursor-wait"
+                  className="flex min-h-16 w-full items-center gap-3 rounded-xl bg-transparent px-4 py-3 text-left text-sm font-semibold text-foreground-secondary disabled:cursor-wait"
                 >
                   <Loader2 className="size-5 shrink-0 animate-spin" aria-hidden="true" />
                   <span>{t("imageTranslate.loadingTranslations")}</span>
@@ -857,8 +914,9 @@ export function MobileImageTextTranslateOverlay({
         visual={null}
         fullScreen
         showPanelDecoration={false}
-        panelClassName="image-text-translate-surface bg-background text-foreground"
-        contentClassName="min-h-0 overflow-y-auto overscroll-contain px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-5"
+        panelClassName="image-text-translate-surface !bg-black !text-white"
+        headerClassName="!border-0 !bg-black"
+        contentClassName="min-h-0 overflow-y-auto overscroll-contain px-0 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-5"
       >
         {detailTranslation ? (
           <TranslationDetailContent
@@ -867,6 +925,8 @@ export function MobileImageTextTranslateOverlay({
             nativeLanguageName={nativeLanguageName}
             sourceTitle={t("imageTranslate.sourceText")}
             translationTitle={t("imageTranslate.translatedText")}
+            copySourceLabel={t("imageTranslate.copySourceText")}
+            copyTranslationLabel={t("imageTranslate.copyTranslation")}
             separatorLabels={{
               text: t("imageTranslate.newText"),
               paragraph: t("imageTranslate.paragraph"),
@@ -875,6 +935,7 @@ export function MobileImageTextTranslateOverlay({
             activeSourceWord={wordDetail?.clickedLanguage === "source" ? wordDetail.clickedWord : null}
             activeNativeWord={wordDetail?.clickedLanguage === "native" ? wordDetail.clickedWord : null}
             onWordClick={handleWordClick}
+            onCopyText={handleCopyText}
           />
         ) : null}
       </MobileBottomSheetShell>
@@ -945,30 +1006,66 @@ function ImageTextTranslateFirstOpenTutorial({ exiting, message, nextLabel, onNe
   );
 }
 
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  const value = text.trim();
+  if (!value || typeof document === "undefined") return false;
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      return true;
+    }
+  } catch {
+    // Fall back to the legacy path for mobile WebViews and non-secure origins.
+  }
+
+  try {
+    const textarea = document.createElement("textarea");
+    textarea.value = value;
+    textarea.setAttribute("readonly", "true");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    textarea.setSelectionRange(0, value.length);
+    const copied = document.execCommand("copy");
+    textarea.remove();
+    return copied;
+  } catch {
+    return false;
+  }
+}
+
 function TranslationDetailContent({
   translation,
   sourceLanguageName,
   nativeLanguageName,
   sourceTitle,
   translationTitle,
+  copySourceLabel,
+  copyTranslationLabel,
   separatorLabels,
   activeSourceWord,
   activeNativeWord,
   onWordClick,
+  onCopyText,
 }: {
   translation: SavedImageTextTranslation;
   sourceLanguageName: string;
   nativeLanguageName: string;
   sourceTitle: string;
   translationTitle: string;
+  copySourceLabel: string;
+  copyTranslationLabel: string;
   separatorLabels: Record<ImageTextSeparator, string>;
   activeSourceWord: string | null;
   activeNativeWord: string | null;
   onWordClick: (word: string, clickedLanguage: ClickedLanguage, sentenceIndex: number, wordIndex: number) => void;
+  onCopyText: (text: string, kind: "source" | "translation") => void | Promise<void>;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-3" data-image-text-translation-detail>
-      <div className="overflow-hidden rounded-2xl border border-border bg-background-card/80 shadow-sm">
+    <div className="mx-auto flex w-full max-w-none flex-col gap-3" data-image-text-translation-detail>
+      <div className="w-full bg-transparent">
         {translation.sentences.map((sentence, index) => {
           const separator = sentence.separators[sentence.separators.length - 1];
 
@@ -984,10 +1081,13 @@ function TranslationDetailContent({
                 nativeLanguage={translation.nativeLocale}
                 sourceTitle={sourceTitle}
                 translationTitle={translationTitle}
+                copySourceLabel={copySourceLabel}
+                copyTranslationLabel={copyTranslationLabel}
                 hasSeparator={sentence.separators.length > 0}
                 activeSourceWord={activeSourceWord}
                 activeNativeWord={activeNativeWord}
                 onWordClick={onWordClick}
+                onCopyText={onCopyText}
               />
             </div>
           );
@@ -1115,10 +1215,13 @@ function SentencePairPanel({
   nativeLanguage,
   sourceTitle,
   translationTitle,
+  copySourceLabel,
+  copyTranslationLabel,
   hasSeparator,
   activeSourceWord,
   activeNativeWord,
   onWordClick,
+  onCopyText,
 }: {
   index: number;
   sentence: ImageTextSentencePair;
@@ -1128,10 +1231,13 @@ function SentencePairPanel({
   nativeLanguage: LanguageCode;
   sourceTitle: string;
   translationTitle: string;
+  copySourceLabel: string;
+  copyTranslationLabel: string;
   hasSeparator: boolean;
   activeSourceWord: string | null;
   activeNativeWord: string | null;
   onWordClick: (word: string, clickedLanguage: ClickedLanguage, sentenceIndex: number, wordIndex: number) => void;
+  onCopyText: (text: string, kind: "source" | "translation") => void | Promise<void>;
 }) {
   return (
     <article className={cn("p-4", index > 0 && !hasSeparator && "border-t border-border")}>
@@ -1141,6 +1247,14 @@ function SentencePairPanel({
             <LanguageFlag code={sourceLanguage} className="h-5 w-7 shrink-0" />
             <h4 className="text-xs font-semibold text-foreground-secondary">{sourceTitle}</h4>
             <span className="truncate text-xs text-foreground-muted">{sourceLanguageName}</span>
+            <button
+              type="button"
+              onClick={() => void onCopyText(sentence.source, "source")}
+              aria-label={copySourceLabel}
+              className="ml-auto inline-flex size-9 shrink-0 items-center justify-center rounded-full text-foreground-secondary transition-colors hover:bg-white/10 hover:text-foreground active:scale-95"
+            >
+              <Copy className="size-5" aria-hidden="true" />
+            </button>
           </div>
           <TokenizedText
             text={sentence.source}
@@ -1157,6 +1271,14 @@ function SentencePairPanel({
             <LanguageFlag code={nativeLanguage} className="h-5 w-7 shrink-0" />
             <h4 className="text-xs font-semibold text-foreground-secondary">{translationTitle}</h4>
             <span className="truncate text-xs text-foreground-muted">{nativeLanguageName}</span>
+            <button
+              type="button"
+              onClick={() => void onCopyText(sentence.translation, "translation")}
+              aria-label={copyTranslationLabel}
+              className="ml-auto inline-flex size-9 shrink-0 items-center justify-center rounded-full text-foreground-secondary transition-colors hover:bg-white/10 hover:text-foreground active:scale-95"
+            >
+              <Copy className="size-5" aria-hidden="true" />
+            </button>
           </div>
           <TokenizedText
             text={sentence.translation}

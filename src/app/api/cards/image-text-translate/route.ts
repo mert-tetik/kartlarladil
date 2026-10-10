@@ -1,16 +1,17 @@
 import OpenAI from "openai";
 import {
-  AI_PRACTICE_DEFAULT_MODEL,
   createAiPracticeSafetyIdentifier,
   extractResponseOutputText,
 } from "@/features/ai-practice/ai-practice-openai";
 import {
   imageTextTranslateRequestSchema,
   imageTextTranslateResponseSchema,
+  imageTextExtractResponseSchema,
   normalizeImageTextTranslateResponse,
 } from "@/features/cards/image-text-translate-schema";
 import {
-  buildImageTextTranslateImageInput,
+  buildImageTextExtractImageInput,
+  buildImageTextExtractInstructions,
   buildImageTextTranslateInstructions,
   buildImageTextTranslateTextInput,
 } from "@/features/cards/image-text-translate-prompts";
@@ -20,11 +21,15 @@ import {
   getImageTextTranslationUsage,
 } from "@/features/subscriptions/ai-usage-service";
 import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
-import type { ResponseInputContent } from "openai/resources/responses/responses";
+import type {
+  Response as OpenAIResponse,
+  ResponseCreateParamsNonStreaming,
+  ResponseInputContent,
+} from "openai/resources/responses/responses";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const MAX_IMAGES = 6;
 // Keep the JSON request comfortably below serverless request-body limits. The
@@ -34,6 +39,17 @@ const MAX_IMAGE_DATA_URL_LENGTH = 750_000;
 const MAX_TOTAL_IMAGE_DATA_URL_LENGTH = 4_000_000;
 const MAX_OUTPUT_TOKENS = 6000;
 const OPENAI_REQUEST_TIMEOUT_MS = 45_000;
+const OCR_MAX_OUTPUT_TOKENS = 5000;
+const IMAGE_TEXT_TRANSLATE_DEFAULT_MODEL = "gpt-4.1-mini";
+
+const IMAGE_TEXT_EXTRACT_RESPONSE_JSON_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    text: { type: "string", maxLength: 4000 },
+  },
+  required: ["text"],
+} as const;
 
 const IMAGE_TEXT_TRANSLATE_RESPONSE_JSON_SCHEMA = {
   type: "object",
@@ -104,35 +120,77 @@ export async function POST(request: Request) {
     return jsonError("usage_unavailable", 503);
   }
 
-  const content: ResponseInputContent[] = [
-    {
-      type: "input_text",
-      text: parsed.data.mode === "image"
-        ? buildImageTextTranslateImageInput(parsed.data.targetLanguage, parsed.data.answerQuestions)
-        : buildImageTextTranslateTextInput(parsed.data.text ?? "", parsed.data.targetLanguage, parsed.data.answerQuestions),
-    },
-  ];
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const model = process.env.OPENAI_IMAGE_TEXT_TRANSLATE_MODEL?.trim() || IMAGE_TEXT_TRANSLATE_DEFAULT_MODEL;
+
+  let sourceText = parsed.data.text ?? "";
 
   if (parsed.data.mode === "image") {
-    for (const image of parsed.data.images ?? []) {
-      content.push({ type: "input_image", image_url: image, detail: "high" });
+    const extractionContent: ResponseInputContent[] = [
+      {
+        type: "input_text",
+        text: buildImageTextExtractImageInput(parsed.data.targetLanguage),
+      },
+      ...(parsed.data.images ?? []).map((image) => ({
+        type: "input_image" as const,
+        image_url: image,
+        detail: "high" as const,
+      })),
+    ];
+
+    let extractionResponse;
+    try {
+      extractionResponse = await createOpenAiResponse(openai, {
+        model,
+        instructions: buildImageTextExtractInstructions(parsed.data),
+        input: [{ role: "user", content: extractionContent }],
+        max_output_tokens: OCR_MAX_OUTPUT_TOKENS,
+        reasoning: { effort: "low" },
+        stream: false,
+        store: false,
+        text: {
+          format: {
+            type: "json_schema",
+            name: "image_text_extract_response",
+            strict: true,
+            schema: IMAGE_TEXT_EXTRACT_RESPONSE_JSON_SCHEMA,
+          },
+          verbosity: "medium",
+        },
+        truncation: "auto",
+        safety_identifier: createAiPracticeSafetyIdentifier(user.id),
+      }, request.signal);
+    } catch {
+      return jsonError("upstream_error", 502);
     }
+
+    const extractedRawText = extractResponseOutputText(extractionResponse) ?? "";
+    let extractedJson: unknown;
+    try {
+      extractedJson = JSON.parse(extractedRawText);
+    } catch {
+      return jsonError("upstream_error", 502);
+    }
+
+    const extracted = imageTextExtractResponseSchema.safeParse(extractedJson);
+    if (!extracted.success || !extracted.data.text.trim()) {
+      return jsonError("no_text_detected", 422);
+    }
+
+    sourceText = extracted.data.text;
   }
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  const model = process.env.OPENAI_AI_PRACTICE_MODEL?.trim() || AI_PRACTICE_DEFAULT_MODEL;
+  const translationContent: ResponseInputContent[] = [{
+    type: "input_text",
+    text: buildImageTextTranslateTextInput(sourceText, parsed.data.targetLanguage, parsed.data.answerQuestions),
+  }];
 
-  let response;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), OPENAI_REQUEST_TIMEOUT_MS);
-  const abortFromRequest = () => controller.abort();
-  request.signal.addEventListener("abort", abortFromRequest, { once: true });
-
+  let translationResponse;
   try {
-    response = await openai.responses.create({
+    translationResponse = await createOpenAiResponse(openai, {
       model,
       instructions: buildImageTextTranslateInstructions(parsed.data),
-      input: [{ role: "user", content }],
+      input: [{ role: "user", content: translationContent }],
       max_output_tokens: MAX_OUTPUT_TOKENS,
       reasoning: { effort: "low" },
       stream: false,
@@ -148,15 +206,12 @@ export async function POST(request: Request) {
       },
       truncation: "auto",
       safety_identifier: createAiPracticeSafetyIdentifier(user.id),
-    }, { signal: controller.signal });
+    }, request.signal);
   } catch {
     return jsonError("upstream_error", 502);
-  } finally {
-    clearTimeout(timeout);
-    request.signal.removeEventListener("abort", abortFromRequest);
   }
 
-  const rawText = extractResponseOutputText(response) ?? "";
+  const rawText = extractResponseOutputText(translationResponse) ?? "";
   let rawJson: unknown;
   try {
     rawJson = JSON.parse(rawText);
@@ -196,6 +251,24 @@ export async function POST(request: Request) {
   return Response.json(normalized, {
     headers: { "Cache-Control": "no-store" },
   });
+}
+
+async function createOpenAiResponse(
+  openai: OpenAI,
+  params: ResponseCreateParamsNonStreaming,
+  requestSignal: AbortSignal,
+): Promise<OpenAIResponse> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), OPENAI_REQUEST_TIMEOUT_MS);
+  const abortFromRequest = () => controller.abort();
+  requestSignal.addEventListener("abort", abortFromRequest, { once: true });
+
+  try {
+    return await openai.responses.create(params, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+    requestSignal.removeEventListener("abort", abortFromRequest);
+  }
 }
 
 function jsonError(errorCode: string, status: number) {

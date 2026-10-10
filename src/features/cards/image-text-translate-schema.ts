@@ -62,6 +62,12 @@ export const imageTextTranslateResponseSchema = z.object({
 export type ImageTextTranslateResponse = z.infer<typeof imageTextTranslateResponseSchema>;
 export type ImageTextSentencePair = z.infer<typeof imageTextSentencePairSchema>;
 
+export const imageTextExtractResponseSchema = z.object({
+  text: z.string().max(4000),
+});
+
+export type ImageTextExtractResponse = z.infer<typeof imageTextExtractResponseSchema>;
+
 function splitSentenceUnits(value: string, locale?: string): string[] {
   const text = value.trim();
   if (!text) return [];

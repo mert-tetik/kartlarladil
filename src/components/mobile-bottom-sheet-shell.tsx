@@ -98,6 +98,7 @@ export interface MobileBottomSheetShellProps {
   showBackdrop?: boolean;
   fullScreen?: boolean;
   showPanelDecoration?: boolean;
+  headerClassName?: string;
   titleId?: string;
   titleClassName?: string;
   panelLabel?: string;
@@ -120,6 +121,7 @@ export function MobileBottomSheetShell({
   showBackdrop = true,
   fullScreen = false,
   showPanelDecoration = true,
+  headerClassName,
   titleId,
   titleClassName,
   panelLabel,
@@ -362,6 +364,7 @@ export function MobileBottomSheetShell({
           className={cn(
             "relative z-10 flex shrink-0 items-center justify-center px-14 pb-2 pt-0",
             fullScreen && "justify-start border-b border-border bg-background-card/80 px-5 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)]",
+            headerClassName,
           )}
         >
           {fullScreen && visual ? (

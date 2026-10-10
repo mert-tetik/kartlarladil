@@ -41,6 +41,18 @@ function makeResponse(sentences = [{ source: "Hello.", translation: "Merhaba.", 
   };
 }
 
+function makeExtractionResponse(text = "Hello.") {
+  return {
+    output: [{
+      type: "message",
+      content: [{
+        type: "output_text",
+        text: JSON.stringify({ text }),
+      }],
+    }],
+  };
+}
+
 function makeImageRequest() {
   return new Request("http://localhost/api/cards/image-text-translate", {
     method: "POST",
@@ -55,9 +67,24 @@ function makeImageRequest() {
   });
 }
 
+function makeTextRequest() {
+  return new Request("http://localhost/api/cards/image-text-translate", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      mode: "text",
+      locale: "tr",
+      targetLanguage: "en",
+      answerQuestions: true,
+      text: "Hello.",
+    }),
+  });
+}
+
 describe("POST /api/cards/image-text-translate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCreate.mockReset();
     process.env.OPENAI_API_KEY = "test-key";
     mockGetCurrentAuthUser.mockResolvedValue({ id: "user-1" });
     mockConsumeImageTextTranslation.mockResolvedValue(null);
@@ -68,7 +95,9 @@ describe("POST /api/cards/image-text-translate", () => {
       canUse: true,
     });
     mockGetUserEntitlements.mockResolvedValue({ effectivePlan: "free" });
-    mockCreate.mockResolvedValue(makeResponse());
+    mockCreate
+      .mockResolvedValueOnce(makeExtractionResponse())
+      .mockResolvedValueOnce(makeResponse());
   });
 
   it("sends image input and consumes usage only after a validated result", async () => {
@@ -78,16 +107,55 @@ describe("POST /api/cards/image-text-translate", () => {
     expect(await response.json()).toMatchObject({
       sentences: [{ source: "Hello.", translation: "Merhaba." }],
     });
-    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+    expect(mockCreate.mock.calls[0]?.[0].model).toBe("gpt-4.1-mini");
+    expect(mockCreate.mock.calls[1]?.[0].model).toBe("gpt-4.1-mini");
     expect(mockCreate.mock.calls[0]?.[0].input[0].content).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ type: "input_image", image_url: image, detail: "high" }),
       ]),
     );
+    expect(mockCreate.mock.calls[1]?.[0].input[0].content[0]).toMatchObject({
+      type: "input_text",
+    });
+    expect(mockCreate.mock.calls[1]?.[0].input[0].content[0].text).toContain("Hello.");
+    expect(mockCreate.mock.calls[1]?.[0].input[0].content).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ type: "input_image" })]),
+    );
     expect(mockConsumeImageTextTranslation).toHaveBeenCalledWith("user-1");
   });
 
+  it("does not translate or consume when image extraction finds no text", async () => {
+    mockCreate.mockReset();
+    mockCreate.mockResolvedValueOnce(makeExtractionResponse(""));
+
+    const response = await POST(makeImageRequest());
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toEqual({ errorCode: "no_text_detected" });
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockConsumeImageTextTranslation).not.toHaveBeenCalled();
+  });
+
+  it("keeps direct text translation as a single translation call", async () => {
+    mockCreate.mockReset();
+    mockCreate.mockResolvedValueOnce(makeResponse());
+
+    const response = await POST(makeTextRequest());
+
+    expect(response.status).toBe(200);
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockCreate.mock.calls[0]?.[0].model).toBe("gpt-4.1-mini");
+    expect(mockCreate.mock.calls[0]?.[0].input[0].content).toEqual([
+      expect.objectContaining({ type: "input_text" }),
+    ]);
+    expect(mockCreate.mock.calls[0]?.[0].input[0].content).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ type: "input_image" })]),
+    );
+  });
+
   it("does not consume a use when OpenAI fails", async () => {
+    mockCreate.mockReset();
     mockCreate.mockRejectedValueOnce(new Error("upstream unavailable"));
 
     const response = await POST(makeImageRequest());

@@ -154,6 +154,7 @@ export function MobileImageCropSheet({
   const [naturalSize, setNaturalSize] = useState<NaturalImageSize | null>(null);
   const [imageBounds, setImageBounds] = useState<DisplayImageBounds | null>(null);
   const [cropRect, setCropRect] = useState<CropRect>(FULL_IMAGE_CROP);
+  const [imageLoadError, setImageLoadError] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
   const updateImageBounds = useCallback(() => {
@@ -199,7 +200,14 @@ export function MobileImageCropSheet({
   function handleImageLoad(event: SyntheticEvent<HTMLImageElement>) {
     const image = event.currentTarget;
     if (!image.naturalWidth || !image.naturalHeight) return;
+    setImageLoadError(false);
     setNaturalSize({ width: image.naturalWidth, height: image.naturalHeight });
+  }
+
+  function handleImageError() {
+    setNaturalSize(null);
+    setImageBounds(null);
+    setImageLoadError(true);
   }
 
   function getNormalizedPoint(event: PointerEvent<HTMLButtonElement>) {
@@ -303,6 +311,7 @@ export function MobileImageCropSheet({
           src={imageUrl}
           alt={t("imageTranslate.cropTitle")}
           onLoad={handleImageLoad}
+          onError={handleImageError}
           draggable={false}
           className="pointer-events-none absolute select-none"
           style={
@@ -346,10 +355,15 @@ export function MobileImageCropSheet({
       </div>
 
       <footer className="shrink-0 bg-black px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4">
+        {imageLoadError ? (
+          <p className="mb-3 text-center text-sm font-semibold text-red-300" role="alert" data-image-crop-error>
+            {t("imageTranslate.error.invalidImage")}
+          </p>
+        ) : null}
         <button
           type="button"
           onClick={() => void handleConfirm()}
-          disabled={!selectedCropArea || confirming}
+          disabled={!selectedCropArea || imageLoadError || confirming}
           aria-busy={confirming}
           className="mx-auto flex h-12 w-full max-w-md items-center justify-center rounded-xl bg-transparent px-4 text-base font-bold text-white transition-colors hover:bg-white/10 active:scale-[0.99] disabled:cursor-wait disabled:opacity-50"
         >
