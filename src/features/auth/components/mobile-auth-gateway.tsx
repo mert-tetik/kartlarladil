@@ -11,6 +11,11 @@ import { MobileSubscriptionOfferScreen } from "@/features/auth/components/mobile
 import { MobileResetPasswordForm } from "@/features/auth/components/mobile-reset-password-form";
 import { MobileUpdatePasswordForm } from "@/features/auth/components/mobile-update-password-form";
 import { MobilePasswordRecoveryLoading } from "@/features/auth/components/mobile-password-recovery-loading";
+import {
+  GATEWAY_FLOW_EXIT_DURATION_MS,
+  GatewayFlowTransition,
+  type GatewayFlowPhase,
+} from "@/features/auth/components/gateway-flow-transition";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { shouldKeepMobileGatewayBootstrapVisible } from "@/features/auth/mobile-gateway-bootstrap";
@@ -24,12 +29,10 @@ import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { cn } from "@/lib/utils";
 
 const BOOTSTRAP_EXIT_DURATION_MS = 320;
-const GATEWAY_FLOW_EXIT_DURATION_MS = 360;
 const MIN_ONBOARDING_VISUAL_HEIGHT_RATIO = 0.72;
 const SERIOUS_LEARNER_TEST_REOPEN_DELAY_MS = 320;
 
 type BootstrapPhase = "visible" | "exiting" | "hidden";
-type GatewayFlowPhase = "enter" | "exit";
 
 function MobileGatewayBootstrap({ phase }: { phase: Exclude<BootstrapPhase, "hidden"> }) {
   return (
@@ -67,66 +70,6 @@ function OnboardingBackground({ className }: { className?: string }) {
         className="absolute inset-0 bg-gradient-to-t from-background to-transparent"
         aria-hidden="true"
       />
-    </div>
-  );
-}
-
-function GatewayFlowTransition({
-  children,
-  transitionKey,
-  forceExit = false,
-  onCommit,
-  onPhaseChange,
-}: {
-  children: ReactNode;
-  transitionKey: string;
-  forceExit?: boolean;
-  onCommit: () => void;
-  onPhaseChange: (phase: GatewayFlowPhase) => void;
-}) {
-  const [displayedChildren, setDisplayedChildren] = useState(children);
-  const [displayedKey, setDisplayedKey] = useState(transitionKey);
-  const childrenRef = useRef(children);
-  const onCommitRef = useRef(onCommit);
-  const onPhaseChangeRef = useRef(onPhaseChange);
-
-  const phase: GatewayFlowPhase = forceExit || transitionKey !== displayedKey ? "exit" : "enter";
-
-  useEffect(() => {
-    childrenRef.current = children;
-    onCommitRef.current = onCommit;
-    onPhaseChangeRef.current = onPhaseChange;
-  }, [children, onCommit, onPhaseChange]);
-
-  useEffect(() => {
-    if (forceExit) {
-      onPhaseChangeRef.current("exit");
-      return;
-    }
-
-    if (transitionKey === displayedKey) return;
-
-    onPhaseChangeRef.current("exit");
-
-    const timer = window.setTimeout(() => {
-      setDisplayedChildren(childrenRef.current);
-      setDisplayedKey(transitionKey);
-      onCommitRef.current();
-      onPhaseChangeRef.current("enter");
-    }, GATEWAY_FLOW_EXIT_DURATION_MS);
-
-    return () => window.clearTimeout(timer);
-  }, [displayedKey, forceExit, transitionKey]);
-
-  return (
-    <div
-      className={cn(
-        "gateway-flow-transition",
-        phase === "exit" ? "gateway-flow-transition--exit" : "gateway-flow-transition--enter",
-      )}
-      data-gateway-flow-phase={phase}
-    >
-      {displayedChildren}
     </div>
   );
 }
@@ -621,6 +564,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
         <GatewayShell
           fullBleed
           isTestMode={isTestMode || isSeriousLearnerTestMode}
+          showBackground={false}
           transitionKey="serious-learner-offer"
         >
           <MobileSubscriptionOfferScreen
@@ -650,6 +594,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
           fullBleed
           isExiting={gatewayExitPending}
           isTestMode={isTestMode}
+          showBackground={false}
           transitionKey="subscription-offer"
         >
           <MobileSubscriptionOfferScreen onContinueFree={handleContinueFree} />

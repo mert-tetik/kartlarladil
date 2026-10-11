@@ -145,7 +145,7 @@ export async function POST(request: Request) {
         instructions: buildImageTextExtractInstructions(parsed.data),
         input: [{ role: "user", content: extractionContent }],
         max_output_tokens: OCR_MAX_OUTPUT_TOKENS,
-        reasoning: { effort: "low" },
+        ...getReasoningOptions(model),
         stream: false,
         store: false,
         text: {
@@ -160,7 +160,8 @@ export async function POST(request: Request) {
         truncation: "auto",
         safety_identifier: createAiPracticeSafetyIdentifier(user.id),
       }, request.signal);
-    } catch {
+    } catch (error) {
+      logOpenAiFailure(model, "image-extraction", error);
       return jsonError("upstream_error", 502);
     }
 
@@ -192,7 +193,7 @@ export async function POST(request: Request) {
       instructions: buildImageTextTranslateInstructions(parsed.data),
       input: [{ role: "user", content: translationContent }],
       max_output_tokens: MAX_OUTPUT_TOKENS,
-      reasoning: { effort: "low" },
+      ...getReasoningOptions(model),
       stream: false,
       store: false,
       text: {
@@ -207,7 +208,8 @@ export async function POST(request: Request) {
       truncation: "auto",
       safety_identifier: createAiPracticeSafetyIdentifier(user.id),
     }, request.signal);
-  } catch {
+  } catch (error) {
+    logOpenAiFailure(model, "translation", error);
     return jsonError("upstream_error", 502);
   }
 
@@ -269,6 +271,22 @@ async function createOpenAiResponse(
     clearTimeout(timeout);
     requestSignal.removeEventListener("abort", abortFromRequest);
   }
+}
+
+function getReasoningOptions(model: string): Pick<ResponseCreateParamsNonStreaming, "reasoning"> | Record<never, never> {
+  if (!/^(?:gpt-5(?:[.-]|$)|o[134](?:[.-]|$))/iu.test(model)) {
+    return {};
+  }
+
+  return { reasoning: { effort: "low" } };
+}
+
+function logOpenAiFailure(model: string, stage: "image-extraction" | "translation", error: unknown) {
+  console.error("[image-text-translate] OpenAI request failed", {
+    model,
+    stage,
+    error: error instanceof Error ? error.message : String(error),
+  });
 }
 
 function jsonError(errorCode: string, status: number) {

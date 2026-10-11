@@ -97,6 +97,14 @@ function getValidLanguageOverride(value: unknown): LanguageCode | null {
   return typeof value === "string" ? parseLandingLanguage(value) : null;
 }
 
+function persistLandingCardLanguage(language: LanguageCode) {
+  writeLandingCardLanguage(language, { notify: false });
+  void updateLanguagePreferenceAction({
+    field: "preferred_language_code",
+    value: language,
+  }).catch(() => undefined);
+}
+
 const MOBILE_TOP_ACTION_LABEL_CLASSNAME =
   "whitespace-nowrap text-left font-semibold leading-none text-action-review";
 const MOBILE_RANK_MIN_HEIGHT =
@@ -302,6 +310,9 @@ export function MobileLandingDashboard() {
     if (!allowRequestedLanguageRef.current && stored) {
       hasPendingStoredLandingLanguageRef.current = true;
       setSelectedLanguage(stored);
+    } else if (!allowRequestedLanguageRef.current) {
+      // Seed the local source of truth once when this device has no card-language preference yet.
+      writeLandingCardLanguage(selectedLanguageRef.current, { notify: false });
     }
 
     return subscribeLandingCardLanguage(() => {
@@ -341,7 +352,7 @@ export function MobileLandingDashboard() {
       return;
     }
 
-    writeLandingCardLanguage(nextLanguage, { notify: false });
+    persistLandingCardLanguage(nextLanguage);
     const timeoutId = window.setTimeout(() => {
       setSelectedLanguage(nextLanguage);
     }, 0);
@@ -355,7 +366,7 @@ export function MobileLandingDashboard() {
 
     if (requestedLanguage) {
       allowRequestedLanguageRef.current = true;
-      writeLandingCardLanguage(requestedLanguage, { notify: false });
+      persistLandingCardLanguage(requestedLanguage);
       timeoutId = window.setTimeout(() => {
         setSelectedLanguage(requestedLanguage);
       }, 0);
@@ -438,7 +449,7 @@ export function MobileLandingDashboard() {
     vibrate("tap");
     const requestedLanguage = getValidLanguageOverride(languageOverride);
     if (requestedLanguage && requestedLanguage !== selectedLanguage) {
-      writeLandingCardLanguage(requestedLanguage, { notify: false });
+      persistLandingCardLanguage(requestedLanguage);
       setSelectedLanguage(requestedLanguage);
     }
     requireAuthAction(() => {
@@ -494,7 +505,7 @@ export function MobileLandingDashboard() {
       : activeCount;
 
     if (requestedLanguage && requestedLanguage !== selectedLanguage) {
-      writeLandingCardLanguage(requestedLanguage, { notify: false });
+      persistLandingCardLanguage(requestedLanguage);
       setSelectedLanguage(requestedLanguage);
     }
 
@@ -604,14 +615,14 @@ export function MobileLandingDashboard() {
     const resolved = resolveMobileLandingLanguage(language, locale, detectedLocale);
     const nextCardLanguage = resolved.cardLanguage;
 
-    writeLandingCardLanguage(nextCardLanguage, { notify: false });
-    void updateLanguagePreferenceAction({
-      field: "preferred_language_code",
-      value: nextCardLanguage,
-    }).catch(() => undefined);
+    persistLandingCardLanguage(nextCardLanguage);
 
     if (resolved.siteLocale !== locale) {
       setLocale(resolved.siteLocale);
+      void updateLanguagePreferenceAction({
+        field: "preferred_ui_locale",
+        value: resolved.siteLocale,
+      }).catch(() => undefined);
     }
 
     setSelectedLanguage(nextCardLanguage);

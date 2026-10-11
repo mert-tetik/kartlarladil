@@ -7,10 +7,12 @@ import { LANGUAGES } from "@/data/languages";
 import { writeLandingCardLanguage } from "@/app/components/landing-card-language";
 import {
   completeOnboardingAction,
+  updateLanguagePreferenceAction,
   updateMobileLoginLanguagePreferencesAction,
 } from "@/features/auth/actions";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { ProfilePictureOptionGrid } from "@/features/auth/components/profile-picture-option-grid";
+import { GatewayFlowTransition } from "@/features/auth/components/gateway-flow-transition";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
 import { FormMessage } from "@/features/auth/components/form-message";
 import { SubmitButton } from "@/features/auth/components/submit-button";
@@ -23,6 +25,16 @@ import type { LanguageCode, LocaleCode } from "@/types/domain";
 
 type OnboardingStep = "native" | "learning" | "picture";
 type MobileOnboardingMode = "initial" | "login-language-refresh";
+
+const TURKEY_LEARNING_LANGUAGE_PRIORITY: LanguageCode[] = [
+  "en",
+  "ru",
+  "es",
+  "zh-CN",
+  "ko",
+  "ja",
+  "ar",
+];
 
 function getLanguageOrder(firstLanguage: LanguageCode, turkishThird = false) {
   const ordered = [
@@ -38,6 +50,17 @@ function getLanguageOrder(firstLanguage: LanguageCode, turkishThird = false) {
   return turkish
     ? [...ordered.filter((language) => language.code !== "tr").slice(0, 2), turkish, ...ordered.filter((language) => language.code !== "tr").slice(2)]
     : ordered;
+}
+
+function getLearningLanguageOrder() {
+  const prioritized = TURKEY_LEARNING_LANGUAGE_PRIORITY
+    .map((code) => LANGUAGES.find((language) => language.code === code))
+    .filter((language): language is (typeof LANGUAGES)[number] => Boolean(language));
+  const remaining = LANGUAGES.filter(
+    (language) => !TURKEY_LEARNING_LANGUAGE_PRIORITY.includes(language.code),
+  );
+
+  return [...prioritized, ...remaining];
 }
 
 function getDefaultLearningLanguage(nativeLanguage: LanguageCode | LocaleCode): LanguageCode {
@@ -63,7 +86,7 @@ export function MobileOnboardingForm({
   const [preferredLanguageCode, setPreferredLanguageCode] = useState<LanguageCode>(initialDefaults.preferredLanguageCode);
   const [languageOrders, setLanguageOrders] = useState(() => ({
     native: getLanguageOrder(initialDefaults.preferredUiLocale, true),
-    learning: getLanguageOrder(initialDefaults.preferredLanguageCode),
+    learning: getLearningLanguageOrder(),
   }));
   const [profilePictureIndex, setProfilePictureIndex] = useState(0);
   const [onboardingState, onboardingFormAction] = useActionState(completeOnboardingAction, AUTH_ACTION_IDLE_STATE);
@@ -89,7 +112,7 @@ export function MobileOnboardingForm({
     setPreferredLanguageCode(defaults.preferredLanguageCode);
     setLanguageOrders({
       native: getLanguageOrder(defaults.preferredUiLocale, true),
-      learning: getLanguageOrder(defaults.preferredLanguageCode),
+      learning: getLearningLanguageOrder(),
     });
   }, [countryCode, detectedLocale]);
 
@@ -129,13 +152,23 @@ export function MobileOnboardingForm({
   function selectNativeLanguage(code: LanguageCode) {
     hasSelectedLanguageRef.current = true;
     setPreferredUiLocale(code);
+    setLocale(code);
+    void updateLanguagePreferenceAction({
+      field: "preferred_ui_locale",
+      value: code,
+    }).catch(() => undefined);
 
     if (!hasSelectedLearningLanguageRef.current || preferredLanguageCode === code) {
       const defaultLearningLanguage = getDefaultLearningLanguage(code);
       setPreferredLanguageCode(defaultLearningLanguage);
+      writeLandingCardLanguage(defaultLearningLanguage, { notify: false });
+      void updateLanguagePreferenceAction({
+        field: "preferred_language_code",
+        value: defaultLearningLanguage,
+      }).catch(() => undefined);
       setLanguageOrders((current) => ({
         ...current,
-        learning: getLanguageOrder(defaultLearningLanguage),
+        learning: getLearningLanguageOrder(),
       }));
     }
   }
@@ -148,6 +181,11 @@ export function MobileOnboardingForm({
     hasSelectedLanguageRef.current = true;
     hasSelectedLearningLanguageRef.current = true;
     setPreferredLanguageCode(code);
+    writeLandingCardLanguage(code, { notify: false });
+    void updateLanguagePreferenceAction({
+      field: "preferred_language_code",
+      value: code,
+    }).catch(() => undefined);
   }
 
   function advanceLanguageStep() {
@@ -198,100 +236,109 @@ export function MobileOnboardingForm({
         </>
       ) : null}
 
-      <div data-gateway-flow-item data-gateway-flow-order="0" className="relative shrink-0 pb-5 pt-1 text-center">
-        {step !== "native" ? (
-          <button
-            type="button"
-            aria-label={t("common.back")}
-            onClick={goBack}
-            className={cn(
-              "absolute left-2 top-[-3rem] inline-flex size-10 items-center justify-center rounded-full text-white transition-transform active:scale-95",
-              actionButtonClass,
-            )}
-          >
-            <ChevronLeft className="size-6" aria-hidden="true" />
-          </button>
-        ) : null}
-        <h2 className="font-display text-3xl font-semibold leading-tight text-foreground">{heading}</h2>
-      </div>
+      <GatewayFlowTransition
+        className="contents"
+        transitionKey={step}
+        onCommit={() => undefined}
+        onPhaseChange={() => undefined}
+      >
+        <>
+          <div data-gateway-flow-item data-gateway-flow-order="0" className="relative shrink-0 pb-5 pt-1 text-center">
+            {step !== "native" ? (
+              <button
+                type="button"
+                aria-label={t("common.back")}
+                onClick={goBack}
+                className={cn(
+                  "absolute left-2 top-[-3rem] inline-flex size-10 items-center justify-center rounded-full text-white transition-transform active:scale-95",
+                  actionButtonClass,
+                )}
+              >
+                <ChevronLeft className="size-6" aria-hidden="true" />
+              </button>
+            ) : null}
+            <h2 className="font-display text-3xl font-semibold leading-tight text-foreground">{heading}</h2>
+          </div>
 
-      {isLanguageStep ? (
-        <div data-gateway-flow-item data-gateway-flow-order="1" className="min-h-0 flex-1 overflow-y-auto px-1">
-          <div className="grid grid-cols-2 gap-x-2 gap-y-5 pb-3">
-            {orderedLanguages.map((language) => {
-              const selected = step === "native"
-                ? preferredUiLocale === language.code
-                : preferredLanguageCode === language.code;
+          {isLanguageStep ? (
+            <div data-gateway-flow-item data-gateway-flow-order="1" className="min-h-0 flex-1 overflow-y-auto px-1">
+              <div className="grid grid-cols-2 gap-x-2 gap-y-5 pb-3">
+                {orderedLanguages.map((language) => {
+                  const selected = step === "native"
+                    ? preferredUiLocale === language.code
+                    : preferredLanguageCode === language.code;
 
-              return (
+                  return (
+                    <button
+                      key={language.code}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => {
+                        if (step === "native") {
+                          selectNativeLanguage(language.code);
+                        } else {
+                          selectLearningLanguage(language.code);
+                        }
+                      }}
+                      className={cn(
+                        "flex min-h-28 flex-col items-center justify-center gap-2 rounded-lg px-2 text-center transition-transform duration-200 active:scale-95",
+                        selected ? "scale-[1.03]" : "text-foreground-secondary hover:text-foreground",
+                      )}
+                    >
+                      <span
+                        data-onboarding-language-flag={language.code}
+                        data-selected={selected ? "true" : "false"}
+                        className="inline-flex transition-all duration-300"
+                      >
+                        <LanguageFlagWithBrandOutline
+                          code={language.code}
+                          selected={selected}
+                          className="size-20"
+                          imageClassName="scale-100"
+                          outlineInset="-inset-1.5"
+                        />
+                      </span>
+                      <span className={cn(
+                        "text-sm font-semibold leading-tight",
+                        selected
+                          ? "bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent"
+                          : "text-foreground-secondary",
+                      )}>
+                        {getLanguageDisplayName(language.code, locale)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div data-gateway-flow-item data-gateway-flow-order="1" className="min-h-0 flex-1 overflow-y-auto px-1">
+              <ProfilePictureOptionGrid selectedIndex={profilePictureIndex} onSelect={setProfilePictureIndex} className="pb-3" />
+            </div>
+          )}
+
+          <div data-gateway-flow-item data-gateway-flow-order="2" className="shrink-0 pt-5">
+            <FormMessage state={state} />
+            {!shouldSubmit ? (
+              <div className={cn("mobile-primary-action-depth w-full rounded-lg", actionDepthClass)}>
                 <button
-                  key={language.code}
                   type="button"
-                  aria-pressed={selected}
-                  onClick={() => {
-                    if (step === "native") {
-                      selectNativeLanguage(language.code);
-                    } else {
-                      selectLearningLanguage(language.code);
-                    }
-                  }}
-                  className={cn(
-                    "flex min-h-28 flex-col items-center justify-center gap-2 rounded-lg px-2 text-center transition-transform duration-200 active:scale-95",
-                    selected ? "scale-[1.03]" : "text-foreground-secondary hover:text-foreground",
-                  )}
+                  onClick={advanceLanguageStep}
+                  className={cn("h-14 w-full rounded-lg px-5 text-base font-bold transition-transform active:scale-[0.99]", actionButtonClass)}
                 >
-                  <span
-                    data-onboarding-language-flag={language.code}
-                    data-selected={selected ? "true" : "false"}
-                    className="inline-flex transition-all duration-300"
-                  >
-                    <LanguageFlagWithBrandOutline
-                      code={language.code}
-                      selected={selected}
-                      className="size-20"
-                      imageClassName="scale-100"
-                      outlineInset="-inset-1.5"
-                    />
-                  </span>
-                  <span className={cn(
-                    "text-sm font-semibold leading-tight",
-                    selected
-                      ? "bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent"
-                      : "text-foreground-secondary",
-                  )}>
-                    {getLanguageDisplayName(language.code, locale)}
-                  </span>
+                  {t("auth.onboarding.selectLanguage")}
                 </button>
-              );
-            })}
+              </div>
+            ) : (
+              <div className={cn("mobile-primary-action-depth w-full rounded-md", actionDepthClass)}>
+                <SubmitButton className={cn("h-14 w-full text-base font-bold", actionButtonClass)} pendingLabel={t("auth.onboarding.pending")}>
+                  {t("auth.onboarding.continue")}
+                </SubmitButton>
+              </div>
+            )}
           </div>
-        </div>
-      ) : (
-        <div data-gateway-flow-item data-gateway-flow-order="1" className="min-h-0 flex-1 overflow-y-auto px-1">
-          <ProfilePictureOptionGrid selectedIndex={profilePictureIndex} onSelect={setProfilePictureIndex} className="pb-3" />
-        </div>
-      )}
-
-      <div data-gateway-flow-item data-gateway-flow-order="2" className="shrink-0 pt-5">
-        <FormMessage state={state} />
-        {!shouldSubmit ? (
-          <div className={cn("mobile-primary-action-depth w-full rounded-lg", actionDepthClass)}>
-            <button
-              type="button"
-              onClick={advanceLanguageStep}
-              className={cn("h-14 w-full rounded-lg px-5 text-base font-bold transition-transform active:scale-[0.99]", actionButtonClass)}
-            >
-              {t("auth.onboarding.selectLanguage")}
-            </button>
-          </div>
-        ) : (
-          <div className={cn("mobile-primary-action-depth w-full rounded-md", actionDepthClass)}>
-            <SubmitButton className={cn("h-14 w-full text-base font-bold", actionButtonClass)} pendingLabel={t("auth.onboarding.pending")}>
-              {t("auth.onboarding.continue")}
-            </SubmitButton>
-          </div>
-        )}
-      </div>
+        </>
+      </GatewayFlowTransition>
     </form>
   );
 }

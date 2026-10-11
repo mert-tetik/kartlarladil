@@ -44,7 +44,7 @@ const imageRuntimeCaching = [
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
-  serverExternalPackages: ["@resvg/resvg-js"],
+  serverExternalPackages: ["@resvg/resvg-js", "sharp"],
   images: {
     localPatterns: [
       {

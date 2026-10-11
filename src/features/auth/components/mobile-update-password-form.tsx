@@ -38,7 +38,7 @@ export function MobileUpdatePasswordForm({
         className="mb-4 flex h-auto items-center gap-1 self-start px-0 py-1 text-sm font-semibold text-foreground-secondary hover:bg-transparent hover:text-foreground"
       >
         <ChevronLeft className="size-5" aria-hidden="true" />
-        {t("common.back")}
+        {t("auth.login.title")}
       </Button>
 
       <h2 data-gateway-flow-item data-gateway-flow-order="1" className="font-display text-2xl font-semibold text-foreground">

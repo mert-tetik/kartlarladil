@@ -7,7 +7,7 @@ import { BookOpen, Camera, Check, Copy, Image as ImageIcon, Loader2, ScanText, T
 import type { Area } from "react-easy-crop";
 import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
-import { isImageFile, readImageFileAsDataUrl } from "@/app/components/image-file";
+import { normalizeImageFile } from "@/app/components/image-file";
 import { cropImageToDataUrl } from "@/app/components/image-crop";
 import { MobileCustomCardLanguagePicker } from "@/app/components/mobile-custom-card-language-picker";
 import { MobileImageCropSheet } from "@/app/components/mobile-image-crop-sheet";
@@ -48,7 +48,7 @@ import type { ImageTextTranslationUsage } from "@/features/cards/image-text-tran
 import type { LanguageCode, LimitErrorCode, Tier, VocabularyCard } from "@/types/domain";
 
 const MAX_UPLOAD_IMAGES = 6;
-const MAX_FILE_SIZE_BYTES = 12 * 1024 * 1024;
+const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 const MAX_TEXT_LENGTH = 4000;
 const IMAGE_TEXT_TRANSLATE_OPENED_KEY = "foxiesdeck:image-text-translate-opened";
 const IMAGE_TEXT_TRANSLATE_TUTORIAL_EXIT_MS = 860;
@@ -299,7 +299,7 @@ export function MobileImageTextTranslateOverlay({
     const validFiles: CropQueueItem[] = [];
 
     for (const file of files) {
-      if (!isImageFile(file) || file.size > MAX_FILE_SIZE_BYTES) {
+      if (file.size === 0 || file.size > MAX_FILE_SIZE_BYTES) {
         showMessage(getErrorMessage("invalid_image", t), "error");
         continue;
       }
@@ -323,12 +323,12 @@ export function MobileImageTextTranslateOverlay({
     while (remainingQueue.length > 0) {
       const [nextCrop, ...nextQueue] = remainingQueue;
       try {
-        const sourceUrl = await readImageFileAsDataUrl(nextCrop.file);
+        const normalized = await normalizeImageFile(nextCrop.file);
         setCropQueue(nextQueue);
-        setActiveCrop({ ...nextCrop, sourceUrl });
+        setActiveCrop({ ...nextCrop, sourceUrl: normalized.dataUrl });
         return;
-      } catch {
-        showMessage(getErrorMessage("invalid_image", t), "error");
+      } catch (error) {
+        showMessage(getErrorMessage(getErrorCode(error), t), "error");
         remainingQueue = nextQueue;
       }
     }
@@ -1425,7 +1425,8 @@ function formatErrorMessage(errorCode: string, t: ReturnType<typeof useT>) {
 
 function getErrorMessage(errorCode: string, t: ReturnType<typeof useT>) {
   if (errorCode === "image_limit") return t("imageTranslate.error.imageLimit");
-  if (errorCode === "invalid_image") return t("imageTranslate.error.invalidImage");
+  if (errorCode === "invalid_image" || errorCode === "image_too_large" || errorCode === "image_normalization_failed") return t("imageTranslate.error.invalidImage");
+  if (errorCode === "auth_required") return t("imageTranslate.error.auth_required");
   if (errorCode === "no_images") return t("imageTranslate.error.noImages");
   if (errorCode === "no_text") return t("imageTranslate.error.noText");
   return formatErrorMessage(errorCode, t);

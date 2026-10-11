@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { vi } from "vitest";
+import { beforeEach, vi } from "vitest";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import { MobileOnboardingForm } from "@/features/auth/components/mobile-onboarding-form";
@@ -8,6 +8,7 @@ import { LocaleProvider } from "@/i18n/locale-provider";
 
 vi.mock("@/features/auth/actions", () => ({
   completeOnboardingAction: vi.fn(),
+  updateLanguagePreferenceAction: vi.fn().mockResolvedValue(undefined),
   updateMobileLoginLanguagePreferencesAction: vi.fn(),
 }));
 
@@ -26,6 +27,10 @@ const testUser: AuthShellUser = {
 };
 
 describe("MobileOnboardingForm", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it("defaults to English unless English is the selected native language", async () => {
     const user = userEvent.setup();
     const { container } = render(
@@ -64,21 +69,32 @@ describe("MobileOnboardingForm", () => {
     expect(container.querySelector('[data-onboarding-language-flag="tr"]')).toHaveAttribute("data-selected", "true");
 
     await user.click(screen.getByRole("button", { name: "Dil seç" }));
-    expect(screen.getByRole("heading", { name: "Hangi dili öğrenmek istersiniz?" })).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Hangi dili öğrenmek istersiniz?" })).toBeVisible();
+    });
     expect(container.querySelector('[data-onboarding-language-flag="en"]')).toHaveAttribute("data-selected", "true");
     expect(container.querySelector('[data-onboarding-language-flag="tr"]')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Geri dön" }));
-    expect(screen.getByRole("heading", { name: "Ana dilinizi seçiniz" })).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Ana dilinizi seçiniz" })).toBeVisible();
+    });
 
     await user.click(screen.getByRole("button", { name: "Dil seç" }));
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Hangi dili öğrenmek istersiniz?" })).toBeVisible();
+    });
 
     await user.click(screen.getByRole("button", { name: "Dil seç" }));
-    expect(screen.getByRole("heading", { name: "Profil fotoğrafı seç" })).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Profil fotoğrafı seç" })).toBeVisible();
+    });
     expect(screen.getByRole("button", { name: "Kedi" })).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Geri dön" }));
-    expect(screen.getByRole("heading", { name: "Hangi dili öğrenmek istersiniz?" })).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Hangi dili öğrenmek istersiniz?" })).toBeVisible();
+    });
   });
 
   it("refreshes both login languages without rendering or submitting the avatar step", async () => {
@@ -104,7 +120,9 @@ describe("MobileOnboardingForm", () => {
     await user.click(advanceButton as HTMLButtonElement);
 
     expect(form).toHaveAttribute("data-mobile-onboarding-step", "learning");
-    expect(container.querySelector('[data-onboarding-language-flag="en"]')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(container.querySelector('[data-onboarding-language-flag="en"]')).not.toBeInTheDocument();
+    });
     await selectLanguage("de");
     expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')).toBeInTheDocument();
     expect(form).toHaveAttribute("data-mobile-onboarding-step", "learning");

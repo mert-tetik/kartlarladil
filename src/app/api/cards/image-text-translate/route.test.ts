@@ -110,6 +110,8 @@ describe("POST /api/cards/image-text-translate", () => {
     expect(mockCreate).toHaveBeenCalledTimes(2);
     expect(mockCreate.mock.calls[0]?.[0].model).toBe("gpt-4.1-mini");
     expect(mockCreate.mock.calls[1]?.[0].model).toBe("gpt-4.1-mini");
+    expect(mockCreate.mock.calls[0]?.[0].reasoning).toBeUndefined();
+    expect(mockCreate.mock.calls[1]?.[0].reasoning).toBeUndefined();
     expect(mockCreate.mock.calls[0]?.[0].input[0].content).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ type: "input_image", image_url: image, detail: "high" }),

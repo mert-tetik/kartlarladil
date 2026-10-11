@@ -28,6 +28,41 @@ export function readImageFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
+export async function normalizeImageFile(file: File): Promise<{ dataUrl: string; name: string }> {
+  const formData = new FormData();
+  formData.append("file", file, file.name || "image");
+
+  let response: Response;
+  try {
+    response = await fetch("/api/cards/normalize-image", {
+      method: "POST",
+      body: formData,
+    });
+  } catch {
+    throw new Error("image_normalization_failed");
+  }
+
+  const payload = await response.json().catch(() => null) as {
+    dataUrl?: unknown;
+    name?: unknown;
+    errorCode?: unknown;
+  } | null;
+
+  if (!response.ok) {
+    const errorCode = typeof payload?.errorCode === "string" ? payload.errorCode : "image_normalization_failed";
+    throw new Error(errorCode);
+  }
+
+  if (typeof payload?.dataUrl !== "string" || !payload.dataUrl.startsWith("data:image/jpeg;base64,")) {
+    throw new Error("image_normalization_failed");
+  }
+
+  return {
+    dataUrl: payload.dataUrl,
+    name: typeof payload.name === "string" && payload.name.trim() ? payload.name : file.name || "image.jpg",
+  };
+}
+
 export function isImageFile(file: File) {
   return file.type.startsWith("image/") || Boolean(getImageMimeType(file));
 }

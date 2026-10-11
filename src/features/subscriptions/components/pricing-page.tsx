@@ -1292,7 +1292,7 @@ function SubscriptionDetailsOverlay({
           </div>
 
           <div className="relative mt-10 min-h-0 w-full max-w-xl flex-1">
-            <ul ref={featureListRef} className="h-full min-h-0 w-full overscroll-contain overflow-y-auto pb-12 pr-1">
+            <ul ref={featureListRef} className="flex h-full min-h-0 w-full flex-col overscroll-contain overflow-y-auto pb-0 pr-1">
               {selection.plan === "pro" ? (
                 <>
                   <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={650} index={1} icon={ScanText} locale={locale} text={t("pricing.featureUnlimitedTextTranslation")} />
@@ -1483,7 +1483,7 @@ function SubscriptionDetailsFeature({
     <li
       data-pricing-details-feature={index}
       className={cn(
-        "subscription-details-feature subscription-details-intro-item flex min-h-12 items-center gap-3 px-4 py-2 text-left text-base font-semibold leading-tight text-white sm:text-lg",
+        "subscription-details-feature subscription-details-intro-item flex min-h-12 flex-1 items-center gap-3 px-4 py-2 text-left text-lg font-semibold leading-tight text-white sm:text-xl",
         unavailable && "opacity-45 line-through",
         introVisible ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
       )}

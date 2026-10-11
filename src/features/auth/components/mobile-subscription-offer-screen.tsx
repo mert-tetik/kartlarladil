@@ -13,7 +13,6 @@ import {
   BookOpen,
   ChevronDown,
   Gamepad2,
-  Headset,
   Layers,
   MessageCircle,
   MessagesSquare,
@@ -47,9 +46,6 @@ import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText }
 import { cn } from "@/lib/utils";
 import { useAppMessage } from "@/components/app-message-provider";
 
-const SERIOUS_LEARNER_FRAME_COUNT = 50;
-const SERIOUS_LEARNER_FRAME_FPS = 30;
-const SERIOUS_LEARNER_FRAME_BASE_PATH = "/serious-learner-offer-frames-v5";
 const SERIOUS_LEARNER_BASIC_COLOR = "#2C63E1";
 
 interface MobileSubscriptionOfferScreenProps {
@@ -69,10 +65,8 @@ export function MobileSubscriptionOfferScreen({
   const googlePlayPricing = useGooglePlayPricing();
   const { purchase, isLoading: isGooglePlayLoading, isSupported } = useGooglePlayBilling();
   const { showMessage } = useAppMessage();
-  const [isIntroComplete, setIsIntroComplete] = useState(false);
   const [showFeatureScrollHint, setShowFeatureScrollHint] = useState(false);
   const featureListRef = useRef<HTMLUListElement>(null);
-  const handleIntroComplete = useCallback(() => setIsIntroComplete(true), []);
 
   const updateFeatureScrollHint = useCallback(() => {
     const list = featureListRef.current;
@@ -101,7 +95,7 @@ export function MobileSubscriptionOfferScreen({
       window.removeEventListener("resize", updateFeatureScrollHint);
       resizeObserver?.disconnect();
     };
-  }, [isIntroComplete, updateFeatureScrollHint]);
+  }, [updateFeatureScrollHint]);
 
   const plans = isTwa ? TWA_PLANS : PLANS;
   const basicPlan = plans.find((item) => item.plan === "basic");
@@ -160,19 +154,14 @@ export function MobileSubscriptionOfferScreen({
       data-gateway-flow-screen
       data-gateway-flow-screen-exit
       data-mobile-subscription-offer
-      className="relative h-full min-h-0 w-full max-w-none overflow-hidden bg-[#070707] text-center text-white"
+      className="relative h-full min-h-0 w-full max-w-none overflow-hidden bg-[#2C63E1] text-center text-white"
     >
-      <SeriousLearnerOfferFrameAnimation onComplete={handleIntroComplete} />
-
       <div
         aria-hidden="true"
         className="pointer-events-none absolute left-1/2 top-0 z-[2] size-[52rem] -translate-x-1/2 -translate-y-[78%]"
       >
         <div
-          className={cn(
-            "subscription-details-intro-item subscription-details-intro-item--circle-core absolute inset-0 rounded-full bg-white",
-            isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
-          )}
+          className="subscription-details-intro-item subscription-details-intro-item--circle-core subscription-details-intro-item--enter absolute inset-0 rounded-full bg-white"
           style={{ animationDelay: "0ms" }}
         />
       </div>
@@ -186,8 +175,7 @@ export function MobileSubscriptionOfferScreen({
           <div className="mx-auto flex w-full flex-none -translate-y-8 flex-col items-center">
             <div
               className={cn(
-                "subscription-details-intro-item",
-                isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
+                "subscription-details-intro-item subscription-details-intro-item--enter",
               )}
               style={{ animationDelay: "530ms" }}
             >
@@ -208,7 +196,7 @@ export function MobileSubscriptionOfferScreen({
             className={cn(
               "subscription-details-intro-item relative -top-[82px] mt-12 w-[calc(100%+4rem)] whitespace-nowrap text-center text-[clamp(1.2rem,7vw,2.25rem)] font-semibold leading-tight",
               usesSuperWater && "font-super-water",
-              isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
+              "subscription-details-intro-item--enter",
             )}
             style={{ animationDelay: "650ms", color: "#ffffff" }}
           >
@@ -219,7 +207,7 @@ export function MobileSubscriptionOfferScreen({
             className={cn(
               "subscription-details-intro-item relative -top-[82px] mt-1 w-[calc(100%+4rem)] whitespace-nowrap text-center text-[clamp(1.35rem,8vw,2.75rem)] font-semibold leading-tight text-white",
               usesSuperWater && "font-super-water",
-              isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
+              "subscription-details-intro-item--enter",
             )}
             style={{ animationDelay: "690ms" }}
           >
@@ -232,14 +220,14 @@ export function MobileSubscriptionOfferScreen({
               onScroll={updateFeatureScrollHint}
               className="h-full min-h-0 w-full overscroll-contain overflow-y-auto pb-12 pr-1 pt-[30px]"
             >
-            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={690} icon={Layers} locale={locale} text={t("pricing.featureCards")} />
-            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={750} icon={BookOpen} locale={locale} text={t("pricing.featureLearned")} />
-            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={810} icon={RotateCcw} locale={locale} text={t("pricing.featureLearnedReview")} />
-            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={870} icon={Palette} locale={locale} text={t("pricing.featureThemes")} />
-            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={930} icon={Gamepad2} locale={locale} text={t("pricing.featureGames")} />
-            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={990} icon={MessageCircle} locale={locale} text={t("pricing.featureAiDaily", { count: PLAN_LIMITS.basic.aiDailyMessages ?? 0 })} />
-            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={1050} icon={MessagesSquare} locale={locale} text={t("pricing.featureAiMonthly", { count: PLAN_LIMITS.basic.aiMonthlyMessages ?? 0 })} />
-            <SeriousLearnerOfferFeature introVisible={isIntroComplete} introDelay={1110} icon={ScanText} locale={locale} text={t("pricing.featureUnlimitedTextTranslation")} unavailable />
+            <SeriousLearnerOfferFeature introDelay={690} icon={Layers} locale={locale} text={t("pricing.featureCards")} />
+            <SeriousLearnerOfferFeature introDelay={750} icon={BookOpen} locale={locale} text={t("pricing.featureLearned")} />
+            <SeriousLearnerOfferFeature introDelay={810} icon={RotateCcw} locale={locale} text={t("pricing.featureLearnedReview")} />
+            <SeriousLearnerOfferFeature introDelay={870} icon={Palette} locale={locale} text={t("pricing.featureThemes")} />
+            <SeriousLearnerOfferFeature introDelay={930} icon={Gamepad2} locale={locale} text={t("pricing.featureGames")} />
+            <SeriousLearnerOfferFeature introDelay={990} icon={MessageCircle} locale={locale} text={t("pricing.featureAiDaily", { count: PLAN_LIMITS.basic.aiDailyMessages ?? 0 })} />
+            <SeriousLearnerOfferFeature introDelay={1050} icon={MessagesSquare} locale={locale} text={t("pricing.featureAiMonthly", { count: PLAN_LIMITS.basic.aiMonthlyMessages ?? 0 })} />
+            <SeriousLearnerOfferFeature introDelay={1110} icon={ScanText} locale={locale} text={t("pricing.featureUnlimitedTextTranslation")} unavailable />
             </ul>
             {showFeatureScrollHint ? (
               <span
@@ -254,7 +242,7 @@ export function MobileSubscriptionOfferScreen({
           <div
             className={cn(
               "subscription-details-intro-item mt-8 w-full max-w-xl shrink-0",
-              isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
+              "subscription-details-intro-item--enter",
             )}
             style={{ animationDelay: "1110ms" }}
           >
@@ -307,86 +295,13 @@ export function MobileSubscriptionOfferScreen({
   );
 }
 
-function SeriousLearnerOfferFrameAnimation({ onComplete }: { onComplete: () => void }) {
-  const [frameIndex, setFrameIndex] = useState(1);
-  const frameIndexRef = useRef(1);
-
-  useEffect(() => {
-    let cancelled = false;
-    let animationFrameId: number | null = null;
-    const frameDuration = 1000 / SERIOUS_LEARNER_FRAME_FPS;
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const preloadFrames = Array.from({ length: SERIOUS_LEARNER_FRAME_COUNT }, (_, index) => {
-      const image = new window.Image();
-      image.decoding = "async";
-      image.src = `${SERIOUS_LEARNER_FRAME_BASE_PATH}/${index + 1}.png`;
-      return image;
-    });
-
-    if (prefersReducedMotion) {
-      frameIndexRef.current = SERIOUS_LEARNER_FRAME_COUNT;
-      setFrameIndex(SERIOUS_LEARNER_FRAME_COUNT);
-      onComplete();
-      return () => {
-        cancelled = true;
-        preloadFrames.forEach((image) => {
-          image.onload = null;
-          image.onerror = null;
-        });
-      };
-    }
-
-    const startedAt = window.performance.now();
-    const tick = (now: number) => {
-      if (cancelled) return;
-      const nextFrame = Math.min(
-        SERIOUS_LEARNER_FRAME_COUNT,
-        Math.floor((now - startedAt) / frameDuration) + 1,
-      );
-
-      if (nextFrame !== frameIndexRef.current) {
-        frameIndexRef.current = nextFrame;
-        setFrameIndex(nextFrame);
-      }
-
-      if (nextFrame === SERIOUS_LEARNER_FRAME_COUNT) {
-        onComplete();
-      } else {
-        animationFrameId = window.requestAnimationFrame(tick);
-      }
-    };
-
-    animationFrameId = window.requestAnimationFrame(tick);
-
-    return () => {
-      cancelled = true;
-      if (animationFrameId !== null) {
-        window.cancelAnimationFrame(animationFrameId);
-      }
-    };
-  }, [onComplete]);
-
-  return (
-    <div data-gateway-flow-visual className="pointer-events-none absolute inset-0 z-[1] overflow-hidden" aria-hidden="true">
-      <img
-        src={`${SERIOUS_LEARNER_FRAME_BASE_PATH}/${frameIndex}.png`}
-        alt=""
-        draggable={false}
-        className="block h-full w-full object-cover"
-      />
-    </div>
-  );
-}
-
 function SeriousLearnerOfferFeature({
-  introVisible,
   introDelay,
   icon: Icon,
   locale,
   text,
   unavailable,
 }: {
-  introVisible: boolean;
   introDelay: number;
   icon: ComponentType<{ className?: string; strokeWidth?: number }>;
   locale: Parameters<typeof formatSuperWaterText>[0];
@@ -398,7 +313,7 @@ function SeriousLearnerOfferFeature({
       className={cn(
         "subscription-details-feature subscription-details-intro-item flex min-h-12 items-center gap-3 px-4 py-2 text-left text-lg font-semibold leading-tight text-white sm:text-xl",
         unavailable && "opacity-45 line-through",
-        introVisible ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
+        "subscription-details-intro-item--enter",
       )}
       style={{ animationDelay: `${introDelay}ms` }}
     >
