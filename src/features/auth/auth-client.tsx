@@ -130,7 +130,10 @@ export function AuthSessionProvider({
   const isRecoveryPath = pathname === "/auth/recovery";
   const client = useMemo(
     () => (hasSupabaseBrowserConfig()
-      ? createSupabaseBrowserClient({ detectSessionInUrl: !isRecoveryPath })
+      ? createSupabaseBrowserClient({
+          detectSessionInUrl: !isRecoveryPath,
+          ...(isRecoveryPath ? { isSingleton: false } : {}),
+        })
       : null),
     [isRecoveryPath],
   );

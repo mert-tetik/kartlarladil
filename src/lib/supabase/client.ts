@@ -1,4 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import { getSupabaseBrowserConfig } from "@/lib/supabase/config";
 
 const browserCookieOptions = {
@@ -9,10 +10,14 @@ const browserCookieOptions = {
   path: "/",
 };
 
-export function createSupabaseBrowserClient(options?: { detectSessionInUrl?: boolean }) {
+export function createSupabaseBrowserClient(options?: {
+  detectSessionInUrl?: boolean;
+  isSingleton?: boolean;
+}) {
   const config = getSupabaseBrowserConfig();
 
   return createBrowserClient(config.url, config.publishableKey, {
+    ...(options?.isSingleton !== undefined ? { isSingleton: options.isSingleton } : {}),
     auth: {
       persistSession: true,
       autoRefreshToken: true,
@@ -23,14 +28,14 @@ export function createSupabaseBrowserClient(options?: { detectSessionInUrl?: boo
 }
 
 /**
- * Recovery emails use Supabase's implicit URL-fragment flow. Keep this
- * client separate from the normal PKCE client, while sharing its cookie
- * storage so the server can authenticate the following update-password page.
+ * Recovery emails use Supabase's implicit URL-fragment flow. @supabase/ssr's
+ * browser client intentionally forces PKCE, so recovery uses a separate
+ * supabase-js client and tab-scoped storage instead of the normal SSR client.
  */
 export function createSupabaseRecoveryBrowserClient() {
   const config = getSupabaseBrowserConfig();
 
-  return createBrowserClient(config.url, config.publishableKey, {
+  return createClient(config.url, config.publishableKey, {
     auth: {
       flowType: "implicit",
       persistSession: true,
@@ -39,7 +44,8 @@ export function createSupabaseRecoveryBrowserClient() {
       // This prevents a second Supabase client from consuming the fragment
       // before the recovery flow can handle it.
       detectSessionInUrl: false,
+      storage: typeof window === "undefined" ? undefined : window.sessionStorage,
+      storageKey: "foxiesdeck:password-recovery",
     },
-    cookieOptions: browserCookieOptions,
   });
 }
