@@ -46,7 +46,18 @@ function detectTwaFromEnvironment(): boolean {
     typeof (window as Window & { getDigitalGoodsService?: unknown })
       .getDigitalGoodsService === "function";
 
-  return isFromAndroidApp || hasApkOverride || hasDigitalGoodsApi;
+  // The Android wrapper uses a native Google Play Billing bridge instead of
+  // the browser Digital Goods API. Treat that bridge as an installed-app
+  // signal so purchase buttons use the native billing flow rather than the
+  // Play Store app-download fallback.
+  const hasNativeBillingBridge =
+    typeof window !== "undefined" &&
+    typeof (window as Window & { FoxiesDeckNativeBilling?: unknown })
+      .FoxiesDeckNativeBilling === "object" &&
+    (window as Window & { FoxiesDeckNativeBilling?: unknown })
+      .FoxiesDeckNativeBilling !== null;
+
+  return isFromAndroidApp || hasApkOverride || hasDigitalGoodsApi || hasNativeBillingBridge;
 }
 
 let storeValue = false;
@@ -77,10 +88,11 @@ export function getTwaModeSnapshot(): boolean {
  * hydrates. It detects the TWA environment and notifies subscribers.
  */
 export function initTwaModeStore(): void {
-  if (storeInitialized || !isBrowser()) return;
-  storeInitialized = true;
-
+  if (!isBrowser()) return;
   const detected = detectTwaFromEnvironment();
+  if (storeInitialized && detected === storeValue) return;
+
+  storeInitialized = true;
   if (detected !== storeValue) {
     storeValue = detected;
     window.sessionStorage.setItem(TWA_MODE_KEY, String(detected));
@@ -102,10 +114,12 @@ export function getTwaMode(): boolean {
   if (!isBrowser()) return false;
 
   const cached = readTwaFlagFromSession();
-  if (cached !== null) return cached;
+  if (cached === true) return true;
 
   const detected = detectTwaFromEnvironment();
-  window.sessionStorage.setItem(TWA_MODE_KEY, String(detected));
+  if (detected || cached === null) {
+    window.sessionStorage.setItem(TWA_MODE_KEY, String(detected));
+  }
   return detected;
 }
 

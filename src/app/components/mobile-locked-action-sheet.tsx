@@ -1,8 +1,6 @@
 "use client";
 
-import Image from "next/image";
 import { GraduationCap } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
@@ -10,6 +8,7 @@ import { cn } from "@/lib/utils";
 interface MobileLockedActionSheetProps {
   isOpen: boolean;
   onClose: () => void;
+  onExited?: () => void;
   variant: "active" | "learned";
   onOpenDraw: () => void;
   onOpenCreate: () => void;
@@ -20,6 +19,7 @@ interface MobileLockedActionSheetProps {
 export function MobileLockedActionSheet({
   isOpen,
   onClose,
+  onExited,
   variant,
   onOpenDraw,
   onOpenCreate,
@@ -33,26 +33,22 @@ export function MobileLockedActionSheet({
     <MobileBottomSheetShell
       open={isOpen}
       onClose={onClose}
+      onExited={onExited}
       title={t(isActive ? "home.mobile.noActiveCardsTitle" : "home.mobile.noLearnedCardsTitle")}
       panelLabel={t(isActive ? "home.mobile.noActiveCardsTitle" : "home.mobile.noLearnedCardsTitle")}
-      panelClassName="max-h-[75dvh]"
-      visual={<Image src="/mascots/mascot12.webp" alt="" width={128} height={128} className="size-[3.25rem] object-contain" />}
+      panelClassName="min-h-[60dvh] max-h-[85dvh]"
+      tone={isActive ? "learn" : "learned"}
+      visual={null}
+      showProtrusionCircle={false}
       contentClassName="px-5 pb-5"
     >
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
-        <Image
-          src="/mascots/mascot12.webp"
-          alt=""
-          width={240}
-          height={240}
-          className="h-40 w-auto object-contain"
-        />
-        <p className="mt-4 text-sm leading-6 text-brand-foreground/80">
+      <div className="flex shrink-0 flex-col items-center justify-start text-center">
+        <p className="text-sm leading-6 text-brand-foreground/80">
           {t(isActive ? "home.mobile.noActiveCardsDescription" : "home.mobile.noLearnedCardsDescription")}
         </p>
       </div>
 
-      <div className="mt-4 grid gap-2">
+      <div className="mt-[46px] grid gap-2">
         {isActive ? (
           <>
             <div className="mobile-primary-action-depth mobile-primary-action-depth--amber-orange rounded-xl">
@@ -90,21 +86,6 @@ export function MobileLockedActionSheet({
             </button>
           </div>
         )}
-        <div className={cn(
-          "mobile-primary-action-depth w-full rounded-md",
-          isActive ? "mobile-primary-action-depth--emerald" : "mobile-primary-action-depth--sky",
-        )}>
-          <Button
-            size="lg"
-            onClick={onClose}
-            className={cn(
-              "w-full border-0 text-white",
-              isActive ? "bg-action-learn hover:bg-action-learn-hover" : "bg-action-learned hover:bg-action-review-hover",
-            )}
-          >
-            {t("common.close")}
-          </Button>
-        </div>
       </div>
     </MobileBottomSheetShell>
   );

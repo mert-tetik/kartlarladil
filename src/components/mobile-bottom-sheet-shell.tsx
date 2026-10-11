@@ -24,7 +24,7 @@ const MOBILE_BOTTOM_SHEET_ANIMATION_MS = 360;
 const MOBILE_BOTTOM_SHEET_ENTER_DELAY_MS = 32;
 const MOBILE_BOTTOM_SHEET_OFFSCREEN_OFFSET = 80;
 
-export type MobileBottomSheetTone = "brand" | "lime" | "purple" | "mission";
+export type MobileBottomSheetTone = "brand" | "learn" | "learned" | "lime" | "purple" | "mission";
 
 const MOBILE_BOTTOM_SHEET_TONES: Record<MobileBottomSheetTone, {
   panelClassName: string;
@@ -45,6 +45,28 @@ const MOBILE_BOTTOM_SHEET_TONES: Record<MobileBottomSheetTone, {
     decorationEnd: "color-mix(in srgb, var(--brand) 97%, white)",
     protrusionColor: MOBILE_BOTTOM_SHEET_GRADIENT_START,
     circleColor: MOBILE_BOTTOM_SHEET_CIRCLE_COLOR,
+    decorationOpacity: 0.8,
+    bottomRightGlow: "radial-gradient(circle at 82% 82%, rgb(255 255 255 / 0.15) 0, rgb(255 255 255 / 0.05) 11%, transparent 28%)",
+  },
+  learn: {
+    panelClassName: "bg-action-learn text-white",
+    foregroundClassName: "text-white",
+    closeClassName: "text-white/90 hover:bg-white/15 hover:text-white",
+    decorationStart: "color-mix(in srgb, var(--action-learn) 92%, white)",
+    decorationEnd: "color-mix(in srgb, var(--action-learn) 97%, white)",
+    protrusionColor: "color-mix(in srgb, var(--action-learn) 92%, white)",
+    circleColor: "color-mix(in srgb, var(--action-learn) 62%, white)",
+    decorationOpacity: 0.8,
+    bottomRightGlow: "radial-gradient(circle at 82% 82%, rgb(255 255 255 / 0.15) 0, rgb(255 255 255 / 0.05) 11%, transparent 28%)",
+  },
+  learned: {
+    panelClassName: "bg-action-learned text-white",
+    foregroundClassName: "text-white",
+    closeClassName: "text-white/90 hover:bg-white/15 hover:text-white",
+    decorationStart: "color-mix(in srgb, var(--action-learned) 92%, white)",
+    decorationEnd: "color-mix(in srgb, var(--action-learned) 97%, white)",
+    protrusionColor: "color-mix(in srgb, var(--action-learned) 92%, white)",
+    circleColor: "color-mix(in srgb, var(--action-learned) 62%, white)",
     decorationOpacity: 0.8,
     bottomRightGlow: "radial-gradient(circle at 82% 82%, rgb(255 255 255 / 0.15) 0, rgb(255 255 255 / 0.05) 11%, transparent 28%)",
   },
@@ -104,6 +126,7 @@ export interface MobileBottomSheetShellProps {
   panelLabel?: string;
   tutorialLayer?: string;
   tone?: MobileBottomSheetTone;
+  showProtrusionCircle?: boolean;
 }
 
 export function MobileBottomSheetShell({
@@ -127,6 +150,7 @@ export function MobileBottomSheetShell({
   panelLabel,
   tutorialLayer,
   tone = "brand",
+  showProtrusionCircle = true,
 }: MobileBottomSheetShellProps) {
   const t = useT();
   const { locale } = useLocale();
@@ -340,15 +364,17 @@ export function MobileBottomSheetShell({
                   WebkitMaskSize: "100% 100%",
                 }}
               />
-              <span
-                aria-hidden="true"
-                className="absolute left-1/2 top-[28%] size-16 rounded-full"
-                style={{
-                  backgroundColor: toneStyles.circleColor,
-                  transform: `translate3d(-50%, ${MOBILE_BOTTOM_SHEET_PROTRUSION.circleY}px, 0) scale(${MOBILE_BOTTOM_SHEET_PROTRUSION.circleScale})`,
-                  transformOrigin: "50% 50%",
-                }}
-              />
+              {showProtrusionCircle ? (
+                <span
+                  aria-hidden="true"
+                  className="absolute left-1/2 top-[28%] size-16 rounded-full"
+                  style={{
+                    backgroundColor: toneStyles.circleColor,
+                    transform: `translate3d(-50%, ${MOBILE_BOTTOM_SHEET_PROTRUSION.circleY}px, 0) scale(${MOBILE_BOTTOM_SHEET_PROTRUSION.circleScale})`,
+                    transformOrigin: "50% 50%",
+                  }}
+                />
+              ) : null}
               <span
                 data-mobile-bottom-sheet-visual
                 className="absolute left-1/2 top-[28%] flex size-16 items-center justify-center"

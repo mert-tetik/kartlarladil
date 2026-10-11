@@ -117,7 +117,7 @@ const SUBSCRIPTION_PLAN_COLOR: Record<Exclude<SubscriptionPlan, "free">, string>
 };
 
 const SUBSCRIPTION_DETAILS_FRAME_COUNT = 50;
-const SUBSCRIPTION_DETAILS_FRAME_FPS = 30;
+const SUBSCRIPTION_DETAILS_FRAME_FPS = 45;
 const SUBSCRIPTION_DETAILS_FRAME_BASE_PATH = "/pricing-subscription-menu-frames-v2";
 const SUBSCRIPTION_DETAILS_PRO_FRAME_BASE_PATH = "/pricing-subscription-menu-pro-frames-v2";
 

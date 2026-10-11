@@ -123,7 +123,7 @@ export function MobileSubscriptionOfferScreen({
       return;
     }
 
-    if (isTwa) {
+    if (isTwa || isSupported) {
       try {
         await purchase(getGooglePlaySku("basic", "monthly"));
         presentPurchaseSuccess();

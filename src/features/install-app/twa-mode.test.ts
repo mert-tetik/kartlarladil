@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { isIosMobileTestMode, isMobileTestMode } from "./twa-mode";
+import { getTwaMode, isIosMobileTestMode, isMobileTestMode } from "./twa-mode";
 
 const originalUrl = window.location.href;
 
 afterEach(() => {
   window.history.replaceState({}, "", originalUrl);
+  window.sessionStorage.clear();
+  delete (window as Window & { FoxiesDeckNativeBilling?: unknown }).FoxiesDeckNativeBilling;
 });
 
 describe("mobile test URL parameters", () => {
@@ -20,5 +22,21 @@ describe("mobile test URL parameters", () => {
 
     expect(isMobileTestMode()).toBe(true);
     expect(isIosMobileTestMode()).toBe(false);
+  });
+});
+
+describe("installed app detection", () => {
+  it("detects the native Google Play Billing bridge", () => {
+    window.sessionStorage.setItem("foxiesdeck:twa-mode", "false");
+    Object.defineProperty(window, "FoxiesDeckNativeBilling", {
+      configurable: true,
+      value: {
+        getDetails: () => "[]",
+        listPurchases: () => "[]",
+        purchase: () => "{}",
+      },
+    });
+
+    expect(getTwaMode()).toBe(true);
   });
 });

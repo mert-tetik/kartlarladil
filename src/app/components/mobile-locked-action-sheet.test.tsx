@@ -47,11 +47,15 @@ describe("MobileLockedActionSheet", () => {
     expect(props.onClose).not.toHaveBeenCalled();
   });
 
-  it("uses the landing learning action color for the empty learning deck close button", async () => {
-    renderSheet();
+  it("uses the top-right close icon for the empty learning deck", async () => {
+    const props = renderSheet();
 
-    expect(await screen.findByText("common.close")).toHaveClass("bg-action-learn");
-    expect(screen.getByText("common.close").closest(".mobile-primary-action-depth")).not.toBeNull();
+    const closeButtons = await screen.findAllByRole("button", { name: "common.close" });
+    const closeButton = closeButtons.at(-1);
+    expect(closeButton).toBeInTheDocument();
+    fireEvent.click(closeButton!);
+
+    expect(props.onClose).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("button", { name: "cards.randomDrawTitle" }).closest(".mobile-primary-action-depth")).not.toBeNull();
     expect(screen.getByRole("button", { name: "home.mobile.addCard" }).closest(".mobile-primary-action-depth")).not.toBeNull();
   });
@@ -67,7 +71,7 @@ describe("MobileLockedActionSheet", () => {
     fireEvent.click(startLearning);
 
     expect(props.onStartLearning).not.toHaveBeenCalled();
-    expect(await screen.findByText("common.close")).toHaveClass("bg-action-learned");
+    expect((await screen.findAllByRole("button", { name: "common.close" })).at(-1)).toBeInTheDocument();
     expect(startLearning.closest(".mobile-primary-action-depth")).toHaveClass("mobile-primary-action-depth--locked");
   });
 });

@@ -114,6 +114,8 @@ const MOBILE_GEM_COUNTERS = [
   { type: "green", src: "/gems/green-gem.png", alt: "Green gems" },
   { type: "purple", src: "/gems/purple-gem.png", alt: "Purple gems" },
 ] as const;
+const LANDING_EMPTY_ACTIONS_TEST_PARAM = "landing-empty-actions-test";
+type LandingEmptyActionsTestVariant = "active" | "learned";
 
 export function MobileLandingDashboard() {
   const { mode: themeMode } = useTheme();
@@ -126,6 +128,9 @@ export function MobileLandingDashboard() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const isLandingEmptyActionsTest = ["1", "true"].includes(
+    searchParams.get(LANDING_EMPTY_ACTIONS_TEST_PARAM) ?? "",
+  );
   const { user } = useAuthSession();
   const dayStreakOverlay = useOptionalMobileDayStreakOverlay();
   const dayStreakOpen = dayStreakOverlay?.isOpen ?? false;
@@ -180,7 +185,10 @@ export function MobileLandingDashboard() {
   const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
   const [infoSheetOpen, setInfoSheetOpen] = useState(false);
   const [rankInfoOpen, setRankInfoOpen] = useState(false);
-  const [lockedSheet, setLockedSheet] = useState<"active" | "learned" | null>(null);
+  const [lockedSheet, setLockedSheet] = useState<"active" | "learned" | null>(
+    isLandingEmptyActionsTest ? "active" : null,
+  );
+  const [landingEmptyActionsTestVariant, setLandingEmptyActionsTestVariant] = useState<LandingEmptyActionsTestVariant>("active");
   const [showLanguageMatchDialog, setShowLanguageMatchDialog] = useState(false);
   const [showLearnedReviewUpgrade, setShowLearnedReviewUpgrade] = useState(false);
   const [cardLimitError, setCardLimitError] = useState<UpgradeDialogErrorCode | null>(null);
@@ -494,6 +502,16 @@ export function MobileLandingDashboard() {
   function handleLockedSheetStartLearning() {
     if (activeCount === 0) return;
     closeLockedSheetThen(handleStartLearning);
+  }
+
+  function handleLockedSheetExited() {
+    if (!isLandingEmptyActionsTest) {
+      return;
+    }
+
+    const nextVariant = landingEmptyActionsTestVariant === "active" ? "learned" : "active";
+    setLandingEmptyActionsTestVariant(nextVariant);
+    setLockedSheet(nextVariant);
   }
 
   function handleStartLearning(languageOverride?: LanguageCode) {
@@ -1064,11 +1082,12 @@ export function MobileLandingDashboard() {
       <MobileLockedActionSheet
         isOpen={lockedSheet !== null}
         onClose={() => setLockedSheet(null)}
+        onExited={handleLockedSheetExited}
         variant={lockedSheet ?? "active"}
         onOpenDraw={handleLockedSheetDraw}
         onOpenCreate={handleLockedSheetCreate}
         onStartLearning={handleLockedSheetStartLearning}
-        canStartLearning={activeCount > 0}
+        canStartLearning={isLandingEmptyActionsTest ? false : activeCount > 0}
       />
 
       <MobileCardSwipeOverlay
