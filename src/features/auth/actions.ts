@@ -165,7 +165,7 @@ export async function resetPasswordAction(_state: AuthActionState, formData: For
 
   const origin = await getRequestOrigin();
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: `${origin}/auth/recovery?next=${encodeURIComponent("/account/update-password")}`,
+    redirectTo: `${origin}/auth/recovery?next=${encodeURIComponent("/account/update-password?recovery=1")}`,
   });
 
   if (error) {

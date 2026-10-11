@@ -5,9 +5,21 @@ import { useRouter } from "next/navigation";
 import { createSupabaseRecoveryBrowserClient } from "@/lib/supabase/client";
 import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
 
+function getRecoveryDestination(nextPath: string) {
+  const url = new URL(nextPath, "https://local.app");
+
+  if (url.pathname !== "/account/update-password") {
+    return nextPath;
+  }
+
+  url.searchParams.set("recovery", "1");
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
 export function AuthRecoveryRedirect({ nextPath }: { nextPath: string }) {
   const router = useRouter();
   const hasNavigatedRef = useRef(false);
+  const recoveryDestination = getRecoveryDestination(nextPath);
   const client = useMemo(
     () => (hasSupabaseBrowserConfig() ? createSupabaseRecoveryBrowserClient() : null),
     [],
@@ -27,7 +39,7 @@ export function AuthRecoveryRedirect({ nextPath }: { nextPath: string }) {
       if (fallbackTimer !== undefined) {
         window.clearTimeout(fallbackTimer);
       }
-      router.replace(nextPath);
+      router.replace(recoveryDestination);
     };
 
     const navigateToNewRecoveryRequest = () => {
@@ -105,7 +117,7 @@ export function AuthRecoveryRedirect({ nextPath }: { nextPath: string }) {
       }
       subscription.unsubscribe();
     };
-  }, [client, nextPath, router]);
+  }, [client, recoveryDestination, router]);
 
   return null;
 }

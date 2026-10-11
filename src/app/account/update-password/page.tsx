@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AuthPageShell } from "@/features/auth/components/auth-page-shell";
 import { UpdatePasswordForm } from "@/features/auth/components/update-password-form";
 import { requireAuthUser } from "@/features/auth/auth-session";
+import { getSearchParamValue } from "@/features/auth/auth-redirects";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -21,9 +22,18 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-export default async function UpdatePasswordPage() {
+export default async function UpdatePasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const t = createTranslator(await getServerLocale());
-  await requireAuthUser("/account/update-password");
+  const params = await searchParams;
+  const isRecoveryFlow = getSearchParamValue(params.recovery) === "1";
+
+  if (!isRecoveryFlow) {
+    await requireAuthUser("/account/update-password");
+  }
 
   return (
     <AuthPageShell title={t("auth.updatePassword.title")} description={t("auth.updatePassword.description")}>
