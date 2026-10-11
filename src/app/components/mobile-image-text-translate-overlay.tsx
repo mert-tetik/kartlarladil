@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { createPortal } from "react-dom";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ClipboardEvent } from "react";
-import { BookOpen, Camera, Check, Copy, Image as ImageIcon, Loader2, ScanText, Trash2, Type, Upload, X } from "lucide-react";
+import { BookOpen, Camera, Check, Copy, Image as ImageIcon, Loader2, ScanText, Trash2, Type, Upload, Volume2, X } from "lucide-react";
 import type { Area } from "react-easy-crop";
 import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
@@ -36,10 +36,13 @@ import {
   saveImageTextTranslationAction,
   type SavedImageTextTranslation,
 } from "@/features/cards/image-text-translate-actions";
-import { getCardTranslationMeanings, getPrimaryCardTranslation } from "@/features/cards/card-localization";
+import { getCardExampleTranslation, getCardTranslationMeanings, getPrimaryCardTranslation, getStudyLocale } from "@/features/cards/card-localization";
+import { getCardDefinition } from "@/data/card-definitions";
 import { getTranslationPreview } from "@/features/cards/image-text-translate-utils";
 import { useLocale, useT } from "@/i18n/locale-provider";
-import { getLanguageDisplayName } from "@/i18n/labels";
+import { getLanguageDisplayName, getPartOfSpeechLabel, getTierLabel } from "@/i18n/labels";
+import { getPointsForTier } from "@/features/progress/progress-stats";
+import { speakText } from "@/features/cards/card-speech";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn, normalizeSearch } from "@/lib/utils";
 import { useAppMessage } from "@/components/app-message-provider";
@@ -591,15 +594,15 @@ export function MobileImageTextTranslateOverlay({
     void requestSingleWordTranslation(translation, { word, clickedLanguage, sentenceIndex, wordIndex });
   }
 
-  async function addWordToDeck() {
-    if (!wordDetail || wordStatus === "adding" || wordStatus === "added" || !wordDetail.sourceWord.trim()) return;
+  async function addWordToDeck(detail: WordDetail) {
+    if (wordStatus === "adding" || wordStatus === "added" || !detail.sourceWord.trim()) return;
 
     setWordStatus("adding");
     const activeSourceLanguage = detailTranslation?.sourceLanguage ?? sourceLanguage;
     const activeNativeLocale = detailTranslation?.nativeLocale ?? locale;
 
     try {
-      const existingCard = wordDetail.existingCard;
+      const existingCard = detail.existingCard;
 
       if (existingCard) {
         if (!useInventoryStore.getState().cards.some((card) => card.cardId === existingCard.sourceKey)) {
@@ -611,8 +614,8 @@ export function MobileImageTextTranslateOverlay({
             );
           }
         }
-      } else if (wordDetail.generatedCard) {
-        await createCustomCardFromGenerated(wordDetail.generatedCard, createCustomCard);
+      } else if (detail.generatedCard) {
+        await createCustomCardFromGenerated(detail.generatedCard, createCustomCard);
       } else {
         throw new Error("unknown");
       }
@@ -632,6 +635,15 @@ export function MobileImageTextTranslateOverlay({
       setWordStatus("error");
       showMessage(getAddErrorMessage(error, t), "error");
     }
+  }
+
+  function handleAddWordToDeck() {
+    if (!wordDetail || wordStatus === "adding" || wordStatus === "added" || !wordDetail.sourceWord.trim()) return;
+
+    const detail = wordDetail;
+    setWordDetail(null);
+    setWordStatus("idle");
+    void addWordToDeck(detail);
   }
 
   const hasInput = mode === "image" ? images.length > 0 : text.trim().length > 0;
@@ -927,6 +939,7 @@ export function MobileImageTextTranslateOverlay({
             translationTitle={t("imageTranslate.translatedText")}
             copySourceLabel={t("imageTranslate.copySourceText")}
             copyTranslationLabel={t("imageTranslate.copyTranslation")}
+            speakLabel={t("cards.speak")}
             separatorLabels={{
               text: t("imageTranslate.newText"),
               paragraph: t("imageTranslate.paragraph"),
@@ -947,7 +960,7 @@ export function MobileImageTextTranslateOverlay({
               wordDetail={wordDetail}
               wordStatus={wordStatus}
               onClose={() => { setWordDetail(null); setWordStatus("idle"); }}
-              onAdd={() => void addWordToDeck()}
+              onAdd={handleAddWordToDeck}
               t={t}
             />,
             document.body,
@@ -1044,6 +1057,7 @@ function TranslationDetailContent({
   translationTitle,
   copySourceLabel,
   copyTranslationLabel,
+  speakLabel,
   separatorLabels,
   activeSourceWord,
   activeNativeWord,
@@ -1057,6 +1071,7 @@ function TranslationDetailContent({
   translationTitle: string;
   copySourceLabel: string;
   copyTranslationLabel: string;
+  speakLabel: string;
   separatorLabels: Record<ImageTextSeparator, string>;
   activeSourceWord: string | null;
   activeNativeWord: string | null;
@@ -1083,6 +1098,7 @@ function TranslationDetailContent({
                 translationTitle={translationTitle}
                 copySourceLabel={copySourceLabel}
                 copyTranslationLabel={copyTranslationLabel}
+                speakLabel={speakLabel}
                 hasSeparator={sentence.separators.length > 0}
                 activeSourceWord={activeSourceWord}
                 activeNativeWord={activeNativeWord}
@@ -1132,6 +1148,12 @@ function WordDetailOverlay({
     () => wordDetail.existingCard ?? (wordDetail.generatedCard ? buildPreviewVocabularyCard(wordDetail.generatedCard) : null),
     [wordDetail.existingCard, wordDetail.generatedCard],
   );
+  const cardDefinition = grammarCard
+    ? getCardDefinition(grammarCard, getStudyLocale(grammarCard.language, translation.nativeLocale))
+    : "";
+  const cardTranslation = grammarCard
+    ? getPrimaryCardTranslation(grammarCard, translation.nativeLocale)
+    : wordDetail.translation;
   const [grammarDetailsOpen, setGrammarDetailsOpen] = useState(false);
 
   return (
@@ -1148,11 +1170,11 @@ function WordDetailOverlay({
         {grammarCard ? (
           <CardGrammarDetailsButton
             onClick={() => setGrammarDetailsOpen(true)}
-            className="absolute left-0 top-[-3.25rem] z-10"
+            className="absolute left-0 top-[-3.25rem] z-10 border-0 bg-white text-black shadow-none backdrop-blur-0 hover:bg-white/90"
           />
         ) : null}
         <div
-          className="max-h-[calc(100dvh-3rem)] w-full overflow-y-auto rounded-3xl border border-white/30 p-4 text-white shadow-lg transition-[background-color] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]"
+          className="max-h-[calc(100dvh-3rem)] w-full overflow-y-auto rounded-3xl p-4 text-white shadow-lg transition-[background-color] duration-300 ease-[cubic-bezier(0.85,0,0.15,1)]"
           style={{ backgroundColor: darkTierColor }}
           onPointerDown={(event) => event.stopPropagation()}
         >
@@ -1175,6 +1197,37 @@ function WordDetailOverlay({
             <p className="text-base font-semibold">{wordDetail.translation}</p>
           )}
         </div>
+        {grammarCard ? (
+          <section className="mt-3 space-y-4 rounded-2xl bg-black/10 px-3 py-3" data-image-text-card-information>
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="text-sm font-semibold text-white">{t("cards.cardInformation")}</h3>
+              <span className="text-right text-xs text-white/75">
+                {getLanguageDisplayName(grammarCard.language, translation.nativeLocale)} · {getTierLabel(grammarCard.tier, translation.nativeLocale)} · {getPartOfSpeechLabel(grammarCard.termKind, translation.nativeLocale)} · {getPointsForTier(grammarCard.tier)} {t("common.points")}
+              </span>
+            </div>
+            <dl className="space-y-3">
+              <CardInformationRow label={t("cards.foreignTerm")} value={grammarCard.term} />
+              <CardInformationRow label={t("cards.nativeTranslation")} value={cardTranslation} />
+              <CardInformationRow label={t("cards.pronunciation")} value={grammarCard.pronunciation || "—"} />
+              <CardInformationRow label={t("cards.definition")} value={cardDefinition || "—"} />
+            </dl>
+            <div className="space-y-2" data-image-text-card-examples>
+              <h4 className="text-sm font-semibold text-white">{t("cards.exampleSentences")}</h4>
+              {grammarCard.examples.length > 0 ? (
+                <div className="space-y-3">
+                  {grammarCard.examples.map((example) => (
+                    <div key={example.id} className="space-y-1 border-t border-white/15 pt-2 first:border-t-0 first:pt-0">
+                      <p className="text-sm leading-5 text-white">{example.sentence}</p>
+                      <p className="text-sm leading-5 text-white/70">{getCardExampleTranslation(example, translation.nativeLocale)}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-white/70">{t("cards.noExampleSentences")}</p>
+              )}
+            </div>
+          </section>
+        ) : null}
         <div className="mt-3 rounded-2xl border border-white/25 bg-black/10 px-3 py-3">
           <p className="text-xs font-semibold text-white/75">{t("imageTranslate.context")}</p>
           <p className="mt-2 text-sm leading-5">{wordDetail.sentenceSource}</p>
@@ -1198,6 +1251,15 @@ function WordDetailOverlay({
   );
 }
 
+function CardInformationRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="space-y-1 text-sm">
+      <dt className="text-white/70">{label}</dt>
+      <dd className="break-words font-semibold leading-5 text-white">{value}</dd>
+    </div>
+  );
+}
+
 const TIER_COLOR_VARIABLES: Record<Tier, string> = {
   A1: "var(--tier-a1)",
   A2: "var(--tier-a2)",
@@ -1217,6 +1279,7 @@ function SentencePairPanel({
   translationTitle,
   copySourceLabel,
   copyTranslationLabel,
+  speakLabel,
   hasSeparator,
   activeSourceWord,
   activeNativeWord,
@@ -1233,6 +1296,7 @@ function SentencePairPanel({
   translationTitle: string;
   copySourceLabel: string;
   copyTranslationLabel: string;
+  speakLabel: string;
   hasSeparator: boolean;
   activeSourceWord: string | null;
   activeNativeWord: string | null;
@@ -1247,14 +1311,24 @@ function SentencePairPanel({
             <LanguageFlag code={sourceLanguage} className="h-5 w-7 shrink-0" />
             <h4 className="text-xs font-semibold text-foreground-secondary">{sourceTitle}</h4>
             <span className="truncate text-xs text-foreground-muted">{sourceLanguageName}</span>
-            <button
-              type="button"
-              onClick={() => void onCopyText(sentence.source, "source")}
-              aria-label={copySourceLabel}
-              className="ml-auto inline-flex size-9 shrink-0 items-center justify-center rounded-full text-foreground-secondary transition-colors hover:bg-white/10 hover:text-foreground active:scale-95"
-            >
-              <Copy className="size-5" aria-hidden="true" />
-            </button>
+            <div className="ml-auto flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                onClick={() => speakText(sentence.source, sourceLanguage)}
+                aria-label={`${sourceTitle} ${speakLabel}`}
+                className="inline-flex size-9 items-center justify-center rounded-full text-foreground-secondary transition-colors hover:bg-white/10 hover:text-foreground active:scale-95"
+              >
+                <Volume2 className="size-5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => void onCopyText(sentence.source, "source")}
+                aria-label={copySourceLabel}
+                className="inline-flex size-9 items-center justify-center rounded-full text-foreground-secondary transition-colors hover:bg-white/10 hover:text-foreground active:scale-95"
+              >
+                <Copy className="size-5" aria-hidden="true" />
+              </button>
+            </div>
           </div>
           <TokenizedText
             text={sentence.source}
@@ -1271,14 +1345,24 @@ function SentencePairPanel({
             <LanguageFlag code={nativeLanguage} className="h-5 w-7 shrink-0" />
             <h4 className="text-xs font-semibold text-foreground-secondary">{translationTitle}</h4>
             <span className="truncate text-xs text-foreground-muted">{nativeLanguageName}</span>
-            <button
-              type="button"
-              onClick={() => void onCopyText(sentence.translation, "translation")}
-              aria-label={copyTranslationLabel}
-              className="ml-auto inline-flex size-9 shrink-0 items-center justify-center rounded-full text-foreground-secondary transition-colors hover:bg-white/10 hover:text-foreground active:scale-95"
-            >
-              <Copy className="size-5" aria-hidden="true" />
-            </button>
+            <div className="ml-auto flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                onClick={() => speakText(sentence.translation, nativeLanguage)}
+                aria-label={`${translationTitle} ${speakLabel}`}
+                className="inline-flex size-9 items-center justify-center rounded-full text-foreground-secondary transition-colors hover:bg-white/10 hover:text-foreground active:scale-95"
+              >
+                <Volume2 className="size-5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => void onCopyText(sentence.translation, "translation")}
+                aria-label={copyTranslationLabel}
+                className="inline-flex size-9 items-center justify-center rounded-full text-foreground-secondary transition-colors hover:bg-white/10 hover:text-foreground active:scale-95"
+              >
+                <Copy className="size-5" aria-hidden="true" />
+              </button>
+            </div>
           </div>
           <TokenizedText
             text={sentence.translation}

@@ -6066,6 +6066,8 @@ export function SentenceCompletionQuestion({
   const t = useT();
   const { question, character } = item;
   const characterName = getCharacterName(character, item.card.language);
+  const completedSentence = completeSentence(question.sentenceWithBlank, question.correctAnswer);
+  useSpeakTextAfterEntry(completedSentence, item.card.language);
 
   return (
     <div
