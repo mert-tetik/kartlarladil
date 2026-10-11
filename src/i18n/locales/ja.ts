@@ -154,7 +154,7 @@ const dictionary = {
   "auth.google.consentPrivacy": "プライバシーポリシー",
   "auth.google.consentSuffix": " に同意します。",
   "auth.google.consentTerms": "サービス利用規約",
-  "auth.google.pending": "Googleにリダイレクト中...",
+  "auth.google.pending": "ログイン中です。しばらくお待ちください…",
   "auth.google.signIn": "Googleでサインイン",
   "auth.google.signUp": "Googleでサインアップ",
   "auth.mobile.useEmailInstead": "Use email instead",

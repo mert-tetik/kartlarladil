@@ -154,7 +154,7 @@ const dictionary = {
   "auth.google.consentPrivacy": "개인정보 처리방침",
   "auth.google.consentSuffix": "에 동의합니다.",
   "auth.google.consentTerms": "서비스 약관",
-  "auth.google.pending": "Google로 리디렉션 중...",
+  "auth.google.pending": "로그인 중입니다. 잠시 기다려 주세요...",
   "auth.google.signIn": "Google로 로그인",
   "auth.google.signUp": "Google로 가입",
   "auth.mobile.useEmailInstead": "Use email instead",

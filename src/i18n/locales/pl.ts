@@ -154,7 +154,7 @@ const dictionary = {
   "auth.google.consentPrivacy": "PolitykÄ™ PrywatnoÅ›ci",
   "auth.google.consentSuffix": ".",
   "auth.google.consentTerms": "Warunki UsÅ‚ugi",
-  "auth.google.pending": "Przekierowywanie do Google...",
+  "auth.google.pending": "Logowanie w toku, proszę czekać...",
   "auth.google.signIn": "Zaloguj siÄ™ z Google",
   "auth.google.signUp": "Zarejestruj siÄ™ z Google",
   "auth.mobile.useEmailInstead": "Use email instead",

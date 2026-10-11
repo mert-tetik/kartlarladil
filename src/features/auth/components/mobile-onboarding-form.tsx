@@ -324,14 +324,20 @@ export function MobileOnboardingForm({
                 <button
                   type="button"
                   onClick={advanceLanguageStep}
-                  className={cn("h-14 w-full rounded-lg px-5 text-base font-bold transition-transform active:scale-[0.99]", actionButtonClass)}
+                  className={cn(
+                    "h-14 w-full rounded-lg px-5 text-base font-bold transition-transform active:scale-[0.99] disabled:opacity-100",
+                    actionButtonClass,
+                  )}
                 >
                   {t("auth.onboarding.selectLanguage")}
                 </button>
               </div>
             ) : (
               <div className={cn("mobile-primary-action-depth w-full rounded-md", actionDepthClass)}>
-                <SubmitButton className={cn("h-14 w-full text-base font-bold", actionButtonClass)} pendingLabel={t("auth.onboarding.pending")}>
+                <SubmitButton
+                  className={cn("h-14 w-full text-base font-bold disabled:opacity-100", actionButtonClass)}
+                  pendingLabel={t("auth.onboarding.pending")}
+                >
                   {t("auth.onboarding.continue")}
                 </SubmitButton>
               </div>
