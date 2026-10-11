@@ -8,14 +8,27 @@ import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
 import { FieldError, FormMessage } from "@/features/auth/components/form-message";
 import { PasswordInput } from "@/features/auth/components/password-input";
 import { SubmitButton } from "@/features/auth/components/submit-button";
+import { useRecoveryPasswordUpdate } from "@/features/auth/components/use-recovery-password-update";
 import { useT } from "@/i18n/locale-provider";
 
-export function MobileUpdatePasswordForm({ onBack }: { onBack: () => void }) {
+export function MobileUpdatePasswordForm({
+  onBack,
+  isRecoveryFlow = false,
+}: {
+  onBack: () => void;
+  isRecoveryFlow?: boolean;
+}) {
   const t = useT();
   const [state, formAction] = useActionState(updatePasswordAction, AUTH_ACTION_IDLE_STATE);
+  const recovery = useRecoveryPasswordUpdate();
+  const activeState = isRecoveryFlow ? recovery.state : state;
 
   return (
-    <form action={formAction} className="flex w-full flex-col">
+    <form
+      action={formAction}
+      onSubmit={isRecoveryFlow ? recovery.handleSubmit : undefined}
+      className="flex w-full flex-col"
+    >
       <Button
         type="button"
         variant="ghost"
@@ -33,12 +46,12 @@ export function MobileUpdatePasswordForm({ onBack }: { onBack: () => void }) {
       </h2>
 
       <div data-gateway-flow-item data-gateway-flow-order="2" className="mt-6 flex flex-col gap-4">
-        <FormMessage state={state} />
+        <FormMessage state={activeState} />
 
         <label className="block">
           <span className="text-sm font-semibold text-foreground">{t("common.newPassword")}</span>
           <PasswordInput name="password" autoComplete="new-password" required className="bg-background-muted" />
-          <FieldError message={state.fieldErrors?.password?.[0]} />
+          <FieldError message={activeState.fieldErrors?.password?.[0]} />
         </label>
 
         <label className="block">
@@ -49,10 +62,14 @@ export function MobileUpdatePasswordForm({ onBack }: { onBack: () => void }) {
             required
             className="bg-background-muted"
           />
-          <FieldError message={state.fieldErrors?.confirmPassword?.[0]} />
+            <FieldError message={activeState.fieldErrors?.confirmPassword?.[0]} />
         </label>
 
-        <SubmitButton className="mt-2 h-14 w-full text-base font-bold" pendingLabel={t("auth.updatePassword.pending")}>
+        <SubmitButton
+          className="mt-2 h-14 w-full text-base font-bold"
+          pendingLabel={t("auth.updatePassword.pending")}
+          pendingOverride={isRecoveryFlow ? recovery.pending : undefined}
+        >
           {t("auth.updatePassword.title")}
         </SubmitButton>
       </div>

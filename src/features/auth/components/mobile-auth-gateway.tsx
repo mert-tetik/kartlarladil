@@ -375,6 +375,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   );
   const isMobileResetPasswordPath = pathname === MOBILE_RESET_PASSWORD_PATH;
   const isMobileUpdatePasswordPath = pathname === MOBILE_UPDATE_PASSWORD_PATH;
+  const isRecoveryFlow = searchParams.get("recovery") === "1";
   const isMobilePasswordRecoveryPath = pathname === MOBILE_PASSWORD_RECOVERY_PATH;
   const loginMessage = searchParams.get("message")?.toLowerCase() ?? "";
   const isMobilePasswordRecoveryError =
@@ -598,7 +599,10 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
           showBackground={false}
           transitionKey="mobile-update-password"
         >
-          <MobileUpdatePasswordForm onBack={() => router.replace(`/?${MOBILE_GATEWAY_LOGIN_PARAM}=1`)} />
+          <MobileUpdatePasswordForm
+            isRecoveryFlow={isRecoveryFlow}
+            onBack={() => router.replace(`/?${MOBILE_GATEWAY_LOGIN_PARAM}=1`)}
+          />
         </GatewayShell>
       );
     } else if (shouldOpenMobileGatewayLogin) {

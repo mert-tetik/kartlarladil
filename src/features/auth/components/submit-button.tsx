@@ -8,10 +8,12 @@ import { useT } from "@/i18n/locale-provider";
 export function SubmitButton({
   children,
   pendingLabel,
+  pendingOverride,
   disabled,
   ...props
-}: ButtonProps & { pendingLabel?: string }) {
-  const { pending } = useFormStatus();
+}: ButtonProps & { pendingLabel?: string; pendingOverride?: boolean }) {
+  const { pending: formPending } = useFormStatus();
+  const pending = pendingOverride ?? formPending;
   const t = useT();
 
   return (

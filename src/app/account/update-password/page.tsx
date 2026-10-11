@@ -36,8 +36,8 @@ export default async function UpdatePasswordPage({
   }
 
   return (
-    <AuthPageShell title={t("auth.updatePassword.title")} description={t("auth.updatePassword.description")}>
-      <UpdatePasswordForm />
+      <AuthPageShell title={t("auth.updatePassword.title")} description={t("auth.updatePassword.description")}>
+      <UpdatePasswordForm isRecoveryFlow={isRecoveryFlow} />
       <div className="mt-6 border-t border-border pt-5 text-sm text-foreground-secondary">
         {t("auth.updatePassword.backToSettings")}{" "}
         <Link href="/account/settings" className="font-semibold text-foreground">
