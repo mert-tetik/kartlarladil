@@ -9,14 +9,14 @@ const browserCookieOptions = {
   path: "/",
 };
 
-export function createSupabaseBrowserClient() {
+export function createSupabaseBrowserClient(options?: { detectSessionInUrl?: boolean }) {
   const config = getSupabaseBrowserConfig();
 
   return createBrowserClient(config.url, config.publishableKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true,
+      detectSessionInUrl: options?.detectSessionInUrl ?? true,
     },
     cookieOptions: browserCookieOptions,
   });
@@ -35,7 +35,10 @@ export function createSupabaseRecoveryBrowserClient() {
       flowType: "implicit",
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true,
+      // The recovery route extracts the hash and calls setSession explicitly.
+      // This prevents a second Supabase client from consuming the fragment
+      // before the recovery flow can handle it.
+      detectSessionInUrl: false,
     },
     cookieOptions: browserCookieOptions,
   });

@@ -126,7 +126,14 @@ export function AuthSessionProvider({
   children: ReactNode;
 }) {
   const [user, setUser] = useState(initialUser);
-  const client = useMemo(() => (hasSupabaseBrowserConfig() ? createSupabaseBrowserClient() : null), []);
+  const pathname = usePathname();
+  const isRecoveryPath = pathname === "/auth/recovery";
+  const client = useMemo(
+    () => (hasSupabaseBrowserConfig()
+      ? createSupabaseBrowserClient({ detectSessionInUrl: !isRecoveryPath })
+      : null),
+    [isRecoveryPath],
+  );
   const activeUserIdRef = useRef<string | null>(initialUser?.id ?? null);
   const gemLedgerRef = useRef(new GemOptimisticLedger(getGemBalances(initialUser?.profile)));
 
