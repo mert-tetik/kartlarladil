@@ -547,10 +547,10 @@ export function MobileRankInfoSheet({
                       aria-valuemin={0}
                       aria-valuemax={item.minPoints}
                       aria-valuenow={Math.min(totalPoints, item.minPoints)}
-                      className="mt-8 flex w-52 flex-col items-center"
+                      className="mt-8 flex w-72 min-w-72 shrink-0 flex-col items-center"
                       data-rank-progress={item.id}
                     >
-                      <div className="translate-y-6" data-rank-details-rank-progress-offset>
+                      <div className="w-full translate-y-6" data-rank-details-rank-progress-offset>
                         <div className="flex w-full flex-col items-center" data-rank-details-rank-progress-motion>
                           <span
                             className={cn(
@@ -561,7 +561,7 @@ export function MobileRankInfoSheet({
                           >
                             {formatNumber(locale, Math.round(progressToRank))}%
                           </span>
-                          <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-white">
+                          <div className="relative h-2.5 w-full min-w-full overflow-hidden rounded-full bg-white">
                             <div
                               className="h-full rounded-full transition-[width] duration-500 ease-[cubic-bezier(0.85,0,0.15,1)]"
                               style={{
