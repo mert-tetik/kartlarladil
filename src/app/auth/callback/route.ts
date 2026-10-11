@@ -24,7 +24,10 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
     const isPasswordRecoveryVerifierError =
@@ -33,10 +36,6 @@ export async function GET(request: NextRequest) {
     const fallbackPath = isPasswordRecoveryVerifierError ? "/reset-password" : "/login";
     return NextResponse.redirect(`${origin}${fallbackPath}?message=${encodeURIComponent(error.message)}`);
   }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   if (user) {
     const { onboardingCompleted } = await ensureUserProfile(supabase, user);

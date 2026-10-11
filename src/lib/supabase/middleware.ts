@@ -32,9 +32,9 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // Refresh the session if it has expired. getUser() triggers the cookie
-  // refresh logic in @supabase/ssr and writes updated cookies to the response.
-  await supabase.auth.getUser();
+  // Verify and refresh the session using the locally verifiable claims path
+  // where supported, avoiding an unnecessary network round trip per request.
+  await supabase.auth.getClaims();
 
   return response;
 }

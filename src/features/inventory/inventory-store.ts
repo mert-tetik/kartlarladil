@@ -463,14 +463,49 @@ export const useInventoryStore = create<InventoryState>()(
         }
 
         if (get().cloudEnabled) {
-          set({ cloudLoading: true, cloudError: "" });
+          const existingIds = new Set(get().cards.map((card) => card.cardId));
+          const newCardIds = requestedCardIds.filter((cardId) => !existingIds.has(cardId));
+          const activeCount = get().cards.filter((card) => card.status === "active").length;
+          const activeCardLimit = get().activeCardLimit;
+          const availableSlots = activeCardLimit === null
+            ? newCardIds.length
+            : Math.max(0, activeCardLimit - activeCount);
+          const optimisticCardIds = newCardIds.slice(0, availableSlots);
+
+          if (optimisticCardIds.length > 0) {
+            set((state) => ({
+              ...state,
+              cards: optimisticCardIds.reduce(
+                (cards, cardId) => addCardToInventory(cards, cardId),
+                state.cards,
+              ),
+              pendingCardIds: new Set([...state.pendingCardIds, ...optimisticCardIds]),
+              cloudLoading: true,
+              cloudError: "",
+            }));
+          } else {
+            set({ cloudLoading: true, cloudError: "" });
+          }
+
           const result = await enqueueCloudCardAddition(
             get().ownerUserId,
             () => addCloudInventoryCardsAction(requestedCardIds),
           );
 
           if (result.status === "error" || !result.data) {
-            set({ cloudLoading: false, cloudError: result.message });
+            set((state) => {
+              const optimisticCardIdSet = new Set(optimisticCardIds);
+              const pendingCardIds = new Set(state.pendingCardIds);
+              optimisticCardIds.forEach((cardId) => pendingCardIds.delete(cardId));
+
+              return {
+                ...state,
+                cards: state.cards.filter((card) => !optimisticCardIdSet.has(card.cardId)),
+                pendingCardIds,
+                cloudLoading: pendingCardIds.size > 0,
+                cloudError: result.message,
+              };
+            });
             return {
               ok: false,
               firstCardAdded: false,
@@ -479,13 +514,30 @@ export const useInventoryStore = create<InventoryState>()(
             };
           }
 
-          const { addedCardIds, remainingCardIds } = result.data;
-          set({
-            cards: result.data.cards,
-            attempts: result.data.attempts,
-            pendingCardMutations: new Map(),
-            cloudLoading: false,
-            cloudError: "",
+          const cloudData = result.data;
+          if (!cloudData) {
+            return {
+              ok: false,
+              firstCardAdded: false,
+              addedCardIds: [],
+              remainingCardIds: requestedCardIds,
+            };
+          }
+
+          const { addedCardIds, remainingCardIds } = cloudData;
+          set((state) => {
+            const pendingCardIds = new Set(state.pendingCardIds);
+            optimisticCardIds.forEach((cardId) => pendingCardIds.delete(cardId));
+
+            return {
+              ...state,
+              cards: cloudData.cards,
+              attempts: cloudData.attempts,
+              pendingCardIds,
+              pendingCardMutations: new Map(),
+              cloudLoading: pendingCardIds.size > 0,
+              cloudError: "",
+            };
           });
 
           for (const cardId of addedCardIds) {
@@ -620,6 +672,10 @@ export const useInventoryStore = create<InventoryState>()(
       },
 
       async recordAnswer(input) {
+        if (get().cloudEnabled && get().pendingCardIds.has(input.cardId)) {
+          await waitForCloudCardAddition(get().ownerUserId);
+        }
+
         const vocabularyCard = localCardRepository.findById(input.cardId);
         const ownedCard = get().cards.find((card) => card.cardId === input.cardId);
 
@@ -888,6 +944,13 @@ function enqueueCloudCardAddition<T>(ownerUserId: string | null, operation: () =
   );
 
   return queuedOperation;
+}
+
+async function waitForCloudCardAddition(ownerUserId: string | null) {
+  const queue = cloudCardAddQueues.get(ownerUserId ?? "active-session");
+  if (!queue) return;
+
+  await queue.catch(() => undefined);
 }
 
 export function mergeCloudInventoryCards(

@@ -155,6 +155,7 @@ const dictionary = {
   "auth.google.consentSuffix": ".",
   "auth.google.consentTerms": "Conditions de service",
   "auth.google.pending": "Connexion en cours, veuillez patienter...",
+  "auth.google.completing": "Vérification de votre compte...",
   "auth.google.signIn": "Se connecter avec Google",
   "auth.google.signUp": "S'inscrire avec Google",
   "auth.mobile.useEmailInstead": "Use email instead",

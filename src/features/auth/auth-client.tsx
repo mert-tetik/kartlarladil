@@ -139,6 +139,7 @@ export function AuthSessionProvider({
   );
   const activeUserIdRef = useRef<string | null>(initialUser?.id ?? null);
   const gemLedgerRef = useRef(new GemOptimisticLedger(getGemBalances(initialUser?.profile)));
+  const previousInitialUserRef = useRef(initialUser);
 
   const getVisibleGemBalances = useCallback((): GemBalances => ({
     ...gemLedgerRef.current.getVisibleBalances(),
@@ -158,6 +159,23 @@ export function AuthSessionProvider({
         }
       : current);
   }, [getVisibleGemBalances]);
+
+  useEffect(() => {
+    const previousUser = previousInitialUserRef.current;
+    previousInitialUserRef.current = initialUser;
+
+    const serverUserChanged =
+      previousUser?.id !== initialUser?.id ||
+      previousUser?.profile.onboardingCompleted !== initialUser?.profile.onboardingCompleted ||
+      previousUser?.profile.preferredLanguageCode !== initialUser?.profile.preferredLanguageCode ||
+      previousUser?.profile.preferredUiLocale !== initialUser?.profile.preferredUiLocale;
+
+    if (!serverUserChanged) return;
+
+    activeUserIdRef.current = initialUser?.id ?? null;
+    gemLedgerRef.current.reset(getGemBalances(initialUser?.profile));
+    setUser(initialUser);
+  }, [initialUser]);
 
   const reserveGemSpend = useCallback((type: GemType, amount: number): GemSpendReservation | null => {
     const userId = activeUserIdRef.current;
@@ -189,26 +207,6 @@ export function AuthSessionProvider({
   useEffect(() => {
     setTwaAnalyticsUserId(user?.id ?? null);
   }, [user?.id]);
-
-  useEffect(() => {
-    if (!client) {
-      return;
-    }
-
-    const {
-      data: { subscription },
-    } = client.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") {
-        activeUserIdRef.current = null;
-        gemLedgerRef.current.reset();
-        setUser(null);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [client]);
 
   const refreshProfile = useCallback(async () => {
     if (!client || !user) {
@@ -258,6 +256,73 @@ export function AuthSessionProvider({
         : current,
     );
   }, [client, user, getVisibleGemBalances]);
+
+  const syncUserFromSession = useCallback(async (sessionUser: { id: string; email?: string | null }) => {
+    if (!client || !sessionUser.email || activeUserIdRef.current === sessionUser.id) {
+      return;
+    }
+
+    let { data, error } = await client
+      .from("user_profiles")
+      .select(PROFILE_SELECT_WITH_MEDALS)
+      .eq("user_id", sessionUser.id)
+      .maybeSingle();
+
+    if (error?.code === "42703" && error.message?.includes("quiz_result_medals")) {
+      ({ data, error } = await client
+        .from("user_profiles")
+        .select(PROFILE_SELECT_BASE)
+        .eq("user_id", sessionUser.id)
+        .maybeSingle());
+    }
+
+    if (error || !data) {
+      return;
+    }
+
+    const nextProfile = normalizeClientProfile(data);
+    const confirmedGemBalances = getGemBalances(nextProfile);
+    gemLedgerRef.current.setConfirmedBalances(confirmedGemBalances);
+    const visibleGemBalances = getVisibleGemBalances();
+    activeUserIdRef.current = sessionUser.id;
+    setUser({
+      id: sessionUser.id,
+      email: sessionUser.email,
+      profile: {
+        ...nextProfile,
+        blueGems: visibleGemBalances.blue,
+        greenGems: visibleGemBalances.green,
+        purpleGems: visibleGemBalances.purple,
+      },
+    });
+  }, [client, getVisibleGemBalances]);
+
+  useEffect(() => {
+    if (!client) {
+      return;
+    }
+
+    const {
+      data: { subscription },
+    } = client.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        activeUserIdRef.current = null;
+        gemLedgerRef.current.reset();
+        setUser(null);
+        return;
+      }
+
+      if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user) {
+        window.setTimeout(() => {
+          void syncUserFromSession(session.user);
+        }, 0);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [client, syncUserFromSession]);
 
   const updateProfileField = useCallback((updates: Partial<AuthProfile>) => {
     const hasGemBalanceUpdate = updates.blueGems !== undefined || updates.greenGems !== undefined || updates.purpleGems !== undefined;

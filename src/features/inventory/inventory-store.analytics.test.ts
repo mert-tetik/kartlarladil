@@ -6,7 +6,11 @@ import { customCardRegistry } from "@/features/cards/custom-card-registry";
 import { localCardRepository } from "@/features/cards/card-repository";
 import { InventoryActionError, useInventoryStore } from "@/features/inventory/inventory-store";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
-import { addCloudInventoryCardAction, createCustomCardAction } from "@/features/inventory/cloud-actions";
+import {
+  addCloudInventoryCardAction,
+  addCloudInventoryCardsAction,
+  createCustomCardAction,
+} from "@/features/inventory/cloud-actions";
 import type { VocabularyCard } from "@/types/domain";
 
 vi.mock("@/lib/twa-analytics", () => ({
@@ -19,6 +23,7 @@ vi.mock("@/features/missions/mission-sync", () => ({
 
 vi.mock("@/features/inventory/cloud-actions", () => ({
   addCloudInventoryCardAction: vi.fn(),
+  addCloudInventoryCardsAction: vi.fn(),
   createCustomCardAction: vi.fn(),
   listCloudInventoryAction: vi.fn(),
   loadCustomCardsAction: vi.fn(),
@@ -111,6 +116,38 @@ describe("inventory store analytics", () => {
     await secondAdd;
 
     expect(useInventoryStore.getState().cards.map((card) => card.cardId)).toEqual([testCard.id, secondCard.id]);
+  });
+
+  it("shows a batch cloud addition locally before the background sync completes", async () => {
+    let resolveBatchAdd!: (value: Awaited<ReturnType<typeof addCloudInventoryCardsAction>>) => void;
+    vi.mocked(addCloudInventoryCardsAction).mockImplementation(
+      () => new Promise((resolve) => {
+        resolveBatchAdd = resolve;
+      }),
+    );
+    useInventoryStore.setState({ cloudEnabled: true, ownerUserId: "user-1" });
+
+    const addition = useInventoryStore.getState().addCards([testCard.id]);
+
+    expect(useInventoryStore.getState().cards).toEqual([
+      expect.objectContaining({ cardId: testCard.id, status: "active", correctCount: 0 }),
+    ]);
+    expect(useInventoryStore.getState().pendingCardIds.has(testCard.id)).toBe(true);
+
+    await waitForQueuedCloudAdd();
+    resolveBatchAdd({
+      status: "success",
+      message: "",
+      data: {
+        cards: [{ cardId: testCard.id, status: "active", correctCount: 0, addedAt: "2026-07-17T00:00:00.000Z" }],
+        attempts: [],
+        addedCardIds: [testCard.id],
+        remainingCardIds: [],
+      },
+    });
+    await addition;
+
+    expect(useInventoryStore.getState().pendingCardIds.has(testCard.id)).toBe(false);
   });
 
   it("sends a card learned event on the first learned transition", async () => {

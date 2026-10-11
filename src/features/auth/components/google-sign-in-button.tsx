@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { signInWithGoogleAction } from "@/features/auth/actions";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
 import { AuthConsentText } from "@/features/auth/components/auth-consent-text";
 import { FormMessage } from "@/features/auth/components/form-message";
+import { clearGoogleAuthPending, markGoogleAuthPending } from "@/features/auth/google-auth-flow";
 import { useT } from "@/i18n/locale-provider";
 
 interface GoogleSignInButtonProps {
@@ -20,13 +21,23 @@ export function GoogleSignInButton({ nextPath, label, showConsent = true }: Goog
   const [state, formAction, isPending] = useActionState(signInWithGoogleAction, AUTH_ACTION_IDLE_STATE);
   const t = useT();
 
+  useEffect(() => {
+    if (state.status === "error") {
+      clearGoogleAuthPending();
+    }
+  }, [state.status]);
+
   return (
     <form
       action={formAction}
       className="w-full"
       onSubmit={() => {
-        if (typeof window !== "undefined" && window.innerWidth < 1024 && nextPath === "/?showOffer=1") {
-          window.sessionStorage.setItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY, "1");
+        if (typeof window !== "undefined" && window.innerWidth < 1024) {
+          markGoogleAuthPending();
+
+          if (nextPath.includes("showOffer=1")) {
+            window.sessionStorage.setItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY, "1");
+          }
         }
       }}
     >

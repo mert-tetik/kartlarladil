@@ -11,12 +11,19 @@ import { MobileSubscriptionOfferScreen } from "@/features/auth/components/mobile
 import { MobileResetPasswordForm } from "@/features/auth/components/mobile-reset-password-form";
 import { MobileUpdatePasswordForm } from "@/features/auth/components/mobile-update-password-form";
 import { MobilePasswordRecoveryLoading } from "@/features/auth/components/mobile-password-recovery-loading";
+import { MobileGoogleAuthLoading } from "@/features/auth/components/mobile-google-auth-loading";
 import {
   GATEWAY_FLOW_EXIT_DURATION_MS,
   GatewayFlowTransition,
   type GatewayFlowPhase,
 } from "@/features/auth/components/gateway-flow-transition";
 import { useAuthSession } from "@/features/auth/auth-client";
+import {
+  clearGoogleAuthPending,
+  GOOGLE_AUTH_PENDING_EVENT,
+  getGoogleAuthPendingStartedAt,
+  GOOGLE_AUTH_PENDING_TIMEOUT_MS,
+} from "@/features/auth/google-auth-flow";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { shouldKeepMobileGatewayBootstrapVisible } from "@/features/auth/mobile-gateway-bootstrap";
 import {
@@ -258,6 +265,9 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     isSeriousLearnerTestMode,
   );
   const [bootstrapPhase, setBootstrapPhase] = useState<BootstrapPhase>("visible");
+  const [isGoogleAuthCompleting, setIsGoogleAuthCompleting] = useState(
+    () => getGoogleAuthPendingStartedAt() !== null,
+  );
   const bootstrapFinishedRef = useRef(false);
   const seriousLearnerTestTimerRef = useRef<number | null>(null);
   const gatewayExitTimerRef = useRef<number | null>(null);
@@ -293,6 +303,33 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       window.removeEventListener(LOGOUT_AUTH_EVENT, handleLogoutAuthRequested);
     };
   }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    const handleGoogleAuthPendingChange = () => {
+      setIsGoogleAuthCompleting(getGoogleAuthPendingStartedAt() !== null);
+    };
+
+    window.addEventListener(GOOGLE_AUTH_PENDING_EVENT, handleGoogleAuthPendingChange);
+    return () => window.removeEventListener(GOOGLE_AUTH_PENDING_EVENT, handleGoogleAuthPendingChange);
+  }, [mounted]);
+
+  useEffect(() => {
+    if (!user) return;
+    clearGoogleAuthPending();
+  }, [user]);
+
+  useEffect(() => {
+    if (!mounted || user || !isGoogleAuthCompleting) return;
+
+    const startedAt = getGoogleAuthPendingStartedAt();
+    if (startedAt === null) return;
+
+    const remainingMs = Math.max(0, GOOGLE_AUTH_PENDING_TIMEOUT_MS - (Date.now() - startedAt));
+    const timeout = window.setTimeout(clearGoogleAuthPending, remainingMs);
+    return () => window.clearTimeout(timeout);
+  }, [isGoogleAuthCompleting, mounted, user]);
 
   const hasCompletedOnboarding = Boolean(
     user?.profile.onboardingCompleted || onboardingCompletedInSession,
@@ -405,6 +442,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     isSeriousLearnerTestMode ||
     gatewayExitPending ||
     (isMobileViewport && (
+      isGoogleAuthCompleting ||
       needsAuth ||
       needsOnboarding ||
       shouldRefreshLoginLanguages ||
@@ -509,7 +547,18 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     !isRankUpTestMode &&
     (!isSeriousLearnerTestMode || seriousLearnerTestOpen)
   ) {
-    if (isMobilePasswordRecoveryPath) {
+    if (isGoogleAuthCompleting && needsAuth) {
+      gateway = (
+        <GatewayShell
+          centered
+          isTestMode={isTestMode}
+          showBackground={false}
+          transitionKey="google-auth-completing"
+        >
+          <MobileGoogleAuthLoading />
+        </GatewayShell>
+      );
+    } else if (isMobilePasswordRecoveryPath) {
       gateway = (
         <GatewayShell
           centered

@@ -155,6 +155,7 @@ const dictionary = {
   "auth.google.consentSuffix": "에 동의합니다.",
   "auth.google.consentTerms": "서비스 약관",
   "auth.google.pending": "로그인 중입니다. 잠시 기다려 주세요...",
+  "auth.google.completing": "계정을 확인하는 중입니다...",
   "auth.google.signIn": "Google로 로그인",
   "auth.google.signUp": "Google로 가입",
   "auth.mobile.useEmailInstead": "Use email instead",
