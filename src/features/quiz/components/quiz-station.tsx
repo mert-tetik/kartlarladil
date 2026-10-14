@@ -3448,7 +3448,13 @@ export function QuizStation({
 
   function handleStreakRewardComplete() {
     runQuizViewTransition(
-      () => setPhase("result-pending"),
+      () => {
+        // The streak reward is an intermediate step in the normal result
+        // flow. Keep the achievement-card message queued for the result
+        // screen instead of falling through to the summary directly.
+        setResultMessageOnResult(true);
+        setPhase("result-pending");
+      },
       { delayIncomingMs: QUIZ_FLOW_INCOMING_DELAY_MS },
     );
   }
@@ -6953,11 +6959,22 @@ export function ResultFlowView({
     resultFlowCompletedRef.current = false;
   }, [resultProps.quizSessionId]);
 
-  const [messageStageVisible] = useState(showResultMessage);
+  const [messageStageVisible, setMessageStageVisible] = useState(showResultMessage);
   const [resultStageVisible, setResultStageVisible] = useState(!showResultMessage);
   const [chestGateVisible, setChestGateVisible] = useState(false);
   const [continuationMotivationVisible, setContinuationMotivationVisible] = useState(false);
   const [motivationEntering, setMotivationEntering] = useState(false);
+
+  useEffect(() => {
+    // Result state can be decided asynchronously while the result flow is
+    // already mounted (for example after streak/rank reconciliation). Make
+    // sure a late request to show achievements can still open its first
+    // stage instead of being lost in the initial useState snapshot.
+    if (!showResultMessage || messageStageVisible) return;
+
+    setMessageStageVisible(true);
+    setResultStageVisible(false);
+  }, [messageStageVisible, showResultMessage]);
   const [chestRewardGemCount, setChestRewardGemCount] = useState(gainedGems);
   const resultPerformance = getQuizPerformanceSummary(
     resultProps.mode,
