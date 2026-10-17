@@ -1,5 +1,5 @@
 import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
-import { getLanguageDisplayName } from "@/i18n/labels";
+import { getLanguageDisplayName, getLanguageNativeName } from "@/i18n/labels";
 import type { LanguageCode, VocabularyCard } from "@/types/domain";
 
 export type SocialCaptionKind = "miniQuiz" | "falseFriends" | "dailyChallenge" | "vocabularyProgression" | "exampleSentences" | "vocabularyCarousel" | "tierProgression";
@@ -27,22 +27,86 @@ export const WORD_OF_THE_DAY_TITLE: Record<LanguageCode, string> = {
   "zh-CN": "今日单词",
 };
 
-const NATIVE_CAPTION_HASHTAGS: Record<LanguageCode, readonly string[]> = {
-  tr: ["#dilöğrenme", "#kelimeöğrenme", "#yabancıdil", "#dilpratiği", "#kelimehazinesi"],
-  en: ["#languagelearning", "#vocabulary", "#languagepractice", "#learnalanguage", "#wordpower"],
-  de: ["#sprachenlernen", "#wortschatz", "#fremdsprachen", "#sprachpraxis", "#wortlernen"],
-  ru: ["#изучениеязыков", "#словарныйзапас", "#иностранныеязыки", "#языковаяпрактика", "#учимслова"],
-  fr: ["#apprentissagedeslangues", "#vocabulaire", "#languesétrangères", "#pratiquedeslangues", "#apprendrelesmots"],
-  es: ["#aprendizajedeidiomas", "#vocabulario", "#idiomas", "#prácticadeidiomas", "#aprendepalabras"],
-  it: ["#apprendimentolingue", "#vocabolario", "#linguestraniere", "#praticadellingua", "#imparoleparole"],
-  pt: ["#aprendizadodeidiomas", "#vocabulário", "#línguasestrangeiras", "#práticadeidiomas", "#aprendapalavras"],
-  nl: ["#talenleren", "#woordenschat", "#vreemdetalen", "#taalvaardigheid", "#woordleren"],
-  pl: ["#naukajezykow", "#slownictwo", "#jezykiobce", "#praktykajezykowa", "#naukaslow"],
-  ar: ["#تعلماللغات", "#مفردات", "#لغاتأجنبية", "#ممارسةاللغة", "#تعلمالكلمات"],
-  ja: ["#語学学習", "#単語", "#外国語", "#語学練習", "#単語学習"],
-  ko: ["#언어학습", "#어휘", "#외국어", "#언어연습", "#단어공부"],
-  "zh-CN": ["#语言学习", "#词汇", "#外语学习", "#语言练习", "#背单词"],
+/**
+ * These are language-specific tags that have a stable, established use on
+ * short-form platforms. They are used as the fallback when a caller has not
+ * supplied the caption's native language yet.
+ */
+const LEARNING_LANGUAGE_HASHTAGS: Record<LanguageCode, readonly string[]> = {
+  tr: ["#turkceogren", "#turkce", "#turkcekelime", "#dilogrenme", "#yabancidil"],
+  en: ["#learnenglish", "#englishlearning", "#englishvocabulary", "#englishpractice", "#languagelearning"],
+  de: ["#deutschlernen", "#deutschvokabeln", "#deutschueben", "#deutschalsfremdsprache", "#sprachenlernen"],
+  ru: ["#учирусский", "#русскийязык", "#русскиеслова", "#изучениерусского", "#русскаяграмматика"],
+  fr: ["#apprendrelefrancais", "#francaisfacile", "#vocabulairefrancais", "#pratiquedufrancais", "#apprendreleslangues"],
+  es: ["#aprendeespanol", "#espanolfacil", "#vocabularioespanol", "#practicadeespanol", "#aprendizajedeidiomas"],
+  it: ["#imparaitaliano", "#italianofacile", "#vocabolarioitaliano", "#praticaditaliano", "#impararelingue"],
+  pt: ["#aprendaportugues", "#portuguesbrasileiro", "#portuguesfacil", "#vocabularioportugues", "#aprendizadedeidiomas"],
+  nl: ["#nederlandsleren", "#nederlandsevocabulaire", "#nederlandsoefenen", "#nederlandsetaal", "#talenleren"],
+  pl: ["#naukajezykapolskiego", "#jezykpolski", "#polskieslowka", "#cwiczeniapolskiego", "#naukajezykow"],
+  ar: ["#تعلمالعربية", "#اللغةالعربية", "#مفرداتعربية", "#تدريبالعربية", "#تعلماللغات"],
+  ja: ["#日本語学習", "#日本語単語", "#日本語勉強", "#日本語練習", "#外国語学習"],
+  ko: ["#한국어공부", "#한국어단어", "#한국어연습", "#한국어배우기", "#언어공부"],
+  "zh-CN": ["#学中文", "#中文学习", "#汉语词汇", "#中文练习", "#语言学习"],
 };
+
+const NATIVE_LANGUAGE_GENERAL_HASHTAGS: Record<LanguageCode, string> = {
+  tr: "#dilogrenme",
+  en: "#languagelearning",
+  de: "#sprachenlernen",
+  ru: "#изучениеязыков",
+  fr: "#apprendreleslangues",
+  es: "#aprendizajedeidiomas",
+  it: "#impararelingue",
+  pt: "#aprendizadedeidiomas",
+  nl: "#talenleren",
+  pl: "#naukajezykow",
+  ar: "#تعلماللغات",
+  ja: "#外国語学習",
+  ko: "#언어공부",
+  "zh-CN": "#语言学习",
+};
+
+const TARGET_LANGUAGE_SPECIAL_HASHTAGS: Partial<Record<LanguageCode, readonly string[]>> = {
+  ja: ["#anime", "#アニメ"],
+  ko: ["#kpop", "#bts"],
+};
+
+function toHashtagToken(value: string) {
+  return value
+    // Keep native-script characters intact. NFD decomposes Hangul and Cyrillic
+    // characters such as Korean syllables and Russian й into unusable tags.
+    .normalize("NFC")
+    .toLocaleLowerCase("en-US")
+    // Turkish capital İ lowercases to i + combining dot in JavaScript.
+    .replace(/\u0307/gu, "")
+    .replace(/[^\p{L}\p{N}]+/gu, "")
+}
+
+function uniqueHashtags(values: readonly string[]) {
+  return [...new Set(values.filter((value) => value.startsWith("#") && value.length > 1))];
+}
+
+/**
+ * Builds a pair-aware set: the selected target language is named both in the
+ * native language and in the target language. Japanese and Korean additionally
+ * receive their verified culture/community discovery tags.
+ */
+function getPairHashtags(learningLanguage: LanguageCode, nativeLanguage: LanguageCode) {
+  const nativeLanguageName = `#${toHashtagToken(getLanguageDisplayName(learningLanguage, nativeLanguage))}`;
+  const learningLanguageName = `#${toHashtagToken(getLanguageNativeName(learningLanguage))}`;
+  const targetHashtags = LEARNING_LANGUAGE_HASHTAGS[learningLanguage];
+  const specialHashtags = TARGET_LANGUAGE_SPECIAL_HASHTAGS[learningLanguage] ?? [];
+  const hashtags = uniqueHashtags([
+    nativeLanguageName,
+    learningLanguageName,
+    ...specialHashtags,
+    targetHashtags[0]!,
+    NATIVE_LANGUAGE_GENERAL_HASHTAGS[nativeLanguage],
+    ...targetHashtags.slice(1),
+  ]);
+
+  return hashtags.slice(0, specialHashtags.length > 0 ? 6 : 5);
+}
 
 const FOXIESDECK_DOWNLOAD_CAPTIONS: Record<LanguageCode, string> = {
   tr: "Her g\u00fcn sadece birka\u00e7 dakikada kelime hazneni b\u00fcy\u00fct. FoxiesDeck'i indir ve \u00f6\u011frenmeye ba\u015fla.",
@@ -59,6 +123,23 @@ const FOXIESDECK_DOWNLOAD_CAPTIONS: Record<LanguageCode, string> = {
   ja: "\u6bce\u65e5\u6570\u5206\u3067\u8a9e\u5f59\u3092\u5897\u3084\u305d\u3046\u3002FoxiesDeck\u3092\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\u3057\u3066\u5b66\u7fd2\u3092\u59cb\u3081\u3088\u3046\u3002",
   ko: "\ub9e4\uc77c \uba87 \ubd84\uc73c\ub85c \uc5b4\ud718\ub825\uc744 \ud0a4\uc6cc \ubcf4\uc138\uc694. FoxiesDeck\uc744 \ub2e4\uc6b4\ub85c\ub4dc\ud558\uace0 \ud559\uc2b5\uc744 \uc2dc\uc791\ud558\uc138\uc694.",
   "zh-CN": "\u6bcf\u5929\u82b1\u51e0\u5206\u949f\u6269\u5145\u8bcd\u6c47\u91cf\u3002\u4e0b\u8f7d FoxiesDeck\uff0c\u5f00\u59cb\u5b66\u4e60\u5427\u3002",
+};
+
+const SOCIAL_DOWNLOAD_TITLES: Record<LanguageCode, string> = {
+  tr: "FoxiesDeck'i \u015fimdi indir!",
+  en: "Download FoxiesDeck NOW!",
+  de: "Lade FoxiesDeck jetzt herunter!",
+  ru: "\u0421\u043a\u0430\u0447\u0430\u0439 FoxiesDeck \u043f\u0440\u044f\u043c\u043e \u0441\u0435\u0439\u0447\u0430\u0441!",
+  fr: "T\u00e9l\u00e9charge FoxiesDeck maintenant !",
+  es: "\u00a1Descarga FoxiesDeck ahora!",
+  it: "Scarica FoxiesDeck ora!",
+  pt: "Baixe o FoxiesDeck agora!",
+  nl: "Download FoxiesDeck nu!",
+  pl: "Pobierz FoxiesDeck teraz!",
+  ar: "\u062d\u0645\u0651\u0644 FoxiesDeck \u0627\u0644\u0622\u0646!",
+  ja: "\u4eca\u3059\u3050FoxiesDeck\u3092\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\uff01",
+  ko: "\uc9c0\uae08 FoxiesDeck\uc744 \ub2e4\uc6b4\ub85c\ub4dc\ud558\uc138\uc694!",
+  "zh-CN": "\u7acb\u5373\u4e0b\u8f7d FoxiesDeck\uff01",
 };
 
 const NATIVE_VIDEO_CAPTION_HEADINGS: Record<LanguageCode, Record<"marketingDialogue" | "everydayDialogue" | "sentenceCheck" | "sentenceTranslation", string>> = {
@@ -170,13 +251,34 @@ export function getWordOfTheDayTitle(language: LanguageCode) {
   return WORD_OF_THE_DAY_TITLE[language];
 }
 
-export function getNativeCaptionHashtags(language: LanguageCode) {
-  return NATIVE_CAPTION_HASHTAGS[language];
+export function getSocialDownloadTitle(language: LanguageCode) {
+  return SOCIAL_DOWNLOAD_TITLES[language];
+}
+
+export function getLearningLanguageHashtags(language: LanguageCode, nativeLanguage?: LanguageCode) {
+  return nativeLanguage ? getPairHashtags(language, nativeLanguage) : LEARNING_LANGUAGE_HASHTAGS[language];
+}
+
+/** @deprecated Use getLearningLanguageHashtags; kept for existing integrations. */
+export const getNativeCaptionHashtags = getLearningLanguageHashtags;
+
+export function createTitleOnlySocialTitle(caption: string, nativeLanguage: LanguageCode, learningLanguage: LanguageCode, maxLength = 100) {
+  const hashtags = getLearningLanguageHashtags(learningLanguage, nativeLanguage).slice(0, 3).join(" ");
+  const callToAction = getSocialDownloadTitle(nativeLanguage);
+  const hook = caption
+    .replace(/#[\p{L}\p{N}_-]+/gu, "")
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .find(Boolean) ?? "";
+  const fixedPart = [callToAction, hashtags].filter(Boolean).join(" ");
+  const hookBudget = maxLength - fixedPart.length - 3;
+  if (!hook || hookBudget <= 0) return fixedPart.slice(0, maxLength).trimEnd();
+  return [hook.slice(0, hookBudget).trimEnd(), fixedPart].join(" | ");
 }
 
 /** Deterministic native-language caption used only after visual media succeeds without a usable caption. */
-export function createFoxiesDeckDownloadCaption(nativeLanguage: LanguageCode) {
-  return finalizeNativeCaption(FOXIESDECK_DOWNLOAD_CAPTIONS[nativeLanguage], nativeLanguage);
+export function createFoxiesDeckDownloadCaption(nativeLanguage: LanguageCode, learningLanguage = nativeLanguage) {
+  return finalizeNativeCaption(FOXIESDECK_DOWNLOAD_CAPTIONS[nativeLanguage], learningLanguage, { nativeLanguage });
 }
 
 export function getNativeCaptionHeading(language: LanguageCode, kind: SocialCaptionKind) {
@@ -202,21 +304,27 @@ export function createNativeVisualCaption({
     ? NATIVE_VIDEO_CAPTION_HEADINGS[nativeLanguage][kind]
     : getNativeCaptionHeading(nativeLanguage, kind);
   const summary = getNativeVisualCaptionSummary(nativeLanguage, learningLanguage, itemCount);
-  return finalizeNativeCaption([heading, summary].join("\n\n"), nativeLanguage);
+  return finalizeNativeCaption([heading, summary].join("\n\n"), learningLanguage, { nativeLanguage });
 }
 
-export function finalizeNativeCaption(caption: string, nativeLanguage: LanguageCode) {
-  const nativeHashtags = NATIVE_CAPTION_HASHTAGS[nativeLanguage].join(" ");
+export function finalizeNativeCaption(caption: string, learningLanguage: LanguageCode, options?: { hashtagCount?: number; maxLength?: number; nativeLanguage?: LanguageCode }) {
+  const hashtagCount = Math.max(0, options?.hashtagCount ?? 5);
+  const learningHashtags = getLearningLanguageHashtags(learningLanguage, options?.nativeLanguage).slice(0, hashtagCount).join(" ");
   const captionWithoutHashtags = caption
-    .replace(/#[\p{L}\p{N}_]+/gu, "")
+    .replace(/#[\p{L}\p{N}_-]+/gu, "")
     .replace(/[ \t]+\n/gu, "\n")
     .replace(/\n{3,}/gu, "\n\n")
     .trim();
-  return [captionWithoutHashtags, nativeHashtags].filter(Boolean).join("\n\n");
+  const finalizedCaption = [captionWithoutHashtags, learningHashtags].filter(Boolean).join("\n\n");
+  if (!options?.maxLength || finalizedCaption.length <= options.maxLength) return finalizedCaption;
+
+  const contentBudget = Math.max(0, options.maxLength - learningHashtags.length - 2);
+  const shortenedCaption = captionWithoutHashtags.slice(0, contentBudget).trimEnd();
+  return [shortenedCaption, learningHashtags].filter(Boolean).join("\n\n");
 }
 
 export function createWordOfTheDayCaption(card: VocabularyCard, nativeLanguage: LanguageCode) {
   const meaning = getPrimaryCardTranslation(card, nativeLanguage);
   const example = card.examples[0]?.sentence ?? card.example;
-  return finalizeNativeCaption([getWordOfTheDayTitle(nativeLanguage), `${card.term} — ${meaning}`, example].filter(Boolean).join("\n"), nativeLanguage);
+  return finalizeNativeCaption([getWordOfTheDayTitle(nativeLanguage), `${card.term} — ${meaning}`, example].filter(Boolean).join("\n"), card.language, { nativeLanguage });
 }

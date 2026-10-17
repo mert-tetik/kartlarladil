@@ -11,15 +11,16 @@ import {
   nextAutomationAttemptAt,
 } from "@/features/twitter-automation/automation-resilience";
 import { notifyAutomationRunTerminal } from "@/features/twitter-automation/automation-push-service";
-import { createFoxiesDeckDownloadCaption } from "@/features/twitter-automation/social-video-titles";
+import { createFoxiesDeckDownloadCaption, getSocialDownloadTitle } from "@/features/twitter-automation/social-video-titles";
 import { getSocialStudioProviderFailureDetails, getSocialStudioResponsesErrorCode } from "@/features/twitter-automation/social-studio-poyo";
+import { renderServerMusicVideo } from "@/features/twitter-automation/server-music-video-renderer";
+import { mergeDailyAutomationOutputMetadata, readDailyAutomationOutputMetadata, type DailyAutomationOutputMetadata } from "@/features/twitter-automation/daily-automation-output";
 
 const AUTOMATION_BUCKET = "social-studio-automation";
 const AUTOMATION_MEDIA_PREFIX = "automation/";
 const STAGED_MEDIA_URL_SECONDS = 24 * 60 * 60;
 const STAGED_MEDIA_RETENTION_MS = 48 * 60 * 60 * 1000;
 const FAILED_MEDIA_RETENTION_MS = 24 * 60 * 60 * 1000;
-const READY_MEDIA_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const STALE_ACTIVE_MEDIA_RETENTION_MS = 48 * 60 * 60 * 1000;
 const STORAGE_PAGE_SIZE = 1000;
 const SCHEDULE_OUTPUT_CONCURRENCY = 3;
@@ -94,6 +95,11 @@ type GeneratedImage = {
 export type AutomationOutputRecord = {
   id: string;
   run_id: string;
+  generation_key?: string | null;
+  generation_date?: string | null;
+  generation_index?: number | null;
+  day_offset?: number;
+  group_name?: string;
   content_type: "random" | "text" | "image" | "video";
   generator: string;
   language: LanguageCode;
@@ -102,6 +108,8 @@ export type AutomationOutputRecord = {
   scheduled_at: string;
   target_account_ids: unknown;
   status: OutputStatus;
+  title?: string | null;
+  description?: string | null;
   caption: string | null;
   media_path: string | null;
   media_paths: unknown;
@@ -252,6 +260,19 @@ async function storeGeneratedVideo(sourceUrl: string, outputId: string) {
   return { path, mimeType };
 }
 
+async function storeGeneratedVideoBuffer(data: Buffer, outputId: string) {
+  if (!data.length || data.length > MAX_STAGED_VIDEO_BYTES) throw new Error("generated_video_too_large");
+  const path = `${AUTOMATION_MEDIA_PREFIX}${outputId}.mp4`;
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.storage.from(AUTOMATION_BUCKET).upload(path, data, {
+    contentType: "video/mp4",
+    cacheControl: "31536000",
+    upsert: true,
+  });
+  if (error) throw new Error("automation_media_store_failed");
+  return { path, mimeType: "video/mp4" as const };
+}
+
 async function readStoredImage(path: string): Promise<DataUrlAsset> {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.storage.from(AUTOMATION_BUCKET).download(path);
@@ -288,7 +309,37 @@ function asUploadJobs(value: unknown): UploadJob[] {
 
 async function updateOutput(outputId: string, patch: Record<string, unknown>) {
   const supabase = createSupabaseAdminClient();
-  const { error } = await supabase.from("social_content_automation_outputs").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", outputId);
+  const durablePatch = { ...patch };
+  if (Object.prototype.hasOwnProperty.call(patch, "caption") && !Object.prototype.hasOwnProperty.call(patch, "description")) {
+    // `caption` is the legacy durable description column and is available on
+    // every deployed automation schema.
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "description") && !Object.prototype.hasOwnProperty.call(patch, "caption")) {
+    durablePatch.caption = patch.description;
+  }
+  delete durablePatch.description;
+  delete durablePatch.title;
+
+  const patchMetadata = readDailyAutomationOutputMetadata(patch.render_plan);
+  const needsMetadataUpdate = Boolean(patchMetadata || typeof patch.title === "string" || typeof patch.description === "string" || typeof patch.caption === "string");
+  if (needsMetadataUpdate) {
+    const current = await supabase
+      .from("social_content_automation_outputs")
+      .select("render_plan")
+      .eq("id", outputId)
+      .maybeSingle<{ render_plan: unknown }>();
+    if (current.error) throw new Error("automation_output_metadata_read_failed");
+    const existingMetadata = readDailyAutomationOutputMetadata(current.data?.render_plan);
+    const metadata: DailyAutomationOutputMetadata | null = patchMetadata ?? existingMetadata
+      ? {
+        ...(patchMetadata ?? existingMetadata!),
+        ...(typeof patch.title === "string" ? { title: patch.title } : {}),
+        ...(typeof patch.description === "string" ? { description: patch.description } : typeof patch.caption === "string" ? { description: patch.caption } : {}),
+      }
+      : null;
+    if (metadata) durablePatch.render_plan = mergeDailyAutomationOutputMetadata(patch.render_plan ?? current.data?.render_plan, metadata);
+  }
+  const { error } = await supabase.from("social_content_automation_outputs").update({ ...durablePatch, updated_at: new Date().toISOString() }).eq("id", outputId);
   if (error) throw new Error("automation_output_update_failed");
 }
 
@@ -354,7 +405,7 @@ async function createImage(output: AutomationOutputRecord, generator: ImageGener
   const responsePlan = parseAiImagePlan(payload.plan) ?? preparedPlan;
   if (!responsePlan || (generator === "ai-false-friends" && !responsePlan.falseFriend)) throw new Error("automation_ai_image_plan_missing");
   const generatedCaption = typeof payload.caption === "string" ? payload.caption.trim() : "";
-  const caption = preparedPlan?.caption ?? (generatedCaption || createFoxiesDeckDownloadCaption(output.native_language));
+  const caption = generatedCaption || createFoxiesDeckDownloadCaption(output.native_language, output.language);
   return {
     caption,
     mediaPath: await storeGeneratedImage(payload.imageUrl, output.id),
@@ -464,13 +515,14 @@ async function validateAutomationOutputMedia(output: AutomationOutputRecord) {
 
 export async function validateAutomationOutputQuality(output: AutomationOutputRecord) {
   try {
-    if (!hasNonEmptyCaption(output.caption)) throw new Error("automation_quality_caption_invalid");
+    if (!hasNonEmptyCaption(output.description ?? output.caption)) throw new Error("automation_quality_caption_invalid");
     const media = await validateAutomationOutputMedia(output);
     if (!media.passed) throw new Error(media.errorCode);
     await updateOutput(output.id, { quality_status: "passed", quality_error: null, quality_checked_at: new Date().toISOString() });
     return { passed: true as const };
   } catch (error) {
     const errorCode = error instanceof Error ? error.message : "automation_quality_failed";
+    logAutomationOutputFailure("output_quality_check_failed", output, error, { qualityError: errorCode });
     await updateOutput(output.id, { quality_status: "failed", quality_error: errorCode, quality_checked_at: new Date().toISOString() });
     return { passed: false as const, errorCode };
   }
@@ -483,6 +535,83 @@ function automationFailureCode(error: unknown) {
   return error instanceof Error && error.message.trim()
     ? error.message
     : "automation_processing_failed";
+}
+
+function safeAutomationLogText(value: string, maxLength = 1_500) {
+  return value
+    .replace(/(?:bearer|api[_ -]?key|token)\s+[^\s,;]+/giu, "[credential redacted]")
+    .replace(/https?:\/\/[^\s,;]+/giu, "[url omitted]")
+    .replace(/(cookie|set-cookie|authorization)\s*[:=]\s*[^\s,;]+/giu, "$1=[credential redacted]")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function automationErrorLogDetails(error: unknown) {
+  const providerDiagnostic = error && typeof error === "object"
+    ? (error as AutomationRouteFailure).providerDiagnostic ?? getSocialStudioProviderFailureDetails(error)
+    : null;
+  let errorMessage: string;
+  if (error instanceof Error) {
+    errorMessage = error.message;
+  } else if (error && typeof error === "object") {
+    try {
+      errorMessage = JSON.stringify(error);
+    } catch {
+      errorMessage = String(error);
+    }
+  } else {
+    errorMessage = String(error);
+  }
+  const failureCode = automationFailureCode(error);
+  const stack = error instanceof Error && error.stack ? safeAutomationLogText(error.stack, 2_500) : null;
+  return {
+    code: safeAutomationLogText(failureCode, 320),
+    errorClass: classifyAutomationError(failureCode),
+    name: error instanceof Error ? error.name : typeof error,
+    message: safeAutomationLogText(errorMessage),
+    ...(stack ? { stack } : {}),
+    ...(providerDiagnostic ? {
+      provider: providerDiagnostic.provider,
+      providerStatus: providerDiagnostic.status ?? null,
+      providerAttemptCount: providerDiagnostic.attemptCount ?? null,
+      providerRequestId: providerDiagnostic.requestId ?? null,
+      providerDetail: safeAutomationLogText(providerDiagnostic.detail),
+    } : {}),
+  };
+}
+
+export function logAutomationOutputFailure(
+  event: string,
+  output: AutomationOutputRecord,
+  error: unknown,
+  details: Record<string, unknown> = {},
+) {
+  console.error(`[Social Content Automation] ${event}`, {
+    output: {
+      id: output.id,
+      runId: output.run_id,
+      dayOffset: output.day_offset ?? null,
+      groupName: output.group_name ?? null,
+      contentType: output.content_type,
+      generator: output.generator,
+      language: output.language,
+      nativeLanguage: output.native_language,
+      tier: output.tier,
+      scheduledAt: output.scheduled_at,
+      status: output.status,
+      attemptCount: output.attempt_count ?? 0,
+    },
+    failure: automationErrorLogDetails(error),
+    ...details,
+  });
+}
+
+export function logAutomationRequestFailure(event: string, error: unknown, details: Record<string, unknown> = {}) {
+  console.error(`[Social Content Automation] ${event}`, {
+    failure: automationErrorLogDetails(error),
+    ...details,
+  });
 }
 
 function automationProviderDiagnosticPatch(error: unknown) {
@@ -524,6 +653,17 @@ export async function queueAutomationOutputRecovery(output: AutomationOutputReco
   const exhausted = !retryable || attemptCount >= MAX_AUTOMATION_RECOVERY_ATTEMPTS;
   const errorClass = classifyAutomationError(code);
   const now = new Date().toISOString();
+  logAutomationOutputFailure(exhausted ? "output_failed" : "output_recovery_queued", output, error, {
+    recovery: {
+      retryable,
+      exhausted,
+      attemptCount,
+      maxAttempts: MAX_AUTOMATION_RECOVERY_ATTEMPTS,
+      nextStatus: exhausted ? "failed" : fallbackStatus ?? "queued",
+      nextAttemptAt: exhausted ? now : nextAutomationAttemptAt(attemptCount),
+      errorClass,
+    },
+  });
   if (exhausted) {
     await updateOutput(output.id, {
       status: "failed",
@@ -556,7 +696,17 @@ export async function queueAutomationOutputRecovery(output: AutomationOutputReco
 }
 
 async function makeAutomationOutputReady(output: AutomationOutputRecord, patch: Record<string, unknown> = {}) {
-  const readyOutput = { ...output, ...patch } as AutomationOutputRecord;
+  const patchedCaption = typeof patch.caption === "string" ? patch.caption : output.caption;
+  const patchedDescription = typeof patch.description === "string"
+    ? patch.description
+    : typeof patchedCaption === "string"
+      ? patchedCaption
+      : output.description ?? null;
+  const durableMetadata = {
+    title: typeof patch.title === "string" ? patch.title : output.title ?? getSocialDownloadTitle(output.native_language),
+    description: patchedDescription,
+  };
+  const readyOutput = { ...output, ...patch, ...durableMetadata } as AutomationOutputRecord;
   const quality = await validateAutomationOutputQuality(readyOutput);
   if (!quality.passed) {
     await queueAutomationOutputRecovery(readyOutput, quality.errorCode!);
@@ -564,6 +714,7 @@ async function makeAutomationOutputReady(output: AutomationOutputRecord, patch: 
   }
   await updateOutput(output.id, {
     ...patch,
+    ...durableMetadata,
     status: "ready_to_schedule",
     error_code: null,
     last_error_detail: null,
@@ -577,10 +728,67 @@ async function makeAutomationOutputReady(output: AutomationOutputRecord, patch: 
   });
   try {
     await recordSuccessfulAutomationOutputDuration({ ...readyOutput, status: "ready_to_schedule" });
-  } catch {
+  } catch (error) {
     // Timing telemetry must never turn an otherwise valid output into a failed generation.
+    logAutomationOutputFailure("output_duration_telemetry_failed", readyOutput, error, { nonBlocking: true });
   }
   return true;
+}
+
+function isMusicVideoGenerator(generator: string) {
+  return (MUSIC_VIDEO_GENERATORS as readonly string[]).includes(generator);
+}
+
+async function removeStagedSourceImage(path: string, output: AutomationOutputRecord) {
+  if (!path.startsWith(AUTOMATION_MEDIA_PREFIX)) return;
+  try {
+    const supabase = createSupabaseAdminClient();
+    const { error } = await supabase.storage.from(AUTOMATION_BUCKET).remove([path]);
+    if (error) logAutomationOutputFailure("server_music_video_source_cleanup_failed", output, error, { path, nonBlocking: true });
+  } catch (error) {
+    logAutomationOutputFailure("server_music_video_source_cleanup_failed", output, error, { path, nonBlocking: true });
+  }
+}
+
+/**
+ * Complete a music video from a staged image without opening the browser
+ * renderer. The image is retained as a durable checkpoint if FFmpeg fails so
+ * a retry can resume at the audio/video step instead of regenerating it.
+ */
+export async function completeServerMusicVideoOutput(output: AutomationOutputRecord) {
+  const sourcePath = output.media_path;
+  if (!sourcePath || output.media_type !== "image" || !sourcePath.startsWith(AUTOMATION_MEDIA_PREFIX)) {
+    throw new Error("server_music_video_source_missing");
+  }
+
+  const tier = resolveTier(output.tier);
+  const caption = hasNonEmptyCaption(output.caption)
+    ? output.caption!
+    : createFoxiesDeckDownloadCaption(output.native_language, output.language);
+
+  try {
+    const rendered = await renderServerMusicVideo(sourcePath);
+    const stored = await storeGeneratedVideoBuffer(rendered.data, output.id);
+    const ready = await makeAutomationOutputReady(
+      { ...output, tier, caption, media_path: stored.path, media_paths: [], media_type: "video" },
+      {
+        tier,
+        caption,
+        media_path: stored.path,
+        media_paths: [],
+        media_type: "video",
+        render_plan: { kind: "server-music-video", caption, musicTrack: rendered.musicTrack },
+      },
+    );
+    if (ready) await removeStagedSourceImage(sourcePath, output);
+    return { outcome: ready ? "content_ready" as const : "recovery_queued" as const };
+  } catch (error) {
+    const recovery = await queueAutomationOutputRecovery({ ...output, tier, caption }, error);
+    return {
+      outcome: recovery.queued ? "recovery_queued" as const : "failed" as const,
+      errorCode: automationFailureCode(error),
+    };
+  }
 }
 
 function captionFromRenderPlan(renderPlan: unknown) {
@@ -597,25 +805,27 @@ function hasExpectedGeneratedMedia(output: AutomationOutputRecord) {
 }
 
 function restoreCaptionFromSavedPlan(output: AutomationOutputRecord): AutomationOutputRecord {
-  if (hasNonEmptyCaption(output.caption)) return output;
+  if (hasNonEmptyCaption(output.description ?? output.caption)) {
+    return output.caption ? output : { ...output, caption: output.description ?? null };
+  }
   if (output.content_type !== "text" && hasExpectedGeneratedMedia(output) && /caption/iu.test(output.error_code ?? "")) {
-    return { ...output, caption: createFoxiesDeckDownloadCaption(output.native_language) };
+    return { ...output, caption: createFoxiesDeckDownloadCaption(output.native_language, output.language) };
   }
   const caption = captionFromRenderPlan(output.render_plan);
   if (caption) return { ...output, caption };
   return output.content_type !== "text" && hasExpectedGeneratedMedia(output)
-    ? { ...output, caption: createFoxiesDeckDownloadCaption(output.native_language) }
+    ? { ...output, caption: createFoxiesDeckDownloadCaption(output.native_language, output.language) }
     : output;
 }
 
 async function finalizeStoredOutputIfComplete(output: AutomationOutputRecord) {
   const restored = restoreCaptionFromSavedPlan(output);
   const complete = restored.content_type === "text"
-    ? hasNonEmptyCaption(restored.caption)
-    : hasNonEmptyCaption(restored.caption) && hasExpectedGeneratedMedia(restored);
+    ? hasNonEmptyCaption(restored.description ?? restored.caption)
+    : hasNonEmptyCaption(restored.description ?? restored.caption) && hasExpectedGeneratedMedia(restored);
   if (!complete) return null;
 
-  const patch: Record<string, unknown> = { caption: restored.caption };
+  const patch: Record<string, unknown> = { caption: restored.description ?? restored.caption };
   if (restored.content_type !== "text") {
     patch.media_path = restored.media_path;
     patch.media_paths = restored.media_paths;
@@ -645,15 +855,26 @@ async function prepareMusicVideo(output: AutomationOutputRecord, generator: (typ
     : null;
   if (!source) throw new Error("unsupported_music_video_generator");
   await updateOutput(output.id, {
-    status: "awaiting_browser_video",
+    status: "processing",
+    tier,
     caption: source.caption,
     media_path: source.mediaPath,
     media_paths: [],
     media_type: "image",
     generated_at: new Date().toISOString(),
     error_code: null,
+    render_plan: source.plan,
   });
-  return "browser_video_required";
+  return (await completeServerMusicVideoOutput({
+    ...output,
+    status: "processing",
+    tier,
+    caption: source.caption,
+    media_path: source.mediaPath,
+    media_paths: [],
+    media_type: "image",
+    render_plan: source.plan,
+  })).outcome;
 }
 
 async function prepareBrowserVideo(output: AutomationOutputRecord, tier: Tier) {
@@ -680,7 +901,7 @@ async function startVideo(output: AutomationOutputRecord, tier: Tier) {
   if (!response.ok || typeof payload?.taskId !== "string") throw automationRouteFailure(payload, "video_generation_failed");
   const caption = typeof payload.caption === "string" && payload.caption.trim()
     ? payload.caption.trim()
-    : createFoxiesDeckDownloadCaption(output.native_language);
+    : createFoxiesDeckDownloadCaption(output.native_language, output.language);
   const firstFrame = typeof payload.firstFrameUrl === "string" ? await storeGeneratedImage(payload.firstFrameUrl, `${output.id}-preview`) : null;
   await updateOutput(output.id, {
     status: "generating_video",
@@ -722,7 +943,8 @@ async function resolveVideo(output: AutomationOutputRecord) {
 async function scheduleOutput(output: AutomationOutputRecord) {
   const accountIds = asAccountIds(output.target_account_ids);
   if (!accountIds.length) throw new Error("automation_target_missing");
-  if (!output.caption) throw new Error("automation_caption_missing");
+  const description = output.description ?? output.caption;
+  if (!description) throw new Error("automation_caption_missing");
 
   let asset: DataUrlAsset | RemoteVideoAsset | undefined;
   let assets: DataUrlAsset[] | undefined;
@@ -746,7 +968,10 @@ async function scheduleOutput(output: AutomationOutputRecord) {
     if (scheduledIds.has(socialMediaId)) continue;
     const result = await publishWithUploadPost({
       socialMediaId,
-      caption: output.caption,
+      title: output.title ?? getSocialDownloadTitle(output.native_language),
+      caption: description,
+      nativeLanguage: output.native_language,
+      learningLanguage: output.language,
       asset,
       assets,
       scheduledFor: output.scheduled_at,
@@ -775,6 +1000,24 @@ function asMediaPaths(value: unknown) {
   return [...new Set(value.filter((path): path is string => typeof path === "string" && path.startsWith(AUTOMATION_MEDIA_PREFIX)))];
 }
 
+export async function listAutomationStoragePaths() {
+  const supabase = createSupabaseAdminClient();
+  const paths = new Set<string>();
+  for (let offset = 0; ; offset += STORAGE_PAGE_SIZE) {
+    const { data, error } = await supabase.storage.from(AUTOMATION_BUCKET).list("automation", {
+      limit: STORAGE_PAGE_SIZE,
+      offset,
+      sortBy: { column: "name", order: "asc" },
+    });
+    if (error) throw new Error("automation_storage_status_failed");
+    for (const file of data ?? []) {
+      if (file.metadata !== null) paths.add(`${AUTOMATION_MEDIA_PREFIX}${file.name}`);
+    }
+    if (!data || data.length < STORAGE_PAGE_SIZE) break;
+  }
+  return paths;
+}
+
 /**
  * Re-signing media URLs alone cannot distinguish an expired URL from a missing
  * staged object. Result-screen refreshes use this to verify the underlying
@@ -784,7 +1027,7 @@ export async function refreshAutomationOutputMediaPreviews(runId: string) {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("social_content_automation_outputs")
-    .select("id,run_id,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,attempt_count,next_attempt_at,quality_status,quality_error,lease_renderer_id,lease_expires_at,render_plan,generation_attempt_started_at,duration_recorded_at")
+    .select("id,run_id,day_offset,group_name,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,attempt_count,next_attempt_at,quality_status,quality_error,lease_renderer_id,lease_expires_at,render_plan,generation_attempt_started_at,duration_recorded_at")
     .eq("run_id", runId)
     .returns<AutomationOutputRecord[]>();
   if (error) throw new Error("automation_media_refresh_query_failed");
@@ -806,6 +1049,9 @@ export async function refreshAutomationOutputMediaPreviews(runId: string) {
       continue;
     }
     invalid += 1;
+    logAutomationOutputFailure("output_media_preview_invalid", output, new Error(media.errorCode), {
+      mediaError: media.errorCode,
+    });
     await updateOutput(output.id, {
       status: "failed",
       error_code: media.errorCode,
@@ -842,7 +1088,7 @@ export async function scheduleReadyAutomationRun(runId: string) {
     .eq("run_id", runId)
     .eq("status", "ready_to_schedule")
     .eq("quality_status", "passed")
-    .select("id,run_id,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,attempt_count,next_attempt_at,quality_status,quality_error,lease_renderer_id,lease_expires_at")
+    .select("id,run_id,day_offset,group_name,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,attempt_count,next_attempt_at,quality_status,quality_error,lease_renderer_id,lease_expires_at,render_plan")
     .returns<AutomationOutputRecord[]>();
   if (lockError) throw new Error("automation_schedule_lock_failed");
 
@@ -859,13 +1105,18 @@ export async function scheduleReadyAutomationRun(runId: string) {
         scheduled += 1;
       } catch (error) {
         failed += 1;
+        logAutomationOutputFailure("output_schedule_failed", output, error, { scheduling: true });
         try {
           await updateOutput(output.id, {
             status: "failed",
             error_code: error instanceof Error ? error.message : "automation_schedule_failed",
           });
-        } catch {
+        } catch (error) {
           // The stale-processing recovery path will safely return this output to the queue.
+          logAutomationOutputFailure("output_failure_state_update_failed", output, error, {
+            nonBlocking: true,
+            originalFailure: error instanceof Error ? error.message : "unknown",
+          });
         }
       }
     }
@@ -906,6 +1157,9 @@ export async function processAutomationOutput(output: AutomationOutputRecord) {
 
     const generator = resolveGenerator(output);
     const tier = resolveTier(output.tier);
+    if (isMusicVideoGenerator(generator) && output.media_type === "image" && output.media_path) {
+      return await completeServerMusicVideoOutput({ ...output, generator, tier });
+    }
     if ((TEXT_GENERATORS as readonly string[]).includes(generator)) {
       const caption = await createText(output, generator as TextGenerator);
       const ready = await makeAutomationOutputReady({ ...output, caption }, { caption, generated_at: new Date().toISOString() });
@@ -1006,7 +1260,6 @@ export async function cleanupStagedAutomationMedia(now = new Date()) {
     "awaiting_browser_video",
   ]);
   const failedCutoff = new Date(now.getTime() - FAILED_MEDIA_RETENTION_MS);
-  const readyCutoff = new Date(now.getTime() - READY_MEDIA_RETENTION_MS);
   const activeCutoff = new Date(now.getTime() - STALE_ACTIVE_MEDIA_RETENTION_MS);
   const scheduledCutoff = new Date(now.getTime() - STAGED_MEDIA_RETENTION_MS);
   const staleOutputs = outputs.filter((output) => {
@@ -1015,7 +1268,10 @@ export async function cleanupStagedAutomationMedia(now = new Date()) {
       return Boolean(output.scheduled_at_upload_post) && new Date(output.scheduled_at_upload_post!).getTime() < scheduledCutoff.getTime();
     }
     if (output.status === "failed") return new Date(output.updated_at).getTime() < failedCutoff.getTime();
-    if (output.status === "ready_to_schedule") return new Date(output.updated_at).getTime() < readyCutoff.getTime();
+    // Ready media is the user's durable review checkpoint. It stays available
+    // until the user schedules or explicitly deletes it; maintenance must not
+    // silently turn a Generated Posts item into a missing asset.
+    if (output.status === "ready_to_schedule") return false;
     return activeStatuses.has(output.status) && new Date(output.updated_at).getTime() < activeCutoff.getTime();
   });
   const staleOutputIds = new Set(staleOutputs.map((output) => output.id));

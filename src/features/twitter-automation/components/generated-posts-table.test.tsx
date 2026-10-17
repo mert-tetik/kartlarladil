@@ -612,7 +612,7 @@ describe("GeneratedPostsTable", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(screen.queryByText("Gönderime hazır içerikler")).not.toBeInTheDocument();
+    expect(screen.queryByText("Üretilen içerikler")).not.toBeInTheDocument();
     expect(screen.getAllByText(/15 sn sonra yeniden denenecek/u).length).toBeGreaterThan(0);
 
     await act(async () => {
@@ -637,7 +637,7 @@ describe("GeneratedPostsTable", () => {
       });
     }
     expect(retryCalls).toBe(AUTOMATION_RETRY_DELAYS_MS.length);
-    expect(screen.getByText("Gönderime hazır içerikler")).toBeVisible();
+    expect(screen.getByText("Üretilen içerikler")).toBeVisible();
   });
 
   it("renders Self images from the deployed browser wait state", async () => {

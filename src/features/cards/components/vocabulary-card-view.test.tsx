@@ -86,6 +86,21 @@ describe("VocabularyCardView", () => {
 
     expect(addCard).toHaveBeenCalledTimes(1);
     expect(container.firstElementChild).toHaveAttribute("data-card-face", "front");
+    expect(container.querySelector('[data-card-footer-mode="auto"]')?.querySelectorAll("button")).toHaveLength(1);
+    expect(container.querySelector('[data-tutorial-target="card-add"]')?.parentElement).toHaveClass("w-full");
+  });
+
+  it("shows a supplied already-owned label and disables the add action", () => {
+    renderCard(
+      <VocabularyCardView
+        card={testCard}
+        owned
+        ownedLabel="Kart zaten destede"
+        onAdd={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Kart zaten destede" })).toBeDisabled();
   });
 
   it("uses the first example sentence as a single-line preview", () => {

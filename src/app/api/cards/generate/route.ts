@@ -1,6 +1,4 @@
 import OpenAI from "openai";
-import { LANGUAGE_CODES, LOCALE_CODES } from "@/data/languages";
-import { TIERS } from "@/data/tiers";
 import {
   AI_PRACTICE_DEFAULT_MODEL,
   createAiPracticeSafetyIdentifier,
@@ -15,68 +13,13 @@ import {
   shouldRetryForDictionaryLemma,
 } from "@/features/cards/create-card-schema";
 import { buildCreateCardInput, buildCreateCardInstructions } from "@/features/cards/create-card-prompts";
+import { CUSTOM_CARD_RESPONSE_FORMAT } from "@/features/cards/create-card-openai-format";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MAX_OUTPUT_TOKENS = 2200;
-
-const localizedRecordSchema = (maxLength: number) => ({
-  type: "object",
-  additionalProperties: false,
-  properties: Object.fromEntries(
-    LOCALE_CODES.map((code) => [code, { type: "string", minLength: 1, maxLength }]),
-  ),
-  required: [...LOCALE_CODES],
-});
-
-const CUSTOM_CARD_RESPONSE_FORMAT = {
-  type: "json_schema",
-  name: "custom_vocabulary_card",
-  strict: true,
-  schema: {
-    type: "object",
-    additionalProperties: false,
-    properties: {
-      language: { type: "string", enum: [...LANGUAGE_CODES] },
-      tier: { type: "string", enum: [...TIERS] },
-      termKind: { type: "string", enum: ["word", "fixed_phrase"] },
-      term: { type: "string", minLength: 1, maxLength: 120 },
-      partOfSpeech: { type: "string", maxLength: 60 },
-      pronunciation: { type: "string", minLength: 1, maxLength: 120 },
-      translations: localizedRecordSchema(200),
-      examples: {
-        type: "array",
-        minItems: 2,
-        maxItems: 2,
-        items: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            sentence: { type: "string", minLength: 1, maxLength: 300 },
-            translation: { type: "string", minLength: 1, maxLength: 300 },
-          },
-          required: ["sentence", "translation"],
-        },
-      },
-      definitions: localizedRecordSchema(240),
-      grammar: { type: "array", maxItems: 4, items: { type: "string", maxLength: 200 } },
-    },
-    required: [
-      "language",
-      "tier",
-      "termKind",
-      "term",
-      "partOfSpeech",
-      "pronunciation",
-      "translations",
-      "examples",
-      "definitions",
-      "grammar",
-    ],
-  },
-} as const;
 
 export async function POST(request: Request) {
   const user = await getCurrentAuthUser();

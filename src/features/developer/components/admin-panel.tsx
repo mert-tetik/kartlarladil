@@ -3,6 +3,7 @@
 import { FormEvent, type ReactNode, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   Activity,
+  ArrowLeft,
   BookOpen,
   ChevronLeft,
   ChevronRight,
@@ -31,7 +32,6 @@ import {
 import type {
   DeveloperAuditLog,
   DeveloperCatalogCardMatch,
-  DeveloperDashboardStats,
   DeveloperUserDetail,
   DeveloperUserPage,
   DeveloperUserSummary,
@@ -177,11 +177,9 @@ function getQuizAccuracy(user: DeveloperUserSummary) {
 
 export function AdminPanel({
   auditLogs,
-  initialStats,
   initialUsers,
 }: {
   auditLogs: DeveloperAuditLog[];
-  initialStats: DeveloperDashboardStats;
   initialUsers: DeveloperUserPage;
 }) {
   const userPage = initialUsers;
@@ -352,95 +350,27 @@ export function AdminPanel({
     <main className="min-h-[calc(100dvh-4rem)] bg-[#f5f3ee] px-4 py-6 text-[#1f2922] sm:px-6 lg:px-10">
       <div className="mx-auto max-w-[104rem]">
         <header className="border-b border-[#d9ddd4] pb-6">
-          <a
-            className="text-sm font-semibold text-[#4f6657] hover:underline"
-            href="/developer"
-          >
+          <a className="inline-flex items-center gap-2 text-sm font-semibold text-[#4f6657] hover:underline" href="/developer">
+            <ArrowLeft className="size-4" aria-hidden="true" />
             Developer workspace
           </a>
-          <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <h1 className="font-display text-4xl font-semibold tracking-tight">
-                Admin panel
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#647168]">
-                Kullanıcı durumları ve yüksek etkili işlemler sadece Supabase
-                ile doğrulanmış admin oturumunda çalışır.
-              </p>
-            </div>
-            <p className="text-xs leading-5 text-[#7c4d44]">
-              Kullanıcı silme işlemi geri alınamaz; hedef e-posta onayı ve kendi
-              Supabase parolan gerekir.
-            </p>
-          </div>
+          <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight">Admin panel</h1>
+        </header>
+        <div className="mt-4">
           <a
             href="/developer/admin/contact"
-            className="mt-4 inline-flex items-center gap-2 rounded-md border border-[#ccd4c9] bg-[#fcfbf8] px-3 py-2 text-sm font-semibold text-[#405548] transition-colors hover:bg-white"
+            className="inline-flex items-center gap-2 rounded-md border-transparent bg-[#e11d48] px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#be123c]"
           >
             <Mail className="size-4" aria-hidden="true" />
             Contact inbox
           </a>
-        </header>
-        <section
-          className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-6"
-          aria-label="Toplu istatistikler"
-        >
-          <Metric
-            label="Toplam kullanıcı"
-            value={numberFormatter.format(initialStats.totalUsers)}
-          />
-          <Metric
-            label="Free / aktif hak yok"
-            value={numberFormatter.format(initialStats.freeSubscribers)}
-          />
-          <Metric
-            label="Basic abonelik"
-            value={numberFormatter.format(initialStats.basicSubscribers)}
-          />
-          <Metric
-            label="Pro abonelik"
-            value={numberFormatter.format(initialStats.proSubscribers)}
-          />
-          <Metric
-            label="Öğrenilecek kart"
-            value={numberFormatter.format(initialStats.activeCards)}
-          />
-          <Metric
-            label="Öğrenilmiş kart"
-            value={numberFormatter.format(initialStats.learnedCards)}
-          />
-        </section>
-        <section className="mt-3 flex flex-col gap-2 rounded-lg border border-[#d9ddd4] bg-[#e9efe5] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-sm text-[#526157]">
-            Toplam kart kaydı:{" "}
-            <strong>{numberFormatter.format(initialStats.totalCards)}</strong>
-          </span>
-          <span className="text-sm text-[#314d37]">
-            Aylık tekrarlayan gelir:{" "}
-            <strong>
-              {tryFormatter.format(initialStats.monthlyRevenueTry)}
-            </strong>
-            <span className="ml-1 text-xs text-[#526157]">
-              ({numberFormatter.format(initialStats.revenuePricedSubscribers)}{" "}
-              doğrulanmış kayıt
-              {initialStats.revenueUnpricedSubscribers > 0
-                ? ` · ${numberFormatter.format(initialStats.revenueUnpricedSubscribers)} fiyat bilgisi bekliyor`
-                : ""}
-              )
-            </span>
-          </span>
-        </section>
-        <p className="mt-2 text-xs text-[#68756c]">
-          Yalnızca otomatik yenilenen aktif Google Play abonelikleri dahil
-          edilir; gösterilen tutar son doğrulamadaki yenileme fiyatının TL aylık
-          karşılığıdır.
-        </p>
+        </div>
         <section className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem]">
-          <div className="min-w-0 rounded-xl border border-[#d9ddd4] bg-[#fcfbf8]">
-            <div className="flex flex-col gap-3 border-b border-[#d9ddd4] p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 overflow-hidden rounded-xl bg-white text-[#1f2922]">
+            <div className="flex flex-col gap-3 bg-[#2563eb] p-4 text-white sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-lg font-semibold">Kullanıcılar</h2>
-                <p className="mt-1 text-xs text-[#68756c]">
+                <p className="mt-1 text-xs text-white/75">
                   {numberFormatter.format(visibleUsers.length)} gösteriliyor ·{" "}
                   toplam {numberFormatter.format(userPage.total)} · Sayfa {currentPage} / {totalPages}
                 </p>
@@ -501,7 +431,7 @@ export function AdminPanel({
             <div className="overflow-x-auto">
               <table className="min-w-[790px] w-full border-collapse text-left text-sm">
                 <thead>
-                  <tr className="border-b border-[#d9ddd4] bg-[#efeee8] text-xs text-[#59675e]">
+                <tr className="border-b border-white/20 bg-[#1d4ed8] text-xs text-white">
                     <th className="px-4 py-3 font-semibold">Kullanıcı</th>
                     <th className="px-4 py-3 font-semibold">Plan</th>
                     <th className="px-4 py-3 font-semibold">Kartlar</th>
@@ -510,11 +440,14 @@ export function AdminPanel({
                   </tr>
                 </thead>
                 <tbody>
-                  {displayedUsers.map((user) => (
+                  {displayedUsers.map((user) => {
+                    const isSelected = selected?.id === user.id;
+
+                    return (
                     <tr
                       aria-label={`${user.email} kullanıcısını incele`}
-                      aria-pressed={selected?.id === user.id}
-                      className={`cursor-pointer border-b border-[#e5e6e0] outline-none transition-colors last:border-0 focus-visible:bg-[#e8f0e5] ${selected?.id === user.id ? "bg-[#eef4ea]" : "hover:bg-[#f7f8f4]"}`}
+                      aria-pressed={isSelected}
+                      className={`cursor-pointer border-b border-[#e5e7eb] outline-none transition-colors last:border-0 ${isSelected ? "bg-[#7c3aed] text-white focus-visible:bg-[#6d28d9]" : "bg-white text-[#1f2937] hover:bg-[#f8fafc] focus-visible:bg-[#f1f5f9]"}`}
                       key={user.id}
                       onClick={() => setSelectedId(user.id)}
                       onKeyDown={(event) => {
@@ -530,44 +463,45 @@ export function AdminPanel({
                         <p className="font-medium">
                           {user.displayName ?? "İsimsiz kullanıcı"}
                         </p>
-                        <p className="mt-0.5 text-xs text-[#6c786f]">
+                        <p className={`mt-0.5 text-xs ${isSelected ? "text-white/75" : "text-[#64748b]"}`}>
                           {user.email}
                         </p>
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${user.plan === "pro" ? "bg-[#e6e1f3] text-[#443b76]" : user.plan === "basic" ? "bg-[#e6f0dc] text-[#315836]" : "bg-[#ecece7] text-[#60675f]"}`}
+                          className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${isSelected ? "bg-white/15 text-white" : "bg-[#dbeafe] text-[#1d4ed8]"}`}
                         >
                           {user.plan} · {user.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#546259]">
+                      <td className={`px-4 py-3 text-xs ${isSelected ? "text-white/80" : "text-[#475569]"}`}>
                         <span>{user.activeCards} aktif</span>
-                        <span className="mx-1.5 text-[#b1b8b0]">/</span>
+                        <span className={`mx-1.5 ${isSelected ? "text-white/45" : "text-[#cbd5e1]"}`}>/</span>
                         <span>{user.learnedCards} öğrenilmiş</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="font-semibold text-[#34483a]">
+                        <span className={`font-semibold ${isSelected ? "text-white" : "text-[#1f2937]"}`}>
                           {numberFormatter.format(user.totalPoints)}
                         </span>
-                        <span className="ml-1 text-xs text-[#7b857c]">puan</span>
+                        <span className={`ml-1 text-xs ${isSelected ? "text-white/65" : "text-[#64748b]"}`}>puan</span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#546259]">
+                      <td className={`px-4 py-3 text-xs ${isSelected ? "text-white/80" : "text-[#475569]"}`}>
                         {getQuizAccuracy(user) === null ? (
-                          <span className="text-[#8a938b]">Henüz yok</span>
+                          <span className={isSelected ? "text-white/60" : "text-[#94a3b8]"}>Henüz yok</span>
                         ) : (
                           <>
-                            <span className="font-semibold text-[#34483a]">%{getQuizAccuracy(user)}</span>
-                            <span className="ml-1 text-[#7b857c]">· {numberFormatter.format(user.totalAttempts)} deneme</span>
+                            <span className={`font-semibold ${isSelected ? "text-white" : "text-[#1f2937]"}`}>%{getQuizAccuracy(user)}</span>
+                            <span className={`ml-1 ${isSelected ? "text-white/65" : "text-[#64748b]"}`}>· {numberFormatter.format(user.totalAttempts)} deneme</span>
                           </>
                         )}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                   {!visibleUsers.length ? (
                     <tr>
                       <td
-                        className="px-4 py-10 text-center text-sm text-[#6d796f]"
+                        className="px-4 py-10 text-center text-sm text-[#64748b]"
                         colSpan={5}
                       >
                         Bu sayfada eşleşen kullanıcı yok.
@@ -577,17 +511,17 @@ export function AdminPanel({
                 </tbody>
               </table>
             </div>
-            <footer className="flex items-center justify-between border-t border-[#d9ddd4] p-3">
+            <footer className="flex items-center justify-between border-t border-[#e5e7eb] bg-white p-3">
               <Button
                 aria-label="Önceki kullanıcı sayfası"
-                className="size-8 rounded-md border border-[#ccd4c9] bg-white p-0 text-[#405047] hover:bg-[#edf2e9]"
+                className="size-8 rounded-md border-transparent bg-[#2563eb] p-0 text-white hover:bg-[#1d4ed8]"
                 disabled={pending || currentPage <= 1}
                 onClick={() => setListPage(currentPage - 1)}
                 type="button"
               >
                 <ChevronLeft className="size-4" />
               </Button>
-              <span className="text-xs text-[#6a756c]">
+              <span className="text-xs text-[#64748b]">
                 {pending ? (
                   <LoaderCircle className="inline size-3.5 animate-spin" />
                 ) : (
@@ -596,7 +530,7 @@ export function AdminPanel({
               </span>
               <Button
                 aria-label="Sonraki kullanıcı sayfası"
-                className="size-8 rounded-md border border-[#ccd4c9] bg-white p-0 text-[#405047] hover:bg-[#edf2e9]"
+                className="size-8 rounded-md border-transparent bg-[#2563eb] p-0 text-white hover:bg-[#1d4ed8]"
                 disabled={pending || currentPage >= totalPages}
                 onClick={() => setListPage(currentPage + 1)}
                 type="button"
@@ -631,20 +565,20 @@ export function AdminPanel({
             subscriptionPlan={subscriptionPlan}
           />
         </section>
-        <section className="mt-6 overflow-hidden rounded-xl border border-[#d9ddd4] bg-[#fcfbf8]">
-          <div className="flex items-center justify-between border-b border-[#d9ddd4] p-4">
+        <section className="mt-6 overflow-hidden rounded-xl bg-[#ea580c] text-white">
+          <div className="flex items-center justify-between border-b border-white/20 p-4">
             <div>
               <h2 className="text-lg font-semibold">Son admin işlemleri</h2>
-              <p className="mt-1 text-xs text-[#68756c]">
+              <p className="mt-1 text-xs text-white/75">
                 Silme ve abonelik değişiklikleri denetim kaydına yazılır.
               </p>
             </div>
-            <ShieldAlert className="size-5 text-[#66786b]" />
+            <ShieldAlert className="size-5 text-white" />
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-[720px] w-full border-collapse text-left text-sm">
               <thead>
-                <tr className="border-b border-[#e0e2dc] bg-[#efeee8] text-xs text-[#59675e]">
+                <tr className="border-b border-white/20 bg-white/10 text-xs text-white">
                   <th className="px-4 py-3 font-semibold">Zaman</th>
                   <th className="px-4 py-3 font-semibold">İşlem</th>
                   <th className="px-4 py-3 font-semibold">Admin</th>
@@ -654,19 +588,19 @@ export function AdminPanel({
               <tbody>
                 {auditLogs.map((log) => (
                   <tr
-                    className="border-b border-[#ecece7] last:border-0"
+                    className="border-b border-white/15 last:border-0"
                     key={log.id}
                   >
-                    <td className="px-4 py-3 text-xs text-[#667269]">
+                    <td className="px-4 py-3 text-xs text-white/75">
                       {dateFormatter.format(new Date(log.createdAt))}
                     </td>
-                    <td className="px-4 py-3 font-medium text-[#37483c]">
+                    <td className="px-4 py-3 font-medium text-white">
                       {log.action.replaceAll("_", " ")}
                     </td>
-                    <td className="px-4 py-3 text-xs text-[#59675e]">
+                    <td className="px-4 py-3 text-xs text-white/75">
                       {log.actorEmail}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-[#6b776e]">
+                    <td className="px-4 py-3 font-mono text-xs text-white/70">
                       {log.targetUserId ?? "—"}
                     </td>
                   </tr>
@@ -674,7 +608,7 @@ export function AdminPanel({
                 {!auditLogs.length ? (
                   <tr>
                     <td
-                      className="px-4 py-8 text-center text-sm text-[#6d796f]"
+                      className="px-4 py-8 text-center text-sm text-white/80"
                       colSpan={4}
                     >
                       Henüz denetim kaydı yok.
@@ -699,15 +633,6 @@ export function AdminPanel({
         />
       ) : null}
     </main>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-[#d9ddd4] bg-[#fcfbf8] p-4">
-      <p className="text-xs text-[#6a766d]">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>
-    </div>
   );
 }
 
@@ -754,48 +679,48 @@ function UserControlPanel({
 }) {
   if (!selected)
     return (
-      <aside className="rounded-xl border border-[#d9ddd4] bg-[#fcfbf8] p-5 text-sm text-[#6a766d]">
+      <aside className="rounded-xl bg-[#0f766e] p-5 text-sm text-white">
         İşlem yapmak için bir kullanıcı seç.
       </aside>
     );
   return (
-    <aside className="h-fit rounded-xl border border-[#d9ddd4] bg-[#fcfbf8]">
-      <div className="border-b border-[#d9ddd4] p-5">
+    <aside className="h-fit rounded-xl bg-white text-[#1f2922]">
+      <div className="bg-[#7c3aed] p-5 text-white">
         <div className="flex items-start gap-3">
-          <span className="grid size-10 place-items-center rounded-lg bg-[#e9efe5] text-[#38543f]">
+          <span className="grid size-10 place-items-center rounded-lg bg-white/10 text-white">
             <Users className="size-5" />
           </span>
           <div className="min-w-0">
-            <h2 className="truncate text-lg font-semibold">
+            <h2 className="truncate text-xl font-semibold">
               {selected.displayName ?? "İsimsiz kullanıcı"}
             </h2>
-            <p className="mt-1 truncate text-xs text-[#68756c]">
+            <p className="mt-1 truncate text-sm text-white/70">
               {selected.email}
             </p>
           </div>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-[#5d6a61]">
+        <div className="mt-4 grid grid-cols-2 gap-2 text-sm text-white/75">
           <p>
             Dil{" "}
-            <strong className="text-[#273a2d]">
+            <strong className="text-white">
               {selected.preferredLanguage ?? "—"}
             </strong>
           </p>
           <p>
             Seviye{" "}
-            <strong className="text-[#273a2d]">
+            <strong className="text-white">
               {selected.preferredTier ?? "—"}
             </strong>
           </p>
           <p>
             Onboarding{" "}
-            <strong className="text-[#273a2d]">
+            <strong className="text-white">
               {selected.onboardingCompleted ? "Tamam" : "Bekliyor"}
             </strong>
           </p>
           <p>
             Sağlayıcı{" "}
-            <strong className="text-[#273a2d]">
+            <strong className="text-white">
               {selected.provider ?? "—"}
             </strong>
           </p>
@@ -805,12 +730,13 @@ function UserControlPanel({
         detail={selectedDetail}
         pending={detailPending}
       />
-      <section className="p-5">
-        <h3 className="flex items-center gap-2 text-sm font-semibold">
-          <CreditCard className="size-4 text-[#45614b]" />
+      <section className="border-b border-[#e5e7eb] bg-white p-0">
+        <h3 className="flex items-center gap-2 bg-[#16a34a] px-5 py-3 text-base font-semibold text-white">
+          <CreditCard className="size-4 text-white" />
           Abonelik yönetimi
         </h3>
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="p-5">
+        <div className="grid grid-cols-2 gap-2">
           <select
             className="h-9 rounded-md border border-[#ccd4c9] bg-white px-2 text-sm outline-none focus:border-[#708770]"
             onChange={(event) =>
@@ -831,13 +757,13 @@ function UserControlPanel({
             value={durationDays}
           />
         </div>
-        <p className="mt-2 text-xs leading-5 text-[#6b776e]">
+        <p className="mt-2 text-sm leading-6 text-[#475569]">
           Süre gün cinsindedir. Google Play aboneliği iptal edilirse yalnızca
           yenileme durur; erişim dönem sonunda biter.
         </p>
         <div className="mt-3 flex gap-2">
           <Button
-            className="h-9 flex-1 rounded-md border-transparent bg-[#dfead8] text-sm text-[#245132] hover:bg-[#cfe0c7]"
+            className="h-9 flex-1 rounded-md border-transparent bg-[#22c55e] text-sm text-white hover:bg-[#16a34a]"
             disabled={pending}
             onClick={onGrantSubscription}
             type="button"
@@ -845,7 +771,7 @@ function UserControlPanel({
             Planı ata
           </Button>
           <Button
-            className="h-9 rounded-md border border-[#d9bdb4] bg-white px-3 text-sm text-[#844338] hover:bg-[#f8e9e5]"
+            className="h-9 rounded-md border-transparent bg-[#ef4444] px-3 text-sm text-white hover:bg-[#dc2626]"
             disabled={pending}
             onClick={onCancelSubscription}
             type="button"
@@ -853,13 +779,15 @@ function UserControlPanel({
             İptal et
           </Button>
         </div>
+        </div>
       </section>
-      <section className="border-t border-[#d9ddd4] p-5">
-        <h3 className="flex items-center gap-2 text-sm font-semibold">
-          <GraduationCap className="size-4 text-[#45614b]" />
+      <section className="border-b border-[#e5e7eb] bg-white p-0">
+        <h3 className="flex items-center gap-2 bg-[#0891b2] px-5 py-3 text-base font-semibold text-white">
+          <GraduationCap className="size-4 text-white" />
           Kart ekle
         </h3>
-        <div className="relative mt-3">
+        <div className="p-5">
+        <div className="relative">
           <label className="sr-only" htmlFor="admin-card-search">
             {"Katalog kart\u0131 ara"}
           </label>
@@ -911,25 +839,27 @@ function UserControlPanel({
           <option value="learned">Öğrenilmiş olarak ekle</option>
         </select>
         <Button
-          className="mt-2 h-9 w-full rounded-md border-transparent bg-[#e7ecf5] text-sm text-[#394e73] hover:bg-[#dce5f1]"
+          className="mt-2 h-9 w-full rounded-md border-transparent bg-[#06b6d4] text-sm text-white hover:bg-[#0891b2]"
           disabled={pending || !sourceKey.trim()}
           onClick={onAddCard}
           type="button"
         >
           Kartı ekle
         </Button>
+        </div>
       </section>
-      <section className="border-t border-[#e5cfca] bg-[#fff8f6] p-5">
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-[#783b31]">
+      <section className="bg-white p-0">
+        <h3 className="flex items-center gap-2 bg-[#dc2626] px-5 py-3 text-base font-semibold text-white">
           <ShieldAlert className="size-4" />
           Tehlikeli işlem
         </h3>
-        <p className="mt-2 text-xs leading-5 text-[#7a5b55]">
+        <div className="p-5">
+        <p className="text-sm leading-6 text-[#475569]">
           Bu işlem kullanıcı hesabını ve ilişkili ilerleme verilerini kalıcı
           olarak kaldırır.
         </p>
         <Button
-          className="mt-3 h-9 w-full rounded-md border border-[#dbb4aa] bg-white text-sm text-[#883d31] hover:bg-[#fae8e3]"
+          className="mt-3 h-9 w-full rounded-md border-transparent bg-white text-sm text-[#991b1b] hover:bg-white/90"
           disabled={pending}
           onClick={onDelete}
           type="button"
@@ -937,10 +867,11 @@ function UserControlPanel({
           <Trash2 className="size-4" />
           Kullanıcıyı sil
         </Button>
+        </div>
       </section>
       {message ? (
         <p
-          className="border-t border-[#d9ddd4] px-5 py-3 text-xs leading-5 text-[#536158]"
+          className="border-t border-[#e5e7eb] px-5 py-3 text-sm leading-6 text-[#475569]"
           role="status"
         >
           {message}
@@ -959,13 +890,13 @@ function UserDetailOverview({
 }) {
   if (pending) {
     return (
-      <div className="space-y-3 border-b border-[#d9ddd4] p-5" aria-live="polite">
-        <div className="flex items-center gap-2 text-sm font-semibold text-[#4d6254]">
+      <div className="space-y-3 border-b border-[#e5e7eb] bg-white p-5" aria-live="polite">
+        <div className="flex items-center gap-2 text-base font-semibold text-[#1f2937]">
           <LoaderCircle className="size-4 animate-spin" />
           Kullanıcı detayları yükleniyor…
         </div>
-        <div className="h-16 animate-pulse rounded-lg bg-[#eef1eb]" />
-        <div className="h-24 animate-pulse rounded-lg bg-[#eef1eb]" />
+        <div className="h-16 animate-pulse rounded-lg bg-[#e2e8f0]" />
+        <div className="h-24 animate-pulse rounded-lg bg-[#e2e8f0]" />
       </div>
     );
   }
@@ -973,7 +904,7 @@ function UserDetailOverview({
   if (!detail) return null;
 
   return (
-    <div className="max-h-[72vh] overflow-y-auto border-b border-[#d9ddd4]">
+    <div className="max-h-[72vh] overflow-y-auto border-b border-[#e5e7eb] bg-white">
       <DetailSection icon={<CircleAlert className="size-4" />} title="Hesap ve profil">
         <div className="grid grid-cols-2 gap-x-3 gap-y-3">
           <DetailField label="Hesap açılışı" value={formatDateTime(detail.createdAt)} />
@@ -1006,8 +937,8 @@ function UserDetailOverview({
         <div className="mt-4 space-y-2">
           {detail.cards.byTier.map((tier) => (
             <div className="flex items-center justify-between text-xs" key={tier.tier}>
-              <span className="font-semibold text-[#3f5547]">{tier.tier}</span>
-              <span className="text-[#68756c]">
+              <span className="text-sm font-semibold text-[#1f2937]">{tier.tier}</span>
+              <span className="text-sm text-[#64748b]">
                 {tier.learned}/{tier.total} öğrenilmiş · {numberFormatter.format(tier.points)} puan
               </span>
             </div>
@@ -1047,31 +978,31 @@ function UserDetailOverview({
             <DetailField label="Son güncelleme" value={formatDateTime(detail.subscription.updatedAt)} />
           </div>
         ) : (
-          <p className="text-xs text-[#68756c]">Bu kullanıcı için abonelik kaydı yok; ücretsiz plan.</p>
+          <p className="text-sm text-[#64748b]">Bu kullanıcı için abonelik kaydı yok; ücretsiz plan.</p>
         )}
       </DetailSection>
 
       <DetailSection icon={<Trophy className="size-4" />} title="Puan özeti">
-        <div className="flex items-end justify-between rounded-lg bg-[#eef4ea] p-3">
+        <div className="flex items-end justify-between rounded-lg bg-[#ec4899] p-3 text-white">
           <div>
-            <p className="text-[11px] uppercase tracking-wide text-[#637568]">Toplam puan</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-[#294b33]">
+            <p className="text-[11px] uppercase tracking-wide text-white/75">Toplam puan</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-white">
               {numberFormatter.format(detail.totalPoints)}
             </p>
           </div>
-          <p className="text-right text-xs font-semibold text-[#4c6654]">
+          <p className="text-right text-xs font-semibold text-white">
             {detail.rank.label}
-            <span className="mt-1 block font-normal text-[#718074]">{numberFormatter.format(detail.rank.minPoints)} taban</span>
+            <span className="mt-1 block font-normal text-white/75">{numberFormatter.format(detail.rank.minPoints)} taban</span>
           </p>
         </div>
         <div className="mt-3 space-y-2">
           {detail.pointSources.map((source) => (
-            <div className="rounded-md border border-[#e1e5de] px-3 py-2" key={source.key}>
-              <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="font-medium text-[#3c5143]">{source.label}</span>
-                <span className="font-semibold tabular-nums text-[#294b33]">{numberFormatter.format(source.points)}</span>
+            <div className="rounded-md bg-[#f1f5f9] px-3 py-2" key={source.key}>
+              <div className="flex items-center justify-between gap-2 text-sm">
+                <span className="font-medium text-[#1f2937]">{source.label}</span>
+                <span className="font-semibold tabular-nums text-[#1f2937]">{numberFormatter.format(source.points)}</span>
               </div>
-              <p className="mt-1 text-[11px] text-[#748078]">
+              <p className="mt-1 text-xs text-[#64748b]">
                 {source.eventCount === null
                   ? "Profil sayacından hesaplandı"
                   : `${numberFormatter.format(source.eventCount)} kayıt${source.lastEarnedAt ? ` · son ${formatDateTime(source.lastEarnedAt)}` : ""}`}
@@ -1102,14 +1033,27 @@ function DetailSection({
   children: ReactNode;
 }) {
   return (
-    <section className="border-b border-[#e5e8e2] p-5 last:border-b-0">
-      <h3 className="flex items-center gap-2 text-sm font-semibold text-[#334a3b]">
-        <span className="text-[#45614b]">{icon}</span>
+    <section className="border-b border-[#e5e7eb] bg-white last:border-b-0">
+      <h3 className={`flex items-center gap-2 px-5 py-3 text-base font-semibold text-white ${getDetailSectionTone(title)}`}>
+        <span className="text-white">{icon}</span>
         {title}
       </h3>
-      <div className="mt-3">{children}</div>
+      <div className="p-5 text-[#1f2937]">{children}</div>
     </section>
   );
+}
+
+const DETAIL_SECTION_TONES: Record<string, string> = {
+  "Hesap ve profil": "bg-[#2563eb]",
+  "Öğrenme durumu": "bg-[#16a34a]",
+  "Kullanım aktivitesi": "bg-[#ea580c]",
+  "Abonelik durumu": "bg-[#db2777]",
+  "Puan özeti": "bg-[#7c3aed]",
+  "Bakiye ve diğer sinyaller": "bg-[#0891b2]",
+};
+
+function getDetailSectionTone(title: string) {
+  return DETAIL_SECTION_TONES[title] ?? "bg-[#2563eb]";
 }
 
 function DetailField({
@@ -1123,8 +1067,8 @@ function DetailField({
 }) {
   return (
     <div className="min-w-0">
-      <p className="text-[11px] text-[#7a857d]">{label}</p>
-      <p className={`mt-0.5 truncate text-xs font-medium text-[#34483a] ${mono ? "font-mono text-[10px]" : ""}`} title={value}>
+      <p className="text-xs text-[#64748b]">{label}</p>
+      <p className={`mt-0.5 truncate text-sm font-medium text-[#1f2937] ${mono ? "font-mono text-[11px]" : ""}`} title={value}>
         {value}
       </p>
     </div>
@@ -1133,9 +1077,9 @@ function DetailField({
 
 function DetailStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-md bg-[#f1f4ef] px-2 py-2 text-center">
-      <p className="text-[10px] text-[#748078]">{label}</p>
-      <p className="mt-1 text-sm font-semibold tabular-nums text-[#344d3a]">
+    <div className="rounded-md bg-[#06b6d4] px-2 py-2 text-center text-white">
+      <p className="text-xs text-white/80">{label}</p>
+      <p className="mt-1 text-base font-semibold tabular-nums text-white">
         {numberFormatter.format(value)}
       </p>
     </div>

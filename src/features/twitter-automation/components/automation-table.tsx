@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowLeft, Bell, CalendarPlus, ChevronDown, ChevronRight, Coins, Copy, Eye, EyeOff, FileText, Filter, FolderInput, FolderPlus, FolderTree, GripVertical, ImageIcon, KeyRound, MoveDown, MoveUp, Pencil, Plus, RefreshCw, Save, Search, Share2, Shuffle, Sparkles, Trash2, Unlink2, Video } from "lucide-react";
-import { createContext, Fragment, useCallback, useContext, useDeferredValue, useEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
+import { ArrowLeft, CalendarPlus, ChevronDown, ChevronRight, Coins, Copy, Eye, EyeOff, FileText, FolderInput, FolderPlus, FolderTree, GripVertical, ImageIcon, MoveDown, MoveUp, Pencil, Plus, RefreshCw, Save, Share2, Shuffle, Sparkles, Trash2, Unlink2, Video } from "lucide-react";
+import { createContext, Fragment, useCallback, useContext, useEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -17,8 +17,8 @@ import { AUTOMATION_SUPER_GROUP_ICON_OPTIONS, normalizeAutomationSuperGroupColor
 import { describeExpectedOutputSourceMix, estimateAutomationOutputDistribution } from "@/features/twitter-automation/automation-output-distribution";
 import { AUTOMATION_GENERATOR_OPTIONS, RANDOM_GENERATOR, RANDOM_INCLUDE_OPTIONS, defaultRandomIncludes, normalizeGeneratorMode, normalizeRandomIncludes, resolveRandomIncludes, type AutomationContentType, type RandomInclude, type RandomIncludes } from "@/features/twitter-automation/automation-randomization";
 import { cn } from "@/lib/utils";
-import { ensureBrowserPushSubscription, serializePushSubscription } from "@/features/push/push-client";
 import type { LanguageCode, Tier } from "@/types/domain";
+import { LanguageCombinationAutomationTable } from "@/features/twitter-automation/components/language-combination-automation-table";
 
 type ContentType = "random" | "text" | "image" | "video";
 type SelectableContentType = AutomationContentType;
@@ -105,18 +105,18 @@ const CONTENT_TYPES: Array<{ value: SelectableContentType; label: string }> = [
 const GENERATORS = AUTOMATION_GENERATOR_OPTIONS;
 
 const GROUP_TONES: Record<GroupTone, { color: string; header: string; row: string; text: string }> = {
-  emerald: { color: "#55c39a", header: "bg-[#11251c]", row: "bg-[#101914]", text: "text-white" },
-  blue: { color: "#62a9ef", header: "bg-[#101f30]", row: "bg-[#10171f]", text: "text-white" },
-  amber: { color: "#caff46", header: "bg-[#1d2910]", row: "bg-[#151d0b]", text: "text-white" },
-  rose: { color: "#ed7784", header: "bg-[#2b151a]", row: "bg-[#1d1215]", text: "text-white" },
+  emerald: { color: "#55c39a", header: "bg-[#11251c]", row: "bg-[#101914]", text: "text-[#1f2922]" },
+  blue: { color: "#62a9ef", header: "bg-[#101f30]", row: "bg-[#10171f]", text: "text-[#1f2922]" },
+  amber: { color: "#caff46", header: "bg-[#1d2910]", row: "bg-[#151d0b]", text: "text-[#1f2922]" },
+  rose: { color: "#ed7784", header: "bg-[#2b151a]", row: "bg-[#1d1215]", text: "text-[#1f2922]" },
 };
 
 const TONE_ORDER: GroupTone[] = ["emerald", "blue", "amber", "rose"];
 const LANGUAGE_OPTIONS = Object.values(LANGUAGE_BY_CODE);
 const CONTENT_QUANTITY_OPTIONS = Array.from({ length: 20 }, (_, index) => index + 1);
-const cellControlClassName = "h-8 w-full min-w-0 rounded border border-transparent bg-transparent px-1.5 text-xs text-[#f7f3ed] outline-none transition-colors hover:bg-white/[0.045] focus:border-[#55c39a] focus:bg-[#111715]";
-const flagSelectClassName = "h-8 w-full min-w-0 appearance-none rounded border border-transparent bg-transparent px-1.5 text-transparent outline-none transition-colors hover:bg-white/[0.045] focus:border-[#55c39a] focus:bg-[#111715]";
-const flagSelectOptionStyle = { backgroundColor: "#171a19", color: "#f7f3ed" } as const;
+const cellControlClassName = "h-9 w-full min-w-0 rounded-md border border-[#dfe7df] bg-white px-2.5 text-xs font-medium text-[#1f2922] outline-none transition-colors hover:border-[#a7c5ad] focus:border-[#2f7251] focus:ring-2 focus:ring-[#2f7251]/15";
+const flagSelectClassName = "h-9 w-full min-w-0 appearance-none rounded-md border border-[#dfe7df] bg-white pl-9 pr-6 text-xs font-medium text-[#1f2922] outline-none transition-colors hover:border-[#a7c5ad] focus:border-[#2f7251] focus:ring-2 focus:ring-[#2f7251]/15";
+const flagSelectOptionStyle = { backgroundColor: "#ffffff", color: "#1f2922" } as const;
 
 function getPlatformOptions(accounts: readonly SocialMediaAccount[]) {
   const platforms = new Map<Platform, PlatformOption>();
@@ -263,7 +263,7 @@ function AutomationLanguageSelect({ label, onChange, value }: { label: string; o
   const selectedLanguageLabel = selectedLanguage ? LANGUAGE_BY_CODE[selectedLanguage].name : "Random language";
 
   return <label className="block min-w-0 space-y-1">
-    <span className="block text-[10px] font-semibold text-[#8d9b92]">{label}</span>
+    <span className="block text-[10px] font-semibold text-[#68756c]">{label}</span>
     <div className="relative" title={selectedLanguageLabel}>
       <select aria-label={label} className={flagSelectClassName} onChange={(event) => onChange(event.target.value as LanguageSelection)} value={value}>
         <option style={flagSelectOptionStyle} value="random">Random</option>
@@ -377,18 +377,12 @@ function normalizeGroups(groups: AutomationGroup[], socialAccounts: readonly Soc
   }));
 }
 
-function ColumnHeader({ label, type }: { label: string; type: string }) {
-  return <th className="border-b border-r border-white/10 bg-[#171a19] px-3 py-2 text-left last:border-r-0"><span className="text-[11px] font-semibold text-[#e9f2ec]">{label}</span><span className="ml-1.5 text-[10px] text-[#7f9086]">{type}</span></th>;
-}
-
 function toggleItem<T>(items: readonly T[], item: T) {
   return items.includes(item) ? items.filter((entry) => entry !== item) : [...items, item];
 }
 
-export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocialMedias, scope = "production" }: {
+function LegacyAutomationTable({ onBack, scope = "production" }: {
   onBack: () => void;
-  onOpenAlternateAutomation: () => void;
-  onOpenSocialMedias: () => void;
   scope?: AutomationScope;
 }) {
   const { showMessage } = useAppMessage();
@@ -397,29 +391,19 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
   const [groups, setGroups] = useState<AutomationGroup[]>([]);
   const [superGroups, setSuperGroups] = useState<AutomationSuperGroup[]>([]);
   const [socialAccounts, setSocialAccounts] = useState<SocialMediaAccount[]>([]);
-  const [query, setQuery] = useState("");
   const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
   const [draggedRow, setDraggedRow] = useState<{ groupId: string; rowId: string } | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
   const [syncState, setSyncState] = useState<SyncState>("loading");
   const [schedulingHorizon, setSchedulingHorizon] = useState<1 | 3 | 7 | null>(null);
-  const [scheduleError, setScheduleError] = useState("");
   const [isGeneratedPostsOpen, setIsGeneratedPostsOpen] = useState(false);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
-  const [rendererToken, setRendererToken] = useState<string | null>(null);
-  const [isCreatingRendererToken, setIsCreatingRendererToken] = useState(false);
-  const [isSubscribingAutomationPush, setIsSubscribingAutomationPush] = useState(false);
   const saveRequestId = useRef(0);
   const pendingAutoSaveTimeout = useRef<number | null>(null);
-  const deferredQuery = useDeferredValue(query.trim().toLocaleLowerCase());
   const platformOptions = getPlatformOptions(socialAccounts);
   const hiddenSuperGroupIds = new Set(superGroups.filter((superGroup) => superGroup.hidden).map((superGroup) => superGroup.id));
   const renderableGroups = groups.filter((group) => !group.hidden && (!group.superGroupId || !hiddenSuperGroupIds.has(group.superGroupId)));
-  const visibleGroups = orderGroupsBySuperGroup(groups, superGroups).map((group) => ({
-    ...group,
-    rows: group.rows.filter((row) => !deferredQuery || [group.name, row.contentType, row.generator, row.platforms.join(" "), Object.values(row.accounts).flat().join(" "), row.language, row.nativeLanguage, row.tier].join(" ").toLocaleLowerCase().includes(deferredQuery)),
-  })).filter((group) => group.rows.length > 0 || !deferredQuery);
-  const rowCount = renderableGroups.reduce((total, group) => total + group.rows.length, 0);
+  const visibleGroups = orderGroupsBySuperGroup(groups, superGroups);
   const dailyOutputCount = renderableGroups.reduce((total, group) => total + group.rows.reduce((groupTotal, row) => groupTotal + row.quantity, 0), 0);
   const dailyCostEstimate = estimateAutomationGroupCost(renderableGroups.flatMap((group) => group.rows));
   const dailyOutputDistribution = estimateAutomationOutputDistribution(renderableGroups.flatMap((group) => group.rows));
@@ -427,7 +411,7 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
   const superGroupSections = superGroups.map((superGroup) => ({
     superGroup,
     groups: visibleGroups.filter((group) => group.superGroupId === superGroup.id),
-  })).filter((section) => section.groups.length > 0 || !deferredQuery);
+  }));
   const ungroupedVisibleGroups = visibleGroups.filter((group) => !group.superGroupId || !superGroups.some((superGroup) => superGroup.id === group.superGroupId));
 
   const loadAutomation = useCallback(async () => {
@@ -453,7 +437,10 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
     }
   }, [scopeSearchParams]);
 
-  useEffect(() => { void loadAutomation(); }, [loadAutomation]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void loadAutomation(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadAutomation]);
 
   const saveAutomation = useCallback(async () => {
     if (!isHydrated) return false;
@@ -654,7 +641,6 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
     if (!isHydrated || schedulingHorizon) return;
     unlockMusicVideoAudio();
     setSchedulingHorizon(horizonDays);
-    setScheduleError("");
     try {
       setSyncState("saving");
       const saved = await saveAutomation();
@@ -670,53 +656,9 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
       setIsGeneratedPostsOpen(true);
     } catch (error) {
       setSyncState("error");
-      setScheduleError("");
       showMessage(error instanceof Error ? error.message : "The automation run could not be created.", "error");
     } finally {
       setSchedulingHorizon(null);
-    }
-  }
-
-  async function createRendererToken() {
-    if (isCreatingRendererToken) return;
-    setIsCreatingRendererToken(true);
-    try {
-      const response = await fetch(`/api/twitter-automation/renderers${scopeSearchParams}`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ label: `Windows renderer ${new Date().toLocaleDateString("tr-TR")}`, scope }),
-      });
-      const payload = await response.json().catch(() => null) as { token?: string; errorCode?: string } | null;
-      if (!response.ok || !payload?.token) throw new Error(payload?.errorCode ?? "automation_renderer_register_failed");
-      setRendererToken(payload.token);
-    } catch {
-      setScheduleError("");
-      showMessage("Renderer tokeni oluşturulamadı.", "error");
-    } finally {
-      setIsCreatingRendererToken(false);
-    }
-  }
-
-  async function subscribeAutomationPush() {
-    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
-    if (!publicKey) { showMessage("PWA bildirim anahtarı yapılandırılmamış.", "error"); return; }
-    if (isSubscribingAutomationPush) return;
-    setIsSubscribingAutomationPush(true);
-    try {
-      if (Notification.permission === "default") await Notification.requestPermission();
-      if (Notification.permission !== "granted") throw new Error("push_permission_denied");
-      const subscription = await ensureBrowserPushSubscription(publicKey);
-      const response = await fetch(`/api/twitter-automation/automation-notifications${scopeSearchParams}`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(serializePushSubscription(subscription)),
-      });
-      if (!response.ok) throw new Error("automation_push_subscription_failed");
-    } catch {
-      setScheduleError("");
-      showMessage("Telefon bildirimi bağlanamadı.", "error");
-    } finally {
-      setIsSubscribingAutomationPush(false);
     }
   }
 
@@ -728,16 +670,23 @@ export function AutomationTable({ onBack, onOpenAlternateAutomation, onOpenSocia
 
   return <GroupActionsContext.Provider value={{ groups, visibleGroups, superGroups, addSuperGroup, duplicateGroup, moveGroup, assignGroupToSuperGroup, removeGroupFromSuperGroup, renameSuperGroup, updateSuperGroupIcon, updateSuperGroupColor, moveSuperGroup, toggleSuperGroupHidden, toggleGroupHidden, deleteSuperGroup }}><section className="content-automation-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#101212] text-[#f7f3ed]">
     <header className="flex min-h-12 shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#171a19] px-3 py-1.5 sm:px-5">
-      <div className="flex min-w-0 items-center gap-2"><Button aria-label="Back to content studio" className="size-7 shrink-0 rounded border-white/10 bg-transparent p-0 text-[#d7e2da] hover:bg-white/[0.06]" onClick={onBack} type="button"><ArrowLeft className="size-3.5" /></Button><p className="truncate text-sm font-semibold">{isTestAutomation ? "Test automation" : "Content automation"}</p>{isTestAutomation ? <span className="rounded border border-[#f0b849]/50 bg-[#f0b849]/10 px-1.5 py-0.5 text-[10px] font-bold tracking-[0.14em] text-[#f7c96f]">TEST</span> : null}</div>
+      <div className="flex min-w-0 items-center gap-2"><Button aria-label="Back to Content Automation" className="size-7 shrink-0 rounded border-white/10 bg-transparent p-0 text-[#d7e2da] hover:bg-white/[0.06]" onClick={onBack} type="button"><ArrowLeft className="size-3.5" /></Button><p className="truncate text-sm font-semibold">{isTestAutomation ? "Test automation" : "Content Automation"}</p>{isTestAutomation ? <span className="rounded border border-[#f0b849]/50 bg-[#f0b849]/10 px-1.5 py-0.5 text-[10px] font-bold tracking-[0.14em] text-[#f7c96f]">TEST</span> : null}</div>
       <div className="hidden items-center gap-2 text-xs text-[#829287] sm:flex"><span className={cn("size-2 rounded-full", syncState === "error" ? "bg-[#ed7784]" : syncState === "saving" || syncState === "loading" ? "bg-[#f0b849]" : "bg-[#55c39a]")} />{syncState === "loading" ? "Loading automation" : syncState === "saving" ? "Saving to Supabase" : syncState === "error" ? "Supabase unavailable" : "Saved to Supabase"}</div>
-      <div className="flex shrink-0 gap-1.5"><Button aria-label="Refresh automation table" className="size-7 rounded border-white/10 bg-white/[0.045] p-0 text-[#d7e2da] hover:bg-white/[0.09]" disabled={syncState === "loading" || syncState === "saving"} onClick={() => void loadAutomation()} title="Refresh automation table" type="button"><RefreshCw className={cn("size-3.5", syncState === "loading" && "animate-spin")} /></Button><Button aria-label="Save entire automation table" className="h-7 rounded border-[#299d6d] bg-[#299d6d] px-2.5 text-xs text-white hover:bg-[#36ad79] disabled:cursor-not-allowed disabled:opacity-45" disabled={!isHydrated || syncState === "loading" || syncState === "saving"} onClick={saveAllAutomation} title="Save entire automation table" type="button"><Save className="size-3.5" />Save</Button><Button className="h-7 rounded border-white/10 bg-white/[0.045] px-2.5 text-xs text-[#d7e2da] hover:bg-white/[0.09]" onClick={onOpenAlternateAutomation} type="button">{isTestAutomation ? "Main table" : "Test table"}</Button><Button className="h-7 rounded border-transparent bg-[#c7f05d] px-2.5 text-xs text-black hover:bg-[#d6ff73]" onClick={onOpenSocialMedias} type="button">Social medias</Button>{!isTestAutomation ? <><Button className="h-7 border border-[#8cc8ef]/35 bg-[#8cc8ef]/10 px-2.5 text-xs text-[#d5efff] hover:bg-[#8cc8ef]/20" disabled={isSubscribingAutomationPush} onClick={() => void subscribeAutomationPush()} title="Batch bittiğinde telefona PWA bildirimi gönder" type="button"><Bell className="size-3.5" />{isSubscribingAutomationPush ? "Bağlanıyor" : "Telefon bildirimi"}</Button><Button className="h-7 border border-[#c7f05d]/35 bg-[#c7f05d]/10 px-2.5 text-xs text-[#dffb99] hover:bg-[#c7f05d]/20" disabled={isCreatingRendererToken} onClick={() => void createRendererToken()} title="Windows renderer için tek kullanımlık eşleştirme tokeni" type="button"><KeyRound className="size-3.5" />{isCreatingRendererToken ? "Hazırlanıyor" : "Renderer token"}</Button></> : null}<Button className="h-7 rounded border-transparent bg-[#c7f05d] px-2.5 text-xs text-black hover:bg-[#d6ff73] disabled:cursor-not-allowed disabled:opacity-45" disabled={!activeRunId} onClick={() => { unlockMusicVideoAudio(); setIsGeneratedPostsOpen(true); }} type="button"><Sparkles className="size-3.5" />Generated posts</Button><Button aria-label="New group" className="size-7 rounded border-white/10 bg-white/[0.045] p-0 text-[#d7e2da] hover:bg-white/[0.09]" disabled={!hasSocialAccounts} onClick={() => setGroups((current) => [...current, createGroup(`New campaign ${current.length + 1}`, TONE_ORDER[current.length % TONE_ORDER.length], socialAccounts)])} title="New group" type="button"><FolderPlus className="size-3.5" /></Button><Button aria-label="New upper group" className="size-7 rounded border-[#8cc8ef]/40 bg-[#16232c] p-0 text-[#c6e5f8] hover:bg-[#1c3340]" disabled={!isHydrated} onClick={addSuperGroup} title="New upper group" type="button"><FolderTree className="size-3.5" /></Button><Button aria-label="Insert row" className="size-7 rounded border-[#299d6d] bg-[#299d6d] p-0 text-white hover:bg-[#36ad79]" disabled={!hasSocialAccounts} onClick={() => setGroups((current) => current.map((group, index) => index === 0 ? { ...group, rows: [...group.rows, createRow(socialAccounts)] } : group))} title="Insert row" type="button"><Plus className="size-3.5" /></Button></div>
+      <div className="flex min-w-0 shrink-0 items-center gap-1.5 overflow-x-auto"><Button aria-label="Refresh automation table" className="size-7 shrink-0 rounded border-transparent bg-[#2563eb] p-0 text-white hover:bg-[#1d4ed8] disabled:opacity-45" disabled={syncState === "loading" || syncState === "saving"} onClick={() => void loadAutomation()} title="Refresh automation table" type="button"><RefreshCw className={cn("size-3.5", syncState === "loading" && "animate-spin")} /></Button><Button aria-label="Save entire automation table" className="h-7 shrink-0 rounded border-transparent bg-[#16a34a] px-2.5 text-xs text-white hover:bg-[#15803d] disabled:cursor-not-allowed disabled:opacity-45" disabled={!isHydrated || syncState === "loading" || syncState === "saving"} onClick={saveAllAutomation} title="Save entire automation table" type="button"><Save className="size-3.5" />Save</Button><Button className="h-7 shrink-0 rounded border-transparent bg-[#c026d3] px-2.5 text-xs text-white hover:bg-[#a21caf] disabled:cursor-not-allowed disabled:opacity-45" disabled={!activeRunId} onClick={() => { unlockMusicVideoAudio(); setIsGeneratedPostsOpen(true); }} type="button"><Sparkles className="size-3.5" />Generated posts</Button><Button aria-label="New group" className="size-7 shrink-0 rounded border-transparent bg-[#4f46e5] p-0 text-white hover:bg-[#4338ca]" disabled={!hasSocialAccounts} onClick={() => setGroups((current) => [...current, createGroup(`New campaign ${current.length + 1}`, TONE_ORDER[current.length % TONE_ORDER.length], socialAccounts)])} title="New group" type="button"><FolderPlus className="size-3.5" /></Button><Button aria-label="New upper group" className="size-7 shrink-0 rounded border-transparent bg-[#0f766e] p-0 text-white hover:bg-[#115e59]" disabled={!isHydrated} onClick={addSuperGroup} title="New upper group" type="button"><FolderTree className="size-3.5" /></Button><Button aria-label="Insert row" className="size-7 shrink-0 rounded border-transparent bg-[#059669] p-0 text-white hover:bg-[#047857]" disabled={!hasSocialAccounts} onClick={() => setGroups((current) => current.map((group, index) => index === 0 ? { ...group, rows: [...group.rows, createRow(socialAccounts)] } : group))} title="Insert row" type="button"><Plus className="size-3.5" /></Button>{([{ days: 1 as const, label: "1 day" }, { days: 3 as const, label: "3 days" }, { days: 7 as const, label: "1 week" }]).map((option) => <Button className={cn("h-7 shrink-0 rounded border-transparent bg-black px-2.5 text-xs hover:bg-[#111111]", option.days === 1 ? "text-[#2563eb]" : option.days === 3 ? "text-[#a855f7]" : "text-[#f97316]")} disabled={!hasSocialAccounts || !isHydrated || !dailyOutputCount || schedulingHorizon !== null} key={option.days} onClick={() => void scheduleAutomation(option.days)} type="button"><CalendarPlus className="size-3.5" />{schedulingHorizon === option.days ? "Preparing..." : option.label}</Button>)}</div>
     </header>
-    {rendererToken ? <div className="flex shrink-0 items-center gap-2 border-b border-[#c7f05d]/20 bg-[#182014] px-3 py-2 text-xs text-[#dffb99] sm:px-5"><KeyRound className="size-3.5 shrink-0" /><span className="shrink-0 font-medium">Tek seferlik renderer tokeni:</span><code className="min-w-0 flex-1 truncate rounded bg-black/25 px-2 py-1 font-mono text-[11px]">{rendererToken}</code><Button className="h-7 shrink-0 border border-[#c7f05d]/35 bg-transparent px-2 text-xs text-[#dffb99] hover:bg-[#c7f05d]/10" onClick={() => void navigator.clipboard.writeText(rendererToken)} type="button"><Copy className="size-3.5" />Kopyala</Button><Button aria-label="Renderer tokenini gizle" className="size-7 shrink-0 border border-white/10 bg-transparent p-0 text-[#d7e2da] hover:bg-white/[0.06]" onClick={() => setRendererToken(null)} type="button"><EyeOff className="size-3.5" /></Button></div> : null}
-    <div className="flex h-11 shrink-0 items-center gap-2 overflow-x-auto border-b border-white/10 bg-[#141716] px-3 sm:px-5"><label className="flex h-8 w-64 shrink-0 items-center gap-2 border border-white/10 bg-[#101212] px-2.5 text-[#8d9b92] focus-within:border-[#55c39a] sm:w-80"><Search className="size-3.5 shrink-0" /><input className="min-w-0 flex-1 bg-transparent text-xs text-[#f7f3ed] outline-none placeholder:text-[#718077]" onChange={(event) => setQuery(event.target.value)} placeholder="Filter automations..." value={query} /></label><span className="inline-flex h-7 shrink-0 items-center gap-1.5 px-1 text-xs text-[#a9b8ae]" title={`Expected source mix: ${dailyOutputMix}`}><Filter className="size-3.5" />{rowCount} active rows · {dailyOutputCount} outputs/day · est. {formatAutomationCostTry(dailyCostEstimate.oneOffTry)}/day · {groups.length} groups</span><span className="ml-auto shrink-0 text-xs text-[#829287]">Generate:</span>{([{ days: 1 as const, label: "1 day" }, { days: 3 as const, label: "3 days" }, { days: 7 as const, label: "1 week" }]).map((option) => <Button className="h-7 shrink-0 rounded border-transparent bg-[#c7f05d] px-2.5 text-xs text-black hover:bg-[#d6ff73]" disabled={!hasSocialAccounts || !isHydrated || !dailyOutputCount || schedulingHorizon !== null} key={option.days} onClick={() => void scheduleAutomation(option.days)} type="button"><CalendarPlus className="size-3.5" />{schedulingHorizon === option.days ? "Preparing..." : option.label}</Button>)}</div>
-    <div className="min-h-0 flex-1 overflow-auto overscroll-contain"><table className="min-w-[1620px] w-full border-collapse text-left"><thead className="sticky top-0 z-20"><tr><th className="w-11 border-b border-r border-white/10 bg-[#171a19] px-3 py-2"><input aria-label="Select all rows" className="accent-[#55c39a]" type="checkbox" /></th><ColumnHeader label="content_type" type="enum" /><ColumnHeader label="generator_mode" type="text" /><ColumnHeader label="quantity" type="integer" /><ColumnHeader label="parameters" type="json" /><ColumnHeader label="social_networks" type="array" /><ColumnHeader label="social_accounts" type="array" /><ColumnHeader label="schedule_window" type="time range" /><ColumnHeader label="state" type="text" /><th className="w-24 border-b border-white/10 bg-[#171a19] px-3 py-2" /></tr></thead><tbody>{superGroupSections.map((section) => <Fragment key={section.superGroup.id}><SuperGroupHeader memberCount={section.groups.length} superGroup={section.superGroup} />{section.groups.map(renderGroupRows)}</Fragment>)}{ungroupedVisibleGroups.map(renderGroupRows)}</tbody></table>{!isHydrated ? <div className="grid min-h-48 place-items-center border-b border-white/[0.075] text-sm text-[#8d9b92]">Loading social media accounts...</div> : !hasSocialAccounts ? <div className="grid min-h-48 place-items-center border-b border-white/[0.075] text-sm text-[#ffb9c1]">No non-email social media accounts are available.</div> : !visibleGroups.length ? <div className="grid min-h-48 place-items-center border-b border-white/[0.075] text-sm text-[#8d9b92]">No automation rows match this filter.</div> : null}</div>
+     <div className="min-h-0 flex-1 overflow-auto overscroll-contain"><table className="min-w-[1620px] w-full border-collapse text-left"><tbody>{superGroupSections.map((section) => <Fragment key={section.superGroup.id}><SuperGroupHeader memberCount={section.groups.length} superGroup={section.superGroup} />{section.groups.map(renderGroupRows)}</Fragment>)}{ungroupedVisibleGroups.map(renderGroupRows)}</tbody></table>{!isHydrated ? <div className="grid min-h-48 place-items-center border-b border-white/[0.075] text-sm text-[#8d9b92]">Loading social media accounts...</div> : !hasSocialAccounts ? <div className="grid min-h-48 place-items-center border-b border-white/[0.075] text-sm text-[#ffb9c1]">No non-email social media accounts are available.</div> : !visibleGroups.length ? <div className="grid min-h-48 place-items-center border-b border-white/[0.075] text-sm text-[#8d9b92]">No automation rows available.</div> : null}</div>
     <footer className="flex min-h-10 shrink-0 items-center justify-between border-t border-white/10 bg-[#171a19] px-3 text-xs text-[#829287] sm:px-5"><span>{isTestAutomation ? "TEST table: content can be generated and reviewed, but it can never be scheduled to production." : "Buttons prepare the selected output quantity from each row for every future day. Each output gets its own random mode selection and time within the saved range."}</span><span title={`Expected source mix: ${dailyOutputMix}`}>{dailyOutputCount} outputs/day · est. {formatAutomationCostTry(dailyCostEstimate.oneOffTry)}/day</span></footer>
-    {isGeneratedPostsOpen && activeRunId ? createPortal(<div aria-label="Generated posts" aria-modal="true" className="fixed inset-0 z-[9999] grid place-items-center p-4" role="dialog"><GeneratedPostsTable onClose={() => setIsGeneratedPostsOpen(false)} runId={activeRunId} scope={scope} /></div>, document.body) : null}
+    {isGeneratedPostsOpen && activeRunId ? createPortal(<div aria-label="Generated posts" aria-labelledby={`automation-run-${activeRunId}-title`} aria-modal="true" className="fixed inset-0 z-[9999] grid place-items-center overscroll-contain bg-black/45 p-4" role="dialog"><GeneratedPostsTable onClose={() => setIsGeneratedPostsOpen(false)} runId={activeRunId} scope={scope} /></div>, document.body) : null}
   </section></GroupActionsContext.Provider>;
+}
+
+export function AutomationTable({ onBack, scope = "production" }: {
+  onBack: () => void;
+  scope?: AutomationScope;
+}) {
+  return scope === "production"
+    ? <LanguageCombinationAutomationTable onBack={onBack} />
+    : <LegacyAutomationTable onBack={onBack} scope={scope} />;
 }
 
 type ToneStyle = (typeof GROUP_TONES)[GroupTone];
@@ -802,16 +751,16 @@ function SuperGroupHeader({ superGroup, memberCount }: { superGroup: AutomationS
             <Button aria-expanded={isIconPickerOpen} aria-haspopup="dialog" aria-label={`Choose visual for ${superGroup.name}`} className="size-12 shrink-0 rounded bg-transparent p-0 text-white hover:bg-black/10" onClick={() => setIsIconPickerOpen((current) => !current)} title="Choose upper group visual" type="button"><SuperGroupIcon icon={superGroup.icon} size="header" /></Button>
             {isIconPickerOpen ? <div aria-label="Upper group visual choices" className="absolute left-0 top-12 z-40 grid w-56 grid-cols-4 gap-1.5 rounded-lg border border-white/15 bg-[#101212] p-2 shadow-sm" role="dialog">{AUTOMATION_SUPER_GROUP_ICON_OPTIONS.map((option) => <Button aria-label={`Use ${option.label} upper group icon`} aria-pressed={superGroup.icon === option.value} className={cn("flex h-12 rounded border p-0 text-white hover:bg-[#1c3340]", superGroup.icon === option.value ? "border-white bg-white/10" : "border-transparent bg-transparent")} key={option.value} onClick={() => { groupActions?.updateSuperGroupIcon(superGroup.id, option.value); setIsIconPickerOpen(false); }} title={option.label} type="button"><SuperGroupIcon icon={option.value} size="picker" /></Button>)}</div> : null}
           </div>
-          {isRenaming ? <input autoFocus aria-label="Upper group name" className="min-w-0 max-w-64 border-b border-[#8cc8ef] bg-transparent text-sm font-semibold text-[#e7f5ff] outline-none" onBlur={() => setIsRenaming(false)} onChange={(event) => groupActions?.renameSuperGroup(superGroup.id, event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === "Escape") event.currentTarget.blur(); }} value={superGroup.name} /> : <button className="max-w-64 truncate text-left text-sm font-semibold text-[#e7f5ff]" onClick={() => setIsRenaming(true)} type="button">{superGroup.name}</button>}
-          <Button aria-label="Rename upper group" className="size-7 shrink-0 rounded border-transparent bg-transparent p-0 text-[#9dbbcf] hover:bg-white/10 hover:text-white" onClick={() => setIsRenaming(true)} type="button"><Pencil className="size-3.5" /></Button>
-          <span className="shrink-0 text-xs text-[#9dbbcf]">{memberCount} groups</span>
+          {isRenaming ? <input autoFocus aria-label="Upper group name" className="min-w-0 max-w-64 border-b border-white bg-transparent text-sm font-semibold text-white outline-none" onBlur={() => setIsRenaming(false)} onChange={(event) => groupActions?.renameSuperGroup(superGroup.id, event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === "Escape") event.currentTarget.blur(); }} value={superGroup.name} /> : <button className="max-w-64 truncate text-left text-sm font-semibold text-white" onClick={() => setIsRenaming(true)} type="button">{superGroup.name}</button>}
+          <Button aria-label="Rename upper group" className="size-7 shrink-0 rounded border-transparent bg-transparent p-0 text-white hover:bg-white/10" onClick={() => setIsRenaming(true)} type="button"><Pencil className="size-3.5" /></Button>
+          <span className="shrink-0 text-xs text-white">{memberCount} groups</span>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <Button aria-label="Move upper group up" className="size-7 rounded border-transparent bg-transparent p-0 text-[#e7f5ff] hover:bg-black/15 disabled:cursor-not-allowed disabled:opacity-35" disabled={!canMoveSuperGroupUp} onClick={() => groupActions?.moveSuperGroup(superGroup.id, -1)} title="Move upper group up" type="button"><MoveUp className="size-3.5" /></Button>
-          <Button aria-label="Move upper group down" className="size-7 rounded border-transparent bg-transparent p-0 text-[#e7f5ff] hover:bg-black/15 disabled:cursor-not-allowed disabled:opacity-35" disabled={!canMoveSuperGroupDown} onClick={() => groupActions?.moveSuperGroup(superGroup.id, 1)} title="Move upper group down" type="button"><MoveDown className="size-3.5" /></Button>
-          <Button aria-label={superGroup.hidden ? "Show upper group" : "Hide upper group"} className="size-7 rounded border-transparent bg-transparent p-0 text-[#e7f5ff] hover:bg-black/15" onClick={() => groupActions?.toggleSuperGroupHidden(superGroup.id)} title={superGroup.hidden ? "Show upper group in daily generation" : "Hide upper group from daily generation"} type="button">{superGroup.hidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}</Button>
+          <Button aria-label="Move upper group up" className="size-7 rounded border-transparent bg-transparent p-0 text-white hover:bg-black/15 disabled:cursor-not-allowed disabled:opacity-35" disabled={!canMoveSuperGroupUp} onClick={() => groupActions?.moveSuperGroup(superGroup.id, -1)} title="Move upper group up" type="button"><MoveUp className="size-3.5" /></Button>
+          <Button aria-label="Move upper group down" className="size-7 rounded border-transparent bg-transparent p-0 text-white hover:bg-black/15 disabled:cursor-not-allowed disabled:opacity-35" disabled={!canMoveSuperGroupDown} onClick={() => groupActions?.moveSuperGroup(superGroup.id, 1)} title="Move upper group down" type="button"><MoveDown className="size-3.5" /></Button>
+          <Button aria-label={superGroup.hidden ? "Show upper group" : "Hide upper group"} className="size-7 rounded border-transparent bg-transparent p-0 text-white hover:bg-black/15" onClick={() => groupActions?.toggleSuperGroupHidden(superGroup.id)} title={superGroup.hidden ? "Show upper group in daily generation" : "Hide upper group from daily generation"} type="button">{superGroup.hidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}</Button>
           <label className="grid size-7 cursor-pointer place-items-center rounded border border-white/20 bg-black/15" title="Upper group color"><span className="sr-only">Upper group color</span><input aria-label="Upper group color" className="size-5 cursor-pointer border-0 bg-transparent p-0" onChange={(event) => groupActions?.updateSuperGroupColor(superGroup.id, event.target.value)} type="color" value={superGroupColor} /></label>
-          <Button aria-label="Delete upper group" className="size-7 rounded border-transparent bg-transparent p-0 text-[#ffb1aa] hover:bg-[#2c1917]" onClick={() => groupActions?.deleteSuperGroup(superGroup.id)} title="Delete upper group and ungroup its campaigns" type="button"><Trash2 className="size-3.5" /></Button>
+          <Button aria-label="Delete upper group" className="size-7 rounded border-transparent bg-transparent p-0 text-white hover:bg-[#2c1917]" onClick={() => groupActions?.deleteSuperGroup(superGroup.id)} title="Delete upper group and ungroup its campaigns" type="button"><Trash2 className="size-3.5" /></Button>
         </div>
       </div>
     </td>
@@ -839,7 +788,7 @@ function GroupRows(props: GroupRowsProps) {
   const iconPickerRef = useRef<HTMLDivElement>(null);
   const superGroupPickerRef = useRef<HTMLDivElement>(null);
   const headerStyle: CSSProperties = { backgroundColor: groupColor };
-  const rowStyle: CSSProperties = { backgroundColor: getRowColor(groupColor) };
+  const rowStyle: CSSProperties = { backgroundColor: "#ffffff" };
   const costEstimate = estimateAutomationGroupCost(group.rows);
   const costDescription = describeAutomationCostEstimate(costEstimate);
   const groupIcon = getGroupIcon(group);
@@ -894,10 +843,10 @@ function GroupRows(props: GroupRowsProps) {
               <Button aria-label={group.hidden ? "Show group" : "Hide group"} className="size-7 rounded border-transparent bg-transparent p-0 text-[#d7e2da] hover:bg-white/10" onClick={() => groupActions?.toggleGroupHidden(group.id)} title={group.hidden ? "Show group in daily generation" : "Hide group from daily generation"} type="button">{group.hidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}</Button>
               <Button aria-label="Duplicate group" className="size-7 rounded border-transparent bg-transparent p-0 text-[#d7e2da] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35" disabled={!groupActions} onClick={() => groupActions?.duplicateGroup(group.id)} title="Duplicate group" type="button"><Copy className="size-3.5" /></Button>
               <div className="relative" ref={superGroupPickerRef}>
-                <Button aria-expanded={isSuperGroupPickerOpen} aria-haspopup="dialog" aria-label="Add group to upper group" className="size-7 rounded border-transparent bg-transparent p-0 text-[#b9dff6] hover:bg-[#1c3340]" onClick={() => { setIsIconPickerOpen(false); setIsSuperGroupPickerOpen((current) => !current); }} title="Add group to upper group" type="button"><FolderInput className="size-3.5" /></Button>
-                {isSuperGroupPickerOpen ? <div aria-label="Upper groups" className="absolute right-0 top-8 z-40 w-56 rounded-lg border border-white/15 bg-[#101212] p-2 shadow-sm" role="dialog"><p className="px-1.5 py-1 text-[10px] font-semibold text-[#aab7af]">Move to upper group</p>{groupActions?.superGroups.length ? <div className="space-y-1">{groupActions.superGroups.map((item) => <Button className={cn("flex h-8 w-full justify-start gap-2 rounded px-2 text-xs text-[#e5f4ff] hover:bg-[#1c3340]", group.superGroupId === item.id && "bg-[#1c3340]")} key={item.id} onClick={() => { groupActions.assignGroupToSuperGroup(group.id, item.id); setIsSuperGroupPickerOpen(false); }} type="button"><SuperGroupIcon icon={item.icon} />{item.name}</Button>)}</div> : <p className="px-1.5 py-2 text-xs text-[#8d9b92]">Create an upper group first.</p>}</div> : null}
+                <Button aria-expanded={isSuperGroupPickerOpen} aria-haspopup="dialog" aria-label="Add group to upper group" className="size-7 rounded border-transparent bg-transparent p-0 text-white hover:bg-[#1c3340]" onClick={() => { setIsIconPickerOpen(false); setIsSuperGroupPickerOpen((current) => !current); }} title="Add group to upper group" type="button"><FolderInput className="size-3.5" /></Button>
+                {isSuperGroupPickerOpen ? <div aria-label="Upper groups" className="absolute right-0 top-8 z-40 w-56 rounded-lg border border-white/15 bg-[#101212] p-2 shadow-sm" role="dialog"><p className="px-1.5 py-1 text-[10px] font-semibold text-white">Move to upper group</p>{groupActions?.superGroups.length ? <div className="space-y-1">{groupActions.superGroups.map((item) => <Button className={cn("flex h-8 w-full justify-start gap-2 rounded px-2 text-xs text-white hover:bg-[#1c3340]", group.superGroupId === item.id && "bg-[#1c3340]")} key={item.id} onClick={() => { groupActions.assignGroupToSuperGroup(group.id, item.id); setIsSuperGroupPickerOpen(false); }} type="button"><SuperGroupIcon icon={item.icon} />{item.name}</Button>)}</div> : <p className="px-1.5 py-2 text-xs text-white">Create an upper group first.</p>}</div> : null}
               </div>
-              {group.superGroupId ? <Button aria-label="Remove group from upper group" className="size-7 rounded border-transparent bg-transparent p-0 text-[#ffbdad] hover:bg-[#2c1917]" onClick={() => groupActions?.removeGroupFromSuperGroup(group.id)} title="Remove from upper group" type="button"><Unlink2 className="size-3.5" /></Button> : null}
+              {group.superGroupId ? <Button aria-label="Remove group from upper group" className="size-7 rounded border-transparent bg-transparent p-0 text-white hover:bg-[#2c1917]" onClick={() => groupActions?.removeGroupFromSuperGroup(group.id)} title="Remove from upper group" type="button"><Unlink2 className="size-3.5" /></Button> : null}
               <label className="grid size-7 cursor-pointer place-items-center rounded border border-white/10 bg-black/10" title="Group color"><span className="sr-only">Group color</span><input aria-label="Group color" className="size-5 cursor-pointer border-0 bg-transparent p-0" onChange={(event) => onSetGroupColor(event.target.value)} type="color" value={groupColor} /></label>
               <Button className="h-7 rounded border-white/10 bg-white/[0.05] px-2 text-xs text-[#d7e2da] hover:bg-white/10" onClick={onSaveGroup} type="button"><Save className="size-3.5" />Save group</Button>
               <Button aria-label="Add row to group" className="size-7 rounded border-transparent bg-transparent p-0 text-[#d7e2da] hover:bg-white/10" onClick={onAddRow} type="button"><Plus className="size-3.5" /></Button>
@@ -911,17 +860,17 @@ function GroupRows(props: GroupRowsProps) {
       const outputDistribution = estimateAutomationOutputDistribution([row]);
       const outputMix = describeExpectedOutputSourceMix(outputDistribution);
       const outputCostEstimate = estimateAutomationGroupCost([row]);
-      return <tr className={cn("group cursor-grab border-b border-white/[0.075]", tone.row, isEffectivelyHidden && "opacity-60")} draggable key={row.id} onDragStart={() => onDragStart(row.id)} style={rowStyle}>
-      <td className="relative border-r border-white/[0.075] px-2 py-2">{superGroup ? <span className="absolute inset-y-0 left-0 w-1.5" style={{ backgroundColor: groupAccentColor }} /> : null}<div className="flex items-center gap-1"><GripVertical className="size-3.5 text-[#617168]" /><input aria-label="Select automation row" className="accent-[#55c39a]" type="checkbox" /></div></td>
-      <td className="border-r border-white/[0.075] px-2 py-2"><div className="min-w-28 space-y-1.5">{CONTENT_TYPES.map((option) => <label className="flex items-center gap-1.5 text-xs text-[#d7e2da]" key={option.value}><input aria-label={`${option.label} content type`} checked={row.contentTypes.includes(option.value)} className="accent-[#55c39a]" onChange={() => onToggleContentType(group.id, row, option.value)} type="checkbox" />{option.label}</label>)}</div></td>
-      <td className="border-r border-white/[0.075] px-2 py-2"><div className="min-w-52 space-y-3">{row.contentTypes.map((contentType) => <GeneratorModeSelector contentType={contentType} generator={row.generators[contentType] ?? RANDOM_GENERATOR} key={contentType} onSelect={(generator) => onSelectGenerator(group.id, row, contentType, generator)} onToggleInclude={(include) => onToggleRandomInclude(group.id, row, contentType, include)} randomIncludes={row.randomIncludes[contentType]} />)}</div></td>
-      <td className="border-r border-white/[0.075] px-2 py-2"><label className="block min-w-24"><span className="mb-1 block text-[10px] font-semibold text-[#8d9b92]">Outputs per day</span><select aria-label="Outputs per automation row" className={cellControlClassName} onChange={(event) => onUpdateRow(group.id, row.id, { quantity: Number(event.target.value) })} value={row.quantity}>{CONTENT_QUANTITY_OPTIONS.map((quantity) => <option key={quantity} value={quantity}>{quantity}</option>)}</select><span className="mt-1 block text-[10px] text-[#7f9086]">Expected: {outputMix}</span><span className="mt-0.5 block text-[10px] text-[#a9b8ae]">Est. {formatAutomationCostTry(outputCostEstimate.oneOffTry)}/day</span></label></td>
-      <td className="border-r border-white/[0.075] px-2 py-2"><div className="grid grid-cols-3 gap-2"><AutomationLanguageSelect label="Learning language" onChange={(language) => onUpdateRow(group.id, row.id, { language })} value={row.language} /><AutomationLanguageSelect label="Native language" onChange={(nativeLanguage) => onUpdateRow(group.id, row.id, { nativeLanguage })} value={row.nativeLanguage} /><label className="space-y-1"><span className="block text-[10px] font-semibold text-[#8d9b92]">Tier</span><select aria-label="Tier" className={cellControlClassName} onChange={(event) => onUpdateRow(group.id, row.id, { tier: event.target.value as TierSelection })} value={row.tier}><option value="random">Random</option>{TIERS.map((option) => <option key={option} value={option}>{option}</option>)}</select></label></div></td>
-      <td className="border-r border-white/[0.075] px-2 py-2"><div className="flex min-w-40 flex-wrap gap-x-2 gap-y-1.5 px-1"><span className="w-full text-[10px] text-[#7f9086]">Post once to each selected network</span>{platformOptions.map((platform) => <label className="flex items-center gap-1 text-xs text-[#d7e2da]" key={platform.value}><input aria-label={`${platform.label} network`} checked={row.platforms.includes(platform.value)} className="accent-[#55c39a]" onChange={() => onTogglePlatform(group.id, row, platform.value)} type="checkbox" />{platform.label}</label>)}</div></td>
-      <td className="border-r border-white/[0.075] px-2 py-2"><div className="min-w-48 space-y-3 px-1">{row.platforms.map((platform) => <div className="space-y-1.5" key={platform}><p className="text-xs font-semibold text-[#a9b8ae]">{platformOptions.find((item) => item.value === platform)?.label}</p><div className="space-y-1.5">{getAccountsForPlatform(socialAccounts, platform).toSorted((first, second) => first.accountName.localeCompare(second.accountName)).map((account) => <label className="flex items-center gap-1.5 text-xs text-[#d7e2da]" key={account.id}><input aria-label={`${account.accountName} account`} checked={row.accounts[platform]?.includes(account.id) ?? false} className="accent-[#55c39a]" onChange={() => onToggleAccount(group.id, row, platform, account.id)} type="checkbox" /><span>{account.accountName}</span></label>)}</div></div>)}</div></td>
-      <td className="border-r border-white/[0.075] px-2 py-2"><div className="flex items-center gap-1"><input aria-label="Schedule start time" className={cellControlClassName} onChange={(event) => onUpdateRow(group.id, row.id, { scheduleStart: event.target.value })} type="time" value={row.scheduleStart} /><span className="text-[#718077]">to</span><input aria-label="Schedule end time" className={cellControlClassName} onChange={(event) => onUpdateRow(group.id, row.id, { scheduleEnd: event.target.value })} type="time" value={row.scheduleEnd} /></div><p className="mt-1 px-1 text-[10px] text-[#7f9086]">Random publish time</p></td>
-      <td className="border-r border-white/[0.075] px-3 py-2"><span className={cn("text-xs font-medium", row.saved ? "text-[#55c39a]" : "text-[#e2bc64]")}>{row.saved ? "saved" : "draft"}</span></td>
-      <td className="px-2 py-2"><div className="flex gap-1"><Button aria-label="Save automation row" className="size-8 rounded border-transparent bg-transparent p-0 text-[#55c39a] hover:border-[#2b634a] hover:bg-[#15261d]" onClick={() => onSaveRow(group.id, row.id)} type="button"><Save className="size-3.5" /></Button><Button aria-label="Delete automation row" className="size-8 rounded border-transparent bg-transparent p-0 text-[#ff9c8b] hover:border-[#61352e] hover:bg-[#2c1917]" disabled={group.rows.length === 1} onClick={() => onDeleteRow(row.id)} type="button"><Trash2 className="size-3.5" /></Button></div></td>
+      return <tr className={cn("group cursor-grab border-b border-[#e0e8df] bg-white transition-colors hover:bg-[#fbfdfb]", isEffectivelyHidden && "opacity-60")} draggable key={row.id} onDragStart={() => onDragStart(row.id)} style={rowStyle}>
+      <td className="relative border-r border-[#e5ece5] bg-[#fbfcfa] px-3 py-3 align-top">{superGroup ? <span className="absolute inset-y-0 left-0 w-1.5" style={{ backgroundColor: groupAccentColor }} /> : null}<div className="flex flex-col items-center gap-2"><GripVertical className="size-4 text-[#9aa89c]" /><input aria-label="Select automation row" className="size-4 accent-[#2f7251]" type="checkbox" /></div></td>
+      <td className="h-px border-r border-[#e5ece5] px-3 py-3 align-top"><div className="min-w-32 h-full flex flex-col justify-center rounded-lg border border-[#e3ebe3] bg-[#f8faf7] p-2.5"><p className="mb-2 text-[10px] font-semibold text-[#68756c]">Content type</p><div className="space-y-1.5">{CONTENT_TYPES.map((option) => { const selected = row.contentTypes.includes(option.value); return <label className={cn("flex items-center gap-2 rounded-md border px-2 py-1.5 text-xs font-medium transition-colors", selected ? "border-[#2f7251]/25 bg-[#e5f3e8] text-[#2f7251]" : "border-transparent text-[#829087]")} key={option.value}><input aria-label={`${option.label} content type`} checked={selected} className="size-3.5 accent-[#2f7251]" onChange={() => onToggleContentType(group.id, row, option.value)} type="checkbox" />{option.label}</label>; })}</div></div></td>
+      <td className="h-px border-r border-[#e5ece5] px-3 py-3 align-top"><div className="min-w-56 h-full flex flex-col justify-center gap-2.5">{row.contentTypes.length ? row.contentTypes.map((contentType) => <GeneratorModeSelector contentType={contentType} generator={row.generators[contentType] ?? RANDOM_GENERATOR} key={contentType} onSelect={(generator) => onSelectGenerator(group.id, row, contentType, generator)} onToggleInclude={(include) => onToggleRandomInclude(group.id, row, contentType, include)} randomIncludes={row.randomIncludes[contentType]} />) : <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-[#d9e3da] bg-[#fafcf9] p-3 text-center text-xs text-[#829087]">Select a content type to configure its generator.</div>}</div></td>
+      <td className="h-px border-r border-[#e5ece5] px-3 py-3 align-top"><div className="min-w-28 h-full flex flex-col justify-center rounded-lg border border-[#e3ebe3] bg-[#f8faf7] p-2.5"><span className="block text-[10px] font-semibold text-[#68756c]">Outputs per day</span><select aria-label="Outputs per automation row" className="mt-1.5 h-10 w-full rounded-md border border-[#dfe7df] bg-white px-2.5 text-xl font-semibold text-[#1f2922] outline-none focus:border-[#2f7251] focus:ring-2 focus:ring-[#2f7251]/15" onChange={(event) => onUpdateRow(group.id, row.id, { quantity: Number(event.target.value) })} value={row.quantity}>{CONTENT_QUANTITY_OPTIONS.map((quantity) => <option key={quantity} value={quantity}>{quantity}</option>)}</select><span className="mt-2 block text-[10px] leading-4 text-[#68756c]">Expected: {outputMix}</span><span className="mt-1 block text-[10px] font-medium text-[#2f7251]">Est. {formatAutomationCostTry(outputCostEstimate.oneOffTry)}/day</span></div></td>
+      <td className="h-px border-r border-[#e5ece5] px-3 py-3 align-top"><div className="min-w-52 h-full flex flex-col justify-center space-y-2 rounded-lg border border-[#e3ebe3] bg-[#f8faf7] p-2.5"><AutomationLanguageSelect label="Learning language" onChange={(language) => onUpdateRow(group.id, row.id, { language })} value={row.language} /><AutomationLanguageSelect label="Native language" onChange={(nativeLanguage) => onUpdateRow(group.id, row.id, { nativeLanguage })} value={row.nativeLanguage} /><label className="block space-y-1"><span className="block text-[10px] font-semibold text-[#68756c]">Tier</span><select aria-label="Tier" className={cellControlClassName} onChange={(event) => onUpdateRow(group.id, row.id, { tier: event.target.value as TierSelection })} value={row.tier}><option value="random">Random</option>{TIERS.map((option) => <option key={option} value={option}>{option}</option>)}</select></label></div></td>
+      <td className="h-px border-r border-[#e5ece5] px-3 py-3 align-top"><div className="min-w-48 h-full flex flex-col justify-center rounded-lg border border-[#e3ebe3] bg-[#f8faf7] p-2.5"><p className="text-[10px] font-semibold text-[#68756c]">Networks</p><p className="mt-1 text-[10px] leading-4 text-[#829087]">Post once to each selected network</p><div className="mt-2 flex flex-wrap gap-1.5">{platformOptions.map((platform) => { const selected = row.platforms.includes(platform.value); return <label className={cn("flex cursor-pointer items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors", selected ? "border-[#2f7251]/25 bg-[#e5f3e8] text-[#2f7251]" : "border-[#dfe7df] bg-white text-[#829087]")} key={platform.value}><input aria-label={`${platform.label} network`} checked={selected} className="size-3 accent-[#2f7251]" onChange={() => onTogglePlatform(group.id, row, platform.value)} type="checkbox" />{platform.label}</label>; })}</div></div></td>
+      <td className="h-px border-r border-[#e5ece5] px-3 py-3 align-top"><div className="min-w-56 h-full flex flex-col justify-center space-y-2 rounded-lg border border-[#e3ebe3] bg-[#f8faf7] p-2.5"><p className="text-[10px] font-semibold text-[#68756c]">Accounts</p>{row.platforms.length ? row.platforms.map((platform) => <div className="rounded-md border border-[#e1e9e1] bg-white p-2" key={platform}><p className="text-[11px] font-semibold text-[#2f7251]">{platformOptions.find((item) => item.value === platform)?.label}</p><div className="mt-1.5 space-y-1">{getAccountsForPlatform(socialAccounts, platform).toSorted((first, second) => first.accountName.localeCompare(second.accountName)).map((account) => <label className="flex items-center gap-1.5 text-[11px] text-[#4d5d51]" key={account.id}><input aria-label={`${account.accountName} account`} checked={row.accounts[platform]?.includes(account.id) ?? false} className="size-3.5 accent-[#2f7251]" onChange={() => onToggleAccount(group.id, row, platform, account.id)} type="checkbox" /><span className="truncate">{account.accountName}</span></label>)}</div></div>) : <p className="rounded-md border border-dashed border-[#d9e3da] px-2 py-2 text-[11px] text-[#829087]">Select a network first.</p>}</div></td>
+      <td className="h-px border-r border-[#e5ece5] px-3 py-3 align-top"><div className="min-w-40 h-full flex flex-col justify-center rounded-lg border border-[#e3ebe3] bg-[#f8faf7] p-2.5"><p className="text-[10px] font-semibold text-[#68756c]">Publish window</p><div className="mt-2 flex items-center gap-1.5"><label className="min-w-0 flex-1"><span className="sr-only">Start time</span><input aria-label="Schedule start time" className={cellControlClassName} onChange={(event) => onUpdateRow(group.id, row.id, { scheduleStart: event.target.value })} type="time" value={row.scheduleStart} /></label><span className="text-xs font-medium text-[#9aa89c]">to</span><label className="min-w-0 flex-1"><span className="sr-only">End time</span><input aria-label="Schedule end time" className={cellControlClassName} onChange={(event) => onUpdateRow(group.id, row.id, { scheduleEnd: event.target.value })} type="time" value={row.scheduleEnd} /></label></div><p className="mt-2 text-[10px] leading-4 text-[#829087]">Random publish time</p></div></td>
+      <td className="h-px border-r border-[#e5ece5] px-3 py-3 align-middle text-center"><div className="flex h-full min-h-10 items-center justify-center"><span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-semibold", row.saved ? "bg-[#e5f3e8] text-[#2f7251]" : "bg-[#fff3d8] text-[#9a690b]")}>{row.saved ? "saved" : "draft"}</span></div></td>
+      <td className="h-px px-3 py-3 align-middle"><div className="flex h-full min-h-10 flex-col items-center justify-center gap-2"><Button aria-label="Save automation row" className="size-9 rounded-md border-transparent bg-[#2f7251] p-0 text-white hover:bg-[#245d40]" onClick={() => onSaveRow(group.id, row.id)} type="button"><Save className="size-4" /></Button><Button aria-label="Delete automation row" className="size-9 rounded-md border-transparent bg-[#f0e2df] p-0 text-[#a44e43] hover:bg-[#f5d4cf]" disabled={group.rows.length === 1} onClick={() => onDeleteRow(row.id)} type="button"><Trash2 className="size-4" /></Button></div></td>
     </tr>;
     }) : null}
   </>;
@@ -938,8 +887,8 @@ function GeneratorModeSelector({ contentType, generator, randomIncludes, onSelec
   const selectedIncludes = normalizeRandomIncludes(contentType, randomIncludes);
   const includeOptions = RANDOM_INCLUDE_OPTIONS[contentType];
 
-  return <div>
-    <label className="block"><span className="mb-1 block text-[10px] font-semibold text-[#8d9b92]">{CONTENT_TYPES.find((option) => option.value === contentType)?.label} generator</span><select aria-label={`${contentType} generator mode`} className={cellControlClassName} onChange={(event) => onSelect(event.target.value)} value={generator}>{AUTOMATION_GENERATOR_OPTIONS[contentType].map((option) => <option key={option.value} value={option.value}>{option.source ? `${option.label} — ${option.source}` : option.label}</option>)}</select></label>
-    {isRandom ? <fieldset className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-l border-[#55c39a]/50 pl-2"><legend className="sr-only">Random includes</legend><span className="text-[10px] text-[#8d9b92]">Include:</span>{includeOptions.map((option) => <label className="flex items-center gap-1 text-[10px] text-[#d7e2da]" key={option.value}><input aria-label={`${contentType} random includes ${option.label}`} checked={selectedIncludes.includes(option.value as never)} className="accent-[#55c39a]" disabled={includeOptions.length === 1} onChange={() => onToggleInclude(option.value)} type="checkbox" />{option.label}</label>)}</fieldset> : null}
+  return <div className="flex min-h-0 flex-1 flex-col justify-center rounded-lg border border-[#e3ebe3] bg-[#f8faf7] p-2.5">
+    <label className="block"><span className="mb-1.5 block text-[10px] font-semibold text-[#68756c]">{CONTENT_TYPES.find((option) => option.value === contentType)?.label} generator</span><select aria-label={`${contentType} generator mode`} className={cellControlClassName} onChange={(event) => onSelect(event.target.value)} value={generator}>{AUTOMATION_GENERATOR_OPTIONS[contentType].map((option) => <option key={option.value} value={option.value}>{option.source ? `${option.label} — ${option.source}` : option.label}</option>)}</select></label>
+    {isRandom ? <fieldset className="mt-2 flex flex-wrap items-center gap-1.5"><legend className="sr-only">Random includes</legend><span className="mr-1 text-[10px] font-semibold text-[#68756c]">Include:</span>{includeOptions.map((option) => <label className="flex items-center gap-1 rounded-full border border-[#dfe7df] bg-white px-2 py-1 text-[10px] font-medium text-[#4d5d51]" key={option.value}><input aria-label={`${contentType} random includes ${option.label}`} checked={selectedIncludes.includes(option.value as never)} className="size-3 accent-[#2f7251]" disabled={includeOptions.length === 1} onChange={() => onToggleInclude(option.value)} type="checkbox" />{option.label}</label>)}</fieldset> : null}
   </div>;
 }

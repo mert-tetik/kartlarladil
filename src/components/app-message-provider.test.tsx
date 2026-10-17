@@ -80,4 +80,42 @@ describe("AppMessageProvider", () => {
     });
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
+
+  it("shows messages posted by the embedded offline shell", () => {
+    render(
+      <AppMessageProvider>
+        <iframe title="Offline screen" data-offline-shell-frame="true" />
+      </AppMessageProvider>,
+    );
+    const offlineFrame = document.querySelector<HTMLIFrameElement>('iframe[data-offline-shell-frame="true"]');
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent("message", {
+        origin: window.location.origin,
+        source: offlineFrame?.contentWindow,
+        data: { type: "foxiesdeck:app-message", message: "Still offline", tone: "error" },
+      }));
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Still offline");
+  });
+
+  it("ignores messages from another origin", () => {
+    render(
+      <AppMessageProvider>
+        <iframe title="Offline screen" data-offline-shell-frame="true" />
+      </AppMessageProvider>,
+    );
+    const offlineFrame = document.querySelector<HTMLIFrameElement>('iframe[data-offline-shell-frame="true"]');
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent("message", {
+        origin: "https://example.com",
+        source: offlineFrame?.contentWindow,
+        data: { type: "foxiesdeck:app-message", message: "Untrusted", tone: "error" },
+      }));
+    });
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
 });

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { scheduleReadyAutomationRun } from "@/features/twitter-automation/automation-run-service";
+import { logAutomationRequestFailure, scheduleReadyAutomationRun } from "@/features/twitter-automation/automation-run-service";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { automationOwnerKey, normalizeAutomationScope } from "@/features/twitter-automation/automation-scope";
@@ -27,12 +27,22 @@ export async function POST(request: NextRequest) {
       .eq("id", parsed.data.runId)
       .eq("owner_key", ownerKey)
       .maybeSingle();
-    if (error) return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
-    if (!run) return NextResponse.json({ errorCode: "automation_run_not_found" }, { status: 404 });
+    if (error) {
+      logAutomationRequestFailure("automation_schedule_run_read_failed", error, { runId: parsed.data.runId, scope });
+      return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
+    }
+    if (!run) {
+      logAutomationRequestFailure("automation_schedule_run_not_found", new Error("automation_run_not_found"), { runId: parsed.data.runId, scope });
+      return NextResponse.json({ errorCode: "automation_run_not_found" }, { status: 404 });
+    }
 
     const result = await scheduleReadyAutomationRun(run.id);
     return NextResponse.json(result);
   } catch (error) {
+    logAutomationRequestFailure("automation_schedule_request_failed", error, {
+      runId: parsed.data.runId,
+      scope,
+    });
     return NextResponse.json({ errorCode: error instanceof Error ? error.message : "automation_schedule_failed" }, { status: 502 });
   }
 }

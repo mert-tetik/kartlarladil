@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { SocialContentStudioPage } from "@/features/twitter-automation/components/twitter-automation-page";
-import { requireDeveloperAdmin } from "@/features/developer/developer-auth";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default async function SocialMediasRoute() {
-  await requireDeveloperAdmin("/content-automation/social-medias");
-  return <SocialContentStudioPage view="social-medias" />;
+  redirect("/developer/social-analytics");
 }

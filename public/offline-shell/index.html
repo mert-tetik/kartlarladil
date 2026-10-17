@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#090909" />
+    <title>FoxiesDeck — Offline</title>
+    <style>
+      @font-face {
+        font-family: "Super Water";
+        src: url("/offline-shell/super-water.ttf") format("truetype");
+        font-display: swap;
+      }
+
+      :root {
+        color-scheme: dark;
+        --brand: #f76808;
+        --brand-pressed: #c94d00;
+        --background: #090909;
+        --surface: #121212;
+        --surface-muted: #1a1a1a;
+        --border: #262626;
+        --text: #fafafa;
+        --text-secondary: #a3a3a3;
+        font-family: "Manrope", "Segoe UI", system-ui, sans-serif;
+        background: var(--background);
+        color: var(--text);
+      }
+
+      * { box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; overflow: hidden; }
+      body { margin: 0; background: var(--background); text-align: center; }
+      button, input { font: inherit; }
+      button { color: inherit; cursor: pointer; }
+      button:focus-visible, input:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+
+      .page {
+        display: flex;
+        width: min(100%, 620px);
+        height: 100dvh;
+        min-height: 0;
+        flex-direction: column;
+        margin: 0 auto;
+        padding: env(safe-area-inset-top) 18px 0;
+      }
+
+      .page-content { min-height: 0; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 14px; scrollbar-color: #3b3b3b transparent; scrollbar-width: thin; }
+      .hero { padding: 54px 0 20px; text-align: center; }
+      h1 { margin: 0; font-size: clamp(27px, 7vw, 34px); font-weight: 700; line-height: 1.08; letter-spacing: -0.035em; }
+      .super-water-locale h1, .super-water-locale .section-title, .super-water-locale .dialog-title, .super-water-locale .language-picker > label { font-family: "Super Water", "Segoe UI", sans-serif; font-weight: 400; letter-spacing: 0; }
+
+      .reconnect-dock { flex: 0 0 auto; padding: 12px 0 max(36px, calc(env(safe-area-inset-bottom) + 20px)); background: linear-gradient(180deg, rgb(9 9 9 / 0), var(--background) 28%); }
+      .reconnect {
+        display: flex;
+        width: 100%;
+        min-height: 49px;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        border: 0;
+        border-bottom: 3px solid var(--brand-pressed);
+        border-radius: 8px;
+        color: #fff;
+        background: var(--brand);
+        font-size: 15px;
+        font-weight: 700;
+        transition: transform 120ms ease, filter 120ms ease;
+      }
+      .reconnect svg { width: 18px; height: 18px; }
+      .reconnect:active { transform: translateY(2px); border-bottom-width: 1px; filter: brightness(.96); }
+      .reconnect[disabled] { opacity: .72; cursor: wait; }
+      .panel { margin-top: 16px; padding: 15px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); text-align: center; }
+      .language-picker { position: relative; z-index: 10; display: grid; gap: 6px; margin: 0 0 14px; text-align: center; }
+      .language-picker label { color: var(--text-secondary); font-size: 12px; font-weight: 700; }
+      .language-select { display: flex; width: 100%; min-height: 50px; align-items: center; justify-content: center; gap: 10px; padding: 0 14px; border: 1px solid var(--border); border-radius: 8px; color: var(--text); background: var(--surface); font-size: 14px; font-weight: 700; text-align: center; }
+      .language-select svg { width: 18px; height: 18px; flex: 0 0 auto; }
+      .language-options { position: absolute; top: calc(100% + 6px); right: 0; left: 0; max-height: min(52dvh, 420px); overflow-y: auto; overscroll-behavior: contain; padding: 5px; border: 1px solid var(--border); border-radius: 9px; background: #171717; box-shadow: 0 4px 12px #0008; }
+      .language-options[hidden] { display: none !important; }
+      .language-option { display: flex; width: 100%; min-height: 56px; align-items: center; justify-content: center; padding: 10px 12px; border: 0; border-radius: 6px; color: var(--text); background: transparent; font-size: 15px; text-align: center; }
+      .language-option[aria-selected="true"] { color: #fff; background: color-mix(in srgb, var(--brand) 30%, #171717); }
+      .language-option:focus-visible { outline-offset: -3px; }
+      .saved-cards-panel { margin-top: 46px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+      .notes-panel { margin-top: 46px; padding: 0; border: 0; border-radius: 0; background: transparent; transform: translateY(-10px); }
+      .panel-heading { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 7px; text-align: center; }
+      h2 { margin: 0; font-size: 16px; font-weight: 700; line-height: 1.3; }
+      .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 11px; }
+      .card { display: flex; min-width: 0; min-height: 286px; flex-direction: column; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 9px; color: #111827; background: #fff; box-shadow: 0 1px 2px #0003; }
+      .card-header { display: flex; min-height: 34px; align-items: center; justify-content: center; gap: 5px; padding: 6px 8px; color: #fff; background: var(--tier-accent); font-size: 9px; font-weight: 700; text-align: center; }
+      .card-tier { flex: 0 0 auto; }
+      .card-language { min-width: 0; overflow: hidden; opacity: .9; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+      .card-body { display: flex; min-height: 0; flex: 1; flex-direction: column; align-items: center; justify-content: center; padding: 9px 8px 8px; text-align: center; }
+      .card-meta { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 6px; color: #64748b; font-size: 8px; font-weight: 700; }
+      .card-points { display: inline-flex; align-items: center; gap: 2px; color: var(--tier-ink); }
+      .card-points svg { width: 10px; height: 10px; fill: currentColor; }
+      .card-pronunciation { display: flex; min-height: 15px; align-items: center; gap: 4px; color: #64748b; font-size: 8px; }
+      .card-pronunciation svg { width: 11px; height: 11px; flex: 0 0 auto; }
+      .card-term { max-width: 100%; margin: 8px 0 0; color: #111827; font-family: Georgia, "Times New Roman", serif; font-size: clamp(17px, 5vw, 23px); font-weight: 700; line-height: 1.12; overflow-wrap: anywhere; }
+      .card-kind { min-height: 12px; margin-top: 3px; color: #64748b; font-size: 8px; }
+      .card-translation { max-width: 100%; margin: 7px 0 0; color: #334155; font-size: 11px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+      .card-footer { min-height: 52px; padding: 7px 8px 8px; color: #fff; background: var(--tier-accent); }
+      .card-example { display: -webkit-box; min-height: 0; overflow: hidden; margin: 0 0 5px; font-size: 8px; line-height: 1.25; opacity: .95; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+      .card-progress-label { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 8px; font-weight: 700; line-height: 1.2; text-align: center; }
+      .card-progress-track { height: 4px; overflow: hidden; margin-top: 4px; border-radius: 99px; background: #ffffff66; }
+      .card-progress-fill { height: 100%; border-radius: inherit; background: #fff; }
+      .empty { grid-column: 1 / -1; padding: 8px 0 2px; color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+      .empty { padding: 8px 0 2px; color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+
+      .note-form { display: flex; gap: 8px; }
+      .note-input { width: 100%; min-width: 0; height: 46px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; outline: none; color: var(--text); background: var(--background); font-size: 14px; text-align: left; }
+      .note-input::placeholder { color: #737373; }
+      .note-input:focus { border-color: var(--brand); }
+      .note-input:focus-visible { outline: none; }
+      .add-note { display: grid; width: 46px; height: 46px; flex: 0 0 auto; place-items: center; border: 0; border-bottom: 3px solid var(--brand-pressed); border-radius: 8px; color: #fff; background: var(--brand); }
+      .add-note svg { width: 19px; height: 19px; }
+      .notes-list { display: grid; gap: 6px; margin-top: 10px; }
+      .notes-list:empty { margin-top: 0; }
+      .note-row { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 10px; border-radius: 7px; color: #e5e5e5; background: var(--surface-muted); font-size: 13px; text-align: center; }
+      .note-content { display: grid; min-width: 0; flex: 1; gap: 2px; text-align: left; }
+      .note-language { color: var(--text-secondary); font-size: 11px; font-weight: 700; }
+      .note-text { min-width: 0; overflow-wrap: anywhere; }
+      .remove-note { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border: 0; border-radius: 6px; color: var(--text-secondary); background: transparent; font-size: 18px; }
+      .remove-note:hover { color: var(--text); background: #ffffff0c; }
+      .offline-app-message-host { position: fixed; z-index: 2000; inset: 0 0 auto; display: flex; justify-content: center; padding: calc(12px + env(safe-area-inset-top)) 16px 0; pointer-events: none; }
+      .offline-app-message { display: flex; width: 100%; max-width: 448px; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; color: #fff; background: #dc2626; box-shadow: 0 1px 2px #0003; font-size: 14px; font-weight: 700; text-align: left; touch-action: pan-y; user-select: none; opacity: 0; transform: translate3d(var(--message-drag-offset, 0px), -20px, 0); transition: transform 420ms cubic-bezier(.85, 0, .15, 1), opacity 420ms cubic-bezier(.85, 0, .15, 1); pointer-events: auto; }
+      .offline-app-message[data-app-message="success"] { background: #059669; }
+      .offline-app-message[data-visible="true"] { opacity: 1; transform: translate3d(var(--message-drag-offset, 0px), 0, 0); }
+      .offline-app-message[data-dragging="true"] { transition: none; }
+      .offline-app-message[data-dismissing="true"] { opacity: 0; transform: translate3d(var(--message-dismiss-offset, 0px), 0, 0); }
+      .offline-app-message svg { width: 20px; height: 20px; flex: 0 0 auto; }
+      .offline-app-message-text { min-width: 0; flex: 1; }
+      .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
+
+      @media (min-width: 540px) {
+        .page { padding-right: 24px; padding-left: 24px; }
+        .hero { padding-top: 60px; }
+        .cards { gap: 14px; }
+        .card { min-height: 320px; }
+        .card-header { min-height: 40px; padding: 8px 10px; font-size: 10px; }
+        .card-body { padding: 12px; }
+        .card-meta { font-size: 9px; }
+        .card-pronunciation, .card-kind { font-size: 9px; }
+        .card-term { font-size: 28px; }
+        .card-translation { font-size: 13px; }
+        .card-footer { padding: 9px 10px; }
+        .card-example, .card-progress-label { font-size: 9px; }
+        .modal { align-items: center; padding: 20px; }
+        .dialog { max-height: min(82dvh, 760px); padding: 20px; border-radius: 12px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+      }
+    </style>
+  </head>
+  <body data-offline-shell>
+    <main class="page" id="offline-app">
+      <div class="page-content" id="offline-content">
+        <section class="hero" aria-labelledby="offline-title">
+          <h1 id="offline-title"></h1>
+        </section>
+
+        <div class="language-picker" id="language-picker">
+          <label for="card-language-select" id="card-language-label"></label>
+          <button class="language-select" id="card-language-select" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="card-language-options">
+            <span id="card-language-current"></span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="language-options" id="card-language-options" role="listbox" aria-labelledby="card-language-label" hidden></div>
+        </div>
+
+        <section class="panel notes-panel" aria-labelledby="notes-title">
+          <div class="panel-heading"><h2 class="section-title" id="notes-title"></h2></div>
+          <form class="note-form" id="note-form">
+            <label class="sr-only" for="note-input" id="note-label"></label>
+            <input class="note-input" id="note-input" maxlength="120" autocomplete="off" />
+            <button class="add-note" id="add-note" type="submit" aria-label="Add note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+          </form>
+          <div class="notes-list" id="notes-list"></div>
+        </section>
+
+        <section class="panel saved-cards-panel" id="saved-cards-panel" aria-labelledby="deck-title">
+          <div class="panel-heading"><h2 class="section-title" id="deck-title"></h2></div>
+          <div class="cards" id="saved-cards"></div>
+        </section>
+      </div>
+
+      <div class="reconnect-dock" id="reconnect-dock">
+        <button class="reconnect" id="reconnect" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M5.6 9A7 7 0 0 1 17.2 6.5L20 12M4 12l2.8 5.5A7 7 0 0 0 18.4 15"/></svg>
+          <span id="reconnect-label"></span>
+        </button>
+      </div>
+    </main>
+    <div class="offline-app-message-host" id="standalone-app-message-host" aria-live="polite"></div>
+
+    <script src="/offline-shell/offline-shell.js" defer></script>
+  </body>
+</html>

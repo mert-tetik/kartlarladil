@@ -3,6 +3,7 @@ import type { LanguageCode } from "@/types/domain";
 
 export const LANDING_CARD_LANGUAGE_KEY = "foxiesdeck:landing-card-language";
 const LANDING_CARD_LANGUAGE_EVENT = "foxiesdeck:landing-card-language-changed";
+const LANDING_CARD_LANGUAGE_SYNC_EVENT = "foxiesdeck:landing-card-language-persisted";
 
 export function readLandingCardLanguage(): LanguageCode | null {
   if (typeof window === "undefined") {
@@ -23,6 +24,7 @@ export function writeLandingCardLanguage(language: LanguageCode, options?: { not
   }
 
   window.localStorage.setItem(LANDING_CARD_LANGUAGE_KEY, language);
+  window.dispatchEvent(new Event(LANDING_CARD_LANGUAGE_SYNC_EVENT));
 
   if (options?.notify !== false) {
     window.dispatchEvent(new Event(LANDING_CARD_LANGUAGE_EVENT));
@@ -42,5 +44,19 @@ export function subscribeLandingCardLanguage(onStoreChange: () => void) {
   return () => {
     window.removeEventListener("storage", handleStorage);
     window.removeEventListener(LANDING_CARD_LANGUAGE_EVENT, onStoreChange);
+  };
+}
+
+export function subscribeLandingCardLanguageSync(onStoreChange: () => void) {
+  function handleStorage(event: StorageEvent) {
+    if (event.key === LANDING_CARD_LANGUAGE_KEY) onStoreChange();
+  }
+
+  window.addEventListener("storage", handleStorage);
+  window.addEventListener(LANDING_CARD_LANGUAGE_SYNC_EVENT, onStoreChange);
+
+  return () => {
+    window.removeEventListener("storage", handleStorage);
+    window.removeEventListener(LANDING_CARD_LANGUAGE_SYNC_EVENT, onStoreChange);
   };
 }

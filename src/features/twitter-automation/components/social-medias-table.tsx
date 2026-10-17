@@ -203,7 +203,7 @@ export function SocialMediasTable({ onBack, onOpenAutomations }: { onBack: () =>
     <header className="flex min-h-14 shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#171a19] px-3 sm:px-5">
       <div className="flex min-w-0 items-center gap-3">
         <Button aria-label="Back to content studio" className="size-8 shrink-0 rounded border-white/10 bg-transparent p-0 text-[#d7e2da] hover:bg-white/[0.06]" onClick={onBack} type="button"><ArrowLeft className="size-4" /></Button>
-        <div className="min-w-0"><p className="truncate text-sm font-semibold">Content automation</p><p className="truncate text-xs text-[#8d9b92]">public.social_medias</p></div>
+        <div className="min-w-0"><p className="truncate text-sm font-semibold">Content Automation</p><p className="truncate text-xs text-[#8d9b92]">public.social_medias</p></div>
       </div>
       <div className="hidden items-center gap-2 text-xs text-[#829287] sm:flex"><span className={cn("size-2 rounded-full", syncState === "error" ? "bg-[#ed7784]" : syncState === "loading" || syncState === "saving" ? "bg-[#f0b849]" : "bg-[#55c39a]")} />{statusLabel}</div>
       <Button className="h-8 rounded border-transparent bg-[#c7f05d] px-3 text-xs text-black hover:bg-[#d6ff73]" onClick={onOpenAutomations} type="button">Automation table</Button>

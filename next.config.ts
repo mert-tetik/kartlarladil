@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import withPWA from "@ducanh2912/next-pwa";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -21,9 +22,29 @@ function readImageCacheManifest(): ImageCacheManifest {
 }
 
 const imageCacheManifest = readImageCacheManifest();
+const offlineShellManifestEntries = [
+  "offline-shell/index.html",
+  "offline-shell/offline-shell.js",
+  "offline-shell/super-water.ttf",
+  "offline-shell/foxies-mark.webp",
+].flatMap((relativePath) => {
+  const filePath = join(process.cwd(), "public", relativePath);
+  if (!existsSync(filePath)) return [];
 
-// Keep the app shell online-first. Only image requests are persisted by the
-// service worker, so authenticated pages and API responses never become stale.
+  return [{
+    url: `/${relativePath}`,
+    revision: createHash("sha256").update(readFileSync(filePath)).digest("hex"),
+  }];
+});
+
+const precacheEntries = [
+  ...(imageCacheManifest.criticalAssets ?? []),
+  ...offlineShellManifestEntries,
+];
+const precacheEntriesByUrl = new Map(precacheEntries.map((entry) => [entry.url, entry]));
+
+// Keep authenticated pages and API responses network-only. Images use runtime
+// caching, while the compact offline shell is explicitly precached below.
 const imageRuntimeCaching = [
   {
     urlPattern: ({ request }: { request: Request }) => request.destination === "image",
@@ -44,7 +65,10 @@ const imageRuntimeCaching = [
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
-  serverExternalPackages: ["@resvg/resvg-js", "sharp"],
+  serverExternalPackages: ["@resvg/resvg-js", "ffmpeg-static", "sharp"],
+  outputFileTracingIncludes: {
+    "/*": ["./node_modules/ffmpeg-static/ffmpeg", "./node_modules/ffmpeg-static/ffmpeg.exe"],
+  },
   images: {
     localPatterns: [
       {
@@ -107,7 +131,7 @@ export default withPWA({
   workboxOptions: {
     // Keep service worker installation small. The rest of the visual catalog
     // is filled by the TWA image cache gate after the app becomes interactive.
-    additionalManifestEntries: imageCacheManifest.criticalAssets ?? [],
+    additionalManifestEntries: [...precacheEntriesByUrl.values()],
     runtimeCaching: imageRuntimeCaching,
   },
   fallbacks: {

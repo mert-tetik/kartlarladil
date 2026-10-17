@@ -4,27 +4,38 @@ import { isLanguageCode } from "@/data/languages";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { generateSocialStudioTextWithFallback, getSocialStudioResponsesErrorCode, getSocialStudioResponsesProviderLabel, SOCIAL_CONTENT_TEXT_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
+import { finalizeNativeCaption } from "@/features/twitter-automation/social-video-titles";
 import type { LanguageCode } from "@/types/domain";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 600;
 
+const SOCIAL_TEXT_START_MARKER = "[[FOXIESDECK_TEXT_START]]";
+
 const BASE_INSTRUCTIONS = [
   "Write one short X post for the selected mode.",
   "Write the post and explanations in the selected native language. Use the selected learning language only for vocabulary examples, questions, and target-language phrases.",
   "Use 2-4 relevant emojis generously and naturally throughout the post.",
-  "Always put hashtags on their own final line, separated from the content by a blank line. End with 2 or 3 relevant hashtags, including #languagelearning.",
-  "Stay below 280 characters. Return only the post text. Never use an em dash or an en dash; use commas or full stops instead.",
+  "Do not write or output hashtags. The app appends curated hashtags for the selected learning language after generation.",
+  "Keep the post concise enough to leave room for the app-generated hashtags, and stay below 280 characters after they are appended. Return only the post text. Never use an em dash or an en dash; use commas or full stops instead.",
   "Return plain text only. Never use Markdown formatting, including asterisks for bold or italics, headings, code fences, block quotes, or Markdown links.",
+  `The response must begin with the exact marker ${SOCIAL_TEXT_START_MARKER}. After the marker, start the post from its first complete character. Never begin mid-word or mid-sentence. The marker is a transport check and will be removed before display.`,
   "If the post asks followers a question, quiz, or challenge, never reveal, state, or hint at the answer. Leave the answer for comments and engagement.",
   "Do not promote FoxiesDeck, the app, cards, decks, reviewing, or any product benefit unless the mode specifically asks for it.",
   "The content must be completely random. Do not repeat any word, sentence, example, or false-friend pair used in previous generations, even when this request runs immediately after another one.",
 ];
 
+function removeSocialTextStartMarker(output: string) {
+  const trimmed = output.trim();
+  return trimmed.startsWith(SOCIAL_TEXT_START_MARKER)
+    ? trimmed.slice(SOCIAL_TEXT_START_MARKER.length).trim()
+    : "";
+}
+
 const CONTENT_RULES = {
   "fun-post": "Write one short, playful, shareable X post about FoxiesDeck, the selected learning language, or the experience of learning that language. The central subject is completely free and does not need to be a vocabulary word, translation, or false friend. Follow the supplied creative direction, then invent a fresh specific premise instead of defaulting to a familiar word or example. Build a clear miniature story in this order: setup, the learner's realisation or contrast, then one concise punchline or natural FoxiesDeck action. Every sentence must follow logically from the sentence before it, with an unambiguous subject and a clear payoff. When a joke uses a specific word, phrase, translation, false friend, grammar point, or pronunciation, every linguistic claim must be factually accurate. Never build a joke on a false meaning or a contradiction; if you mention a false friend, make both the common misreading and the real meaning explicit and correct. Do not use random surreal metaphors, vague emotional-support jokes, or a punchline that changes the topic. Put every sentence or complete thought on its own line for easy scanning; never place two sentences on the same content line. Use a genuinely funny, scroll-stopping Gen Z observation, a small unexpected twist, or a relatable learner fail. Write in the selected native language's natural, current Gen Z internet voice. Every post must include at least one authentic local Gen Z or online-slang expression and at least one locally natural shortened word or abbreviation. For Turkish, examples include 'yapÄ±yo' instead of 'yapÄ±yor' or 'bi' instead of 'bir'. Do not force English slang or invented abbreviations into another language. Be deliberately relaxed with punctuation and grammar, as in a real casual post, while keeping the meaning coherent. When showing laughter or being overwhelmed, use ğŸ˜­ and/or ğŸ’€ rather than laughing-face emojis. It should feel like a witty human who actually studies languages wrote it, not a generic motivational brand. Keep the humor warm, never mean or cringe. Mention FoxiesDeck or one concrete product benefit naturally, only if it improves the joke. Avoid bland claims such as 'make learning fun', 'unlock your potential', or 'start your journey'.",
-  "word-quiz": "Create a quick multiple-choice vocabulary quiz about the selected learning language. The question sentence and every instruction must be written in the selected native language. Use the selected learning language only for the target word or phrase being quizzed and, where natural, the answer choices. Start directly with the native-language question on its own line. Put each choice A), B), C), D) on its own line. After the last choice, add a blank line and then write a native-language line like 'Write the answer in the comments!' (e.g. 'CevabÄ± yorumlara yaz!'). Add another blank line and put the hashtags on their own final line. Never reveal or hint at the answer.",
+  "word-quiz": "Create a quick multiple-choice vocabulary quiz about the selected learning language. The question sentence and every instruction must be written in the selected native language. Use the selected learning language only for the target word or phrase being quizzed and, where natural, the answer choices. Start directly with the native-language question on its own line. Put each choice A), B), C), D) on its own line. After the last choice, add a blank line and then write a native-language line like 'Write the answer in the comments!' (e.g. 'CevabÄ± yorumlara yaz!'). Never reveal or hint at the answer. Do not add hashtags.",
   "language-tip": "Write one practical grammar, usage, or pronunciation tip for the selected learning language, with one tiny correct example. No FoxiesDeck marketing. Use emojis.",
   "false-friends": "Create a concise comparison of exactly two real, useful words from the selected learning language that share a meaning area but are not interchangeable. This is a nuance comparison, not a comparison of deceptive cognates or unrelated words. Pick the pair yourself completely at random, such as two words that both express anger but differ in intensity, register, scope, typical situation, or emotional force. State each word and its short native-language meaning, then clearly explain in the selected native language when and why one word differs from the other. For example, a pair like angry and furious must make the difference in strength clear, but never default to that pair. Put each word on its own line and use short separate lines for the contrast so it is easy to scan. No FoxiesDeck marketing.",
   "daily-challenge": "Set a friendly daily challenge with three useful words in the selected learning language, each with its meaning in the selected native language. List each word and meaning on its own separate line in exactly this plain-text format: target word = native-language meaning. Use an equals sign with one space on each side, never a comma, colon, dash, bullet, or Markdown formatting. End with one native-language line inviting the reader to add the words to their FoxiesDeck collection to remember them. No extra marketing claims.",
@@ -130,8 +141,13 @@ export async function POST(request: Request) {
       text: { format: { type: "text" }, verbosity: "low" },
       }, { signal }),
       extractResponseOutputText,
+      { validateOutput: (output) => removeSocialTextStartMarker(output).length > 0 },
     );
-    const post = output.trim();
+    const post = finalizeNativeCaption(removeSocialTextStartMarker(output), learningLanguage, {
+      hashtagCount: 3,
+      maxLength: 280,
+      nativeLanguage,
+    });
 
     if (!post) {
       return Response.json({

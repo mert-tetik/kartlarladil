@@ -6,7 +6,7 @@ import { hasSocialStudioSession } from "@/features/twitter-automation/social-stu
 import { generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
 import { generateSocialStudioTextWithFallback, getSocialStudioResponsesErrorCode, getSocialStudioResponsesProviderLabel, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
-import { createNativeVisualCaption, finalizeNativeCaption, getNativeCaptionHashtags } from "@/features/twitter-automation/social-video-titles";
+import { createNativeVisualCaption, finalizeNativeCaption } from "@/features/twitter-automation/social-video-titles";
 import { resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
@@ -146,7 +146,7 @@ async function createArtDirection(mode: ImageMode, language: LanguageCode, nativ
         ? "Return one JSON object with exactly three fields: artDirection, caption, and falseFriend. falseFriend is an object. Do not add markdown or any text outside the JSON object."
         : "Return one JSON object with exactly two string fields: artDirection and caption. Do not add markdown or any text outside the JSON object.",
       "artDirection must be a detailed, production-ready English image-generation prompt for a 1:1 social media visual.",
-      `caption must be a ready-to-post social caption written in the selected native language. It needs a concise hook or title and natural emoji only when appropriate. End with exactly these native-language hashtags: ${getNativeCaptionHashtags(nativeLanguage).join(" ")}. Do not use English hashtags unless English is the selected native language. Keep it below 260 characters. If the visual asks a question, quiz, or challenge, never reveal or hint at its answer in the caption.`,
+      "caption must be a ready-to-post social caption written in the selected native language. It needs a concise hook or title and natural emoji only when appropriate. Do not include any hashtags, because the app appends curated hashtags for the selected learning language after generation. Keep the caption itself below 240 characters. If the visual asks a question, quiz, or challenge, never reveal or hint at its answer in the caption.",
       "For False Friends mode only, also include a falseFriend object with exactly four string fields: firstTerm, secondTerm, firstMeaning, secondMeaning. Choose two real, related words from the selected learning language whose nuances differ clearly in intensity, register, scope, or typical situation. Do not choose cross-language false cognates, lookalikes, direct translations, antonyms, or interchangeable synonyms. The native language is only for writing the caption and explaining meanings, never for selecting the two terms. The pair must be completely random and must not repeat any false-friend pair used in the previous few generations.",
       `Caption format for this mode: ${CAPTION_BRIEFS[mode]}`,
       "Describe composition, camera angle, visual hierarchy, precise placement, lighting, material finish, typography treatment, and the relationship between the mascot and vocabulary cards.",
@@ -231,7 +231,7 @@ function createImagePrompt(mode: ImageMode, imagePlan: AiImagePlan) {
 }
 
 function createImageCaption(mode: ImageMode, language: LanguageCode, nativeLanguage: LanguageCode, fallbackCaption: string) {
-  if (mode === "ai-word-of-the-day") return finalizeNativeCaption(fallbackCaption, nativeLanguage);
+  if (mode === "ai-word-of-the-day") return finalizeNativeCaption(fallbackCaption, language, { nativeLanguage });
 
   const details = mode === "ai-mini-quiz"
     ? { kind: "miniQuiz" as const, itemCount: 1 }

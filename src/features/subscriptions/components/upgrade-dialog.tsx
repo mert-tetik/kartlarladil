@@ -5,7 +5,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button, buttonClassName } from "@/components/ui/button";
+import { useAppMessage } from "@/components/app-message-provider";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
+import { GOOGLE_PLAY_SUBSCRIPTIONS_URL } from "@/features/subscriptions/google-play-links";
+import { getGooglePlayErrorMessage, isGooglePlayPurchaseCancellation } from "@/features/subscriptions/google-play-errors";
+import { useSubscription } from "@/features/subscriptions/subscription-client";
+import { getGooglePlaySku } from "@/features/subscriptions/use-google-play-pricing";
+import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
+import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { vibrate } from "@/lib/vibration";
@@ -32,7 +39,10 @@ interface UpgradeDialogProps {
   selectedLanguage?: LanguageCode;
   onSwapLanguages?: () => void;
   activeCardLimitDetails?: ActiveCardLimitDetails | null;
+  activeCardLimitDescription?: string;
+  overlayClassName?: string;
   onPricingNavigate?: () => void;
+  onPurchaseSuccess?: () => void | Promise<void>;
 }
 
 export function UpgradeDialog({
@@ -42,12 +52,16 @@ export function UpgradeDialog({
   selectedLanguage,
   onSwapLanguages,
   activeCardLimitDetails,
+  activeCardLimitDescription,
+  overlayClassName,
   onPricingNavigate,
+  onPurchaseSuccess,
 }: UpgradeDialogProps) {
   const t = useT();
   const { locale } = useLocale();
   const router = useRouter();
   const requireAuthAction = useRequireAuthAction();
+  const isTwa = useTwaMode();
   const [renderedErrorCode, setRenderedErrorCode] = useState<UpgradeDialogErrorCode | null>(errorCode);
   const [isMounted, setIsMounted] = useState(Boolean(open && errorCode));
   const [isVisible, setIsVisible] = useState(false);
@@ -102,26 +116,34 @@ export function UpgradeDialog({
         {content.title}
       </h2>
       <p className={cn("mt-2 text-sm leading-6 sm:text-base", isLanguageMatchDialog ? "text-white" : "text-orange-50")}>
-        {content.description}
+        {activeErrorCode === "free_active_card_limit" ? activeCardLimitDescription ?? content.description : content.description}
       </p>
 
       <div className="mt-5 flex flex-col gap-2.5">
         {showsUpgradeCta ? (
-          <Link
-            href="/pricing"
-            data-tutorial-pricing-link
-            className={buttonClassName(
-              "primary",
-              "md",
-              "h-11 w-full rounded-xl bg-gradient-to-r from-[#fdf4a5] to-[#f5ac27] text-sm font-bold text-[#552000] hover:brightness-105 focus-visible:outline-[#fdf4a5]",
-            )}
-            onClick={() => {
-              onPricingNavigate?.();
-              onOpenChange(false);
-            }}
-          >
-            {formatSuperWaterUppercaseText(locale, t("limit.upgradeButtonFirstMonthFree"))}
-          </Link>
+          isTwa ? (
+            <GooglePlayRestrictionPurchaseCta
+              onOpenChange={onOpenChange}
+              onPricingNavigate={onPricingNavigate}
+              onPurchaseSuccess={onPurchaseSuccess}
+            />
+          ) : (
+            <Link
+              href="/pricing"
+              data-tutorial-pricing-link
+              className={buttonClassName(
+                "primary",
+                "md",
+                "h-11 w-full rounded-xl bg-gradient-to-r from-[#fdf4a5] to-[#f5ac27] text-sm font-bold text-[#552000] hover:brightness-105 focus-visible:outline-[#fdf4a5]",
+              )}
+              onClick={() => {
+                onPricingNavigate?.();
+                onOpenChange(false);
+              }}
+            >
+              {formatSuperWaterUppercaseText(locale, t("limit.upgradeButtonFirstMonthFree"))}
+            </Link>
+          )
         ) : null}
         {activeErrorCode === "free_active_card_limit" ? (
           <Button
@@ -181,6 +203,7 @@ export function UpgradeDialog({
     <div
       className={cn(
         "fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm transition-opacity duration-300 ease-out",
+        overlayClassName,
         isVisible ? "opacity-100" : "pointer-events-none opacity-0",
       )}
     >
@@ -204,6 +227,134 @@ export function UpgradeDialog({
       )}
     </div>,
     document.body,
+  );
+}
+
+function GooglePlayRestrictionPurchaseCta({
+  onOpenChange,
+  onPricingNavigate,
+  onPurchaseSuccess,
+}: {
+  onOpenChange: (open: boolean) => void;
+  onPricingNavigate?: () => void;
+  onPurchaseSuccess?: () => void | Promise<void>;
+}) {
+  const t = useT();
+  const { locale } = useLocale();
+  const requireAuthAction = useRequireAuthAction();
+  const { entitlements, isLoading: entitlementsLoading } = useSubscription();
+  const { purchase, isLoading: purchaseLoading, isSupported, getProductDetails } = useGooglePlayBilling();
+  const { showMessage } = useAppMessage();
+  const isPaidUser = entitlements?.effectivePlan != null && entitlements.effectivePlan !== "free";
+  const [monthlyPriceLabel, setMonthlyPriceLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isSupported || isPaidUser || entitlementsLoading) return;
+
+    let cancelled = false;
+    void getProductDetails(getGooglePlaySku("basic", "monthly"))
+      .then((item) => {
+        if (cancelled || !item || Array.isArray(item)) return;
+        const amount = Number(item.price.value);
+        let formattedAmount = `${item.price.value} ${item.price.currency}`;
+        if (Number.isFinite(amount)) {
+          try {
+            formattedAmount = new Intl.NumberFormat(locale, {
+              style: "currency",
+              currency: item.price.currency,
+            }).format(amount);
+          } catch {
+            // Keep the store-provided amount and currency if the locale is unsupported.
+          }
+        }
+        setMonthlyPriceLabel(`${formattedAmount}${t("pricing.perMonth")}`);
+      })
+      .catch(() => {
+        if (!cancelled) setMonthlyPriceLabel(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [entitlementsLoading, getProductDetails, isPaidUser, isSupported, locale, t]);
+
+  function openPlaySubscriptionManagement() {
+    onPricingNavigate?.();
+    window.open(GOOGLE_PLAY_SUBSCRIPTIONS_URL, "_blank", "noopener,noreferrer");
+  }
+
+  function handleClick() {
+    if (isPaidUser) {
+      openPlaySubscriptionManagement();
+      return;
+    }
+
+    requireAuthAction(() => {
+      onPricingNavigate?.();
+      void purchase(getGooglePlaySku("basic", "monthly"))
+        .then(() => {
+          showMessage(t("pricing.purchaseSuccessDescription"), "success");
+          onOpenChange(false);
+          if (onPurchaseSuccess) {
+            window.setTimeout(() => {
+              void Promise.resolve(onPurchaseSuccess()).catch((error: unknown) => {
+                console.error("Could not resume the restricted action after purchase:", error);
+              });
+            }, 320);
+          }
+        })
+        .catch((error: unknown) => {
+          if (isGooglePlayPurchaseCancellation(error)) return;
+          console.error("Google Play restriction purchase failed:", error);
+          showMessage(
+            getGooglePlayErrorMessage(
+              error,
+              t("pricing.error.checkoutFailed"),
+              t("pricing.error.clientAppUnavailable"),
+            ),
+            "error",
+          );
+        });
+    }, {
+      nextPath: typeof window === "undefined"
+        ? "/"
+        : `${window.location.pathname}${window.location.search}${window.location.hash}`,
+    });
+  }
+
+  const unavailable = !isPaidUser && !isSupported;
+  const purchaseLabel = isPaidUser
+    ? t("pricing.ctaManage")
+    : isSupported && monthlyPriceLabel
+      ? `${t("pricing.basic")} · ${monthlyPriceLabel}`
+      : `${t("pricing.basic")} · ${t("pricing.billingMonthly")}`;
+
+  return (
+    <>
+      <Button
+        type="button"
+        disabled={purchaseLoading || (!isPaidUser && (entitlementsLoading || !isSupported))}
+        data-restriction-google-play-purchase={!isPaidUser ? "basic_monthly" : undefined}
+        aria-label={isPaidUser ? t("pricing.ctaManage") : `${t("pricing.ctaSubscribe")}: ${purchaseLabel}`}
+        className={buttonClassName(
+          "primary",
+          "md",
+          "h-11 w-full rounded-xl bg-gradient-to-r from-[#fdf4a5] to-[#f5ac27] text-sm font-bold text-[#552000] hover:brightness-105 focus-visible:outline-[#fdf4a5]",
+        )}
+        onClick={handleClick}
+      >
+        {purchaseLoading || (!isPaidUser && entitlementsLoading)
+          ? t("common.loading")
+          : isPaidUser
+            ? formatSuperWaterUppercaseText(locale, t("pricing.ctaManage"))
+            : formatSuperWaterUppercaseText(locale, purchaseLabel)}
+      </Button>
+      {unavailable ? (
+        <p className="text-center text-xs leading-5 text-orange-50">
+          {t("pricing.googlePlayUnavailable")}
+        </p>
+      ) : null}
+    </>
   );
 }
 

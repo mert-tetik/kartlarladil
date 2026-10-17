@@ -64,9 +64,9 @@ export function createSocialStudioDiagnostic({
   );
   const detail = candidate?.message && candidate.message !== "Error"
     ? safeDetail(candidate.message)
-    : fallbackDetail;
+    : safeDetail(fallbackDetail);
 
-  return {
+  const diagnostic = {
     stage,
     ...(provider ? { provider } : {}),
     ...(providerStatus ? { providerStatus } : {}),
@@ -75,6 +75,9 @@ export function createSocialStudioDiagnostic({
     detail,
     retryable,
   };
+
+  console.error("[Social Content Studio] generation diagnostic", diagnostic);
+  return diagnostic;
 }
 
 export type SocialStudioFailurePayload = {

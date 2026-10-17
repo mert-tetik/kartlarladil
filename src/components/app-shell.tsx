@@ -4,6 +4,7 @@ import { CookieNotice } from "@/components/cookie-notice";
 import { GlobalTapVibration } from "@/components/global-tap-vibration";
 import { AppNavigation } from "@/components/app-navigation";
 import { AppImageCacheGate } from "@/components/app-image-cache-gate";
+import { AppCriticalMediaPreloader } from "@/components/app-critical-media-preloader";
 import { MobileViewportController } from "@/components/mobile-viewport-controller";
 import { RouteAwareShell } from "@/components/route-aware-shell";
 import { RouteTransitionProvider } from "@/components/route-transition-provider";
@@ -27,6 +28,10 @@ import { LocaleProvider } from "@/i18n/locale-provider";
 import { DailyStreakProvider } from "@/features/daily-streak/daily-streak-client";
 import { MobileDayStreakOverlayProvider } from "@/app/components/mobile-day-streak-overlay-provider";
 import { AppMessageProvider } from "@/components/app-message-provider";
+import { OfflineInventorySync } from "@/features/inventory/offline-inventory-sync";
+import { OfflineNotesConversionOverlay } from "@/features/inventory/components/offline-notes-conversion-overlay";
+import { OfflineRouteOverlay } from "@/app/offline/offline-route-overlay";
+import { SlowConnectionMonitor } from "@/components/slow-connection-monitor";
 
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { LocaleCode } from "@/types/domain";
@@ -49,6 +54,8 @@ export function AppShell({
         <MobileViewportController />
         <GlobalTapVibration />
         <AuthSessionProvider user={user}>
+        <OfflineInventorySync />
+        <OfflineNotesConversionOverlay />
         <DailyStreakProvider>
           <TwaAnalyticsProvider>
             <SubscriptionProvider>
@@ -71,8 +78,11 @@ export function AppShell({
                               <SiteFooter className="max-lg:hidden" />
                               <CookieNotice />
                               <LandingTutorial />
+                              <AppCriticalMediaPreloader />
                               <AppImageCacheGate />
                             </div>
+                            <OfflineRouteOverlay />
+                            <SlowConnectionMonitor />
                           </AskOverlayProvider>
                         </MobileDayStreakOverlayProvider>
                       </LeaderboardOverlayProvider>

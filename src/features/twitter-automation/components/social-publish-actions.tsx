@@ -47,8 +47,10 @@ function PlatformIcon({ platform }: { platform: string }) {
   return <svg {...common}><path d="M12 2a10 10 0 1 0 .01 20.01A10 10 0 0 0 12 2Zm0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm-1 3v5.4l4.25 2.55 1-1.7-3.25-1.95V7H11Z" /></svg>;
 }
 
-export function SocialPublishActions({ caption, getAsset, getAssets, disabled = false }: {
+export function SocialPublishActions({ caption, nativeLanguage, learningLanguage, getAsset, getAssets, disabled = false }: {
   caption: string;
+  nativeLanguage?: string;
+  learningLanguage?: string;
   getAsset?: () => Promise<SocialPublishAsset | undefined>;
   getAssets?: () => Promise<SocialPublishAsset[] | undefined>;
   disabled?: boolean;
@@ -110,7 +112,7 @@ export function SocialPublishActions({ caption, getAsset, getAssets, disabled = 
       const response = await fetch("/api/twitter-automation/publish", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ socialMediaId: selectedTarget.id, caption: draftCaption, ...(assets?.length === 1 ? { asset: assets[0] } : assets?.length ? { assets } : {}) }),
+        body: JSON.stringify({ socialMediaId: selectedTarget.id, caption: draftCaption, ...(nativeLanguage ? { nativeLanguage } : {}), ...(learningLanguage ? { learningLanguage } : {}), ...(assets?.length === 1 ? { asset: assets[0] } : assets?.length ? { assets } : {}) }),
       });
       const payload = await response.json().catch(() => null) as { errorCode?: string; postUrl?: string | null; requestId?: string | null; jobId?: string | null } | null;
       if (!response.ok) {
@@ -143,9 +145,9 @@ export function SocialPublishActions({ caption, getAsset, getAssets, disabled = 
       <section className="w-full max-w-md rounded-xl border border-white/15 bg-[#1b1714] p-5 text-[#f9f2e9] shadow-sm">
         <header className="flex items-center justify-between gap-4"><div className="flex items-center gap-2"><span className="grid size-9 place-items-center rounded-lg bg-white/10"><PlatformIcon platform={selectedPlatform} /></span><div><h2 className="text-base font-semibold">Publish to {selectedPlatform}</h2><p className="text-xs text-[#cdbfb3]">Sent through Upload-Post. Review before sending.</p></div></div><Button aria-label="Close publisher" className="size-8 rounded border-transparent bg-transparent p-0 text-[#cdbfb3] hover:bg-white/10 hover:text-white" onClick={() => setSelectedPlatform(null)} type="button"><X className="size-4" /></Button></header>
         <label className="mt-5 block text-xs font-semibold text-[#d7c9bc]">Social account</label>
-        <select className="mt-2 h-10 w-full rounded-lg border border-white/15 bg-[#100d0c] px-3 text-sm text-white outline-none focus:border-[#f5ac27]" onChange={(event) => setSelectedTargetId(Number(event.target.value))} value={selectedTarget?.id ?? ""}>{selectedTargets.map((target) => <option key={target.id} value={target.id}>{target.accountName}{target.status === "ready" ? " - Upload-Post ready" : " - Upload-Post setup required"}</option>)}</select>
+        <select className="mt-2 h-10 w-full rounded-lg border border-white/15 bg-[#100d0c] px-3 text-sm text-[#1f2922] outline-none focus:border-[#f5ac27]" onChange={(event) => setSelectedTargetId(Number(event.target.value))} value={selectedTarget?.id ?? ""}>{selectedTargets.map((target) => <option key={target.id} value={target.id}>{target.accountName}{target.status === "ready" ? " - Upload-Post ready" : " - Upload-Post setup required"}</option>)}</select>
         <label className="mt-4 block text-xs font-semibold text-[#d7c9bc]">Post text</label>
-        <textarea className="mt-2 min-h-36 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none focus:border-[#f5ac27]" maxLength={280} onChange={(event) => setDraftCaption(event.target.value)} value={draftCaption} />
+        <textarea className="mt-2 min-h-36 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-[#1f2922] outline-none focus:border-[#f5ac27]" maxLength={280} onChange={(event) => setDraftCaption(event.target.value)} value={draftCaption} />
         <p className="mt-1 text-right text-xs text-[#8d8177]">{draftCaption.length}/280</p>
         {hasMediaGenerator ? <p className="mt-3 text-xs text-[#cdbfb3]">{state === "preparing" ? "Preparing generated media..." : assets?.length ? assets.length > 1 ? `${assets.length} images will be uploaded as one carousel post.` : isVideoAsset(assets[0]) ? "Generated video will be uploaded." : "Generated image will be attached." : "No media will be attached."}</p> : null}
         {selectedTarget?.status === "not_configured" ? <p className="mt-3 text-xs leading-5 text-[#ffcf82]">Set the server-only Upload-Post API key before publishing.</p> : null}

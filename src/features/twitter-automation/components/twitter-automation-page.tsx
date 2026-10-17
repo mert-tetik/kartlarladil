@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ComponentProps } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { CalendarClock, Copy, Database, Download, ImageIcon, ListChecks, LockKeyhole, MessageSquareText, RefreshCw, Star, Video } from "lucide-react";
+import { ArrowLeft, CalendarClock, Copy, Download, ImageIcon, ListChecks, LockKeyhole, MessageSquareText, RefreshCw, Star, Video } from "lucide-react";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
 import { useAppMessage } from "@/components/app-message-provider";
@@ -11,7 +11,6 @@ import { LANGUAGE_BY_CODE } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
 import { AutomationTable } from "@/features/twitter-automation/components/automation-table";
 import { ScheduledPostsTable } from "@/features/twitter-automation/components/scheduled-posts-table";
-import { SocialMediasTable } from "@/features/twitter-automation/components/social-medias-table";
 import { SocialPublishActions, type SocialPublishAsset, type SocialPublishImageAsset } from "@/features/twitter-automation/components/social-publish-actions";
 import { VocabularyCarouselIntro } from "@/features/twitter-automation/components/vocabulary-carousel-intro";
 import { VocabularyCarouselPost } from "@/features/twitter-automation/components/vocabulary-carousel-post";
@@ -38,7 +37,6 @@ import { MUSIC_VIDEO_DURATION_SECONDS, prepareMusicVideoAudio, renderMusicVideo 
 import { renderOriginalMascotLearningVideo } from "@/features/twitter-automation/original-mascot-learning-video-renderer";
 import type { OriginalMascotLearningVideoMode, OriginalMascotLearningVideoPayload } from "@/features/twitter-automation/original-mascot-learning-video";
 import { formatSocialStudioClientFailure, formatSocialStudioFailure, type SocialStudioFailurePayload } from "@/features/twitter-automation/social-studio-diagnostics";
-import { SOCIAL_CONTENT_STUDIO_VERSION } from "@/features/twitter-automation/social-studio-version";
 import {
   createNativeVisualCaption,
   createWordOfTheDayCaption,
@@ -50,7 +48,7 @@ import { cn } from "@/lib/utils";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 type StudioMode = "text" | "image" | "video";
-type TextGeneratorMode = "fun-post" | "word-quiz" | "language-tip" | "false-friends" | "daily-challenge" | "relatable-learner" | "tiered-vocabulary" | "example-sentences";
+type TextGeneratorMode = "word-quiz" | "language-tip" | "false-friends" | "daily-challenge" | "relatable-learner" | "tiered-vocabulary" | "example-sentences";
 type AiImageGeneratorMode = "ai-word-of-the-day" | "ai-mini-quiz" | "ai-false-friends" | "ai-daily-challenge" | "ai-vocabulary-progression" | "ai-example-sentences";
 type SelfImageGeneratorMode = "self-mini-quiz" | "self-false-friends" | "self-daily-challenge" | "self-vocabulary-progression" | "self-example-sentences";
 type VocabularyCarouselGeneratorMode = "vocabulary-carousel";
@@ -70,6 +68,13 @@ type ConfusedWordsCardPair = { first: VocabularyCard; second: VocabularyCard };
 type DialogueVoiceCast = Array<{ mascot: string; voice: string }>;
 
 type GeneratorOption = { value: GeneratorMode; label: string; description: string };
+type StudioModeColor = {
+  solid: string;
+  text: string;
+  mutedText: string;
+  border: string;
+  hover: string;
+};
 
 const STUDIO_MODES: Array<{ value: StudioMode; label: string; description: string; icon: typeof MessageSquareText }> = [
   { value: "text", label: "Text", description: "Captions and GPT posts", icon: MessageSquareText },
@@ -77,8 +82,31 @@ const STUDIO_MODES: Array<{ value: StudioMode; label: string; description: strin
   { value: "video", label: "Video", description: "Lip-sync and music video exports", icon: Video },
 ];
 
+const STUDIO_MODE_COLORS: Record<StudioMode, StudioModeColor> = {
+  text: {
+    solid: "bg-[#16a34a]",
+    text: "text-[#15803d]",
+    mutedText: "text-[#166534]/80",
+    border: "border-[#86efac]",
+    hover: "hover:bg-[#f0fdf4]",
+  },
+  image: {
+    solid: "bg-[#2563eb]",
+    text: "text-[#1d4ed8]",
+    mutedText: "text-[#1e40af]/80",
+    border: "border-[#93c5fd]",
+    hover: "hover:bg-[#eff6ff]",
+  },
+  video: {
+    solid: "bg-[#d946ef]",
+    text: "text-[#c026d3]",
+    mutedText: "text-[#a21caf]/80",
+    border: "border-[#f0abfc]",
+    hover: "hover:bg-[#fdf4ff]",
+  },
+};
+
 const TEXT_GENERATOR_OPTIONS: Array<{ value: TextGeneratorMode; label: string; description: string }> = [
-  { value: "fun-post", label: "Fun FoxiesDeck Post", description: "A playful GPT post about the app" },
   { value: "word-quiz", label: "Word Quiz", description: "A quick multiple-choice vocabulary challenge" },
   { value: "language-tip", label: "Language Tip", description: "A concise grammar, usage, or pronunciation tip" },
   { value: "false-friends", label: "False Friends", description: "Two easy-to-confuse words, clearly explained" },
@@ -289,12 +317,14 @@ function randomCarouselTiers(): Tier[] {
 }
 
 function GeneratorModeOption({
+  accent,
   highlighted,
   onSelect,
   onToggleHighlight,
   option,
   selected,
 }: {
+  accent: StudioModeColor;
   highlighted: boolean;
   onSelect: () => void;
   onToggleHighlight: () => void;
@@ -306,23 +336,23 @@ function GeneratorModeOption({
     <div className="relative">
       <button
         className={cn(
-          "w-full rounded-lg border p-3 pr-24 text-left transition-colors",
-          highlighted
-            ? selected ? "border-[#ffd36b] bg-[#f5ac27] text-[#251106]" : "border-[#cf8f17] bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]"
-            : selected ? "border-[#f5ac27] bg-[#2b211d]" : "border-white/10 hover:bg-[#231d19]",
+          "w-full rounded-lg border bg-white p-3 pr-24 text-left transition-colors",
+          selected
+            ? `${accent.solid} border-transparent text-white`
+            : `${accent.border} ${accent.text} ${accent.hover}`,
         )}
         onClick={onSelect}
         type="button"
       >
         <span className="block text-sm font-semibold">{option.label}</span>
-        <span className={cn("mt-1 block text-xs leading-5", highlighted ? "text-black/70" : "text-[#cdbfb3]")}>{option.description}</span>
+        <span className={cn("mt-1 block text-xs leading-5", selected ? "text-white/80" : accent.mutedText)}>{option.description}</span>
       </button>
-      <span className={cn("pointer-events-none absolute right-10 top-3 text-[10px] font-semibold", highlighted ? "text-black/70" : "text-[#a8a29e]")}>{contentSource}</span>
+      <span className={cn("pointer-events-none absolute right-10 top-3 text-[10px] font-semibold", selected ? "text-white/75" : accent.mutedText)}>{contentSource}</span>
       <button
         aria-label={highlighted ? `Remove highlight from ${option.label}` : `Highlight ${option.label}`}
         className={cn(
           "absolute right-2 top-2 flex size-8 items-center justify-center rounded-md transition-colors",
-          highlighted ? "text-[#251106] hover:bg-black/10" : "text-[#a8a29e] hover:bg-white/10 hover:text-[#f5ac27]",
+          highlighted ? "text-[#facc15] hover:bg-[#facc15]/15" : selected ? "text-white hover:bg-white/10" : `${accent.text} hover:bg-black/5`,
         )}
         onClick={onToggleHighlight}
         type="button"
@@ -338,7 +368,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   const { showMessage } = useAppMessage();
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [studioMode, setStudioMode] = useState<StudioMode>("text");
-  const [generatorMode, setGeneratorMode] = useState<GeneratorMode>("fun-post");
+  const [generatorMode, setGeneratorMode] = useState<GeneratorMode>("word-quiz");
   const [highlightedGeneratorModes, setHighlightedGeneratorModes] = useState<Set<GeneratorMode>>(() => new Set(DEFAULT_HIGHLIGHTED_GENERATOR_MODES));
   const [language, setLanguage] = useState<LanguageCode>("en");
   const [nativeLanguage, setNativeLanguage] = useState<LanguageCode>("en");
@@ -1668,7 +1698,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
           <div className="flex size-11 items-center justify-center rounded-lg bg-[#f5ac27] text-[#251106]">
             <LockKeyhole className="size-5" aria-hidden="true" />
           </div>
-          <h1 className="mt-5 font-display text-3xl font-semibold">Social content studio</h1>
+          <h1 className="mt-5 font-display text-3xl font-semibold">Content Automation</h1>
           <p className="mt-2 text-sm leading-6 text-[#d7c9bc]">Access is controlled by your Supabase session and the configured developer-admin allow-list.</p>
         </div>
       </section>
@@ -1676,15 +1706,11 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
   }
 
   if (view === "automations") {
-    return <AutomationTable onBack={() => router.push("/content-automation")} onOpenAlternateAutomation={() => router.push("/content-automation/test-automations")} onOpenSocialMedias={() => router.push("/content-automation/social-medias")} />;
+    return <AutomationTable onBack={() => router.push("/content-automation")} />;
   }
 
   if (view === "test-automations") {
-    return <AutomationTable onBack={() => router.push("/content-automation")} onOpenAlternateAutomation={() => router.push("/content-automation/automations")} onOpenSocialMedias={() => router.push("/content-automation/social-medias")} scope="test" />;
-  }
-
-  if (view === "social-medias") {
-    return <SocialMediasTable onBack={() => router.push("/content-automation")} onOpenAutomations={() => router.push("/content-automation/automations")} />;
+    return <AutomationTable onBack={() => router.push("/content-automation")} scope="test" />;
   }
 
   if (view === "scheduled-posts") {
@@ -1701,38 +1727,37 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         ))}
       </div> : null}
       <div className="mx-auto max-w-7xl">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="max-w-2xl">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-semibold text-[#ffb355]">FoxiesDeck developer tool</p>
-              <span className="text-xs font-medium text-[#9c8f84]">v{SOCIAL_CONTENT_STUDIO_VERSION}</span>
-            </div>
-            <h1 className="mt-2 font-display text-3xl font-semibold sm:text-4xl">Social content studio</h1>
-            <p className="mt-2 text-sm leading-6 text-[#cdbfb3]">Choose a format first, then create an export-ready post for the right channel.</p>
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-2 sm:flex-nowrap"><Button className="h-11 border-transparent bg-[#c7f05d] text-black hover:bg-[#d6ff73]" onClick={() => router.push("/content-automation/social-medias")} type="button"><Database className="size-4" aria-hidden="true" />Social medias</Button><Button className="h-11 border-transparent bg-[#c7f05d] text-black hover:bg-[#d6ff73]" onClick={() => router.push("/content-automation/automations")} type="button"><ListChecks className="size-4" aria-hidden="true" />Automation table</Button><Button className="h-11 border-white/20 bg-white/[0.06] text-[#f9f2e9] hover:bg-white/[0.1]" onClick={() => router.push("/content-automation/test-automations")} type="button"><ListChecks className="size-4" aria-hidden="true" />Test table</Button><Button className="h-11 border-transparent bg-[#c7f05d] text-black hover:bg-[#d6ff73]" onClick={() => router.push("/content-automation/scheduled-posts")} type="button"><CalendarClock className="size-4" aria-hidden="true" />Scheduled Posts</Button></div>
+        <header className="border-b border-[#d9ddd4] bg-[#f5f3ee] pb-6 pt-1 text-[#1f2922]">
+          <a className="inline-flex items-center gap-2 text-sm font-semibold text-[#4f6657] hover:underline" href="/developer">
+            <ArrowLeft className="size-4" aria-hidden="true" />
+            Developer workspace
+          </a>
+           <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight">Content Automation</h1>
         </header>
+
+        <div className="mt-4 flex flex-wrap gap-2 sm:flex-nowrap"><Button className="h-11 border-transparent bg-[#16a34a] text-white hover:bg-[#15803d]" onClick={() => router.push("/content-automation/automations")} type="button"><ListChecks className="size-4" aria-hidden="true" />Automation table</Button><Button className="h-11 border-transparent bg-[#f97316] text-white hover:bg-[#ea580c]" onClick={() => router.push("/content-automation/test-automations")} type="button"><ListChecks className="size-4" aria-hidden="true" />Test table</Button><Button className="h-11 border-transparent bg-[#2563eb] text-white hover:bg-[#1d4ed8]" onClick={() => router.push("/content-automation/scheduled-posts")} type="button"><CalendarClock className="size-4" aria-hidden="true" />Scheduled Posts</Button></div>
 
         <div className="mt-7 grid gap-3 sm:grid-cols-3">
           {STUDIO_MODES.map((option) => {
             const Icon = option.icon;
             const selected = studioMode === option.value;
+            const accent = STUDIO_MODE_COLORS[option.value];
             return (
               <button
                 className={cn(
                   "flex min-h-24 items-start gap-3 rounded-lg border p-4 text-left transition-colors",
-                  selected ? "border-[#f5ac27] bg-[#f5ac27] text-black" : "border-white/10 bg-[#1b1714] hover:bg-[#231d19]",
+                  selected ? `${accent.solid} border-transparent text-white` : `${accent.border} bg-white ${accent.text} ${accent.hover}`,
                 )}
                 key={option.value}
                 onClick={() => selectStudioMode(option.value)}
                 type="button"
               >
-                <span className={cn("flex size-9 shrink-0 items-center justify-center", selected ? "text-black" : "text-[#f5d6a7]")}>
-                  <Icon className="size-5" aria-hidden="true" />
-                </span>
-                <span>
+                  <span className={cn("flex size-9 shrink-0 items-center justify-center", selected ? "text-white" : STUDIO_MODE_COLORS[option.value].text)}>
+                    <Icon className="size-5" aria-hidden="true" />
+                  </span>
+                  <span>
                   <span className="block text-base font-semibold">{option.label}</span>
-                  <span className={cn("mt-1 block text-sm leading-5", selected ? "text-black/75" : "text-[#cdbfb3]")}>{option.description}</span>
+                  <span className={cn("mt-1 block text-sm leading-5", selected ? "text-white/80" : STUDIO_MODE_COLORS[option.value].mutedText)}>{option.description}</span>
                 </span>
               </button>
             );
@@ -1742,17 +1767,17 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         {studioMode === "video" ? (
           <div className="mt-7 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
             <aside className="h-fit rounded-xl border border-white/10 bg-[#1b1714] p-4 sm:p-5">
-              <p className="text-sm font-semibold text-[#ffb355]">Video generators</p>
+              <p className={cn("text-sm font-semibold", STUDIO_MODE_COLORS[studioMode].text)}>Video generators</p>
               <div className="mt-3 space-y-2">
-                {generatorOptions.map((option) => <GeneratorModeOption highlighted={highlightedGeneratorModes.has(option.value)} key={option.value} onSelect={() => selectGeneratorMode(option.value)} onToggleHighlight={() => toggleGeneratorHighlight(option.value)} option={option} selected={generatorMode === option.value} />)}
+                {generatorOptions.map((option) => <GeneratorModeOption accent={STUDIO_MODE_COLORS[studioMode]} highlighted={highlightedGeneratorModes.has(option.value)} key={option.value} onSelect={() => selectGeneratorMode(option.value)} onToggleHighlight={() => toggleGeneratorHighlight(option.value)} option={option} selected={generatorMode === option.value} />)}
               </div>
 
               <label className="mt-6 block text-sm font-semibold" htmlFor="social-studio-video-language">Learning language</label>
-              <select className="mt-2 h-11 w-full rounded-lg border border-white/20 bg-[#100d0c] px-3 text-sm text-white outline-none focus:border-[#f5ac27]" id="social-studio-video-language" onChange={(event) => selectLanguage(event.target.value as LanguageCode)} value={language}>
+              <select className="mt-2 h-11 w-full rounded-lg border border-white/20 bg-[#100d0c] px-3 text-sm text-[#1f2922] outline-none focus:border-[#f5ac27]" id="social-studio-video-language" onChange={(event) => selectLanguage(event.target.value as LanguageCode)} value={language}>
                 {LANGUAGE_OPTIONS.map((item) => <option key={item.code} value={item.code}>{ENGLISH_LANGUAGE_NAMES[item.code]}</option>)}
               </select>
               <label className="mt-5 block text-sm font-semibold" htmlFor="social-studio-video-native-language">Native language</label>
-              <select className="mt-2 h-11 w-full rounded-lg border border-white/20 bg-[#100d0c] px-3 text-sm text-white outline-none focus:border-[#f5ac27]" id="social-studio-video-native-language" onChange={(event) => selectNativeLanguage(event.target.value as LanguageCode)} value={nativeLanguage}>
+              <select className="mt-2 h-11 w-full rounded-lg border border-white/20 bg-[#100d0c] px-3 text-sm text-[#1f2922] outline-none focus:border-[#f5ac27]" id="social-studio-video-native-language" onChange={(event) => selectNativeLanguage(event.target.value as LanguageCode)} value={nativeLanguage}>
                 {LANGUAGE_OPTIONS.map((item) => <option key={item.code} value={item.code}>{ENGLISH_LANGUAGE_NAMES[item.code]}</option>)}
               </select>
               <p className="mt-5 text-sm font-semibold">Level</p>
@@ -1772,9 +1797,9 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 <div className="border-t border-white/15 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div><p className="text-sm font-semibold text-[#ffb355]">Generated caption</p><p className="mt-1 text-xs text-[#cdbfb3]">{isConfusedWordsVideoMode ? "Eight spoken scenes. Exported as WebM." : isOriginalMascotLearningVideoMode ? "Original mascot, AI voice, subtitles, and interactive learning sequence. Exported as WebM." : isDialogueVideoMode ? "Two speakers with animated entrances and subtitles. Exported as WebM." : `Soundtrack: ${musicVideoTrackLabel}. Exported as WebM.`}</p>{isDialogueVideoMode && dialogueVoiceCast.length ? <p className="mt-2 text-xs text-[#cdbfb3]">Voice cast: {dialogueVoiceCast.map(({ mascot, voice }, index) => <span key={mascot}>{index ? " · " : ""}{mascot.replace(/\.png$/iu, "")} — {voice}</span>)}</p> : null}</div>
-                    <div className="flex flex-wrap items-center gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyMusicVideoCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" onClick={downloadMusicVideo} size="sm" type="button"><Download className="size-4" />Download video</Button><SocialPublishActions caption={musicVideoCaption} getAsset={createMusicVideoAsset} /></div>
+                    <div className="flex flex-wrap items-center gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyMusicVideoCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" onClick={downloadMusicVideo} size="sm" type="button"><Download className="size-4" />Download video</Button><SocialPublishActions caption={musicVideoCaption} nativeLanguage={nativeLanguage} learningLanguage={language} getAsset={createMusicVideoAsset} /></div>
                   </div>
-                  <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={musicVideoCaption} />
+                  <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-[#1f2922] outline-none" readOnly value={musicVideoCaption} />
                 </div>
               </> : <div className="grid min-h-[36rem] place-items-center p-6 text-center">
                 <div>
@@ -1787,9 +1812,9 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 <div className="border-t border-white/15 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div><p className="text-sm font-semibold text-[#ffb355]">Generated caption</p><p className="mt-1 text-xs text-[#cdbfb3]">Native-language mascot line: {aiVideoSpokenLine}</p></div>
-                    <div className="flex flex-wrap items-center gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyAiVideoCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={downloadAiVideo} size="sm" type="button"><Download className="size-4" />{isExporting ? "Preparing video" : "Download video"}</Button><SocialPublishActions caption={aiVideoCaption} getAsset={async () => aiVideoUrl ? { sourceUrl: aiVideoUrl, mimeType: "video/mp4" } : undefined} /></div>
+                    <div className="flex flex-wrap items-center gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyAiVideoCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={downloadAiVideo} size="sm" type="button"><Download className="size-4" />{isExporting ? "Preparing video" : "Download video"}</Button><SocialPublishActions caption={aiVideoCaption} nativeLanguage={nativeLanguage} learningLanguage={language} getAsset={async () => aiVideoUrl ? { sourceUrl: aiVideoUrl, mimeType: "video/mp4" } : undefined} /></div>
                   </div>
-                  <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={aiVideoCaption} />
+                  <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-[#1f2922] outline-none" readOnly value={aiVideoCaption} />
                 </div>
               </> : <div className="grid min-h-[36rem] place-items-center p-6 text-center">
                 <div>
@@ -1856,15 +1881,15 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
         ) : (
           <div className="mt-7 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
             <aside className="h-fit rounded-xl border border-white/10 bg-[#1b1714] p-4 sm:p-5">
-              <p className="text-sm font-semibold text-[#ffb355]">{studioMode === "text" ? "Text generators" : "Image generators"}</p>
+              <p className={cn("text-sm font-semibold", STUDIO_MODE_COLORS[studioMode].text)}>{studioMode === "text" ? "Text generators" : "Image generators"}</p>
               <div className="mt-3 space-y-2">
-                {generatorOptions.map((option) => <GeneratorModeOption highlighted={highlightedGeneratorModes.has(option.value)} key={option.value} onSelect={() => selectGeneratorMode(option.value)} onToggleHighlight={() => toggleGeneratorHighlight(option.value)} option={option} selected={generatorMode === option.value} />)}
+                {generatorOptions.map((option) => <GeneratorModeOption accent={STUDIO_MODE_COLORS[studioMode]} highlighted={highlightedGeneratorModes.has(option.value)} key={option.value} onSelect={() => selectGeneratorMode(option.value)} onToggleHighlight={() => toggleGeneratorHighlight(option.value)} option={option} selected={generatorMode === option.value} />)}
               </div>
 
               <>
                 <label className="mt-6 block text-sm font-semibold" htmlFor="social-studio-language">Learning language</label>
                 <select
-                  className="mt-2 h-11 w-full rounded-lg border border-white/20 bg-[#100d0c] px-3 text-sm text-white outline-none focus:border-[#f5ac27]"
+                  className="mt-2 h-11 w-full rounded-lg border border-white/20 bg-[#100d0c] px-3 text-sm text-[#1f2922] outline-none focus:border-[#f5ac27]"
                   id="social-studio-language"
                   onChange={(event) => selectLanguage(event.target.value as LanguageCode)}
                   value={language}
@@ -1873,7 +1898,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 </select>
                 <label className="mt-5 block text-sm font-semibold" htmlFor="social-studio-native-language">Native language</label>
                 <select
-                  className="mt-2 h-11 w-full rounded-lg border border-white/20 bg-[#100d0c] px-3 text-sm text-white outline-none focus:border-[#f5ac27]"
+                  className="mt-2 h-11 w-full rounded-lg border border-white/20 bg-[#100d0c] px-3 text-sm text-[#1f2922] outline-none focus:border-[#f5ac27]"
                   id="social-studio-native-language"
                   onChange={(event) => selectNativeLanguage(event.target.value as LanguageCode)}
                   value={nativeLanguage}
@@ -1913,12 +1938,12 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 <div className="rounded-xl border border-white/10 bg-[#1b1714] p-4 sm:p-5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-[#ffb355]">Generated text</p>
+                      <p className={cn("text-sm font-semibold", STUDIO_MODE_COLORS[studioMode].text)}>Generated text</p>
                       <h2 className="mt-1 font-display text-2xl font-semibold">Ready to publish</h2>
                     </div>
-                    <div className="flex items-center gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" disabled={!caption} onClick={copyCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><SocialPublishActions caption={caption} /></div>
+                    <div className="flex items-center gap-2"><Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" disabled={!caption} onClick={copyCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button><SocialPublishActions caption={caption} nativeLanguage={nativeLanguage} learningLanguage={language} /></div>
                   </div>
-                  <textarea className="mt-5 min-h-56 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-4 text-sm leading-6 text-white outline-none" readOnly value={caption} />
+                  <textarea className="mt-5 min-h-56 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-4 text-sm leading-6 text-[#1f2922] outline-none" readOnly value={caption} />
                   
                   {isLoading ? <p className="mt-3 text-sm text-[#cdbfb3]">Generating content...</p> : null}
                 </div>
@@ -1934,10 +1959,10 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                         <div className="flex flex-wrap items-center gap-2">
                           <Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={copyCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button>
                           <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting || isRenderingCarousel || carouselImageUrls.length !== carouselSlideCount} onClick={() => void downloadCarousel()} size="sm" type="button"><Download className="size-4" />{isExporting ? "Preparing PNGs" : isRenderingCarousel ? "Rendering PNGs" : `Download ${carouselSlideCount} PNGs`}</Button>
-                          {carouselImageUrls.length === carouselSlideCount ? <SocialPublishActions caption={carouselCaption} getAssets={createCarouselAssets} /> : null}
+                          {carouselImageUrls.length === carouselSlideCount ? <SocialPublishActions caption={carouselCaption} nativeLanguage={nativeLanguage} learningLanguage={language} getAssets={createCarouselAssets} /> : null}
                         </div>
                       </div>
-                      <textarea className="mt-4 min-h-24 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={carouselCaption} />
+                      <textarea className="mt-4 min-h-24 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-[#1f2922] outline-none" readOnly value={carouselCaption} />
                     </div>
                     <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 w-[440px]">
                       <VocabularyCarouselIntro learningLanguage={language} mode={isTierProgressionCarouselGenerator(generatorMode) ? "tier" : "vocabulary"} nativeLanguage={nativeLanguage} onSlideRef={(element) => { carouselSlideRefs.current[0] = element; }} wordCount={carouselCardCount} />
@@ -1974,10 +1999,10 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                         </div>
                         <div className="flex gap-2">
                           <Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" disabled={!aiImageCaption} onClick={copyAiImageCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button>
-                          <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={downloadAiImage} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : "Download PNG"}</Button><SocialPublishActions caption={aiImageCaption} getAsset={createAiImageAsset} />
+                          <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting} onClick={downloadAiImage} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : "Download PNG"}</Button><SocialPublishActions caption={aiImageCaption} nativeLanguage={nativeLanguage} learningLanguage={language} getAsset={createAiImageAsset} />
                         </div>
                       </div>
-                      <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={aiImageCaption} />
+                      <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-[#1f2922] outline-none" readOnly value={aiImageCaption} />
                       {aiImageArtDirection ? <details className="mt-3 min-w-0 max-w-full text-xs text-[#cdbfb3]"><summary className="cursor-pointer text-[#ffb355]">GPT art direction</summary><p className="mt-2 max-w-xl whitespace-pre-wrap leading-5">{aiImageArtDirection}</p></details> : null}
                     </div>
                   </> : <div className="grid min-h-80 place-items-center p-6 text-center">
@@ -2007,10 +2032,10 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                       </div>
                       <div className="flex gap-2">
                         <Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" disabled={!caption} onClick={copyCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button>
-                        <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting || !selfImageUrl} onClick={downloadSelfImage} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : isRenderingLocalImage ? "Rendering PNG" : "Download PNG"}</Button>{selfImageUrl ? <SocialPublishActions caption={caption} getAsset={async () => ({ dataUrl: selfImageUrl, mimeType: "image/png" })} /> : null}
+                        <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting || !selfImageUrl} onClick={downloadSelfImage} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : isRenderingLocalImage ? "Rendering PNG" : "Download PNG"}</Button>{selfImageUrl ? <SocialPublishActions caption={caption} nativeLanguage={nativeLanguage} learningLanguage={language} getAsset={async () => ({ dataUrl: selfImageUrl, mimeType: "image/png" })} /> : null}
                       </div>
                     </div>
-                    <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={caption} />
+                    <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-[#1f2922] outline-none" readOnly value={caption} />
                   </div>
                 </div>
               ) : <div className="grid min-h-80 place-items-center rounded-xl border border-dashed border-white/20 bg-[#1b1714] p-6 text-center text-sm text-[#cdbfb3]">{isLoading ? "Composing self image..." : "No self image data was found."}</div> : generatorMode === "word-of-the-day-poster" ? card ? (
@@ -2031,10 +2056,10 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                       </div>
                       <div className="flex gap-2">
                         <Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" disabled={!caption} onClick={copyCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button>
-                        <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting || !posterImageUrl} onClick={downloadPoster} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : isRenderingLocalImage ? "Rendering PNG" : "Download PNG"}</Button>{posterImageUrl ? <SocialPublishActions caption={caption} getAsset={async () => ({ dataUrl: posterImageUrl, mimeType: "image/png" })} /> : null}
+                        <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting || !posterImageUrl} onClick={downloadPoster} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : isRenderingLocalImage ? "Rendering PNG" : "Download PNG"}</Button>{posterImageUrl ? <SocialPublishActions caption={caption} nativeLanguage={nativeLanguage} learningLanguage={language} getAsset={async () => ({ dataUrl: posterImageUrl, mimeType: "image/png" })} /> : null}
                       </div>
                     </div>
-                    <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-white outline-none" readOnly value={caption} />
+                    <textarea className="mt-3 min-h-28 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-3 text-sm leading-6 text-[#1f2922] outline-none" readOnly value={caption} />
                   </div>
                 </div>
               ) : <div className="grid min-h-72 place-items-center rounded-xl border border-dashed border-white/20 bg-[#1b1714] p-6 text-center text-sm text-[#cdbfb3]">{isLoading ? "Creating Word of the Day poster..." : "No card was found for this selection."}</div> : card ? (
@@ -2047,7 +2072,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                       </div>
                       <Button className="border-white/15 bg-white/10 text-white hover:bg-white/15" disabled={!caption} onClick={copyCaption} size="sm" type="button"><Copy className="size-4" />Copy</Button>
                     </div>
-                    <textarea className="mt-4 min-h-36 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-4 text-sm leading-6 text-white outline-none" readOnly value={caption} />
+                    <textarea className="mt-4 min-h-36 w-full resize-y rounded-lg border border-white/15 bg-[#100d0c] p-4 text-sm leading-6 text-[#1f2922] outline-none" readOnly value={caption} />
                   </div>
                   <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
                     {cardImageUrl ? <Image alt="Rendered Word of the Day visual" className="h-auto w-full bg-black object-contain" height={640} src={cardImageUrl} unoptimized width={1024} /> : <div className="grid min-h-80 place-items-center bg-black p-6 text-center"><div>{isRenderingLocalImage ? <RefreshCw className="mx-auto size-8 animate-spin text-[#ffb355]" aria-hidden="true" /> : <ImageIcon className="mx-auto size-8 text-[#ffb355]" aria-hidden="true" />}<p className="mt-3 text-sm text-[#cdbfb3]">Rendering card image...</p></div></div>}
@@ -2055,7 +2080,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                       <WordOfTheDayImage card={card} mode="card" nativeLanguage={nativeLanguage} />
                     </div>
                     <div className="flex justify-end border-t border-white/15 bg-[#1b1714] p-4">
-                      <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting || !cardImageUrl} onClick={downloadImage} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : isRenderingLocalImage ? "Rendering PNG" : "Download PNG"}</Button>{cardImageUrl ? <SocialPublishActions caption={caption} getAsset={async () => ({ dataUrl: cardImageUrl, mimeType: "image/png" })} /> : null}
+                      <Button className="bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isExporting || !cardImageUrl} onClick={downloadImage} type="button"><Download className="size-4" />{isExporting ? "Preparing PNG" : isRenderingLocalImage ? "Rendering PNG" : "Rendering PNG"}</Button>{cardImageUrl ? <SocialPublishActions caption={caption} nativeLanguage={nativeLanguage} learningLanguage={language} getAsset={async () => ({ dataUrl: cardImageUrl, mimeType: "image/png" })} /> : null}
                     </div>
                   </div>
                 </div>

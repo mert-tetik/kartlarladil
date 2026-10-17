@@ -46,6 +46,7 @@ type SocialStudioFallbackOptions = {
   sleep?: (delayMs: number) => Promise<void>;
   random?: () => number;
   providerHealth?: SocialStudioProviderHealth;
+  validateOutput?: (output: string) => boolean;
 };
 
 export type SocialStudioProviderHealth = {
@@ -296,6 +297,19 @@ function normalizeProviderFailure(
   );
 }
 
+function logSocialStudioProviderFailure(provider: SocialStudioResponsesProvider, model: string, error: unknown) {
+  const diagnostic = getSocialStudioProviderFailureDetails(error);
+  const message = error instanceof Error ? error.message : String(error);
+  console.error("[Social Content Studio] provider request failed", {
+    provider,
+    model,
+    status: diagnostic?.status ?? getErrorStatus(error) ?? null,
+    attemptCount: diagnostic?.attemptCount ?? null,
+    requestId: diagnostic?.requestId ?? null,
+    detail: safeProviderFailureDetail(diagnostic?.detail ?? message),
+  });
+}
+
 function getErrorRequestId(error: unknown) {
   if (!error || typeof error !== "object") return undefined;
   const candidate = error as { request_id?: unknown; _request_id?: unknown; requestId?: unknown };
@@ -467,7 +481,7 @@ export async function generateSocialStudioTextWithFallback<T>(
   primaryModel: string,
   generate: SocialStudioGeneration<T>,
   extractOutput: (response: T) => string,
-  { sleep: wait = sleep, random = Math.random, providerHealth = defaultProviderHealth }: SocialStudioFallbackOptions = {},
+  { sleep: wait = sleep, random = Math.random, providerHealth = defaultProviderHealth, validateOutput }: SocialStudioFallbackOptions = {},
 ) {
   const run = async (
     provider: SocialStudioResponsesProvider,
@@ -480,9 +494,14 @@ export async function generateSocialStudioTextWithFallback<T>(
       if (provider === "poyo") assertPoyoResponsesOutput(response);
       const output = extractOutput(response);
       if (provider === "poyo") assertPoyoResponsesOutput(output);
+      if (validateOutput && !validateOutput(output)) {
+        throw providerError(provider, 502, model, "The provider returned incomplete generated text.");
+      }
       return { output, model, provider };
     } catch (error) {
-      throw normalizeProviderFailure(provider, model, error);
+      const normalized = normalizeProviderFailure(provider, model, error);
+      logSocialStudioProviderFailure(provider, model, normalized);
+      throw normalized;
     }
   };
 

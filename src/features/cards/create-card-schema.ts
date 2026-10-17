@@ -12,6 +12,8 @@ export const CREATE_CARD_DIRECTIONS = ["native-to-learning", "learning-to-native
 export const createCardDirectionSchema = z.enum(CREATE_CARD_DIRECTIONS);
 export type CreateCardDirection = z.infer<typeof createCardDirectionSchema>;
 
+export const MAX_CUSTOM_CARD_BATCH_SIZE = 30;
+
 export const createCardRequestSchema = z.object({
   locale: z.enum(LOCALE_CODES),
   term: z.string().min(1).max(120),
@@ -20,6 +22,12 @@ export const createCardRequestSchema = z.object({
 });
 
 export type CreateCardRequest = z.infer<typeof createCardRequestSchema>;
+
+export const createCardBatchRequestSchema = z.object({
+  cards: z.array(createCardRequestSchema).min(1).max(MAX_CUSTOM_CARD_BATCH_SIZE),
+});
+
+export type CreateCardBatchRequest = z.infer<typeof createCardBatchRequestSchema>;
 
 const generatedExampleSchema = z.object({
   sentence: z.string().trim().min(1).max(300),

@@ -1,26 +1,23 @@
 "use client";
 
 import { useLocale } from "@/i18n/locale-provider";
-import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
-import { cn } from "@/lib/utils";
 
-export function OfflineScreen() {
-  const { locale, t } = useLocale();
+export type OfflineVisualScenario = "offline";
+
+export function OfflineScreen({ visualScenario }: { visualScenario?: OfflineVisualScenario } = {}) {
+  const { t } = useLocale();
+  const src = visualScenario
+    ? `/offline-shell/index.html?visual=${visualScenario}`
+    : "/offline-shell/index.html";
 
   return (
-    <section
-      aria-labelledby="offline-title"
-      className="fixed inset-0 z-[210] flex min-h-dvh items-center justify-center bg-[#f76808] px-8 text-center text-white"
-    >
-      <h1
-        id="offline-title"
-        className={cn(
-          "max-w-[20rem] text-[clamp(2rem,8vw,3.5rem)] font-semibold leading-tight text-white",
-          canUseSuperWater(locale) && "font-super-water",
-        )}
-      >
-        {formatSuperWaterText(locale, t("offline.title"))}
-      </h1>
-    </section>
+    <iframe
+      aria-label={t("offline.title")}
+      className="fixed inset-0 h-[100dvh] w-full border-0 bg-[#090909]"
+      data-offline-shell-frame="true"
+      src={src}
+      style={{ zIndex: 1_999 }}
+      title={t("offline.title")}
+    />
   );
 }

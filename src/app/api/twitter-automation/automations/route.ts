@@ -3,8 +3,10 @@ import { z } from "zod";
 import { AUTOMATION_GROUP_ICON_IDS } from "@/features/twitter-automation/automation-group-icons";
 import { AUTOMATION_SUPER_GROUP_ICON_IDS } from "@/features/twitter-automation/automation-super-groups";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
+import { logAutomationRequestFailure } from "@/features/twitter-automation/automation-run-service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { automationOwnerKey, normalizeAutomationScope } from "@/features/twitter-automation/automation-scope";
+import { supportsUploadPostContent } from "@/features/twitter-automation/upload-post-capabilities";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,6 +28,23 @@ const randomIncludesSchema = z.object({
   text: z.array(z.enum(["ai"])).min(1).max(1).optional(),
   image: z.array(z.enum(["self", "ai"])).min(1).max(2).optional(),
   video: z.array(z.enum(["ai", "self", "img"])).min(1).max(3).optional(),
+}).strict();
+const dailyQuantitiesSchema = z.object({
+  text: z.number().int().min(0).max(20),
+  image: z.number().int().min(0).max(20),
+  video: z.number().int().min(0).max(20),
+}).strict();
+const accountContentTypesSchema = z.record(accountIdSchema, z.array(selectableContentTypeSchema).max(3));
+const settingsSnapshotSchema = z.object({
+  contentTypes: z.array(selectableContentTypeSchema).min(1).max(3),
+  generators: generatorModesSchema,
+  randomIncludes: randomIncludesSchema,
+  dailyQuantities: dailyQuantitiesSchema.optional(),
+  accountContentTypes: accountContentTypesSchema.optional(),
+  quantity: z.number().int().min(1).max(20),
+  language: languageSelectionSchema,
+  nativeLanguage: languageSelectionSchema,
+  tier: z.enum(["random", ...TIER_CODES]),
 }).strict();
 
 type SocialMediaDatabaseRow = {
@@ -80,10 +99,14 @@ const automationRowSchema = z.object({
   contentTypes: z.array(selectableContentTypeSchema).min(1).max(3).optional(),
   generators: generatorModesSchema.optional(),
   randomIncludes: randomIncludesSchema.optional(),
+  dailyQuantities: dailyQuantitiesSchema.optional(),
+  accountContentTypes: accountContentTypesSchema.optional(),
   quantity: z.number().int().min(1).max(20).default(1),
   language: languageSelectionSchema,
   nativeLanguage: languageSelectionSchema,
   tier: z.enum(["random", ...TIER_CODES]),
+  settingsSourceAccountId: accountIdSchema.optional(),
+  settingsByAccount: z.record(accountIdSchema, settingsSnapshotSchema).optional(),
   platforms: z.array(platformSchema).min(1).max(20),
   accounts: z.record(platformSchema, z.array(accountIdSchema).min(1).max(20)),
   scheduleStart: timeSchema,
@@ -101,6 +124,14 @@ const automationRowSchema = z.object({
     for (const contentType of row.contentTypes) {
       if (!row.generators?.[contentType]) {
         context.addIssue({ code: "custom", message: "Each selected content type needs a generator.", path: ["generators", contentType] });
+      }
+    }
+  }
+
+  if (row.accountContentTypes) {
+    for (const [accountId, contentTypes] of Object.entries(row.accountContentTypes)) {
+      if (new Set(contentTypes).size !== contentTypes.length) {
+        context.addIssue({ code: "custom", message: "Account content types must be unique.", path: ["accountContentTypes", accountId] });
       }
     }
   }
@@ -176,17 +207,28 @@ async function isAuthorized(request: NextRequest) {
 
 function hasValidSocialSelections(groups: z.infer<typeof automationGroupsSchema>["groups"], accounts: SocialMediaAccount[]) {
   const accountIdsByPlatform = new Map<string, Set<string>>();
+  const accountById = new Map(accounts.map((account) => [account.id, account]));
   for (const account of accounts) {
     const ids = accountIdsByPlatform.get(account.platform) ?? new Set<string>();
     ids.add(account.id);
     accountIdsByPlatform.set(account.platform, ids);
   }
 
-  return groups.every((group) => group.rows.every((row) => row.platforms.every((platform) => {
-    const allowedAccountIds = accountIdsByPlatform.get(platform);
-    if (!allowedAccountIds) return false;
-    return row.accounts[platform]?.every((accountId) => allowedAccountIds.has(accountId)) ?? false;
-  })));
+  return groups.every((group) => group.rows.every((row) => {
+    const platformsValid = row.platforms.every((platform) => {
+      const allowedAccountIds = accountIdsByPlatform.get(platform);
+      if (!allowedAccountIds) return false;
+      return row.accounts[platform]?.every((accountId) => allowedAccountIds.has(accountId)) ?? false;
+    });
+    if (!platformsValid || !row.accountContentTypes) return platformsValid;
+
+    const selectedAccountIds = new Set(Object.values(row.accounts).flat());
+    return Object.entries(row.accountContentTypes).every(([accountId, contentTypes]) => {
+      const account = accountById.get(accountId);
+      if (!account) return false;
+      return selectedAccountIds.has(accountId) && contentTypes.every((contentType) => supportsUploadPostContent(account.platform, contentType));
+    });
+  }));
 }
 
 export async function GET(request: NextRequest) {
@@ -204,6 +246,8 @@ export async function GET(request: NextRequest) {
       loadSocialMediaAccounts(),
     ]);
     if (error || socialMedia.error || !socialMedia.accounts) {
+      if (error) logAutomationRequestFailure("automation_state_read_failed", error, { ownerKey });
+      if (socialMedia.error) logAutomationRequestFailure("automation_social_media_read_failed", socialMedia.error, { ownerKey });
       return NextResponse.json({ errorCode: "automation_storage_unavailable" }, { status: 503 });
     }
 
@@ -214,7 +258,8 @@ export async function GET(request: NextRequest) {
       socialAccounts: socialMedia.accounts,
       updatedAt: data?.updated_at ?? null,
     });
-  } catch {
+  } catch (error) {
+    logAutomationRequestFailure("automation_state_get_failed", error, { ownerKey });
     return NextResponse.json({ errorCode: "automation_storage_unavailable" }, { status: 503 });
   }
 }
@@ -229,6 +274,7 @@ export async function PUT(request: NextRequest) {
   try {
     const socialMedia = await loadSocialMediaAccounts();
     if (socialMedia.error || !socialMedia.accounts) {
+      if (socialMedia.error) logAutomationRequestFailure("automation_social_media_read_failed", socialMedia.error, { ownerKey });
       return NextResponse.json({ errorCode: "automation_storage_unavailable" }, { status: 503 });
     }
     if (!hasValidSocialSelections(parsed.data.groups, socialMedia.accounts)) {
@@ -244,10 +290,14 @@ export async function PUT(request: NextRequest) {
         groups: parsed.data,
         updated_at: updatedAt,
       }, { onConflict: "owner_key" });
-    if (error) return NextResponse.json({ errorCode: "automation_save_failed" }, { status: 503 });
+    if (error) {
+      logAutomationRequestFailure("automation_state_save_failed", error, { ownerKey });
+      return NextResponse.json({ errorCode: "automation_save_failed" }, { status: 503 });
+    }
 
     return NextResponse.json({ groups: parsed.data.groups, superGroups: parsed.data.superGroups, updatedAt });
-  } catch {
+  } catch (error) {
+    logAutomationRequestFailure("automation_state_put_failed", error, { ownerKey });
     return NextResponse.json({ errorCode: "automation_save_failed" }, { status: 503 });
   }
 }

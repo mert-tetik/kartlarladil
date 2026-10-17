@@ -502,6 +502,67 @@ body {
   font-weight: 400;
 }
 
+.slow-connection-prompt-panel {
+  animation: slow-connection-prompt-enter 360ms cubic-bezier(0.85, 0, 0.15, 1) both;
+}
+
+@media (max-height: 480px) {
+  .slow-connection-prompt-overlay {
+    align-items: start;
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+
+  .slow-connection-prompt-panel {
+    padding-block: 1rem;
+  }
+
+  .slow-connection-prompt-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .slow-connection-prompt-title {
+    margin-top: 0.5rem;
+    font-size: 1.25rem;
+    line-height: 1.5rem;
+  }
+
+  .slow-connection-prompt-description {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .slow-connection-prompt-actions {
+    margin-top: 1rem;
+    gap: 0.5rem;
+  }
+
+  .slow-connection-prompt-button {
+    min-height: 2.75rem;
+    padding-block: 0.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slow-connection-prompt-panel {
+    animation: none;
+  }
+}
+
+@keyframes slow-connection-prompt-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -6956,13 +7017,15 @@ body:has([data-games-active]) {
 
 .content-automation-shell [class~="bg-white/10"],
 .content-automation-shell [class~="bg-white/[0.06]"],
-.content-automation-shell [class~="bg-white/[0.045]"] {
+.content-automation-shell [class~="bg-white/[0.045]"],
+.content-automation-shell [class~="bg-white/[0.07]"] {
   background-color: #ffffff !important;
 }
 
 .content-automation-shell [class~="bg-white/10"],
 .content-automation-shell [class~="bg-white/[0.06]"],
-.content-automation-shell [class~="bg-white/[0.045]"] {
+.content-automation-shell [class~="bg-white/[0.045]"],
+.content-automation-shell [class~="bg-white/[0.07]"] {
   color: #1f2922 !important;
 }
 
@@ -6975,6 +7038,76 @@ body:has([data-games-active]) {
   background-color: #eef4ea !important;
 }
 
+/* Native controls do not inherit the light workspace palette reliably. Keep
+   their closed state, option list, and editable output readable on white. */
+.content-automation-shell select[class~="text-white"],
+.content-automation-shell input[class~="text-white"],
+.content-automation-shell textarea[class~="text-white"] {
+  color: #1f2922 !important;
+}
+
+.content-automation-shell [class~="text-[#a8a29e]"],
+.content-automation-shell [class~="text-[#93a39a]"],
+.content-automation-shell [class~="text-[#ffbdad]"],
+.content-automation-shell [class~="text-[#ed7784]"],
+.content-automation-shell [class~="text-[#f5ac27]"] {
+  color: #68756c !important;
+}
+
+.content-automation-shell [class~="bg-[#0d0f0e]"],
+.content-automation-shell [class~="bg-[#111715]"],
+.content-automation-shell [class~="bg-[#15261d]"] {
+  background-color: #eef4ea !important;
+}
+
+.content-automation-shell select option {
+  background-color: #ffffff !important;
+  color: #1f2922 !important;
+}
+
+/* The language-combination summary uses a light stat surface, so its labels
+   and values stay readable in black while the surrounding banner remains blue. */
+.content-automation-shell > main > div > section:first-child > div > div:nth-child(2) > div:nth-child(-n + 4) span,
+.content-automation-shell > main > div > section:first-child > div > div:nth-child(2) > div:nth-child(-n + 4) strong {
+  color: #000000 !important;
+}
+
+.content-automation-shell [class~="bg-white/10"]:nth-child(-n + 4) > span,
+.content-automation-shell [class~="bg-white/10"]:nth-child(-n + 4) > strong,
+.content-automation-shell [class~="bg-white/10"]:nth-child(-n + 4) > strong > span {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
 .content-automation-shell [class~="bg-[radial-gradient(circle_at_15%_10%,rgba(203,255,66,0.22),transparent_28rem),radial-gradient(circle_at_90%_90%,rgba(150,218,36,0.16),transparent_24rem)]"] {
   background-image: radial-gradient(circle at 15% 10%, rgba(170, 204, 145, 0.2), transparent 28rem), radial-gradient(circle at 90% 90%, rgba(218, 228, 190, 0.28), transparent 24rem) !important;
+}
+
+/* Keep account generation controls easy to scan: context on the left,
+   generation and volume controls on the right, with one quiet divider. */
+@media (min-width: 768px) {
+  .content-automation-shell main article > div.border-t > div.grid {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    column-gap: 2rem !important;
+  }
+
+  .content-automation-shell main article > div.border-t > div.grid::before {
+    position: absolute;
+    inset-block: 0;
+    left: 50%;
+    width: 1px;
+    background: #dbe5dd;
+    content: "";
+    transform: translateX(-50%);
+  }
+
+  .content-automation-shell main article > div.border-t > div.grid > div:first-child {
+    grid-column: 1;
+  }
+
+  .content-automation-shell main article > div.border-t > div.grid > div:nth-child(2),
+  .content-automation-shell main article > div.border-t > div.grid > div:nth-child(3) {
+    grid-column: 2;
+  }
 }

@@ -46,8 +46,8 @@ const STATUS_DEFINITIONS: StatusDefinition[] = [
     label: "Başarılı",
     icon: Check,
     matches: (status) => isSuccessfulAutomationOutput({ status }),
-    buttonClassName: "border-[#3f8a62]/60 bg-[#173524] text-[#b6f0cf] hover:bg-[#1e472e] focus-visible:outline-[#a9ecc8]",
-    iconClassName: "text-[#a9ecc8]",
+    buttonClassName: "border-transparent bg-[#16a34a] text-white hover:bg-[#15803d] focus-visible:outline-white",
+    iconClassName: "text-white",
     menuClassName: "border-[#3f8a62]/45 bg-[#13281c] text-[#d6f7e2]",
   },
   {
@@ -55,8 +55,8 @@ const STATUS_DEFINITIONS: StatusDefinition[] = [
     label: "Hatalı",
     icon: X,
     matches: (status) => isFailedAutomationOutput({ status }),
-    buttonClassName: "border-[#a94b56]/60 bg-[#3a2023] text-[#ffd0d5] hover:bg-[#4b292d] focus-visible:outline-[#ffb9c1]",
-    iconClassName: "text-[#ffb9c1]",
+    buttonClassName: "border-transparent bg-[#dc2626] text-white hover:bg-[#b91c1c] focus-visible:outline-white",
+    iconClassName: "text-white",
     menuClassName: "border-[#a94b56]/45 bg-[#2c1917] text-[#ffd9de]",
   },
   {
@@ -64,8 +64,8 @@ const STATUS_DEFINITIONS: StatusDefinition[] = [
     label: "Bekleyen",
     icon: Clock3,
     matches: (status) => isWaitingAutomationOutput({ status }),
-    buttonClassName: "border-[#b68e2c]/60 bg-[#322916] text-[#ffe7a0] hover:bg-[#40351e] focus-visible:outline-[#f1c75b]",
-    iconClassName: "text-[#f1c75b]",
+    buttonClassName: "border-transparent bg-[#eab308] text-white hover:bg-[#ca8a04] focus-visible:outline-white",
+    iconClassName: "text-white",
     menuClassName: "border-[#b68e2c]/45 bg-[#292214] text-[#ffeaac]",
   },
 ];
@@ -200,7 +200,7 @@ export function AutomationGenerationStatusSummary({ labelForGenerator, outputs }
           tabIndex={-1}
         >
           <p className="font-semibold">{definition.label} içerikler</p>
-          {generators.length ? <ul className="mt-1.5 space-y-1.5">{generators.map(({ generator, count: generatorCount, errorCodes }) => <li className="flex items-start justify-between gap-3" key={generator}><div className="min-w-0"><p className="leading-4">{labelForGenerator(generator)}</p>{definition.id === "failed" && errorCodes.length ? <p className="mt-0.5 break-words text-current/75">Hata: {errorCodes.join(" · ")}</p> : null}</div><span className="shrink-0 font-semibold">{generatorCount} adet</span></li>)}</ul> : <p className="mt-1 text-current/75">Bu statüde içerik yok.</p>}
+          {generators.length ? <ul className="mt-1.5 space-y-1.5">{generators.map(({ generator, count: generatorCount, errorCodes }) => <li className="flex items-start justify-between gap-3" key={generator}><div className="min-w-0"><p className="leading-4">{labelForGenerator(generator)}</p>{definition.id === "failed" && errorCodes.length ? <p className="mt-0.5 break-words text-white">Hata: {errorCodes.join(" · ")}</p> : null}</div><span className="shrink-0 font-semibold">{generatorCount} adet</span></li>)}</ul> : <p className="mt-1 text-white">Bu statüde içerik yok.</p>}
         </div>, document.body) : null}
       </div>;
     })}

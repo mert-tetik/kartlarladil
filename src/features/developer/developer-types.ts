@@ -36,6 +36,147 @@ export interface DeveloperDashboardStats {
   revenueUnpricedSubscribers: number;
 }
 
+export interface DeveloperAnalyticsSeriesPoint {
+  key: string;
+  label: string;
+  value: number;
+  secondaryValue?: number;
+}
+
+export interface DeveloperAnalyticsDistributionItem {
+  key: string;
+  label: string;
+  value: number;
+  percent: number;
+}
+
+export interface DeveloperAnalyticsRecentLogin {
+  id: string;
+  displayName: string | null;
+  email: string | null;
+  provider: string;
+  lastSignInAt: string;
+}
+
+export interface DeveloperAnalyticsRenewal {
+  id: string;
+  displayName: string | null;
+  email: string | null;
+  plan: string;
+  date: string;
+  kind: "renewal" | "expiry";
+}
+
+export interface DeveloperAnalyticsRetentionMetric {
+  key: "day1" | "day7" | "day14" | "day30";
+  label: string;
+  value: number;
+  retainedUsers: number;
+  eligibleUsers: number;
+}
+
+export interface DeveloperAnalyticsRetentionCohort {
+  key: string;
+  label: string;
+  cohortSize: number;
+  day1: number | null;
+  day7: number | null;
+  day14: number | null;
+  day30: number | null;
+}
+
+export interface DeveloperAnalyticsFunnelStep {
+  key: string;
+  label: string;
+  value: number;
+  percent: number;
+}
+
+export interface DeveloperAnalyticsHealth {
+  trackedEvents: number;
+  errorEvents: number;
+  errorRatePercent: number;
+  lastActivityAt: string | null;
+  dataSource: "tracked_events" | "no_events";
+}
+
+export interface DeveloperAnalyticsData {
+  totalUsers: number;
+  dailyAppLogins: DeveloperAnalyticsSeriesPoint[];
+  activity: {
+    dau: number;
+    wau: number;
+    mau: number;
+    stickinessPercent: number;
+    dailyActiveUsers: DeveloperAnalyticsSeriesPoint[];
+  };
+  onboardingFunnel: DeveloperAnalyticsFunnelStep[];
+  appHealth: DeveloperAnalyticsHealth;
+  featureUsage: DeveloperAnalyticsDistributionItem[];
+  retention: {
+    activeUsers7d: number;
+    activeUsers30d: number;
+    returningUsers30d: number;
+    dataSource: "login_events" | "last_sign_in_fallback";
+    metrics: DeveloperAnalyticsRetentionMetric[];
+    cohorts: DeveloperAnalyticsRetentionCohort[];
+  };
+  registrations: {
+    daily: DeveloperAnalyticsSeriesPoint[];
+    weekly: DeveloperAnalyticsSeriesPoint[];
+    monthly: DeveloperAnalyticsSeriesPoint[];
+  };
+  nativeLanguageDistribution: DeveloperAnalyticsDistributionItem[];
+  learningLanguageDistribution: DeveloperAnalyticsDistributionItem[];
+  uiLocaleDistribution: DeveloperAnalyticsDistributionItem[];
+  recentLogins: DeveloperAnalyticsRecentLogin[];
+  cards: {
+    addedDaily: DeveloperAnalyticsSeriesPoint[];
+    addedWeekly: DeveloperAnalyticsSeriesPoint[];
+    learnedDaily: DeveloperAnalyticsSeriesPoint[];
+    learnedWeekly: DeveloperAnalyticsSeriesPoint[];
+  };
+  quiz: {
+    totalAttempts: number;
+    correctAttempts: number;
+    incorrectAttempts: number;
+    accuracyPercent: number;
+    dailyActivity: DeveloperAnalyticsSeriesPoint[];
+    averageAttemptsPerUser: number;
+    firstQuizUsers: number;
+    firstQuizRatePercent: number;
+    successByLanguage: DeveloperAnalyticsDistributionItem[];
+  };
+  subscriptions: {
+    byPlan: DeveloperAnalyticsDistributionItem[];
+    googlePlayCount: number;
+    byStatus: DeveloperAnalyticsDistributionItem[];
+    byBillingCycle: DeveloperAnalyticsDistributionItem[];
+    autoRenew: DeveloperAnalyticsDistributionItem[];
+    upcomingRenewals: DeveloperAnalyticsRenewal[];
+    expiringUsers: DeveloperAnalyticsRenewal[];
+    monthlyRevenueByPlan: Array<{ key: string; label: string; value: number }>;
+    averageRevenuePerSubscription: number;
+    freeToPaidTransitions: {
+      basic: number;
+      pro: number;
+      available: boolean;
+    };
+  };
+  reviews: {
+    averageRating: number;
+    daily: DeveloperAnalyticsSeriesPoint[];
+    weekly: DeveloperAnalyticsSeriesPoint[];
+    distribution: DeveloperAnalyticsDistributionItem[];
+  };
+  customCards: {
+    topProducers: Array<{ id: string; displayName: string | null; email: string | null; value: number }>;
+    daily: DeveloperAnalyticsSeriesPoint[];
+    generationErrors: number;
+    generationErrorDataAvailable: boolean;
+  };
+}
+
 export interface DeveloperUserSummary {
   id: string;
   email: string;

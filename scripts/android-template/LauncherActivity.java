@@ -7,6 +7,9 @@ import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -286,48 +289,41 @@ public class LauncherActivity extends Activity {
     }
 
     /**
-     * Keep the whole remote WebView inside the usable area. Android 15+ forces
-     * edge-to-edge for apps targeting API 35+, so relying on legacy decor-fit
-     * behavior leaves fixed web UI behind the status/navigation bars.
+     * Keep the remote WebView clear of the top and bottom system bars. Android
+     * 15+ forces edge-to-edge for apps targeting API 35+, so relying on legacy
+     * decor-fit behavior leaves fixed web UI behind the status/navigation bars.
      *
-     * The root consumes the dimensions it uses as padding before dispatching
-     * insets to WebView. This prevents WebView from applying the same system
-     * bar inset a second time through its CSS safe-area handling.
+     * Do not apply system-gesture insets to the whole root. Those insets mark
+     * horizontal touch areas reserved for OS edge gestures; using them as root
+     * padding shrinks every web page and exposes the black native background as
+     * unwanted side bars on some devices. The web UI owns its horizontal
+     * responsive padding, while the native root only reserves vertical system
+     * bars. The root consumes the system-bar dimensions before dispatching
+     * insets to WebView to avoid applying them twice.
      */
     private void configureSystemBarInsets() {
         contentRoot.setOnApplyWindowInsetsListener((view, insets) -> {
-            int left;
             int top;
-            int right;
             int bottom;
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 int systemTypes = WindowInsets.Type.systemBars()
                         | WindowInsets.Type.displayCutout();
                 android.graphics.Insets system = insets.getInsets(systemTypes);
-                int gestureTypes = WindowInsets.Type.systemGestures()
-                        | WindowInsets.Type.mandatorySystemGestures();
-                android.graphics.Insets gestures = insets.getInsets(gestureTypes);
-                left = Math.max(system.left, gestures.left);
                 top = system.top;
-                right = Math.max(system.right, gestures.right);
-                bottom = Math.max(system.bottom, gestures.bottom);
+                bottom = system.bottom;
             } else {
-                left = insets.getSystemWindowInsetLeft();
                 top = insets.getSystemWindowInsetTop();
-                right = insets.getSystemWindowInsetRight();
                 bottom = insets.getSystemWindowInsetBottom();
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
                         && insets.getDisplayCutout() != null) {
                     android.view.DisplayCutout cutout = insets.getDisplayCutout();
-                    left = Math.max(left, cutout.getSafeInsetLeft());
                     top = Math.max(top, cutout.getSafeInsetTop());
-                    right = Math.max(right, cutout.getSafeInsetRight());
                     bottom = Math.max(bottom, cutout.getSafeInsetBottom());
                 }
             }
 
-            view.setPadding(left, top, right, bottom);
+            view.setPadding(0, top, 0, bottom);
             return consumeSystemBarInsets(insets);
         });
         contentRoot.requestApplyInsets();
@@ -358,7 +354,32 @@ public class LauncherActivity extends Activity {
                 .appendQueryParameter("twa", "1")
                 .appendQueryParameter("native", "1")
                 .build();
+
+        if (!hasValidatedInternet()) {
+            Uri offline = new Uri.Builder()
+                    .scheme("https")
+                    .authority("www.foxiesdeck.com")
+                    .path("/~offline")
+                    .appendQueryParameter("returnTo", launch.toString())
+                    .build();
+            webView.loadUrl(offline.toString());
+            return;
+        }
+
         webView.loadUrl(launch.toString());
+    }
+
+    private boolean hasValidatedInternet() {
+        ConnectivityManager manager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        if (manager == null) return false;
+
+        Network activeNetwork = manager.getActiveNetwork();
+        if (activeNetwork == null) return false;
+
+        NetworkCapabilities capabilities = manager.getNetworkCapabilities(activeNetwork);
+        return capabilities != null
+                && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
     }
 
     private boolean isAppUrl(Uri uri) {
@@ -427,11 +448,20 @@ public class LauncherActivity extends Activity {
 
     @Override
     public void onBackPressed() {
+        if (isOfflineScreenVisible()) {
+            return;
+        }
         if (webView != null && webView.canGoBack()) {
             webView.goBack();
             return;
         }
         super.onBackPressed();
+    }
+
+    private boolean isOfflineScreenVisible() {
+        if (webView == null || webView.getUrl() == null) return false;
+        String path = Uri.parse(webView.getUrl()).getPath();
+        return "/~offline".equals(path) || "/~offline/".equals(path);
     }
 
     @Override

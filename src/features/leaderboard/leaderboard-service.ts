@@ -41,6 +41,15 @@ interface DailyLoginRow {
   activity_date: string;
 }
 
+export interface DeveloperLeaderboardRow {
+  userId: string;
+  displayName: string | null;
+  totalPoints: number;
+  streak: number;
+  medals: number;
+  rankIcon: ReturnType<typeof getRankForPoints>["icon"];
+}
+
 const TIER_POINT_MAP: Record<Tier, number> = {
   A1: 10,
   A2: 20,
@@ -231,6 +240,106 @@ export async function getLeaderboardPayload(
     entries,
     canViewLeaderboard: viewer.leaderboardVisible,
   };
+}
+
+/**
+ * Returns the same score values used by the in-game leaderboard, without the
+ * player's visibility preference. Developer analytics is an internal view and
+ * therefore needs to inspect every profile when diagnosing product usage.
+ */
+export async function getDeveloperLeaderboardRows(
+  mode: LeaderboardMode = "points",
+): Promise<DeveloperLeaderboardRow[]> {
+  const admin = createSupabaseAdminClient();
+  const profiles = await readAllRows((from, to) =>
+    admin.from("user_profiles").select("*").range(from, to).returns<LeaderboardProfileRow[]>(),
+  );
+
+  if (!profiles.length) {
+    return [];
+  }
+
+  const [learnedCards, customCards, dailyLogins] = await Promise.all([
+    readAllRows((from, to) =>
+      admin
+        .from("user_cards")
+        .select("user_id, card_source_key")
+        .eq("status", "learned")
+        .range(from, to)
+        .returns<LearnedCardRow[]>(),
+    ),
+    readAllRows((from, to) =>
+      admin
+        .from("custom_cards")
+        .select("user_id, source_key, tier")
+        .range(from, to)
+        .returns<CustomCardTierRow[]>(),
+    ),
+    readAllRows((from, to) =>
+      admin
+        .from("user_daily_logins")
+        .select("user_id, activity_date")
+        .range(from, to)
+        .returns<DailyLoginRow[]>(),
+    ),
+  ]);
+
+  const customTierBySourceKey = new Map(
+    customCards.map((card) => [card.source_key, card.tier]),
+  );
+  const learnedPointsByUser = new Map<string, number>();
+
+  for (const row of learnedCards) {
+    const tier =
+      parseTierFromSourceKey(row.card_source_key) ??
+      parseTier(customTierBySourceKey.get(row.card_source_key));
+
+    if (!tier) {
+      continue;
+    }
+
+    learnedPointsByUser.set(
+      row.user_id,
+      (learnedPointsByUser.get(row.user_id) ?? 0) + TIER_POINT_MAP[tier],
+    );
+  }
+
+  const longestStreakByUser = getLongestStreakByUser(dailyLogins);
+
+  return profiles
+    .map((profile) => {
+      const totalPoints = (learnedPointsByUser.get(profile.user_id) ?? 0) + getProfilePointTotal({
+        aiPracticePoints: profile.ai_practice_points ?? 0,
+        chestPoints: profile.chest_points ?? 0,
+        streakPoints: profile.streak_points ?? 0,
+        missionPoints: profile.mission_points ?? 0,
+        quizResultPoints: profile.quiz_result_points ?? 0,
+        gamePoints: profile.game_points ?? 0,
+        gemPoints: profile.gem_points ?? 0,
+      });
+      const streak = longestStreakByUser.get(profile.user_id) ?? 0;
+      const medals = Math.max(0, Math.round(profile.quiz_result_medals ?? 0));
+      const leaderboardValue = mode === "streaks" ? streak : mode === "medals" ? medals : totalPoints;
+
+      return {
+        userId: profile.user_id,
+        displayName: profile.display_name?.trim() || null,
+        totalPoints,
+        streak,
+        medals,
+        rankIcon: getRankForPoints(totalPoints).icon,
+        leaderboardValue,
+      };
+    })
+    .sort((left, right) => right.leaderboardValue - left.leaderboardValue || left.userId.localeCompare(right.userId))
+    .map((row) => ({
+      userId: row.userId,
+      displayName: row.displayName,
+      totalPoints: row.totalPoints,
+      streak: row.streak,
+      medals: row.medals,
+      rankIcon: row.rankIcon,
+    }));
 }
 
 function createEmptyLeaderboardPayload(

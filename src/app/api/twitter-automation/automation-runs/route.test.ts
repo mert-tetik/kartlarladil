@@ -9,12 +9,23 @@ const { fromMock, runInsertMock, outputInsertMock, stateMaybeSingleMock } = vi.h
   stateMaybeSingleMock: vi.fn(),
 }));
 
+const emptyOutputQuery = () => ({
+  eq: () => ({
+    gte: () => ({ in: () => ({ limit: async () => ({ data: [], error: null }) }) }),
+  }),
+  in: () => ({ eq: async () => ({ data: [], error: null }) }),
+});
+
 vi.mock("@/features/twitter-automation/social-studio-auth", () => ({
+  hasSocialStudioAutomationSession: () => true,
   hasSocialStudioSession: () => true,
 }));
 
 vi.mock("@/lib/supabase/admin", () => ({
-  createSupabaseAdminClient: () => ({ from: fromMock }),
+  createSupabaseAdminClient: () => ({
+    from: fromMock,
+    storage: { from: () => ({ list: async () => ({ data: [], error: null }) }) },
+  }),
 }));
 
 describe("automation run creation", () => {
@@ -60,8 +71,13 @@ describe("automation run creation", () => {
     });
     fromMock.mockImplementation((table: string) => {
       if (table === "social_content_automation_state") return { select: () => ({ eq: () => ({ maybeSingle: stateMaybeSingleMock }) }) };
-      if (table === "social_content_automation_runs") return { insert: runInsertMock };
-      if (table === "social_content_automation_outputs") return { insert: outputInsertMock };
+      if (table === "social_content_automation_runs") return { insert: runInsertMock, update: () => ({ eq: async () => ({ error: null }) }) };
+      if (table === "social_content_automation_outputs") return {
+        insert: outputInsertMock,
+        select: emptyOutputQuery,
+      };
+      if (table === "social_medias") return { select: () => ({ in: async () => ({ data: [{ id: 1 }], error: null }) }) };
+      if (table === "social_content_automation_renderers") return { select: () => ({ eq: () => ({ eq: () => ({ is: () => ({ order: () => ({ limit: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }) }) }) }) };
       throw new Error(`Unexpected table: ${table}`);
     });
     vi.spyOn(Math, "random")
@@ -144,8 +160,13 @@ describe("automation run creation", () => {
     outputInsertMock.mockResolvedValue({ error: null });
     fromMock.mockImplementation((table: string) => {
       if (table === "social_content_automation_state") return { select: () => ({ eq: () => ({ maybeSingle: stateMaybeSingleMock }) }) };
-      if (table === "social_content_automation_runs") return { insert: runInsertMock };
-      if (table === "social_content_automation_outputs") return { insert: outputInsertMock };
+      if (table === "social_content_automation_runs") return { insert: runInsertMock, update: () => ({ eq: async () => ({ error: null }) }) };
+      if (table === "social_content_automation_outputs") return {
+        insert: outputInsertMock,
+        select: emptyOutputQuery,
+      };
+      if (table === "social_medias") return { select: () => ({ in: async () => ({ data: [{ id: 1 }], error: null }) }) };
+      if (table === "social_content_automation_renderers") return { select: () => ({ eq: () => ({ eq: () => ({ is: () => ({ order: () => ({ limit: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }) }) }) }) };
       throw new Error(`Unexpected table: ${table}`);
     });
 
@@ -189,8 +210,13 @@ describe("automation run creation", () => {
     });
     fromMock.mockImplementation((table: string) => {
       if (table === "social_content_automation_state") return { select: () => ({ eq: () => ({ maybeSingle: stateMaybeSingleMock }) }) };
-      if (table === "social_content_automation_runs") return { insert: runInsertMock };
-      if (table === "social_content_automation_outputs") return { insert: outputInsertMock };
+      if (table === "social_content_automation_runs") return { insert: runInsertMock, update: () => ({ eq: async () => ({ error: null }) }) };
+      if (table === "social_content_automation_outputs") return {
+        insert: outputInsertMock,
+        select: emptyOutputQuery,
+      };
+      if (table === "social_medias") return { select: () => ({ in: async () => ({ data: [{ id: 1 }], error: null }) }) };
+      if (table === "social_content_automation_renderers") return { select: () => ({ eq: () => ({ eq: () => ({ is: () => ({ order: () => ({ limit: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }) }) }) }) };
       throw new Error(`Unexpected table: ${table}`);
     });
 
@@ -240,8 +266,13 @@ describe("automation run creation", () => {
     });
     fromMock.mockImplementation((table: string) => {
       if (table === "social_content_automation_state") return { select: () => ({ eq: () => ({ maybeSingle: stateMaybeSingleMock }) }) };
-      if (table === "social_content_automation_runs") return { insert: runInsertMock };
-      if (table === "social_content_automation_outputs") return { insert: outputInsertMock };
+      if (table === "social_content_automation_runs") return { insert: runInsertMock, update: () => ({ eq: async () => ({ error: null }) }) };
+      if (table === "social_content_automation_outputs") return {
+        insert: outputInsertMock,
+        select: emptyOutputQuery,
+      };
+      if (table === "social_medias") return { select: () => ({ in: async () => ({ data: [{ id: 1 }], error: null }) }) };
+      if (table === "social_content_automation_renderers") return { select: () => ({ eq: () => ({ eq: () => ({ is: () => ({ order: () => ({ limit: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }) }) }) }) };
       throw new Error(`Unexpected table: ${table}`);
     });
 
@@ -253,5 +284,103 @@ describe("automation run creation", () => {
     expect(response.status).toBe(201);
     expect(await response.json()).toMatchObject({ outputCount: 1 });
     expect(createdOutputs).toEqual([expect.objectContaining({ group_name: "Visible campaign" })]);
+  });
+
+  it("reuses the durable daily output slots on a second generation request", async () => {
+    const runId = "c77a7440-df76-4050-94c4-282118936152";
+    let existingOutputs: Array<{ id: string; run_id: string; generation_key: string; run: { id: string; owner_key: string } }> = [];
+    let outputInsertCount = 0;
+    const makeQuery = (initial: { data: unknown; error: null }) => {
+      let result = initial;
+      type Query = {
+        select: () => Query;
+        eq: (...args: unknown[]) => Query;
+        gte: (...args: unknown[]) => Query;
+        in: (...args: unknown[]) => Query;
+        is: (...args: unknown[]) => Query;
+        order: (...args: unknown[]) => Query;
+        limit: (...args: unknown[]) => Query;
+        maybeSingle: () => Promise<{ data: unknown; error: null }>;
+        then: (resolve: (value: { data: unknown; error: null }) => unknown, reject: (reason: unknown) => unknown) => Promise<unknown>;
+      };
+      const query = {} as Query;
+      query.select = () => query;
+      query.eq = () => query;
+      query.gte = () => query;
+      query.in = (column) => {
+        if (column === "id") result = { data: existingOutputs, error: null };
+        return query;
+      };
+      query.is = () => query;
+      query.order = () => query;
+      query.limit = () => query;
+      query.maybeSingle = async () => result;
+      query.then = (resolve, reject) => Promise.resolve(result).then(resolve, reject);
+      return query;
+    };
+
+    stateMaybeSingleMock.mockResolvedValue({
+      data: {
+        groups: [{
+          id: "47c65ced-6664-4cb8-9efd-fbb38de4f158",
+          name: "Daily pool",
+          rows: [{
+            id: "a670283d-1d18-42d8-8463-7f19c280b5bb",
+            contentType: "text",
+            generator: "fun-post",
+            contentTypes: ["text"],
+            generators: { text: "fun-post" },
+            randomIncludes: { text: ["ai"] },
+            dailyQuantities: { text: 2, image: 0, video: 0 },
+            accountContentTypes: { "1": ["text"] },
+            quantity: 2,
+            language: "en",
+            nativeLanguage: "tr",
+            tier: "B1",
+            accounts: { instagram: ["1"] },
+            scheduleStart: "09:00",
+            scheduleEnd: "18:00",
+          }],
+        }],
+      },
+      error: null,
+    });
+    runInsertMock.mockReturnValue({
+      select: () => ({
+        single: async () => ({ data: { id: runId, horizon_days: 1, created_at: "2026-08-13T00:00:00Z" }, error: null }),
+      }),
+    });
+    outputInsertMock.mockImplementation((rows: Array<{ id: string; run_id: string; generation_key: string }>) => {
+      outputInsertCount += 1;
+      existingOutputs = rows.map((row) => ({ ...row, run: { id: runId, owner_key: "social-studio" } }));
+      return Promise.resolve({ error: null });
+    });
+    fromMock.mockImplementation((table: string) => {
+      if (table === "social_content_automation_state") return { select: () => ({ eq: () => ({ maybeSingle: stateMaybeSingleMock }) }) };
+      if (table === "social_medias") return { select: () => ({ in: async () => ({ data: [{ id: 1 }], error: null }) }) };
+      if (table === "social_content_automation_renderers") return { select: () => makeQuery({ data: null, error: null }) };
+      if (table === "social_content_automation_outputs") return {
+        insert: outputInsertMock,
+        select: () => makeQuery({ data: [], error: null }),
+      };
+      if (table === "social_content_automation_runs") return {
+        insert: runInsertMock,
+        select: () => makeQuery({ data: { id: runId, horizon_days: 1, created_at: "2026-08-13T00:00:00Z" }, error: null }),
+        update: () => ({ eq: async () => ({ error: null }) }),
+      };
+      throw new Error(`Unexpected table: ${table}`);
+    });
+
+    const request = () => POST(new NextRequest("http://localhost/api/twitter-automation/automation-runs", {
+      method: "POST",
+      body: JSON.stringify({ horizonDays: 1 }),
+    }));
+    const firstResponse = await request();
+    const secondResponse = await request();
+
+    expect(firstResponse.status).toBe(201);
+    expect(secondResponse.status).toBe(200);
+    expect(await secondResponse.json()).toMatchObject({ outputCount: 2, reusedOutputCount: 2, runReused: true });
+    expect(outputInsertCount).toBe(1);
   });
 });

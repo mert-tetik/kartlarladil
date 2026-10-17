@@ -259,10 +259,11 @@ gonderilmeden once private social-studio-automation bucket'ina kopyalanir.
 Video tesliminde Upload-Post'a bu kopyanin 24 saat gecerliligi olan signed URL'i
 verilir; image teslimi ise ayni private kopyadan okunarak yapilir. Basarili
 schedule'dan 48 saat sonra dosya ve output'un medya referansi silinir. Failed
-medya 24 saat, ready_to_schedule medya 7 gun, stale aktif medya ise 48 saat
-sonra temizlenir. Ayrica output tablosunda referansi kalmayan 24 saatten eski
-orphan staging dosyalari da silinir. Bu grace period, retry ve onizleme icin
-yeterli pay birakir ancak Storage'in kalici arsiv olarak buyumesini engeller.
+medya 24 saat, stale aktif medya ise 48 saat sonra temizlenir. Hazir
+ready_to_schedule medya kullanici schedule edene veya Generated Posts icinden
+acikca silene kadar korunur; boylece inceleme ekranindaki kalici checkpoint
+beklenmedik bir cron calismasiyla kaybolmaz. Ayrica output tablosunda referansi
+kalmayan 24 saatten eski orphan staging dosyalari da silinir.
 
 Vercel Cron her gun 03:15 UTC'de /api/twitter-automation/maintenance endpointini
 calistirir. Bu endpoint CRON_SECRET ile Bearer auth ister ve sadece automation/
@@ -300,9 +301,10 @@ Overlay degildir. Her satir ileride otomatik calisacak bir icerik/paylasim
 tarifidir.
 
 BUGUNKI ONEMLI DURUM:
-Tablo config verisini kaydeder; otomatik generation, zamanlayici, queue,
-OAuth veya sosyal aglara gercek publish HENUZ UYGULANMAMISTIR.
-Arayuzde bu nedenle "Execution disabled" yazisi gorunur.
+Production tablosu dil kombinasyonu bazli ortak media pool olusturur.
+Text, image ve video adetleri kombinasyon basina gunluk belirlenir; secili
+hesaplar ayni kombinasyondaki ilgili turlerin tamamini alir. Generation,
+Supabase output kaydi ve private Storage staging akisi birlikte calisir.
 
 
 8. TABLO GRUPLARI
@@ -537,10 +539,13 @@ birden fazla secili hesap varsa uretilen caption/medya tekrar uretilmez;
 Upload-Post'a secili hesaplar icin ayri, idempotent schedule istegi gonderilir.
 Text, AI image, non-AI Word of the Day/Poster image ve AI avatar video modlari
 desteklenir. Tum image modlarinin music-video varyantlari da secilebilir.
-Music video kaynak gorseli server-side hazirlanir; Generated Posts panelindeki
-Render music video butonu, tarayicinin MediaRecorder yetkisiyle WebM Blob'unu
-uretmek ve private Storage'a signed upload ile yuklemek icin kullanilir. Upload
-tamamlaninca ayni output Upload-Post'a schedule edilir.
+Music video kaynak gorseli server-side veya browser'da hazirlanir; ses ekleme ve
+video encoding otomasyon akisi icin server-side FFmpeg ile yapilir. Browser
+yalnizca React tabanli self/Word of the Day kaynak gorselini PNG olarak
+hazirlayabilir; video renderi browser MediaRecorder'a bagli degildir. Manuel
+Content Studio music-video export akisi ise mevcut browser renderer'ini
+kullanmaya devam eder. Render tamamlaninca video private Storage'a yuklenir ve
+ayni output Upload-Post'a schedule edilir.
 
 Automation Table ustundeki Generated Posts butonu, kuyrugu ayni ekranda tam
 sayfa overlay olarak acar. Kapat butonu veya Escape ile tabloya geri donulur.
@@ -558,13 +563,43 @@ Kalici tablolar:
 - private social-studio-automation Storage bucket: uretilen image ve video
   previewleri. Sayfa bu dosyalari yalniz imzali, kisa omurlu URL ile gorur.
 
+15.1. DURABLE DAILY GENERATION CHECKPOINTS
+------------------------------------------
+
+Production generation icin her output, provider veya browser renderer
+calismadan once deterministic bir UUID ve generation_key alir. Kimlik su
+alanlardan uretilir: owner_key, Istanbul takvim gunu, dil kombinasyonu satir
+ID'si, content type ve o turun bir-based gunluk index'i. Ayni gun icin tekrar
+Schedule veya generation istendiginde mevcut output ID'leri okunur; hazir,
+bekleyen veya hata alan kayitlar yeniden insert edilmez. Eksik slotlar ayni
+kimlikle tamamlanir.
+
+AI image/video ve browserda render edilen medya hemen
+social-studio-automation bucket'ina upload edilir. Text icerikleri output
+tablosunda tutulur. Description/caption mevcut output kolonu, title ve daily
+slot metadata'si ise output'un mevcut render_plan JSONB checkpoint'i icinde
+ayni output ID'si ile birlikte yazilir; boylece sayfa kapanmasi veya internet
+kesintisi uretilmis sonucu kaybettirmez. Yeni structured kolon migration'i
+uygulanirsa ayni metadata kolonlara da alinabilir; uygulama eski schema ile de
+calismaya devam eder.
+
+Generated Posts Storage durumunu kontrol eder: text icin Database, medya icin
+Storage kaydedildi, eksik veya kontrol edilemedi durumu gosterilir. Schedule
+edilmemis bir output, Generated Posts icindeki silme aksiyonu ile hem output
+tablosundan hem de bucket'taki referansli dosyalardan kaldirilabilir.
+
+Opsiyonel schema migration: supabase/migrations/20261017000000_add_durable_daily_automation_outputs.sql
+
 Bu nesnelerde RLS aciktir; anon ve authenticated erisimleri kaldirilir. Yalniz
 server-side service_role client, imzali studio oturumu kontrolunden sonra erisir.
 Migration: supabase/migrations/20260731122229_add_social_content_automation_runs.sql
 
-Cron veya ayri bir background worker henuz eklenmemistir. Bu nedenle pending
-isleri calistirmak icin Generated Posts overlay'inin acik kalmasi gerekir. Failed
-durumlari hata koduyla saklanir; tekrar deneme/backoff yonetimi sonraki asamadir.
+Generation istemci tarafindaki Generated Posts worker'iyle ilerler; overlay
+kapanirsa veya sayfa yenilenirse output checkpoint'leri Supabase'den tekrar
+okunur. Aktif veya tamamlanamayan son run sayfa acilisinda tekrar goruntulenir;
+retry/backoff ve renderer lease bilgileri output kaydinda korunur. Storage
+cleanup cron'u, retention suresi dolan veya orphan kalan medya dosyalarini
+ayri olarak temizler.
 
 
 16. ILGILI KAYNAK DOSYALAR
@@ -583,7 +618,9 @@ durumlari hata koduyla saklanir; tekrar deneme/backoff yonetimi sonraki asamadir
 - src/app/api/twitter-automation/ai-video/route.ts
   GPT first frame, TTS ve Kling avatar job pipeline'i.
 - src/features/twitter-automation/music-video-renderer.ts
-  Browser tabanli 30 saniye music video renderer'i.
+  Manuel Content Studio icin browser tabanli 30 saniye music video renderer'i.
+- src/features/twitter-automation/server-music-video-renderer.ts
+  Otomasyon icin FFmpeg tabanli 30 saniye music video renderer'i.
 - src/app/api/twitter-automation/automations/route.ts
   Automation state GET/PUT endpointi ve server-side validation.
 - src/app/api/twitter-automation/automation-runs/route.ts

@@ -56,6 +56,34 @@ describe("Content Automation Responses fallback", () => {
     expect(openAiConstructor).toHaveBeenCalledTimes(1);
   });
 
+  it("falls back when PoYo returns an incomplete text response", async () => {
+    const calls: string[] = [];
+    const providerHealth = {
+      isPoyoCircuitOpen: vi.fn(async () => false),
+      recordPoyoRetryableFailure: vi.fn(async () => undefined),
+      recordPoyoSuccess: vi.fn(async () => undefined),
+      recordOpenAISuccess: vi.fn(async () => undefined),
+    };
+
+    const result = await generateSocialStudioTextWithFallback(
+      SOCIAL_CONTENT_TEXT_MODEL,
+      async (client) => {
+        const provider = (client as unknown as { provider: string }).provider;
+        calls.push(provider);
+        return { output: [{ type: "message", content: [{ type: "output_text", text: provider === "poyo" ? "cek planlarından" : "[[FOXIESDECK_TEXT_START]]Gelecek planlarından" }] }] };
+      },
+      (response) => (response as { output?: Array<{ content?: Array<{ text?: string }> }> }).output?.[0]?.content?.[0]?.text ?? "",
+      {
+        providerHealth,
+        validateOutput: (output) => output.startsWith("[[FOXIESDECK_TEXT_START]]"),
+      },
+    );
+
+    expect(calls).toEqual(["poyo", "openai"]);
+    expect(result).toMatchObject({ provider: "openai", output: "[[FOXIESDECK_TEXT_START]]Gelecek planlarından" });
+    expect(providerHealth.recordPoyoRetryableFailure).toHaveBeenCalledTimes(1);
+  });
+
   it("retries a transient PoYo failure once through direct OpenAI with the matching Terra model", async () => {
     const calls: Array<{ provider: string; model: string }> = [];
 

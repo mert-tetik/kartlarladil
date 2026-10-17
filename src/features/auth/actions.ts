@@ -18,6 +18,7 @@ import {
 } from "@/features/auth/auth-schemas";
 import { DEFAULT_AUTH_REDIRECT, getSafeNextPath } from "@/features/auth/auth-redirects";
 import { ensureUserProfile, getRequestOrigin } from "@/features/auth/auth-session";
+import { recordAppLogin } from "@/features/auth/login-events";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
 import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
@@ -86,6 +87,7 @@ export async function loginAction(_state: AuthActionState, formData: FormData): 
   } = await supabase.auth.getUser();
 
   if (user) {
+    await recordAppLogin(user.id);
     const { onboardingCompleted } = await ensureUserProfile(supabase, user);
 
     if (!onboardingCompleted) {

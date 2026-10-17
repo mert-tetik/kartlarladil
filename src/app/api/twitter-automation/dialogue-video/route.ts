@@ -137,7 +137,7 @@ function instructionsFor(mode: DialogueMode) {
       "There are two fixed identities. learner is a random mascot who is completely clueless about FoxiesDeck. The learner opens frustrated that they cannot learn the provided learning language, then can only describe their problem or ask curious follow-up questions. The learner must never explain, endorse, recommend, or state any FoxiesDeck feature or fact.",
       "guide is always the Original mascot. The guide is the only character who knows FoxiesDeck. Every product fact, feature explanation, recommendation, benefit, and call to action must be spoken by guide. The guide never acts confused or asks how the app works.",
       "Only mention real FoxiesDeck capabilities when useful: choose from 14 learning languages and CEFR tiers; draw, search, or create vocabulary cards; build a personal card pool; learn with quizzes; cards become learned after their tier threshold; earn points and rank up; review learned cards; practice conversations with AI characters; ask Foxy about words, grammar, and usage; play vocabulary games. The mobile app supports the core card collection, draw, quiz, review, and rank journey.",
-      "Keep each text under 18 words, conversational, speakable, and free of stage directions. caption is a concise native-language post caption with 2 or 3 relevant hashtags.",
+      "Keep each text under 18 words, conversational, speakable, and free of stage directions. caption is a concise native-language post caption without hashtags; the app appends curated hashtags for the selected learning language.",
     ].join("\n");
   }
   return [
@@ -146,7 +146,7 @@ function instructionsFor(mode: DialogueMode) {
     "text is spoken entirely in the provided learning language. translation is its natural native-language subtitle.",
     "Pick a completely random real-life situation every time. Examples include: gossip about someone, discussing a movie or show, chatting at a cafÃ©, ordering at a restaurant, shopping at a store, asking a stranger on the street, texting or calling online, talking to a partner, or a casual family conversation.",
     "The two speakers should feel like natural friends, coworkers, classmates, couple, family members, or strangers. Vary the relationship, location, and topic freely.",
-    "Keep each text and translation under 22 words, conversational, and speakable. caption is a concise native-language post caption with 2 or 3 relevant hashtags.",
+    "Keep each text and translation under 22 words, conversational, and speakable. caption is a concise native-language post caption without hashtags; the app appends curated hashtags for the selected learning language.",
   ].join("\n");
 }
 

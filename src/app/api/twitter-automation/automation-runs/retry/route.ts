@@ -33,10 +33,10 @@ function hasReusableMedia(output: RetryableOutput) {
 }
 
 function hasReusableContent(output: RetryableOutput) {
-  return output.content_type === "text" ? Boolean(output.caption) : hasReusableMedia(output);
+  return output.content_type === "text" ? Boolean(output.description ?? output.caption) : hasReusableMedia(output);
 }
 
-function shouldRetryBrowserVideo(output: RetryableOutput) {
+function shouldRetryServerMusicVideo(output: RetryableOutput) {
   return output.generator.startsWith("music-")
     && output.media_type === "image"
     && Boolean(output.media_path);
@@ -54,7 +54,7 @@ function isStaleProcessing(output: RetryableOutput) {
 }
 
 function statusForRetry(output: RetryableOutput) {
-  if (shouldRetryBrowserVideo(output)) return "awaiting_browser_video";
+  if (shouldRetryServerMusicVideo(output)) return "queued";
   if (output.provider_task_id && output.content_type === "video" && output.media_type !== "video") return "generating_video";
   // A persisted browser plan is a durable checkpoint. Resume the raster step
   // directly; only a missing plan should return to the normal queued path.
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     // Never regenerate media only because its caption failed. The checkpoint
     // finalizer writes the localized FoxiesDeck fallback caption, validates the
     // existing staged media, and marks the output ready when it is healthy.
-    if (hasReusableMedia(output) && !output.caption?.trim()) {
+    if (hasReusableMedia(output) && !(output.description ?? output.caption)?.trim()) {
       const ready = await finalizeAutomationOutputCheckpoint(output);
       if (ready) {
         await refreshAutomationRunStatus(run.id);

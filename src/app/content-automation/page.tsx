@@ -5,6 +5,7 @@ import { requireDeveloperAdmin } from "@/features/developer/developer-auth";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
+  title: "Content Automation | Developer workspace",
   robots: { index: false, follow: false },
 };
 

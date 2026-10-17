@@ -34,6 +34,8 @@ export const ANDROID_JAVA_TEMPLATE_FILES = [
   "EventReceiverActivity.java",
 ];
 
+const OFFLINE_SHELL_SOURCE = path.join(ROOT, "public", "offline-shell");
+
 const FILE_PROVIDER_PATHS = `<?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <cache-path name="camera" path="camera/" />
@@ -174,6 +176,7 @@ const HYBRID_MANIFEST = ({ packageName }) => `<?xml version="1.0" encoding="utf-
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -343,6 +346,12 @@ async function patchJavaTemplates(projectDir, packageName) {
   }
 }
 
+async function copyOfflineShellAssets(projectDir) {
+  const destination = path.join(projectDir, "app", "src", "main", "assets", "foxiesdeck-offline");
+  await fs.mkdir(destination, { recursive: true });
+  await fs.cp(OFFLINE_SHELL_SOURCE, destination, { recursive: true, force: true });
+}
+
 export async function patchGeneratedAndroidProject(
   projectDir = process.env.TWA_PROJECT_DIR || path.join(ROOT, "com.foxiesdeck"),
 ) {
@@ -394,6 +403,7 @@ export async function patchGeneratedAndroidProject(
     FILE_PROVIDER_PATHS,
   );
   await patchJavaTemplates(projectDir, packageName);
+  await copyOfflineShellAssets(projectDir);
 
   const proguardPath = path.join(projectDir, "app", "proguard-rules.pro");
   let proguard = "";

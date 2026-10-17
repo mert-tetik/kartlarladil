@@ -58,4 +58,13 @@ describe("browser video plans", () => {
       mediaUrl: null,
     }, new AbortController().signal)).resolves.toMatchObject({ kind: "music" });
   });
+
+  it("keeps legacy random-tier music outputs out of the source-unavailable failure", async () => {
+    await expect(prepareBrowserVideoPlan({
+      ...baseOutput,
+      generator: "music-ai-mini-quiz",
+      tier: "random",
+      mediaUrl: null,
+    }, new AbortController().signal)).resolves.toMatchObject({ kind: "music" });
+  });
 });

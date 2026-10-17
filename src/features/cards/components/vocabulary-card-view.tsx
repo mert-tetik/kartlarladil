@@ -32,6 +32,11 @@ interface VocabularyCardViewProps {
   backDisplayTier?: Tier;
   className?: string;
   onAdd?: () => void;
+  addLabel?: string;
+  ownedLabel?: string;
+  addLoading?: boolean;
+  addLoadingLabel?: string;
+  addDisabled?: boolean;
   onSkip?: () => void;
   showActions?: boolean;
   frontFit?: boolean;
@@ -198,6 +203,11 @@ export function VocabularyCardView({
   backDisplayTier,
   className,
   onAdd,
+  addLabel,
+  ownedLabel,
+  addLoading = false,
+  addLoadingLabel,
+  addDisabled = false,
   onSkip,
   showActions = true,
   frontFit = false,
@@ -287,7 +297,7 @@ export function VocabularyCardView({
   if (staticFace) {
     return (
       <article data-card-face="front" data-theme="default" className={cn("group relative aspect-[3/4] min-w-0 rounded-lg", "min-h-[320px] max-sm:aspect-auto max-sm:min-h-[280px]", className, compact && "min-h-0 max-sm:min-h-0")}>
-        <CardFront card={displayCard} inventory={inventory} owned={owned} allowOwnedAdd={allowOwnedAdd} isFaceUp onAdd={onAdd} onSkip={onSkip} showActions={showActions} frontFit={frontFit} frontMinimal={frontMinimal} frontContentScale={frontContentScale} frontTranslationBelowTerm={frontTranslationBelowTerm} frontHideStudyMetadata={frontHideStudyMetadata} frontFitCoreText={frontFitCoreText} isControlled compact={compact} translationLocale={translationLocale} primaryTranslationOnly={primaryTranslationOnly} memoryGame={memoryGame} footerMode={footerMode} footerProgressCount={footerProgressCount} progressAnimationActive={progressAnimationActive} summaryCard={summaryCard} summaryProgressCount={summaryProgressCount} />
+        <CardFront card={displayCard} inventory={inventory} owned={owned} ownedLabel={ownedLabel} allowOwnedAdd={allowOwnedAdd} isFaceUp onAdd={onAdd} addLabel={addLabel} addLoading={addLoading} addLoadingLabel={addLoadingLabel} addDisabled={addDisabled} onSkip={onSkip} showActions={showActions} frontFit={frontFit} frontMinimal={frontMinimal} frontContentScale={frontContentScale} frontTranslationBelowTerm={frontTranslationBelowTerm} frontHideStudyMetadata={frontHideStudyMetadata} frontFitCoreText={frontFitCoreText} isControlled compact={compact} translationLocale={translationLocale} primaryTranslationOnly={primaryTranslationOnly} memoryGame={memoryGame} footerMode={footerMode} footerProgressCount={footerProgressCount} progressAnimationActive={progressAnimationActive} summaryCard={summaryCard} summaryProgressCount={summaryProgressCount} />
       </article>
     );
   }
@@ -320,9 +330,14 @@ export function VocabularyCardView({
           card={displayCard}
           inventory={inventory}
           owned={owned}
+          ownedLabel={ownedLabel}
           allowOwnedAdd={allowOwnedAdd}
           isFaceUp={isFaceUp}
           onAdd={onAdd}
+          addLabel={addLabel}
+          addLoading={addLoading}
+          addLoadingLabel={addLoadingLabel}
+          addDisabled={addDisabled}
           onSkip={onSkip}
           showActions={showActions}
           frontFit={frontFit}
@@ -360,9 +375,14 @@ function CardFront({
   card,
   inventory,
   owned,
+  ownedLabel,
   allowOwnedAdd = false,
   isFaceUp,
   onAdd,
+  addLabel,
+  addLoading = false,
+  addLoadingLabel,
+  addDisabled = false,
   onSkip,
   showActions = true,
   frontFit = false,
@@ -384,9 +404,14 @@ function CardFront({
   card: VocabularyCard;
   inventory?: InventoryCard;
   owned?: boolean;
+  ownedLabel?: string;
   allowOwnedAdd?: boolean;
   isFaceUp: boolean;
   onAdd?: () => void;
+  addLabel?: string;
+  addLoading?: boolean;
+  addLoadingLabel?: string;
+  addDisabled?: boolean;
   onSkip?: () => void;
   showActions?: boolean;
   frontFit?: boolean;
@@ -686,28 +711,39 @@ function CardFront({
         ) : null}
 
         {!frontMinimal && (onAdd || onSkip) ? (
-          <div className="grid grid-cols-2 gap-2 max-sm:gap-1.5">
-            <Button
-              variant="secondary"
-              onClick={handleSkipClick}
-              disabled={!onSkip}
-              className="h-8 border-0 bg-rose-500 px-2 text-xs text-white hover:bg-rose-600 max-sm:h-7 max-sm:px-1 max-sm:text-[10px]"
-            >
-              <X className="size-3" aria-hidden="true" />
-              {t("cards.skip")}
-            </Button>
-            <Button
-              onClick={handleAddClick}
-              disabled={!onAdd || showOwnedState}
-              data-tutorial-target="card-add"
-              className={cn(
-                "h-8 bg-white px-2 text-xs hover:bg-white/90 max-sm:h-7 max-sm:px-1 max-sm:text-[10px]",
-                ADD_BUTTON_TEXT_BY_TIER[card.tier],
-              )}
-            >
-              {showOwnedState ? <Check className="size-3" aria-hidden="true" /> : <Plus className="size-3" aria-hidden="true" />}
-              {showOwnedState ? t("cards.owned") : t("cards.add")}
-            </Button>
+          <div className={cn("grid w-full gap-2 max-sm:gap-1.5", onAdd && onSkip ? "grid-cols-2" : "grid-cols-1")}>
+            {onSkip ? (
+              <Button
+                variant="secondary"
+                onClick={handleSkipClick}
+                className="h-8 border-0 bg-rose-500 px-2 text-xs text-white hover:bg-rose-600 max-sm:h-7 max-sm:px-1 max-sm:text-[10px]"
+              >
+                <X className="size-3" aria-hidden="true" />
+                {t("cards.skip")}
+              </Button>
+            ) : null}
+            {onAdd ? (
+              <Button
+                onClick={handleAddClick}
+                disabled={showOwnedState || addLoading || addDisabled}
+                data-tutorial-target="card-add"
+                className={cn(
+                  "h-8 w-full bg-white px-2 text-xs hover:bg-white/90 max-sm:h-7 max-sm:px-1 max-sm:text-[10px]",
+                  ADD_BUTTON_TEXT_BY_TIER[card.tier],
+                )}
+              >
+                {addLoading
+                  ? <LoaderCircle className="size-3 animate-spin" aria-hidden="true" />
+                  : showOwnedState
+                    ? <Check className="size-3" aria-hidden="true" />
+                    : <Plus className="size-3" aria-hidden="true" />}
+                {showOwnedState
+                  ? ownedLabel ?? t("cards.owned")
+                  : addLoading
+                    ? addLoadingLabel ?? t("common.loading")
+                    : addLabel ?? t("cards.add")}
+              </Button>
+            ) : null}
           </div>
         ) : null}
       </div>

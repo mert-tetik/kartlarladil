@@ -20,6 +20,8 @@ const videoAssetSchema = z.object({
 const schema = z.object({
   socialMediaId: z.number().int().positive(),
   caption: z.string().trim().min(1).max(280),
+  nativeLanguage: z.string().trim().optional(),
+  learningLanguage: z.string().trim().optional(),
   asset: z.union([imageAssetSchema, videoAssetSchema]).optional(),
   assets: z.array(imageAssetSchema).min(2).max(10).optional(),
 }).strict().superRefine((value, context) => {

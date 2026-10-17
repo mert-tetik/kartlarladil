@@ -5,6 +5,15 @@ import { RANDOM_GENERATOR, resolveGeneratorSelection } from "@/features/twitter-
 import { AUTOMATION_MIN_ACCOUNT_SCHEDULE_GAP_MS } from "@/features/twitter-automation/automation-resilience";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { automationOwnerKey, normalizeAutomationScope } from "@/features/twitter-automation/automation-scope";
+import { listAutomationStoragePaths, logAutomationRequestFailure } from "@/features/twitter-automation/automation-run-service";
+import { buildLanguageCombinationPlan } from "@/features/twitter-automation/language-combination-planning";
+import { buildSharedPoolPlan, type SharedPoolSource } from "@/features/twitter-automation/shared-pool-planning";
+import {
+  createDailyAutomationOutputIdentity,
+  createDailyAutomationOutputMetadata,
+  readDailyAutomationOutputMetadata,
+} from "@/features/twitter-automation/daily-automation-output";
+import { getSocialDownloadTitle } from "@/features/twitter-automation/social-video-titles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,6 +21,35 @@ export const dynamic = "force-dynamic";
 const STATE_TABLE = "social_content_automation_state";
 const AUTOMATION_BUCKET = "social-studio-automation";
 const LANGUAGE_CODES = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"] as const;
+const BROWSER_IMAGE_GENERATORS = new Set([
+  "word-of-the-day",
+  "word-of-the-day-poster",
+  "self-mini-quiz",
+  "self-false-friends",
+  "self-daily-challenge",
+  "self-vocabulary-progression",
+  "self-example-sentences",
+  "vocabulary-carousel",
+  "tier-progression-carousel",
+]);
+const BROWSER_MUSIC_IMAGE_GENERATORS = new Set([
+  "music-word-of-the-day",
+  "music-word-of-the-day-poster",
+  "music-self-mini-quiz",
+  "music-self-false-friends",
+  "music-self-daily-challenge",
+  "music-self-vocabulary-progression",
+  "music-self-example-sentences",
+]);
+const OTHER_BROWSER_VIDEO_GENERATORS = new Set([
+  "confused-words-video",
+  "marketing-dialogue-video",
+  "learning-dialogue-video",
+  "tier-progression-video",
+  "vocabulary-quiz-video",
+  "sentence-check-video",
+  "sentence-translation-video",
+]);
 const languageSelectionSchema = z.enum(["random", ...LANGUAGE_CODES]);
 const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/u);
 const selectableContentTypeSchema = z.enum(["text", "image", "video"]);
@@ -25,6 +63,12 @@ const randomIncludesSchema = z.object({
   image: z.array(z.enum(["self", "ai"])).min(1).max(2).optional(),
   video: z.array(z.enum(["ai", "self", "img"])).min(1).max(3).optional(),
 }).strict();
+const dailyQuantitiesSchema = z.object({
+  text: z.number().int().min(0).max(20),
+  image: z.number().int().min(0).max(20),
+  video: z.number().int().min(0).max(20),
+}).strict();
+const accountContentTypesSchema = z.record(z.string(), z.array(selectableContentTypeSchema).max(3));
 const rowSchema = z.object({
   id: z.string().uuid(),
   contentType: z.enum(["random", "text", "image", "video"]),
@@ -32,6 +76,8 @@ const rowSchema = z.object({
   contentTypes: z.array(selectableContentTypeSchema).min(1).max(3).optional(),
   generators: generatorModesSchema.optional(),
   randomIncludes: randomIncludesSchema.optional(),
+  dailyQuantities: dailyQuantitiesSchema.optional(),
+  accountContentTypes: accountContentTypesSchema.optional(),
   quantity: z.number().int().min(1).max(20).default(1),
   language: languageSelectionSchema,
   nativeLanguage: languageSelectionSchema,
@@ -62,6 +108,8 @@ type SelectableContentType = z.infer<typeof selectableContentTypeSchema>;
 type OutputLanguage = (typeof LANGUAGE_CODES)[number];
 type PlannedOutput = {
   dayOffset: number;
+  combinationId: string;
+  generationIndex: number;
   groupName: string;
   contentType: SelectableContentType;
   generator: string;
@@ -101,8 +149,23 @@ function createScheduledAt(dayOffset: number, start: string, end: string) {
   return `${year}-${month}-${day}T${hour}:${minutes}:00+03:00`;
 }
 
+function generationDateForDayOffset(dayOffset: number) {
+  const today = istanbulDateParts(new Date());
+  const target = new Date(Date.UTC(today.year, today.month - 1, today.day + dayOffset));
+  return `${target.getUTCFullYear()}-${String(target.getUTCMonth() + 1).padStart(2, "0")}-${String(target.getUTCDate()).padStart(2, "0")}`;
+}
+
 function targetAccountIds(row: AutomationRow) {
   return [...new Set(Object.values(row.accounts).flat().map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))];
+}
+
+function seededRandom(seed: string) {
+  let hash = 2_166_136_261;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash ^= seed.charCodeAt(index);
+    hash = Math.imul(hash, 16_777_619);
+  }
+  return ((hash >>> 0) % 1_000_000) / 1_000_000;
 }
 
 function createReservedScheduledAt(dayOffset: number, start: string, end: string, accountIds: number[], reservations: Map<number, number[]>) {
@@ -118,17 +181,22 @@ function createReservedScheduledAt(dayOffset: number, start: string, end: string
   return null;
 }
 
-function pickLanguage(candidates: readonly OutputLanguage[] = LANGUAGE_CODES) {
-  return candidates[Math.floor(Math.random() * candidates.length)]!;
+function pickLanguage(candidates: readonly OutputLanguage[] = LANGUAGE_CODES, random = Math.random) {
+  return candidates[Math.min(candidates.length - 1, Math.floor(random() * candidates.length))]!;
 }
 
-function resolveOutputLanguages(row: AutomationRow) {
-  const language = row.language === "random" ? pickLanguage() : row.language;
+function resolveOutputLanguages(row: AutomationRow, random = Math.random) {
+  const language = row.language === "random" ? pickLanguage(LANGUAGE_CODES, random) : row.language;
   if (row.nativeLanguage !== "random") return { language, nativeLanguage: row.nativeLanguage };
-  return { language, nativeLanguage: pickLanguage(LANGUAGE_CODES.filter((candidate) => candidate !== language)) };
+  return { language, nativeLanguage: pickLanguage(LANGUAGE_CODES.filter((candidate) => candidate !== language), random) };
 }
 
-function resolveContentMode(row: AutomationRow) {
+function resolveContentMode(row: AutomationRow, forcedContentType?: SelectableContentType, random = Math.random) {
+  if (forcedContentType) {
+    const generatorMode = row.generators?.[forcedContentType]
+      ?? (row.contentType === forcedContentType ? row.generator : RANDOM_GENERATOR);
+    return { contentType: forcedContentType, generator: resolveGeneratorSelection(forcedContentType, generatorMode, row.randomIncludes?.[forcedContentType], random) };
+  }
   const selectedTypes: SelectableContentType[] = row.contentTypes?.length
     ? [...new Set(row.contentTypes)]
     : row.contentType === "image"
@@ -138,12 +206,18 @@ function resolveContentMode(row: AutomationRow) {
         : row.contentType === "video"
           ? ["video"]
           : ["text", "image", "video"];
-  const contentType = selectedTypes[Math.floor(Math.random() * selectedTypes.length)]!;
+  const contentType = selectedTypes[Math.min(selectedTypes.length - 1, Math.floor(random() * selectedTypes.length))]!;
   const generatorMode = row.generators?.[contentType]
     ?? (row.contentType === contentType ? row.generator : RANDOM_GENERATOR);
-  const generator = resolveGeneratorSelection(contentType, generatorMode, row.randomIncludes?.[contentType]);
+  const generator = resolveGeneratorSelection(contentType, generatorMode, row.randomIncludes?.[contentType], random);
 
   return { contentType, generator };
+}
+
+function requiresBrowserRenderer(generator: string) {
+  if (BROWSER_MUSIC_IMAGE_GENERATORS.has(generator)) return true;
+  if (generator.startsWith("music-")) return false;
+  return BROWSER_IMAGE_GENERATORS.has(generator) || OTHER_BROWSER_VIDEO_GENERATORS.has(generator);
 }
 
 async function toMediaUrl(path: string | null) {
@@ -162,12 +236,31 @@ function mediaPaths(value: unknown) {
 export async function GET(request: NextRequest) {
   if (!(await isAuthorized(request))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
   const ownerKey = automationOwnerKey(normalizeAutomationScope(request.nextUrl.searchParams.get("scope")));
-  const runId = request.nextUrl.searchParams.get("runId");
+  const requestedRunId = request.nextUrl.searchParams.get("runId");
+  const latestOnly = request.nextUrl.searchParams.get("latest") === "1";
   const activeOnly = request.nextUrl.searchParams.get("active") === "1";
   const includeMedia = request.nextUrl.searchParams.get("includeMedia") === "1";
-  if (runId && !z.string().uuid().safeParse(runId).success) return NextResponse.json({ errorCode: "invalid_automation_run" }, { status: 400 });
+  if (requestedRunId && !z.string().uuid().safeParse(requestedRunId).success) return NextResponse.json({ errorCode: "invalid_automation_run" }, { status: 400 });
+  let runId: string | null = requestedRunId;
+  let latestRun: { id: string; horizon_days: number; status: string; created_at: string } | null = null;
   try {
     const supabase = createSupabaseAdminClient();
+    if (!runId && latestOnly) {
+      const { data, error: latestRunError } = await supabase
+        .from("social_content_automation_runs")
+        .select("id,horizon_days,status,created_at")
+        .eq("owner_key", ownerKey)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (latestRunError) {
+        logAutomationRequestFailure("automation_latest_run_read_failed", latestRunError, { scope: ownerKey });
+        return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
+      }
+      latestRun = data;
+      runId = latestRun?.id ?? null;
+      if (!runId) return NextResponse.json({ outputs: [], durationProfiles: {}, latestRunId: null, latestRun: null });
+    }
     const outputLimit = runId ? 1_000 : 300;
     let query = supabase
       .from("social_content_automation_outputs")
@@ -178,7 +271,11 @@ export async function GET(request: NextRequest) {
     if (runId) query = query.eq("run_id", runId);
     if (activeOnly) query = query.in("run.status", ["queued", "processing", "ready_to_schedule"]);
     const { data, error } = await query;
-    if (error) return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
+    if (error) {
+      logAutomationRequestFailure("automation_runs_read_failed", error, { runId: runId ?? null, scope: ownerKey });
+      return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
+    }
+    const storagePathsPromise = includeMedia ? listAutomationStoragePaths() : Promise.resolve<Set<string> | null>(null);
     const durationProfiles = runId
       ? await supabase
         .from("social_content_automation_mode_durations")
@@ -187,19 +284,50 @@ export async function GET(request: NextRequest) {
           .filter((profile): profile is { generator: string; average_duration_ms: number } => typeof profile.generator === "string" && Number.isFinite(profile.average_duration_ms) && profile.average_duration_ms > 0)
           .map((profile) => [profile.generator, profile.average_duration_ms])))
       : {};
+    let storagePaths: Set<string> | null = null;
+    let storageStatusUnavailable = false;
+    if (includeMedia) {
+      try {
+        storagePaths = await storagePathsPromise;
+      } catch (error) {
+        storageStatusUnavailable = true;
+        logAutomationRequestFailure("automation_storage_status_read_failed", error, { runId: runId ?? null, scope: ownerKey });
+      }
+    }
     const outputs = await Promise.all((data ?? []).map(async (output) => {
+      const durableMetadata = readDailyAutomationOutputMetadata(output.render_plan);
       const needsBrowserVideoSource = output.status === "awaiting_browser_video" && typeof output.media_path === "string";
-      if (!includeMedia && !needsBrowserVideoSource) return { ...output, mediaUrl: null, mediaUrls: [] };
+      const outputPaths = [...mediaPaths(output.media_paths), ...(typeof output.media_path === "string" && output.media_path.startsWith("automation/") ? [output.media_path] : [])];
+      const bucketStatus = output.content_type === "text"
+        ? "database"
+        : !includeMedia
+          ? "not_checked"
+          : storageStatusUnavailable
+            ? "unavailable"
+            : outputPaths.length > 0 && outputPaths.every((path) => storagePaths?.has(path))
+              ? "stored"
+              : "missing";
+      const durableOutputFields = {
+        generation_key: durableMetadata?.generationKey ?? null,
+        generation_date: durableMetadata?.generationDate ?? null,
+        generation_index: durableMetadata?.generationIndex ?? null,
+        title: durableMetadata?.title ?? null,
+        description: durableMetadata?.description ?? output.caption ?? null,
+      };
+      if (!includeMedia && !needsBrowserVideoSource) return { ...output, ...durableOutputFields, mediaUrl: null, mediaUrls: [], bucketStatus };
       const paths = mediaPaths(output.media_paths);
       const mediaUrls = await Promise.all(paths.map((path) => toMediaUrl(path)));
       return {
         ...output,
+        ...durableOutputFields,
+        bucketStatus,
         mediaUrl: await toMediaUrl(typeof output.media_path === "string" ? output.media_path : null),
         mediaUrls: mediaUrls.filter((url): url is string => Boolean(url)),
       };
     }));
-    return NextResponse.json({ outputs, durationProfiles });
-  } catch {
+    return NextResponse.json({ outputs, durationProfiles, latestRunId: latestRun?.id ?? (runId ?? null), latestRun });
+  } catch (error) {
+    logAutomationRequestFailure("automation_runs_read_request_failed", error, { runId: runId ?? null, scope: ownerKey });
     return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
   }
 }
@@ -213,22 +341,37 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = createSupabaseAdminClient();
     const { data: state, error: stateError } = await supabase.from(STATE_TABLE).select("groups").eq("owner_key", ownerKey).maybeSingle<{ groups: unknown }>();
-    if (stateError) return NextResponse.json({ errorCode: "automation_storage_unavailable" }, { status: 503 });
+    if (stateError) {
+      logAutomationRequestFailure("automation_state_read_failed", stateError, { scope: ownerKey });
+      return NextResponse.json({ errorCode: "automation_storage_unavailable" }, { status: 503 });
+    }
     const parsedState = storedAutomationStateSchema.safeParse(state?.groups);
-    if (!parsedState.success) return NextResponse.json({ errorCode: "invalid_automation_state" }, { status: 409 });
+    if (!parsedState.success) {
+      logAutomationRequestFailure("automation_state_invalid", new Error("invalid_automation_state"), { scope: ownerKey, issueCount: parsedState.error.issues.length });
+      return NextResponse.json({ errorCode: "invalid_automation_state" }, { status: 409 });
+    }
     const parsedGroups = Array.isArray(parsedState.data) ? parsedState.data : parsedState.data.groups;
     const hiddenSuperGroupIds = new Set(Array.isArray(parsedState.data) ? [] : parsedState.data.superGroups.filter((superGroup) => superGroup.hidden).map((superGroup) => superGroup.id));
 
     const sourceRows = parsedGroups.filter((group) => !group.hidden && (!group.superGroupId || !hiddenSuperGroupIds.has(group.superGroupId))).flatMap((group) => group.rows.map((row) => ({ group, row, targetIds: targetAccountIds(row) }))).filter((item) => item.targetIds.length > 0);
-    if (!sourceRows.length) return NextResponse.json({ errorCode: "automation_targets_missing" }, { status: 409 });
+    if (!sourceRows.length) {
+      logAutomationRequestFailure("automation_targets_missing", new Error("automation_targets_missing"), { scope: ownerKey });
+      return NextResponse.json({ errorCode: "automation_targets_missing" }, { status: 409 });
+    }
 
     const selectedAccountIds = [...new Set(sourceRows.flatMap((item) => item.targetIds))];
     const [{ data: accountRows, error: accountError }, { error: storageError }] = await Promise.all([
       supabase.from("social_medias").select("id").in("id", selectedAccountIds),
       supabase.storage.from(AUTOMATION_BUCKET).list("", { limit: 1 }),
     ]);
-    if (accountError || (accountRows?.length ?? 0) !== selectedAccountIds.length) return NextResponse.json({ errorCode: "automation_preflight_accounts_failed" }, { status: 409 });
-    if (storageError) return NextResponse.json({ errorCode: "automation_preflight_storage_failed" }, { status: 503 });
+    if (accountError || (accountRows?.length ?? 0) !== selectedAccountIds.length) {
+      logAutomationRequestFailure("automation_preflight_accounts_failed", accountError ?? new Error("automation_account_count_mismatch"), { scope: ownerKey, selectedAccountCount: selectedAccountIds.length, foundAccountCount: accountRows?.length ?? 0 });
+      return NextResponse.json({ errorCode: "automation_preflight_accounts_failed" }, { status: 409 });
+    }
+    if (storageError) {
+      logAutomationRequestFailure("automation_preflight_storage_failed", storageError, { scope: ownerKey });
+      return NextResponse.json({ errorCode: "automation_preflight_storage_failed" }, { status: 503 });
+    }
 
     const { data: existingSchedules, error: scheduleError } = await supabase
       .from("social_content_automation_outputs")
@@ -237,7 +380,10 @@ export async function POST(request: NextRequest) {
       .gte("scheduled_at", new Date().toISOString())
       .in("status", ["queued", "processing", "generating_video", "awaiting_browser_image", "awaiting_browser_video", "ready_to_schedule", "scheduled"])
       .limit(2_000);
-    if (scheduleError) return NextResponse.json({ errorCode: "automation_preflight_schedule_failed" }, { status: 503 });
+    if (scheduleError) {
+      logAutomationRequestFailure("automation_preflight_schedule_failed", scheduleError, { scope: ownerKey });
+      return NextResponse.json({ errorCode: "automation_preflight_schedule_failed" }, { status: 503 });
+    }
     const reservations = new Map<number, number[]>();
     for (const schedule of existingSchedules ?? []) {
       const timestamp = new Date(schedule.scheduled_at).getTime();
@@ -248,18 +394,103 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const outputsPerDay = sourceRows.reduce((total, item) => total + item.row.quantity, 0);
-    const plannedRows: PlannedOutput[] = Array.from({ length: parsedRequest.data.horizonDays }, (_, index) => index + 1).flatMap((dayOffset) => sourceRows.flatMap(({ group, row, targetIds }) => Array.from({ length: row.quantity }, () => {
-      const scheduledAt = createReservedScheduledAt(dayOffset, row.scheduleStart, row.scheduleEnd, targetIds, reservations);
-      if (!scheduledAt) return null;
-      const { contentType, generator } = resolveContentMode(row);
-      const { language, nativeLanguage } = resolveOutputLanguages(row);
-      return { dayOffset, groupName: group.name, contentType, generator, language, nativeLanguage, tier: row.tier, scheduledAt, targetIds };
-    }))).filter((row): row is PlannedOutput => row !== null);
+    const isProductionPool = normalizeAutomationScope(parsedRequest.data.scope) === "production";
+    const hasLanguageCombinationRows = isProductionPool && sourceRows.some(({ row }) => Boolean(row.dailyQuantities));
+    const combinationPlanningSources = hasLanguageCombinationRows
+      ? buildLanguageCombinationPlan(sourceRows.map(({ group, row }) => ({ group, row })))
+      : [];
+    const legacyPlanningSources = !hasLanguageCombinationRows && isProductionPool
+      ? buildSharedPoolPlan(sourceRows as SharedPoolSource<typeof sourceRows[number]["group"], typeof sourceRows[number]["row"]>[])
+      : [];
+    const testPlanningSources = !isProductionPool
+      ? sourceRows.map(({ group, row, targetIds }) => ({ group, row, targetIdsByOutput: Array.from({ length: row.quantity }, () => targetIds) }))
+      : [];
+    const outputsPerDay = hasLanguageCombinationRows
+      ? combinationPlanningSources.reduce((total, item) => total + item.quantity, 0)
+      : (isProductionPool ? legacyPlanningSources : testPlanningSources).reduce((total, item) => total + item.row.quantity, 0);
+    type DurableExistingOutput = {
+      id: string;
+      run_id: string;
+      scheduled_at: string;
+      target_account_ids: unknown;
+      status: string;
+      content_type: SelectableContentType;
+      generator: string;
+      language: OutputLanguage;
+      native_language: OutputLanguage;
+      tier: AutomationRow["tier"];
+    };
+    const durableExistingById = new Map<string, DurableExistingOutput>();
+    if (hasLanguageCombinationRows) {
+      const plannedDurableIds = Array.from({ length: parsedRequest.data.horizonDays }, (_, index) => index + 1).flatMap((dayOffset) => {
+        const generationDate = generationDateForDayOffset(dayOffset);
+        return combinationPlanningSources.flatMap(({ row, contentType, quantity }) => Array.from({ length: quantity }, (_, outputIndex) => createDailyAutomationOutputIdentity({
+          ownerKey,
+          generationDate,
+          combinationId: row.id,
+          contentType,
+          generationIndex: outputIndex + 1,
+        }).id));
+      });
+      if (plannedDurableIds.length) {
+        const { data, error } = await supabase
+          .from("social_content_automation_outputs")
+          .select("id,run_id,scheduled_at,target_account_ids,status,content_type,generator,language,native_language,tier,run:social_content_automation_runs!inner(owner_key)")
+          .in("id", plannedDurableIds)
+          .eq("run.owner_key", ownerKey);
+        if (error) {
+          logAutomationRequestFailure("automation_durable_outputs_read_failed", error, { scope: ownerKey, outputCount: plannedDurableIds.length });
+          return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
+        }
+        for (const output of (data ?? []) as DurableExistingOutput[]) durableExistingById.set(output.id, output);
+        for (const output of durableExistingById.values()) {
+          const scheduledTime = new Date(output.scheduled_at).getTime();
+          if (!Number.isFinite(scheduledTime) || !Array.isArray(output.target_account_ids)) continue;
+          for (const accountId of output.target_account_ids) {
+            if (typeof accountId !== "number") continue;
+            reservations.set(accountId, [...(reservations.get(accountId) ?? []), scheduledTime]);
+          }
+        }
+      }
+    }
+    const plannedRows: PlannedOutput[] = Array.from({ length: parsedRequest.data.horizonDays }, (_, index) => index + 1).flatMap((dayOffset) => {
+      if (hasLanguageCombinationRows) {
+        return combinationPlanningSources.flatMap(({ group, row, contentType, quantity, targetIds }) => Array.from({ length: quantity }, (_, outputIndex) => {
+          const generationDate = generationDateForDayOffset(dayOffset);
+          const identity = createDailyAutomationOutputIdentity({ ownerKey, generationDate, combinationId: row.id, contentType, generationIndex: outputIndex + 1 });
+          const existing = durableExistingById.get(identity.id);
+          const fallbackTargetIds = targetIds.map(Number);
+          const persistedTargetIds = existing && Array.isArray(existing.target_account_ids)
+            ? existing.target_account_ids.map(Number).filter((accountId) => Number.isSafeInteger(accountId) && accountId > 0)
+            : [];
+          const numericTargetIds = persistedTargetIds.length ? persistedTargetIds : fallbackTargetIds;
+          const scheduledAt = existing?.scheduled_at ?? createReservedScheduledAt(dayOffset, row.scheduleStart, row.scheduleEnd, numericTargetIds, reservations);
+          if (!scheduledAt) return null;
+          const stableSeed = `${ownerKey}:${generationDate}:${row.id}:${contentType}:${outputIndex + 1}`;
+          const resolved = existing ? { contentType: existing.content_type, generator: existing.generator } : resolveContentMode(row, contentType, () => seededRandom(stableSeed));
+          const { language, nativeLanguage } = existing
+            ? { language: existing.language, nativeLanguage: existing.native_language }
+            : resolveOutputLanguages(row, () => seededRandom(`${stableSeed}:language`));
+          return { dayOffset, combinationId: row.id, generationIndex: outputIndex + 1, groupName: group.name, contentType: resolved.contentType, generator: resolved.generator, language, nativeLanguage, tier: row.tier, scheduledAt, targetIds: numericTargetIds };
+        })).filter((row): row is PlannedOutput => row !== null);
+      }
+
+      const sources = isProductionPool ? legacyPlanningSources : testPlanningSources;
+      return sources.flatMap(({ group, row, targetIdsByOutput }) => Array.from({ length: row.quantity }, (_, outputIndex) => {
+        const targetIds = targetIdsByOutput[outputIndex] ?? [];
+        const scheduledAt = createReservedScheduledAt(dayOffset, row.scheduleStart, row.scheduleEnd, targetIds, reservations);
+        if (!scheduledAt) return null;
+        const stableSeed = `${ownerKey}:${scheduledAt.slice(0, 10)}:${row.id}:${outputIndex + 1}`;
+        const resolved = resolveContentMode(row, undefined, () => seededRandom(stableSeed));
+        const { language, nativeLanguage } = resolveOutputLanguages(row, () => seededRandom(`${stableSeed}:language`));
+        return { dayOffset, combinationId: row.id, generationIndex: outputIndex + 1, groupName: group.name, contentType: resolved.contentType, generator: resolved.generator, language, nativeLanguage, tier: row.tier, scheduledAt, targetIds };
+      })).filter((row): row is PlannedOutput => row !== null);
+    });
     if (plannedRows.length !== outputsPerDay * parsedRequest.data.horizonDays) {
+      logAutomationRequestFailure("automation_preflight_schedule_gap_failed", new Error("automation_preflight_schedule_gap_failed"), { scope: ownerKey, expectedOutputCount: outputsPerDay * parsedRequest.data.horizonDays, plannedOutputCount: plannedRows.length, horizonDays: parsedRequest.data.horizonDays });
       return NextResponse.json({ errorCode: "automation_preflight_schedule_gap_failed" }, { status: 409 });
     }
-    const needsBrowserRenderer = plannedRows.some((row) => row.generator.startsWith("music-") || ["word-of-the-day", "word-of-the-day-poster", "vocabulary-carousel", "tier-progression-carousel", "self-mini-quiz", "self-false-friends", "self-daily-challenge", "self-vocabulary-progression", "self-example-sentences", "confused-words-video", "marketing-dialogue-video", "learning-dialogue-video", "tier-progression-video", "vocabulary-quiz-video", "sentence-check-video", "sentence-translation-video"].includes(row.generator));
+    const needsBrowserRenderer = plannedRows.some((row) => requiresBrowserRenderer(row.generator));
     const { data: renderer } = await supabase
       .from("social_content_automation_renderers")
       .select("last_heartbeat_at")
@@ -270,35 +501,124 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .maybeSingle<{ last_heartbeat_at: string | null }>();
     const rendererOnline = Boolean(renderer?.last_heartbeat_at && Date.now() - new Date(renderer.last_heartbeat_at).getTime() <= 45_000);
-    const { data: run, error: runError } = await supabase
-      .from("social_content_automation_runs")
-      .insert({ owner_key: ownerKey, horizon_days: parsedRequest.data.horizonDays, status: "queued", total_outputs: plannedRows.length, preflight_status: "passed", preflight_checked_at: new Date().toISOString(), preflight_details: { storage: "passed", accounts: selectedAccountIds.length, scheduleGapMinutes: AUTOMATION_MIN_ACCOUNT_SCHEDULE_GAP_MS / 60_000, renderer: needsBrowserRenderer ? rendererOnline ? "online" : "offline" : "not_required" } })
-      .select("id,horizon_days,created_at")
-      .single();
-    if (runError || !run) return NextResponse.json({ errorCode: "automation_run_create_failed" }, { status: 503 });
-
-    const rows = plannedRows.map((row) => {
-      return {
-        run_id: run.id,
-        day_offset: row.dayOffset,
-        group_name: row.groupName,
-        content_type: row.contentType,
-        generator: row.generator,
-        language: row.language,
-        native_language: row.nativeLanguage,
-        tier: row.tier,
-        scheduled_at: row.scheduledAt,
-        target_account_ids: row.targetIds,
-        status: "queued",
-      };
+    const plannedRowsWithIdentity = plannedRows.map((row) => {
+      const generationDate = generationDateForDayOffset(row.dayOffset);
+      const identity = createDailyAutomationOutputIdentity({
+        ownerKey,
+        generationDate,
+        combinationId: row.combinationId,
+        contentType: row.contentType,
+        generationIndex: row.generationIndex,
+      });
+      return { ...row, generationDate, ...identity };
     });
-    const { error: outputsError } = await supabase.from("social_content_automation_outputs").insert(rows);
-    if (outputsError) {
-      await supabase.from("social_content_automation_runs").delete().eq("id", run.id);
-      return NextResponse.json({ errorCode: "automation_outputs_create_failed" }, { status: 503 });
+    const plannedIds = plannedRowsWithIdentity.map((row) => row.id);
+    const { data: existingOutputs, error: existingOutputsError } = plannedIds.length
+      ? await supabase
+        .from("social_content_automation_outputs")
+        .select("id,run_id,run:social_content_automation_runs!inner(id,owner_key)")
+        .in("id", plannedIds)
+        .eq("run.owner_key", ownerKey)
+      : { data: [], error: null };
+    if (existingOutputsError) {
+      logAutomationRequestFailure("automation_durable_outputs_read_failed", existingOutputsError, { scope: ownerKey, outputCount: plannedRows.length });
+      return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
     }
-    return NextResponse.json({ run, outputCount: rows.length }, { status: 201 });
-  } catch {
+
+    const existingById = new Map((existingOutputs ?? []).map((output) => [output.id, output]));
+    const existingRunCounts = new Map<string, number>();
+    for (const output of existingOutputs ?? []) existingRunCounts.set(output.run_id, (existingRunCounts.get(output.run_id) ?? 0) + 1);
+    let canonicalRunId = [...existingRunCounts.entries()].sort((first, second) => second[1] - first[1])[0]?.[0] ?? null;
+    let run: { id: string; horizon_days: number; created_at: string } | null = null;
+    let runWasCreated = false;
+    if (canonicalRunId) {
+      const { data: existingRun, error: existingRunError } = await supabase
+        .from("social_content_automation_runs")
+        .select("id,horizon_days,created_at")
+        .eq("id", canonicalRunId)
+        .eq("owner_key", ownerKey)
+        .maybeSingle();
+      if (existingRunError || !existingRun) {
+        logAutomationRequestFailure("automation_durable_run_read_failed", existingRunError ?? new Error("automation_run_missing"), { scope: ownerKey, runId: canonicalRunId });
+        return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
+      }
+      run = existingRun;
+      const duplicateRunOutputIds = (existingOutputs ?? []).filter((output) => output.run_id !== canonicalRunId).map((output) => output.id);
+      if (duplicateRunOutputIds.length) {
+        const { error: moveError } = await supabase
+          .from("social_content_automation_outputs")
+          .update({ run_id: canonicalRunId, updated_at: new Date().toISOString() })
+          .in("id", duplicateRunOutputIds);
+        if (moveError) {
+          logAutomationRequestFailure("automation_durable_outputs_merge_failed", moveError, { scope: ownerKey, runId: canonicalRunId, outputCount: duplicateRunOutputIds.length });
+          return NextResponse.json({ errorCode: "automation_outputs_create_failed" }, { status: 503 });
+        }
+      }
+    } else {
+      const { data: createdRun, error: runError } = await supabase
+        .from("social_content_automation_runs")
+        .insert({ owner_key: ownerKey, horizon_days: parsedRequest.data.horizonDays, status: "queued", total_outputs: plannedRows.length, preflight_status: "passed", preflight_checked_at: new Date().toISOString(), preflight_details: { storage: "passed", accounts: selectedAccountIds.length, scheduleGapMinutes: AUTOMATION_MIN_ACCOUNT_SCHEDULE_GAP_MS / 60_000, renderer: needsBrowserRenderer ? rendererOnline ? "online" : "offline" : "not_required" } })
+        .select("id,horizon_days,created_at")
+        .single();
+      if (runError || !createdRun) {
+        logAutomationRequestFailure("automation_run_create_failed", runError ?? new Error("automation_run_missing_after_insert"), { scope: ownerKey, outputCount: plannedRows.length });
+        return NextResponse.json({ errorCode: "automation_run_create_failed" }, { status: 503 });
+      }
+      run = createdRun;
+      canonicalRunId = createdRun.id;
+      runWasCreated = true;
+    }
+
+    const rows = plannedRowsWithIdentity.filter((row) => !existingById.has(row.id)).map((row) => ({
+      id: row.id,
+      run_id: canonicalRunId!,
+      day_offset: row.dayOffset,
+      group_name: row.groupName,
+      content_type: row.contentType,
+      generator: row.generator,
+      language: row.language,
+      native_language: row.nativeLanguage,
+      tier: row.tier,
+      scheduled_at: row.scheduledAt,
+      target_account_ids: row.targetIds,
+      render_plan: createDailyAutomationOutputMetadata({
+        generationKey: row.generationKey,
+        generationDate: row.generationDate,
+        generationIndex: row.generationIndex,
+        title: getSocialDownloadTitle(row.nativeLanguage),
+        description: null,
+      }),
+      status: "queued",
+    }));
+    if (rows.length) {
+      const { error: outputsError } = await supabase.from("social_content_automation_outputs").insert(rows);
+      if (outputsError) {
+        logAutomationRequestFailure("automation_outputs_create_failed", outputsError, { scope: ownerKey, runId: canonicalRunId, outputCount: rows.length });
+        if (runWasCreated) await supabase.from("social_content_automation_runs").delete().eq("id", canonicalRunId);
+        return NextResponse.json({ errorCode: "automation_outputs_create_failed" }, { status: 503 });
+      }
+    }
+    const runUpdate: Record<string, unknown> = {
+      horizon_days: Math.max(run.horizon_days, parsedRequest.data.horizonDays),
+      total_outputs: plannedRows.length,
+      preflight_status: "passed",
+      preflight_checked_at: new Date().toISOString(),
+    };
+    if (rows.length) {
+      runUpdate.status = "queued";
+      runUpdate.completed_at = null;
+    }
+    const { error: runUpdateError } = await supabase
+      .from("social_content_automation_runs")
+      .update(runUpdate)
+      .eq("id", canonicalRunId);
+    if (runUpdateError) {
+      logAutomationRequestFailure("automation_run_update_failed", runUpdateError, { scope: ownerKey, runId: canonicalRunId });
+      return NextResponse.json({ errorCode: "automation_run_update_failed" }, { status: 503 });
+    }
+    return NextResponse.json({ run, outputCount: plannedRows.length, reusedOutputCount: plannedRows.length - rows.length, runReused: !runWasCreated }, { status: runWasCreated ? 201 : 200 });
+  } catch (error) {
+    logAutomationRequestFailure("automation_run_create_request_failed", error, { scope: ownerKey, horizonDays: parsedRequest.data.horizonDays });
     return NextResponse.json({ errorCode: "automation_run_create_failed" }, { status: 503 });
   }
 }

@@ -1,4 +1,6 @@
 import {
+  buildCreateCardsBatchInput,
+  buildCreateCardsBatchInstructions,
   buildCreateCardInput,
   buildCreateCardInstructions,
 } from "@/features/cards/create-card-prompts";
@@ -77,6 +79,27 @@ describe("mobile custom card target language", () => {
       targetLanguage: "ja",
       direction: "learning-to-native",
     })).toContain("standard dictionary lemma only");
+  });
+
+  it("builds one indexed prompt/input for mixed-language card batches", () => {
+    const requests = [
+      { locale: "en" as const, term: "serendipity", targetLanguage: "en" as const, direction: "learning-to-native" as const },
+      { locale: "tr" as const, term: "sobremesa", targetLanguage: "es" as const, direction: "learning-to-native" as const },
+    ];
+    const instructions = buildCreateCardsBatchInstructions(requests);
+    const input = JSON.parse(buildCreateCardsBatchInput(requests)) as {
+      cards: Array<{ index: number; locale: string; targetLanguage: string; term: string }>;
+    };
+
+    expect(instructions).toContain('"cards": [{ "index": 0, "card": { ...complete card object... } }]');
+    expect(instructions).toContain("Card index 0:");
+    expect(instructions).toContain("Card index 1:");
+    expect(instructions).toContain('Set language to exactly "en"');
+    expect(instructions).toContain('Set language to exactly "es"');
+    expect(input.cards).toEqual([
+      { index: 0, locale: "en", targetLanguage: "en", direction: "learning-to-native", term: "serendipity" },
+      { index: 1, locale: "tr", targetLanguage: "es", direction: "learning-to-native", term: "sobremesa" },
+    ]);
   });
 
   it("requires a target language for the reverse direction", () => {

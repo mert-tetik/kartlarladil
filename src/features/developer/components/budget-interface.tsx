@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { ExternalLink, Plus, Save, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Plus, Save, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createBudgetItemAction, deleteBudgetItemAction, updateBudgetItemAction } from "@/features/developer/developer-actions";
 import type { DeveloperBudgetItem } from "@/features/developer/developer-types";
@@ -53,7 +53,8 @@ export function BudgetInterface({ initialItems }: { initialItems: DeveloperBudge
   }
 
   return <main className="min-h-[calc(100dvh-4rem)] bg-[#f5f3ee] px-4 py-6 text-[#1f2922] sm:px-6 lg:px-10"><div className="mx-auto max-w-[92rem]">
-    <header className="flex flex-col gap-4 border-b border-[#d9ddd4] pb-6 sm:flex-row sm:items-end sm:justify-between"><div><a className="text-sm font-semibold text-[#4f6657] hover:underline" href="/developer">Developer workspace</a><h1 className="mt-2 font-display text-4xl font-semibold tracking-tight">Budget interface</h1><p className="mt-2 text-sm leading-6 text-[#647168]">Her satır Supabase’de tutulur; aktif servisler aylık toplam maliyete dahil edilir.</p></div><div className="rounded-lg border border-[#d9ddd4] bg-[#fcfbf8] px-4 py-3"><p className="text-xs text-[#68756c]">Aylık aktif maliyet</p><p className="mt-1 text-xl font-semibold">{tryFormatter.format(activeTotal)}</p></div></header>
+    <header className="border-b border-[#d9ddd4] pb-6"><a className="inline-flex items-center gap-2 text-sm font-semibold text-[#4f6657] hover:underline" href="/developer"><ArrowLeft className="size-4" aria-hidden="true" />Developer workspace</a><h1 className="mt-2 font-display text-4xl font-semibold tracking-tight">Budget interface</h1></header>
+    <div className="mt-4 flex justify-end"><div className="rounded-lg border border-[#d9ddd4] bg-[#fcfbf8] px-4 py-3"><p className="text-xs text-[#68756c]">Aylık aktif maliyet</p><p className="mt-1 text-xl font-semibold">{tryFormatter.format(activeTotal)}</p></div></div>
     <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><label className="flex h-10 max-w-lg items-center gap-2 rounded-lg border border-[#cdd4cb] bg-white px-3 text-[#667268] focus-within:border-[#71876f]"><Search className="size-4" /><input className="min-w-0 flex-1 bg-transparent text-sm text-[#1f2922] outline-none placeholder:text-[#93a098]" onChange={(event) => setQuery(event.target.value)} placeholder="Servis, link veya notlarda ara" value={query} /></label><p className="text-sm text-[#68756c]">{visibleItems.length} / {items.length} servis</p></div>
     <div className="mt-4 overflow-x-auto rounded-xl border border-[#d9ddd4] bg-[#fcfbf8]"><table className="min-w-[1080px] w-full border-collapse text-left text-sm"><thead><tr className="border-b border-[#d9ddd4] bg-[#efeee8] text-xs text-[#59675e]"><th className="px-3 py-3 font-semibold">Servis</th><th className="px-3 py-3 font-semibold">Aylık maliyet</th><th className="px-3 py-3 font-semibold">Link</th><th className="px-3 py-3 font-semibold">Fatura günü</th><th className="px-3 py-3 font-semibold">Not</th><th className="px-3 py-3 font-semibold">Durum</th><th className="w-28 px-3 py-3" /></tr></thead><tbody>
       <BudgetRow draft={newDraft} onChange={setNewDraft} onSave={saveNew} pending={pending} isNew />

@@ -61,6 +61,10 @@ function randomMusicTrack() {
 }
 
 export async function prepareBrowserVideoPlan(output: BrowserVideoPlanOutput, signal: AbortSignal): Promise<BrowserVideoPlan> {
+  // Music videos no longer need the tier in the browser because their image
+  // and audio are rendered server-side. Keep this fallback tolerant for older
+  // queued outputs that still have the legacy browser-video status.
+  if (output.generator.startsWith("music-")) return { kind: "music", musicUrl: randomMusicTrack() };
   if (output.tier === "random") throw new Error("browser_video_source_unavailable");
 
   if (output.generator === "confused-words-video") {

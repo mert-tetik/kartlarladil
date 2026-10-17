@@ -1,12 +1,21 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { vi } from "vitest";
+import { beforeEach, vi } from "vitest";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import type { ActiveCardLimitDetails } from "@/types/domain";
 
 const mockPush = vi.fn();
 const mockRequireAuthAction = vi.fn((action: () => void) => action());
+const billingMocks = vi.hoisted(() => ({
+  isTwa: false,
+  purchase: vi.fn(async () => ({})),
+  getProductDetails: vi.fn(async () => ({
+    itemId: "basic_monthly",
+    price: { value: "4.99", currency: "USD" },
+  })),
+  showMessage: vi.fn(),
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -33,11 +42,43 @@ vi.mock("@/features/auth/auth-client", () => ({
   useRequireAuthAction: () => mockRequireAuthAction,
 }));
 
+vi.mock("@/features/install-app/use-twa-mode", () => ({
+  useTwaMode: () => billingMocks.isTwa,
+}));
+
+vi.mock("@/features/subscriptions/use-google-play-billing", () => ({
+  useGooglePlayBilling: () => ({
+    purchase: billingMocks.purchase,
+    getProductDetails: billingMocks.getProductDetails,
+    isLoading: false,
+    isSupported: true,
+  }),
+}));
+
+vi.mock("@/features/subscriptions/subscription-client", () => ({
+  useSubscription: () => ({
+    entitlements: { effectivePlan: "free" },
+    isLoading: false,
+  }),
+}));
+
+vi.mock("@/components/app-message-provider", () => ({
+  useAppMessage: () => ({ showMessage: billingMocks.showMessage }),
+}));
+
+beforeEach(() => {
+  billingMocks.isTwa = false;
+  vi.clearAllMocks();
+});
+
 function renderDialog(props: {
   open: boolean;
   errorCode: Parameters<typeof UpgradeDialog>[0]["errorCode"];
   activeCardLimitDetails?: ActiveCardLimitDetails | null;
+  activeCardLimitDescription?: string;
+  overlayClassName?: string;
   onPricingNavigate?: () => void;
+  onPurchaseSuccess?: () => void | Promise<void>;
 }) {
   const onOpenChange = vi.fn();
   const result = render(
@@ -47,7 +88,10 @@ function renderDialog(props: {
         errorCode={props.errorCode}
         onOpenChange={onOpenChange}
         activeCardLimitDetails={props.activeCardLimitDetails}
+        activeCardLimitDescription={props.activeCardLimitDescription}
+        overlayClassName={props.overlayClassName}
         onPricingNavigate={props.onPricingNavigate}
+        onPurchaseSuccess={props.onPurchaseSuccess}
       />
     </LocaleProvider>,
   );
@@ -72,7 +116,7 @@ describe("UpgradeDialog", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("heading")).toHaveTextContent(/Aktif öğrenilecek kart kotan doldu/i);
-    expect(screen.getByRole("link", { name: /ILK AY UCRETSIZ/i })).toHaveAttribute("href", "/pricing");
+    expect(screen.getByRole("link", { name: /ILK AY ÜCRETSIZ/i })).toHaveAttribute("href", "/pricing");
     expect(screen.getByRole("button", { name: /Kartları öğren/i })).toHaveClass("bg-action-learn");
   });
 
@@ -86,6 +130,19 @@ describe("UpgradeDialog", () => {
     expect(screen.getByText(/3.*2/)).toBeInTheDocument();
   });
 
+  it("allows offline note imports to show their own added and remaining counts", () => {
+    renderDialog({
+      open: true,
+      errorCode: "free_active_card_limit",
+      activeCardLimitDetails: { addedCount: 4, skippedCount: 6 },
+      activeCardLimitDescription: "4 cards were added. 6 remain saved on this device.",
+      overlayClassName: "z-[2100]",
+    });
+
+    expect(screen.getByText("4 cards were added. 6 remain saved on this device.")).toBeInTheDocument();
+    expect(screen.getByRole("dialog").parentElement).toHaveClass("z-[2100]");
+  });
+
   it("notifies the tutorial before opening pricing", async () => {
     const user = userEvent.setup();
     const onPricingNavigate = vi.fn();
@@ -95,8 +152,32 @@ describe("UpgradeDialog", () => {
       onPricingNavigate,
     });
 
-    await user.click(screen.getByRole("link", { name: /ILK AY UCRETSIZ/i }));
+    await user.click(screen.getByRole("link", { name: /ILK AY ÜCRETSIZ/i }));
 
+    expect(onPricingNavigate).toHaveBeenCalledOnce();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("starts the Basic monthly Play purchase in TWA and resumes the blocked action", async () => {
+    billingMocks.isTwa = true;
+    const user = userEvent.setup();
+    const onPricingNavigate = vi.fn();
+    const onPurchaseSuccess = vi.fn();
+    const { onOpenChange } = renderDialog({
+      open: true,
+      errorCode: "free_active_card_limit",
+      onPricingNavigate,
+      onPurchaseSuccess,
+    });
+
+    expect(screen.queryByRole("link", { name: /ILK AY/i })).not.toBeInTheDocument();
+    const purchaseButton = await screen.findByRole("button", { name: /Basic.*4,99|Basic.*4\.99/i });
+    await user.click(purchaseButton);
+
+    await waitFor(() => {
+      expect(billingMocks.purchase).toHaveBeenCalledWith("basic_monthly");
+      expect(onPurchaseSuccess).toHaveBeenCalledOnce();
+    });
     expect(onPricingNavigate).toHaveBeenCalledOnce();
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });

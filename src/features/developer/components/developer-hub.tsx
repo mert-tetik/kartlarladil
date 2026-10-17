@@ -1,34 +1,55 @@
 import Link from "next/link";
-import { ArrowRight, BadgeDollarSign, Clapperboard, Mail, ShieldCheck } from "lucide-react";
+import { ArrowRight, BadgeDollarSign, BarChart3, BookOpen, Clapperboard, LineChart, Mail, ShieldCheck } from "lucide-react";
 
 const tools = [
   {
     href: "/content-automation",
     icon: Clapperboard,
-    title: "Content automation",
+    title: "Content Automation",
     description: "Sosyal içerik üretimi, yayın hedefleri ve otomasyon kuyrukları.",
-    accent: "bg-[#e7f0df] text-[#1e422f]",
+    accent: "bg-[#1fa463]",
   },
   {
     href: "/developer/budget",
     icon: BadgeDollarSign,
     title: "Budget interface",
     description: "Aylık servis maliyetlerini TL cinsinden kaydet, takip et ve güncelle.",
-    accent: "bg-[#fff0d5] text-[#713d09]",
+    accent: "bg-[#e38b08]",
   },
   {
     href: "/developer/admin",
     icon: ShieldCheck,
     title: "Admin panel",
     description: "Kullanıcılar, abonelikler, kart ilerlemesi ve toplu metrikler.",
-    accent: "bg-[#e8e7f6] text-[#39346f]",
+    accent: "bg-[#5c50d9]",
+  },
+  {
+    href: "/developer/analytics",
+    icon: BarChart3,
+    title: "Analytics",
+    description: "Kullanıcı, kart ve abonelik performansını toplu olarak incele.",
+    accent: "bg-[#168bb8]",
+  },
+  {
+    href: "/developer/vocabulary",
+    icon: BookOpen,
+    title: "Vocabulary catalog",
+    description: "Ana kelime listesini, ornekleri ve dil detaylarini salt okunur katalogda incele.",
+    accent: "bg-[#c45d2c]",
+  },
+  {
+    href: "/developer/social-analytics",
+    icon: LineChart,
+    title: "Social medias",
+    description: "Bağlı sosyal medya hesaplarının Upload-Post verilerini tek panelde izle.",
+    accent: "bg-[#22a653]",
   },
   {
     href: "/developer/admin/contact",
     icon: Mail,
     title: "Contact inbox",
     description: "Kullanıcıların landing sayfasından gönderdiği puan ve mesajları incele.",
-    accent: "bg-[#f8e5db] text-[#7b442d]",
+    accent: "bg-[#d85a2d]",
   },
 ];
 
@@ -46,11 +67,11 @@ export function DeveloperHub({ email }: { email: string }) {
           {tools.map((tool) => {
             const Icon = tool.icon;
             return (
-              <Link className="group flex min-h-64 flex-col rounded-xl border border-[#d9ddd4] bg-[#fcfbf8] p-6 transition-colors hover:border-[#aeb8aa] hover:bg-white" href={tool.href} key={tool.href}>
-                <span className={`grid size-12 place-items-center rounded-lg ${tool.accent}`}><Icon className="size-6" aria-hidden="true" /></span>
+              <Link className={`group flex min-h-64 flex-col rounded-xl p-6 text-white transition-[filter] hover:brightness-105 ${tool.accent}`} href={tool.href} key={tool.href}>
+                <span className="text-white"><Icon className="size-7" aria-hidden="true" /></span>
                 <h2 className="mt-8 text-xl font-semibold">{tool.title}</h2>
-                <p className="mt-2 text-sm leading-6 text-[#657269]">{tool.description}</p>
-                <span className="mt-auto inline-flex items-center gap-2 pt-7 text-sm font-semibold text-[#273a2d]">Aç <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" aria-hidden="true" /></span>
+                <p className="mt-2 text-sm leading-6 text-white">{tool.description}</p>
+                <span className="mt-auto inline-flex items-center gap-2 pt-7 text-sm font-semibold text-white">Aç <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" aria-hidden="true" /></span>
               </Link>
             );
           })}

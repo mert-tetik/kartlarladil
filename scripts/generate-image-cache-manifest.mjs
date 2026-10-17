@@ -13,6 +13,18 @@ const CRITICAL_IMAGE_URLS = new Set([
   "/mission-icon.png",
   "/score-icon.png",
   "/splash.png",
+  "/ai-characters/campus-friend.webp",
+  "/ai-characters/friendly-worker.webp",
+  "/ai-characters/gentle-companion.webp",
+  "/ai-characters/gothic-calm.webp",
+  "/ai-characters/skater-coach.webp",
+  "/ai-characters/sleepy-student.webp",
+  "/ai-characters/soft-artist.webp",
+  "/ai-characters/study-buddy.webp",
+  "/ai-characters/warm-grandmother.webp",
+  "/ai-characters/wise-elder.webp",
+  "/quiz/quiz-word-repetition-teacher.png",
+  "/quiz/quiz-word-repetition-teacher-1.png",
 ]);
 
 async function collectImages(directory) {
@@ -46,6 +58,8 @@ const version = createHash("sha256").update(JSON.stringify(assets)).digest("hex"
 const criticalAssets = assets.filter(
   (asset) =>
     CRITICAL_IMAGE_URLS.has(asset.url) ||
+    asset.url.startsWith("/quiz/count-options/") ||
+    asset.url.startsWith("/quiz/count-selection-frames/") ||
     asset.url.startsWith("/flags/") ||
     asset.url.startsWith("/mobile-nav-icons/"),
 );

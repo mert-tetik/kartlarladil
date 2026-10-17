@@ -106,7 +106,7 @@ describe("automation output retry", () => {
     expect(updateMock).not.toHaveBeenCalledWith(expect.objectContaining({ media_path: null }));
   });
 
-  it("puts a failed music video back into the browser video render stage without discarding its source image", async () => {
+  it("puts a failed music video back into the server render queue without discarding its source image", async () => {
     const outputLookup = {
       select: () => ({ eq: () => ({ maybeSingle: async () => ({
         data: {
@@ -139,8 +139,8 @@ describe("automation output retry", () => {
     }));
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ status: "awaiting_browser_video" });
-    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ status: "awaiting_browser_video", error_code: null }));
+    expect(await response.json()).toMatchObject({ status: "queued" });
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ status: "queued", error_code: null }));
     expect(updateMock).not.toHaveBeenCalledWith(expect.objectContaining({ media_path: null }));
   });
 

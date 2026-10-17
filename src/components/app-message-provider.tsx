@@ -159,6 +159,28 @@ export function AppMessageProvider({ children }: { children: ReactNode }) {
 
   const contextValue = useMemo(() => ({ showMessage, hideMessage }), [hideMessage, showMessage]);
 
+  useEffect(() => {
+    const handleOfflineShellMessage = (event: MessageEvent<unknown>) => {
+      if (event.origin !== window.location.origin) return;
+
+      const offlineFrame = document.querySelector<HTMLIFrameElement>('iframe[data-offline-shell-frame="true"]');
+      if (!offlineFrame?.contentWindow || event.source !== offlineFrame.contentWindow) return;
+      if (typeof event.data !== "object" || event.data === null) return;
+
+      const payload = event.data as Record<string, unknown>;
+      if (payload.type !== "foxiesdeck:app-message" || typeof payload.message !== "string") return;
+      if (payload.tone !== "success" && payload.tone !== "error") return;
+
+      const durationMs = typeof payload.durationMs === "number" && Number.isFinite(payload.durationMs)
+        ? Math.max(1_000, Math.min(payload.durationMs, 15_000))
+        : DEFAULT_APP_MESSAGE_DURATION_MS;
+      showMessage(payload.message, payload.tone, durationMs);
+    };
+
+    window.addEventListener("message", handleOfflineShellMessage);
+    return () => window.removeEventListener("message", handleOfflineShellMessage);
+  }, [showMessage]);
+
   return (
     <AppMessageContext.Provider value={contextValue}>
       {children}

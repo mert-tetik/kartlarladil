@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.util.Log;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
+import android.webkit.WebResourceError;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
@@ -48,9 +49,36 @@ public final class LocalMediaWebViewClient extends WebViewClient {
         return intercept(Uri.parse(url), null);
     }
 
+    @Override
+    public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+        Uri failedUrl = request == null ? null : request.getUrl();
+        if (request != null
+                && request.isForMainFrame()
+                && failedUrl != null
+                && isAppHost(failedUrl.getHost())
+                && !isOfflineShellPath(failedUrl.getPath())
+                && error != null
+                && isConnectivityError(error.getErrorCode())) {
+            Uri offlineUrl = new Uri.Builder()
+                    .scheme("https")
+                    .authority("www.foxiesdeck.com")
+                    .path("/~offline")
+                    .appendQueryParameter("returnTo", failedUrl.toString())
+                    .build();
+            view.post(() -> view.loadUrl(offlineUrl.toString()));
+            return;
+        }
+        super.onReceivedError(view, request, error);
+    }
+
     private WebResourceResponse intercept(Uri uri, Map<String, String> requestHeaders) {
         if (uri == null || !isAppHost(uri.getHost())) {
             return null;
+        }
+
+        WebResourceResponse offlineResponse = openOfflineShellAsset(uri.getPath());
+        if (offlineResponse != null) {
+            return offlineResponse;
         }
 
         // A media element uses this one-shot query parameter after a local
@@ -105,6 +133,63 @@ public final class LocalMediaWebViewClient extends WebViewClient {
                 headers,
                 data
         );
+    }
+
+    private WebResourceResponse openOfflineShellAsset(String path) {
+        if (path == null) return null;
+
+        String assetPath;
+        if ("/~offline".equals(path) || "/~offline/".equals(path)) {
+            assetPath = "foxiesdeck-offline/index.html";
+        } else if (path.startsWith("/offline-shell/")) {
+            String relativePath = path.substring("/offline-shell/".length());
+            if (relativePath.isEmpty() || relativePath.contains("..") || relativePath.contains("\\")) {
+                return null;
+            }
+            assetPath = "foxiesdeck-offline/" + relativePath;
+        } else {
+            return null;
+        }
+
+        try {
+            InputStream input = activity.getAssets().open(assetPath);
+            String mimeType;
+            String encoding = null;
+            if (assetPath.endsWith(".html")) {
+                mimeType = "text/html";
+                encoding = "utf-8";
+            } else if (assetPath.endsWith(".js")) {
+                mimeType = "application/javascript";
+                encoding = "utf-8";
+            } else if (assetPath.endsWith(".webp")) {
+                mimeType = "image/webp";
+            } else if (assetPath.endsWith(".ttf")) {
+                mimeType = "font/ttf";
+            } else {
+                mimeType = "application/octet-stream";
+            }
+            Map<String, String> headers = new LinkedHashMap<>();
+            headers.put("Cache-Control", "no-store");
+            headers.put("X-Content-Type-Options", "nosniff");
+            return new WebResourceResponse(mimeType, encoding, 200, "OK", headers, input);
+        } catch (java.io.IOException missingAsset) {
+            Log.e(TAG, "Bundled offline shell asset missing: " + assetPath, missingAsset);
+            return null;
+        }
+    }
+
+    private static boolean isOfflineShellPath(String path) {
+        return "/~offline".equals(path)
+                || "/~offline/".equals(path)
+                || (path != null && path.startsWith("/offline-shell/"));
+    }
+
+    private static boolean isConnectivityError(int errorCode) {
+        return errorCode == ERROR_UNKNOWN
+                || errorCode == ERROR_HOST_LOOKUP
+                || errorCode == ERROR_CONNECT
+                || errorCode == ERROR_TIMEOUT
+                || errorCode == ERROR_IO;
     }
 
     private void logRemoteFallback(String localPath, String reason) {

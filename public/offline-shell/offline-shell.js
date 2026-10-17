@@ -1,0 +1,783 @@
+(function () {
+  "use strict";
+
+  const DB_NAME = "foxiesdeck-offline-v1";
+  const DB_VERSION = 1;
+  const PROFILE_KEY = "foxiesdeck:offline-profile";
+  const LOCALE_KEY = "foxiesdeck:locale";
+  const CARD_LANGUAGE_KEY = "foxiesdeck:landing-card-language";
+  const SNAPSHOT_FALLBACK_PREFIX = DB_NAME + ":snapshot:";
+  let persistenceRequestStarted = false;
+  const locales = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"];
+  const languagePickerOrder = ["en", "de", "fr", "es", "it", "pt", "nl", "pl", "tr", "ru", "ar", "ja", "ko", "zh-CN"];
+  const languageNameFallback = {
+    en: "English", de: "German", fr: "French", es: "Spanish", it: "Italian", pt: "Portuguese", nl: "Dutch",
+    pl: "Polish", tr: "Turkish", ru: "Russian", ar: "Arabic", ja: "Japanese", ko: "Korean", "zh-CN": "Chinese (Simplified)",
+  };
+  const cardLanguageLabelCopy = {
+    en: "Card language", tr: "Kart dili", de: "Kartensprache", ru: "Язык карточек", fr: "Langue des cartes",
+    es: "Idioma de las tarjetas", it: "Lingua delle carte", pt: "Idioma dos cartões", nl: "Kaarttaal", pl: "Język kart",
+    ar: "لغة البطاقات", ja: "カードの言語", ko: "카드 언어", "zh-CN": "卡片语言",
+  };
+  const noCardsInLanguageCopy = {
+    en: "No saved cards in this language.", tr: "Bu dilde kaydedilmiş kartın yok.", de: "Für diese Sprache sind keine Karten gespeichert.",
+    ru: "Для этого языка нет сохранённых карточек.", fr: "Aucune carte n’est enregistrée dans cette langue.",
+    es: "No hay tarjetas guardadas en este idioma.", it: "Non ci sono carte salvate in questa lingua.", pt: "Não há cartões salvos neste idioma.",
+    nl: "Er zijn geen kaarten opgeslagen in deze taal.", pl: "Brak zapisanych kart w tym języku.", ar: "لا توجد بطاقات محفوظة بهذه اللغة.",
+    ja: "この言語で保存されたカードはありません。", ko: "이 언어로 저장된 카드가 없습니다.", "zh-CN": "没有保存此语言的卡片。",
+  };
+  const saveErrorCopy = {
+    en: "Couldn't save the note. Check device storage.",
+    tr: "Not kaydedilemedi. Cihaz depolama alanını kontrol et.",
+    de: "Notiz konnte nicht gespeichert werden. Prüfe den Gerätespeicher.",
+    ru: "Не удалось сохранить заметку. Проверьте память устройства.",
+    fr: "Impossible d’enregistrer la note. Vérifiez l’espace disponible.",
+    es: "No se pudo guardar la nota. Comprueba el almacenamiento del dispositivo.",
+    it: "Impossibile salvare la nota. Controlla lo spazio sul dispositivo.",
+    pt: "Não foi possível salvar a nota. Verifique o armazenamento do dispositivo.",
+    nl: "Notitie opslaan is niet gelukt. Controleer de opslagruimte.",
+    pl: "Nie udało się zapisać notatki. Sprawdź miejsce na urządzeniu.",
+    ar: "تعذر حفظ الملاحظة. تحقق من مساحة التخزين على الجهاز.",
+    ja: "メモを保存できませんでした。端末の空き容量を確認してください。",
+    ko: "메모를 저장하지 못했어요. 기기의 저장 공간을 확인해 주세요.",
+    "zh-CN": "无法保存笔记，请检查设备存储空间。",
+  };
+  const automaticModalIntroCopy = {
+    en: "Offline notes are turned into cards automatically when a connection is available. You can add ready cards to your deck here.",
+    tr: "Çevrimdışı notların bağlantı sağlanınca otomatik olarak karta dönüştürülür. Hazır kartları buradan destene ekleyebilirsin.",
+    de: "Offline-Notizen werden bei bestehender Verbindung automatisch in Karten umgewandelt. Fertige Karten kannst du hier zu deinem Stapel hinzufügen.",
+    ru: "Офлайн-заметки автоматически превращаются в карточки при подключении к интернету. Готовые карточки можно добавить в свою коллекцию здесь.",
+    fr: "Les notes hors ligne sont automatiquement transformées en cartes dès que la connexion revient. Vous pouvez ajouter les cartes prêtes à votre jeu ici.",
+    es: "Las notas sin conexión se convierten automáticamente en tarjetas cuando vuelve internet. Aquí puedes añadir las tarjetas listas a tu colección.",
+    it: "Le note offline vengono trasformate automaticamente in carte quando torna la connessione. Qui puoi aggiungere le carte pronte al tuo mazzo.",
+    pt: "As notas offline são convertidas automaticamente em cartões quando a conexão volta. Você pode adicionar os cartões prontos ao seu baralho aqui.",
+    nl: "Offline notities worden automatisch omgezet in kaarten zodra er weer verbinding is. Je kunt de kaarten hier aan je stapel toevoegen.",
+    pl: "Notatki offline są automatycznie zamieniane na karty po przywróceniu połączenia. Gotowe karty możesz tutaj dodać do swojej talii.",
+    ar: "تُحوَّل الملاحظات المحفوظة دون اتصال إلى بطاقات تلقائيًا عند عودة الاتصال. يمكنك إضافة البطاقات الجاهزة إلى مجموعتك من هنا.",
+    ja: "オフラインのメモは、接続が戻ると自動的にカードに変換されます。完成したカードはここからデッキに追加できます。",
+    ko: "오프라인 메모는 연결이 복구되면 자동으로 카드로 변환됩니다. 완성된 카드는 여기에서 덱에 추가할 수 있습니다.",
+    "zh-CN": "恢复网络连接后，离线笔记会自动转换为卡片。你可以在这里将已生成的卡片加入卡组。",
+  };
+  const copy = {
+    en: { status: "OFFLINE MODE", title: "You're offline", intro: "Your saved cards are here, and you can jot down words to turn into cards when you're back online.", reconnect: "Reconnect", reconnecting: "Checking connection…", noConnection: "FoxiesDeck still can't be reached. Your notes are safe here.", deck: "Your saved cards", noCards: "Your saved cards will appear here after the app has synced them once.", cards: "cards", notes: "Words to remember", notePlaceholder: "Write a word or phrase…", addNote: "Add note", noNotes: "Your notes stay on this device until you convert or remove them.", review: "Review saved notes", modalTitle: "Turn your notes into cards", modalIntro: "Your notes are saved on this device. Convert them into cards, or skip for now.", convert: "Convert all", skip: "Skip for now", close: "Close", converting: "Creating cards…", convertError: "Some notes couldn't be converted. They are still saved so you can try again.", addDeck: "Add to deck", adding: "Adding…", added: "Added to your deck", addError: "Couldn't add this card. It may have reached your plan's card limit.", emptyModal: "No notes are waiting to be converted.", target: "Learning language", active: "In progress", learned: "Learned", testReconnect: "Visual test: reconnect is simulated." },
+    tr: { status: "ÇEVRİMDIŞI MOD", title: "İnternet bağlantın yok", intro: "Kaydettiğin kartlar burada. İnternet gelince karta dönüştürmek için yeni kelimeler not alabilirsin.", reconnect: "Yeniden bağlan", reconnecting: "Bağlantı kontrol ediliyor…", noConnection: "FoxiesDeck'e hâlâ ulaşılamıyor. Notların burada güvende.", deck: "Kaydedilmiş kartların", noCards: "Uygulama kartlarını bir kez eşitlediğinde kaydedilmiş kartların burada görünür.", cards: "kart", notes: "Not al", notePlaceholder: "Bir kelime veya ifade yaz…", addNote: "Not ekle", noNotes: "Notların, dönüştürene veya silene kadar bu cihazda kalır.", review: "Notları gözden geçir", modalTitle: "Notlarını karta dönüştür", modalIntro: "Notların bu cihazda saklanıyor. Kartlara dönüştür veya şimdilik geç.", convert: "Tümünü dönüştür", skip: "Şimdilik geç", close: "Kapat", converting: "Kartlar oluşturuluyor…", convertError: "Bazı notlar dönüştürülemedi. Daha sonra tekrar deneyebilirsin.", addDeck: "Desteye ekle", adding: "Ekleniyor…", added: "Destene eklendi", addError: "Kart eklenemedi. Abonelik kart sınırına ulaşmış olabilirsin.", emptyModal: "Dönüştürülmeyi bekleyen not yok.", target: "Öğrenme dili", active: "Devam ediyor", learned: "Öğrenildi", testReconnect: "Görsel test: yeniden bağlanma canlandırılıyor." },
+    de: { status: "OFFLINE-MODUS", title: "Du bist offline", intro: "Deine gespeicherten Karten sind hier. Notiere Wörter, die du später in Karten umwandeln kannst.", reconnect: "Erneut verbinden", reconnecting: "Verbindung wird geprüft…", noConnection: "FoxiesDeck ist noch nicht erreichbar. Deine Notizen sind sicher.", deck: "Deine gespeicherten Karten", noCards: "Deine Karten erscheinen hier, sobald die App sie einmal synchronisiert hat.", cards: "Karten", notes: "Wörter merken", notePlaceholder: "Wort oder Ausdruck eingeben…", addNote: "Notiz hinzufügen", noNotes: "Deine Notizen bleiben auf diesem Gerät, bis du sie umwandelst oder löschst.", review: "Notizen ansehen", modalTitle: "Notizen in Karten umwandeln", modalIntro: "Deine Notizen sind auf diesem Gerät gespeichert. Wandle sie jetzt um oder später.", convert: "Alle umwandeln", skip: "Vorerst überspringen", close: "Schließen", converting: "Karten werden erstellt…", convertError: "Einige Notizen konnten nicht umgewandelt werden. Du kannst es später erneut versuchen.", addDeck: "Zum Deck hinzufügen", adding: "Wird hinzugefügt…", added: "Zum Deck hinzugefügt", addError: "Karte konnte nicht hinzugefügt werden. Möglicherweise ist dein Kartenlimit erreicht.", emptyModal: "Keine Notizen zur Umwandlung vorhanden.", target: "Lernsprache", active: "In Bearbeitung", learned: "Gelernt", testReconnect: "Visueller Test: Verbindung wird simuliert." },
+    ru: { status: "ОФЛАЙН-РЕЖИМ", title: "Нет подключения к интернету", intro: "Здесь хранятся ваши карточки. Записывайте слова, чтобы позже превратить их в карточки.", reconnect: "Подключиться снова", reconnecting: "Проверяем подключение…", noConnection: "FoxiesDeck пока недоступен. Ваши заметки в безопасности.", deck: "Сохранённые карточки", noCards: "Карточки появятся здесь после первой синхронизации приложения.", cards: "карточек", notes: "Слова на заметку", notePlaceholder: "Введите слово или выражение…", addNote: "Добавить заметку", noNotes: "Заметки останутся на устройстве, пока вы не преобразуете или не удалите их.", review: "Просмотреть заметки", modalTitle: "Создать карточки из заметок", modalIntro: "Заметки сохранены на устройстве. Преобразуйте их в карточки или вернитесь позже.", convert: "Преобразовать все", skip: "Пока пропустить", close: "Закрыть", converting: "Создаём карточки…", convertError: "Не все заметки удалось преобразовать. Вы сможете попробовать снова.", addDeck: "Добавить в колоду", adding: "Добавляем…", added: "Добавлено в колоду", addError: "Не удалось добавить карточку. Возможно, достигнут лимит вашего тарифа.", emptyModal: "Нет заметок для преобразования.", target: "Изучаемый язык", active: "В процессе", learned: "Выучено", testReconnect: "Визуальный тест: подключение имитируется." },
+    fr: { status: "MODE HORS LIGNE", title: "Vous êtes hors ligne", intro: "Vos cartes enregistrées sont ici. Notez des mots pour les transformer en cartes une fois de retour en ligne.", reconnect: "Se reconnecter", reconnecting: "Vérification de la connexion…", noConnection: "FoxiesDeck est toujours inaccessible. Vos notes sont en sécurité.", deck: "Vos cartes enregistrées", noCards: "Vos cartes apparaîtront ici après leur première synchronisation.", cards: "cartes", notes: "Mots à retenir", notePlaceholder: "Écrivez un mot ou une expression…", addNote: "Ajouter", noNotes: "Vos notes restent sur cet appareil jusqu’à leur conversion ou suppression.", review: "Voir les notes", modalTitle: "Transformer vos notes en cartes", modalIntro: "Vos notes sont enregistrées sur cet appareil. Convertissez-les en cartes ou revenez plus tard.", convert: "Tout convertir", skip: "Ignorer pour l’instant", close: "Fermer", converting: "Création des cartes…", convertError: "Certaines notes n’ont pas pu être converties. Vous pourrez réessayer.", addDeck: "Ajouter au deck", adding: "Ajout…", added: "Ajoutée au deck", addError: "Impossible d’ajouter cette carte. La limite de votre abonnement est peut-être atteinte.", emptyModal: "Aucune note à convertir.", target: "Langue étudiée", active: "En cours", learned: "Appris", testReconnect: "Test visuel : reconnexion simulée." },
+    es: { status: "MODO SIN CONEXIÓN", title: "No tienes conexión", intro: "Aquí están tus tarjetas guardadas. Anota palabras para convertirlas en tarjetas cuando vuelvas a conectarte.", reconnect: "Volver a conectar", reconnecting: "Comprobando conexión…", noConnection: "FoxiesDeck aún no está disponible. Tus notas están a salvo.", deck: "Tus tarjetas guardadas", noCards: "Tus tarjetas aparecerán aquí después de que la app las sincronice una vez.", cards: "tarjetas", notes: "Palabras para recordar", notePlaceholder: "Escribe una palabra o frase…", addNote: "Añadir nota", noNotes: "Tus notas se guardan en este dispositivo hasta que las conviertas o elimines.", review: "Revisar notas", modalTitle: "Convierte tus notas en tarjetas", modalIntro: "Tus notas están guardadas en este dispositivo. Conviértelas en tarjetas o déjalo para más tarde.", convert: "Convertir todas", skip: "Omitir por ahora", close: "Cerrar", converting: "Creando tarjetas…", convertError: "No se pudieron convertir algunas notas. Puedes volver a intentarlo.", addDeck: "Añadir al mazo", adding: "Añadiendo…", added: "Añadida al mazo", addError: "No se pudo añadir. Es posible que hayas alcanzado el límite de tu plan.", emptyModal: "No hay notas pendientes de conversión.", target: "Idioma de aprendizaje", active: "En curso", learned: "Aprendida", testReconnect: "Prueba visual: reconexión simulada." },
+    it: { status: "MODALITÀ OFFLINE", title: "Sei offline", intro: "Le tue carte salvate sono qui. Annota parole da trasformare in carte quando tornerai online.", reconnect: "Riconnettiti", reconnecting: "Controllo della connessione…", noConnection: "FoxiesDeck non è ancora raggiungibile. Le tue note sono al sicuro.", deck: "Le tue carte salvate", noCards: "Le carte appariranno qui dopo la prima sincronizzazione dell’app.", cards: "carte", notes: "Parole da ricordare", notePlaceholder: "Scrivi una parola o un’espressione…", addNote: "Aggiungi nota", noNotes: "Le note restano su questo dispositivo finché non le converti o le elimini.", review: "Rivedi le note", modalTitle: "Trasforma le note in carte", modalIntro: "Le note sono salvate su questo dispositivo. Convertile in carte o fallo più tardi.", convert: "Converti tutto", skip: "Salta per ora", close: "Chiudi", converting: "Creazione delle carte…", convertError: "Non è stato possibile convertire alcune note. Puoi riprovare più tardi.", addDeck: "Aggiungi al mazzo", adding: "Aggiunta…", added: "Aggiunta al mazzo", addError: "Impossibile aggiungere la carta. Potresti aver raggiunto il limite del piano.", emptyModal: "Nessuna nota da convertire.", target: "Lingua da imparare", active: "In corso", learned: "Imparata", testReconnect: "Test visivo: riconnessione simulata." },
+    pt: { status: "MODO OFFLINE", title: "Você está sem conexão", intro: "Seus cartões salvos estão aqui. Anote palavras para transformá-las em cartões quando voltar à internet.", reconnect: "Reconectar", reconnecting: "Verificando conexão…", noConnection: "O FoxiesDeck ainda não pode ser acessado. Suas notas estão seguras.", deck: "Seus cartões salvos", noCards: "Seus cartões aparecerão aqui depois que o app sincronizar uma vez.", cards: "cartões", notes: "Palavras para lembrar", notePlaceholder: "Escreva uma palavra ou expressão…", addNote: "Adicionar nota", noNotes: "Suas notas ficam neste dispositivo até você convertê-las ou removê-las.", review: "Revisar notas", modalTitle: "Transforme notas em cartões", modalIntro: "Suas notas estão salvas neste dispositivo. Converta-as em cartões ou deixe para depois.", convert: "Converter tudo", skip: "Pular por enquanto", close: "Fechar", converting: "Criando cartões…", convertError: "Não foi possível converter algumas notas. Você pode tentar novamente.", addDeck: "Adicionar ao baralho", adding: "Adicionando…", added: "Adicionado ao baralho", addError: "Não foi possível adicionar. Talvez você tenha atingido o limite do seu plano.", emptyModal: "Não há notas para converter.", target: "Idioma de aprendizagem", active: "Em andamento", learned: "Aprendida", testReconnect: "Teste visual: reconexão simulada." },
+    nl: { status: "OFFLINEMODUS", title: "Je bent offline", intro: "Je opgeslagen kaarten staan hier. Noteer woorden om ze om te zetten in kaarten zodra je weer online bent.", reconnect: "Opnieuw verbinden", reconnecting: "Verbinding controleren…", noConnection: "FoxiesDeck is nog niet bereikbaar. Je notities zijn veilig.", deck: "Je opgeslagen kaarten", noCards: "Je kaarten verschijnen hier zodra de app ze één keer heeft gesynchroniseerd.", cards: "kaarten", notes: "Woorden om te onthouden", notePlaceholder: "Schrijf een woord of uitdrukking…", addNote: "Notitie toevoegen", noNotes: "Je notities blijven op dit apparaat totdat je ze omzet of verwijdert.", review: "Notities bekijken", modalTitle: "Zet je notities om in kaarten", modalIntro: "Je notities zijn op dit apparaat opgeslagen. Zet ze om in kaarten of doe dat later.", convert: "Alles omzetten", skip: "Voorlopig overslaan", close: "Sluiten", converting: "Kaarten maken…", convertError: "Sommige notities konden niet worden omgezet. Je kunt het later opnieuw proberen.", addDeck: "Aan deck toevoegen", adding: "Toevoegen…", added: "Toegevoegd aan je deck", addError: "Kaart toevoegen is niet gelukt. Mogelijk is de limiet van je abonnement bereikt.", emptyModal: "Geen notities om om te zetten.", target: "Leertaal", active: "Bezig", learned: "Geleerd", testReconnect: "Visuele test: opnieuw verbinden wordt gesimuleerd." },
+    pl: { status: "TRYB OFFLINE", title: "Nie masz połączenia", intro: "Tutaj znajdziesz zapisane karty. Zapisuj słowa, aby później zamienić je w karty.", reconnect: "Połącz ponownie", reconnecting: "Sprawdzanie połączenia…", noConnection: "FoxiesDeck jest nadal niedostępny. Twoje notatki są bezpieczne.", deck: "Zapisane karty", noCards: "Karty pojawią się tutaj po pierwszej synchronizacji aplikacji.", cards: "kart", notes: "Słówka do zapamiętania", notePlaceholder: "Wpisz słowo lub wyrażenie…", addNote: "Dodaj notatkę", noNotes: "Notatki pozostaną na tym urządzeniu, dopóki ich nie przekonwertujesz lub nie usuniesz.", review: "Przejrzyj notatki", modalTitle: "Zamień notatki w karty", modalIntro: "Notatki są zapisane na tym urządzeniu. Zamień je w karty albo zrób to później.", convert: "Konwertuj wszystkie", skip: "Pomiń na razie", close: "Zamknij", converting: "Tworzenie kart…", convertError: "Nie udało się przekonwertować niektórych notatek. Możesz spróbować ponownie.", addDeck: "Dodaj do talii", adding: "Dodawanie…", added: "Dodano do talii", addError: "Nie udało się dodać karty. Możliwe, że osiągnięto limit planu.", emptyModal: "Brak notatek do konwersji.", target: "Język nauki", active: "W toku", learned: "Opanowano", testReconnect: "Test wizualny: ponowne połączenie jest symulowane." },
+    ar: { status: "وضع عدم الاتصال", title: "أنت غير متصل بالإنترنت", intro: "بطاقاتك المحفوظة هنا. دوّن الكلمات لتحويلها إلى بطاقات عند عودة الاتصال.", reconnect: "إعادة الاتصال", reconnecting: "جارٍ التحقق من الاتصال…", noConnection: "لا يزال FoxiesDeck غير متاح. ملاحظاتك محفوظة بأمان.", deck: "بطاقاتك المحفوظة", noCards: "ستظهر بطاقاتك هنا بعد مزامنة التطبيق لها مرة واحدة.", cards: "بطاقات", notes: "كلمات لتتذكرها", notePlaceholder: "اكتب كلمة أو عبارة…", addNote: "إضافة ملاحظة", noNotes: "تبقى ملاحظاتك على هذا الجهاز حتى تحولها أو تحذفها.", review: "مراجعة الملاحظات", modalTitle: "حوّل ملاحظاتك إلى بطاقات", modalIntro: "ملاحظاتك محفوظة على هذا الجهاز. حوّلها إلى بطاقات أو أجّل ذلك الآن.", convert: "تحويل الكل", skip: "تخطي الآن", close: "إغلاق", converting: "جارٍ إنشاء البطاقات…", convertError: "تعذر تحويل بعض الملاحظات. يمكنك المحاولة مرة أخرى لاحقًا.", addDeck: "إضافة إلى المجموعة", adding: "جارٍ الإضافة…", added: "أُضيفت إلى مجموعتك", addError: "تعذرت إضافة البطاقة. ربما وصلت إلى حد البطاقات في خطتك.", emptyModal: "لا توجد ملاحظات بانتظار التحويل.", target: "لغة التعلم", active: "قيد التعلم", learned: "تم تعلمها", testReconnect: "اختبار مرئي: تتم محاكاة إعادة الاتصال." },
+    ja: { status: "オフラインモード", title: "インターネットに接続されていません", intro: "保存済みのカードを確認できます。オンラインに戻ったときにカードにする単語もメモできます。", reconnect: "再接続", reconnecting: "接続を確認しています…", noConnection: "FoxiesDeckにまだ接続できません。メモはこの端末に保存されています。", deck: "保存したカード", noCards: "アプリが一度同期すると、保存したカードがここに表示されます。", cards: "枚", notes: "覚えておく単語", notePlaceholder: "単語やフレーズを入力…", addNote: "メモを追加", noNotes: "メモは変換または削除するまでこの端末に保存されます。", review: "メモを確認", modalTitle: "メモをカードに変換", modalIntro: "メモはこの端末に保存されています。カードに変換するか、後で行ってください。", convert: "すべて変換", skip: "今はスキップ", close: "閉じる", converting: "カードを作成しています…", convertError: "一部のメモを変換できませんでした。後でもう一度お試しください。", addDeck: "デッキに追加", adding: "追加中…", added: "デッキに追加しました", addError: "カードを追加できませんでした。プランの上限に達した可能性があります。", emptyModal: "変換するメモはありません。", target: "学習する言語", active: "学習中", learned: "習得済み", testReconnect: "ビジュアルテスト：再接続をシミュレーションしています。" },
+    ko: { status: "오프라인 모드", title: "인터넷에 연결되어 있지 않아요", intro: "저장된 카드를 확인하고, 온라인으로 돌아왔을 때 카드로 만들 단어를 메모할 수 있어요.", reconnect: "다시 연결", reconnecting: "연결을 확인하는 중…", noConnection: "아직 FoxiesDeck에 연결할 수 없어요. 메모는 안전하게 저장되어 있어요.", deck: "저장된 카드", noCards: "앱이 한 번 동기화되면 저장된 카드가 여기에 표시돼요.", cards: "개", notes: "기억할 단어", notePlaceholder: "단어나 표현 입력…", addNote: "메모 추가", noNotes: "메모는 변환하거나 삭제할 때까지 이 기기에 저장돼요.", review: "메모 확인", modalTitle: "메모를 카드로 만들기", modalIntro: "메모가 이 기기에 저장되어 있어요. 지금 카드로 변환하거나 나중에 할 수 있어요.", convert: "모두 변환", skip: "지금은 건너뛰기", close: "닫기", converting: "카드를 만드는 중…", convertError: "일부 메모를 변환하지 못했어요. 나중에 다시 시도할 수 있어요.", addDeck: "덱에 추가", adding: "추가 중…", added: "덱에 추가했어요", addError: "카드를 추가하지 못했어요. 요금제의 카드 한도에 도달했을 수 있어요.", emptyModal: "변환할 메모가 없어요.", target: "학습 언어", active: "학습 중", learned: "학습 완료", testReconnect: "시각 테스트: 재연결을 시뮬레이션합니다." },
+    "zh-CN": { status: "离线模式", title: "当前没有网络连接", intro: "这里可以查看已保存的卡片，也可以记下单词，联网后再将它们转换成卡片。", reconnect: "重新连接", reconnecting: "正在检查连接…", noConnection: "目前仍无法连接到 FoxiesDeck。你的笔记已安全保存在此设备上。", deck: "已保存的卡片", noCards: "应用完成首次同步后，已保存的卡片会显示在这里。", cards: "张卡片", notes: "要记住的单词", notePlaceholder: "输入单词或短语…", addNote: "添加笔记", noNotes: "笔记会保存在此设备上，直到你转换或删除它们。", review: "查看笔记", modalTitle: "将笔记转换为卡片", modalIntro: "笔记已保存在此设备上。现在转换为卡片，或稍后再处理。", convert: "全部转换", skip: "暂时跳过", close: "关闭", converting: "正在创建卡片…", convertError: "部分笔记无法转换，你可以稍后重试。", addDeck: "添加到卡组", adding: "正在添加…", added: "已添加到卡组", addError: "无法添加此卡片，可能已达到套餐卡片数量上限。", emptyModal: "没有等待转换的笔记。", target: "学习语言", active: "学习中", learned: "已掌握", testReconnect: "视觉测试：正在模拟重新连接。" },
+  };
+
+  function openDatabase() {
+    return new Promise(function (resolve, reject) {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = function () {
+        const db = request.result;
+        const profiles = db.createObjectStore("profiles", { keyPath: "id" });
+        profiles.createIndex("updatedAt", "updatedAt");
+        const cards = db.createObjectStore("cards", { keyPath: "key" });
+        cards.createIndex("profileId", "profileId");
+        const notes = db.createObjectStore("notes", { keyPath: "key" });
+        notes.createIndex("profileId", "profileId");
+        const drafts = db.createObjectStore("drafts", { keyPath: "key" });
+        drafts.createIndex("profileId", "profileId");
+      };
+      request.onsuccess = function () { resolve(request.result); };
+      request.onerror = function () { reject(request.error || new Error("offline_storage_unavailable")); };
+    });
+  }
+
+  function requestValue(request) {
+    return new Promise(function (resolve, reject) {
+      request.onsuccess = function () { resolve(request.result); };
+      request.onerror = function () { reject(request.error || new Error("offline_storage_request_failed")); };
+    });
+  }
+
+  function transactionDone(transaction) {
+    return new Promise(function (resolve, reject) {
+      transaction.oncomplete = function () { resolve(); };
+      transaction.onerror = function () { reject(transaction.error || new Error("offline_storage_transaction_failed")); };
+      transaction.onabort = function () { reject(transaction.error || new Error("offline_storage_transaction_aborted")); };
+    });
+  }
+
+  async function readProfileRecords(storeName, profileId) {
+    const db = await openDatabase();
+    try {
+      const tx = db.transaction(storeName, "readonly");
+      const result = await requestValue(tx.objectStore(storeName).index("profileId").getAll(profileId));
+      await transactionDone(tx);
+      return result || [];
+    } finally { db.close(); }
+  }
+
+  function activeProfileId() {
+    return localStorage.getItem(PROFILE_KEY) || "guest";
+  }
+
+  function readSnapshotFallback(profileId) {
+    try {
+      const value = JSON.parse(localStorage.getItem(SNAPSHOT_FALLBACK_PREFIX + profileId) || "null");
+      if (!value || !value.profile || !Array.isArray(value.cards)) return null;
+      return value;
+    } catch { return null; }
+  }
+
+  async function saveSnapshot(snapshot) {
+    const profileId = snapshot.profileId || "guest";
+    const timestamp = new Date().toISOString();
+    const nativeLanguage = snapshot.nativeLanguage || snapshot.locale || localStorage.getItem(LOCALE_KEY) || "en";
+    const cardLanguage = snapshot.cardLanguage || snapshot.learningLanguage || localStorage.getItem(CARD_LANGUAGE_KEY) || "en";
+    const existing = await readProfileRecords("cards", profileId);
+    const existingByCardId = new Map(existing.map(function (entry) { return [entry.inventory.cardId, entry]; }));
+    const changedCards = snapshot.cards.filter(function (entry) {
+      const previous = existingByCardId.get(entry.inventory.cardId);
+      return !previous
+        || JSON.stringify(previous.inventory) !== JSON.stringify(entry.inventory)
+        || JSON.stringify(previous.card) !== JSON.stringify(entry.card);
+    });
+    const db = await openDatabase();
+    try {
+      const tx = db.transaction(["profiles", "cards"], "readwrite");
+      tx.objectStore("profiles").put({
+        id: profileId,
+        nativeLanguage: nativeLanguage,
+        cardLanguage: cardLanguage,
+        locale: nativeLanguage,
+        learningLanguage: cardLanguage,
+        updatedAt: timestamp,
+      });
+      const cardStore = tx.objectStore("cards");
+      const known = new Set(snapshot.cards.map(function (entry) { return entry.inventory.cardId; }));
+      changedCards.forEach(function (entry) {
+        cardStore.put({
+          key: profileId + ":" + entry.inventory.cardId,
+          profileId: profileId,
+          inventory: entry.inventory,
+          card: entry.card,
+          updatedAt: timestamp,
+        });
+      });
+      await transactionDone(tx);
+
+      if (snapshot.complete) {
+        const prune = db.transaction("cards", "readwrite");
+        const store = prune.objectStore("cards");
+        existing.forEach(function (entry) {
+          if (!known.has(entry.inventory.cardId)) store.delete(entry.key);
+        });
+        await transactionDone(prune);
+      }
+
+      localStorage.setItem(PROFILE_KEY, profileId);
+      localStorage.setItem(LOCALE_KEY, nativeLanguage);
+      localStorage.setItem(CARD_LANGUAGE_KEY, cardLanguage);
+      if (!persistenceRequestStarted && navigator.storage && navigator.storage.persist) {
+        persistenceRequestStarted = true;
+        navigator.storage.persist().catch(function () {});
+      }
+      return { ok: true };
+    } finally { db.close(); }
+  }
+
+  async function getSnapshot(profileId) {
+    const id = profileId || activeProfileId();
+    const fallback = readSnapshotFallback(id);
+    try {
+      const db = await openDatabase();
+      try {
+      const tx = db.transaction(["profiles", "cards"], "readonly");
+      const profileRequest = tx.objectStore("profiles").get(id);
+      const cardsRequest = tx.objectStore("cards").index("profileId").getAll(id);
+      const values = await Promise.all([requestValue(profileRequest), requestValue(cardsRequest)]);
+      await transactionDone(tx);
+      const snapshot = { profile: values[0] || null, cards: values[1] || [] };
+      if (fallback && (!snapshot.profile || fallback.profile.updatedAt > snapshot.profile.updatedAt)) return fallback;
+      return snapshot;
+      } finally { db.close(); }
+    } catch {
+      return fallback || { profile: null, cards: [] };
+    }
+  }
+
+  function fallbackStorageKey(storeName, profileId) {
+    return DB_NAME + ":fallback:" + storeName + ":" + profileId;
+  }
+
+  function readFallbackRecords(storeName, profileId) {
+    try {
+      const records = JSON.parse(localStorage.getItem(fallbackStorageKey(storeName, profileId)) || "[]");
+      return Array.isArray(records) ? records : [];
+    } catch { return []; }
+  }
+
+  function writeFallbackRecords(storeName, profileId, records) {
+    localStorage.setItem(fallbackStorageKey(storeName, profileId), JSON.stringify(records));
+  }
+
+  async function listNotes(profileId) {
+    const id = profileId || activeProfileId();
+    let records = [];
+    try { records = await readProfileRecords("notes", id); } catch {}
+    const byId = new Map(records.map(function (entry) { return [entry.note && entry.note.id, entry]; }));
+    readFallbackRecords("notes", id).forEach(function (entry) {
+      if (entry.note && !byId.has(entry.note.id)) byId.set(entry.note.id, entry);
+    });
+    return Array.from(byId.values());
+  }
+
+  async function putNote(profileId, note) {
+    const record = { key: profileId + ":" + note.id, profileId: profileId, note: note, createdAt: note.createdAt };
+    try {
+      const db = await openDatabase();
+      try {
+        const tx = db.transaction("notes", "readwrite");
+        tx.objectStore("notes").put(record);
+        await transactionDone(tx);
+      } finally { db.close(); }
+      try { writeFallbackRecords("notes", profileId, readFallbackRecords("notes", profileId).filter(function (item) { return item.note && item.note.id !== note.id; })); } catch {}
+    } catch {
+      const records = readFallbackRecords("notes", profileId).filter(function (item) { return !item.note || item.note.id !== note.id; });
+      records.push(record);
+      writeFallbackRecords("notes", profileId, records);
+    }
+  }
+
+  async function removeNote(profileId, noteId) {
+    const fallbackRecords = readFallbackRecords("notes", profileId);
+    const hasFallbackCopy = fallbackRecords.some(function (entry) { return entry.note && entry.note.id === noteId; });
+    let fallbackCleared = !hasFallbackCopy;
+    if (hasFallbackCopy) {
+      try {
+        writeFallbackRecords("notes", profileId, fallbackRecords.filter(function (entry) { return !entry.note || entry.note.id !== noteId; }));
+        fallbackCleared = true;
+      } catch {}
+    }
+
+    let indexedDbDeleted = false;
+    let indexedDbError = null;
+    try {
+      const db = await openDatabase();
+      try { const tx = db.transaction("notes", "readwrite"); tx.objectStore("notes").delete(profileId + ":" + noteId); await transactionDone(tx); indexedDbDeleted = true; }
+      finally { db.close(); }
+    } catch (error) { indexedDbError = error; }
+
+    if (!fallbackCleared) throw new Error("offline_note_fallback_delete_failed");
+    if (!indexedDbDeleted && !hasFallbackCopy) {
+      throw indexedDbError || new Error("offline_note_delete_failed");
+    }
+  }
+  async function listDrafts(profileId) { return readProfileRecords("drafts", profileId || activeProfileId()); }
+  async function putDraft(profileId, draft) {
+    const db = await openDatabase();
+    try { const tx = db.transaction("drafts", "readwrite"); tx.objectStore("drafts").put({ key: profileId + ":" + draft.id, profileId: profileId, draft: draft, createdAt: draft.createdAt }); await transactionDone(tx); }
+    finally { db.close(); }
+  }
+  async function removeDraft(profileId, draftId) {
+    const db = await openDatabase();
+    try { const tx = db.transaction("drafts", "readwrite"); tx.objectStore("drafts").delete(profileId + ":" + draftId); await transactionDone(tx); }
+    finally { db.close(); }
+  }
+
+  const storageApi = { saveSnapshot: saveSnapshot, getSnapshot: getSnapshot, listNotes: listNotes, putNote: putNote, removeNote: removeNote, listDrafts: listDrafts, putDraft: putDraft, removeDraft: removeDraft };
+  window.FoxiesDeckOffline = storageApi;
+
+  function localeCode(value) {
+    if (!value) return null;
+    if (locales.indexOf(value) >= 0) return value;
+    const normalized = String(value).toLowerCase();
+    if (normalized.indexOf("zh") === 0) return "zh-CN";
+    const base = normalized.split(/[-_]/)[0];
+    return locales.indexOf(base) >= 0 ? base : null;
+  }
+
+  function languageDisplayName(code, displayLocale) {
+    try {
+      if (typeof Intl.DisplayNames === "function") {
+        return new Intl.DisplayNames([displayLocale], { type: "language" }).of(code) || languageNameFallback[code] || code;
+      }
+    } catch {}
+    return languageNameFallback[code] || code;
+  }
+
+  function makeId() {
+    return window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
+  }
+
+  const SUPER_WATER_LOCALES = new Set(["en", "tr", "de", "fr", "es", "it", "pt", "nl", "pl"]);
+  const SUPER_WATER_RANGES = [[0xa0, 0xff], [0x110, 0x111], [0x131, 0x131], [0x141, 0x142], [0x152, 0x153], [0x160, 0x161], [0x178, 0x178], [0x17d, 0x17e], [0x192, 0x192], [0x2c6, 0x2c7], [0x2d8, 0x2dd], [0x2013, 0x2014], [0x2018, 0x201e], [0x2020, 0x2022], [0x2026, 0x2026], [0x2030, 0x2030], [0x2039, 0x203a], [0x2044, 0x2044], [0x20ac, 0x20ac], [0x2122, 0x2122], [0x2212, 0x2212], [0x2215, 0x2215], [0x2219, 0x2219], [0xfb01, 0xfb02]];
+  function formatSuperWaterText(value) {
+    return Array.from(value.replace(/\u1e9e/g, "SS").replace(/\u0130/g, "I"), function (character) {
+      const codePoint = character.codePointAt(0);
+      if (codePoint <= 0x7f || SUPER_WATER_RANGES.some(function (range) { return codePoint >= range[0] && codePoint <= range[1]; })) return character;
+      return character.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }).join("");
+  }
+  function heading(node, value, locale) {
+    if (node) node.textContent = SUPER_WATER_LOCALES.has(locale) ? formatSuperWaterText(value) : value;
+  }
+  function text(node, value) { if (node) node.textContent = value || ""; }
+  let standaloneMessageTimer = 0;
+  function showStandaloneAppMessage(message, tone) {
+    const host = element("standalone-app-message-host");
+    if (!host) return;
+    window.clearTimeout(standaloneMessageTimer);
+
+    const toast = document.createElement("div");
+    toast.className = "offline-app-message";
+    toast.dataset.appMessage = tone === "success" ? "success" : "error";
+    toast.setAttribute("role", tone === "error" ? "alert" : "status");
+
+    const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    icon.setAttribute("viewBox", "0 0 24 24");
+    icon.setAttribute("fill", "none");
+    icon.setAttribute("stroke", "currentColor");
+    icon.setAttribute("stroke-width", "2");
+    icon.setAttribute("stroke-linecap", "round");
+    icon.setAttribute("stroke-linejoin", "round");
+    icon.setAttribute("aria-hidden", "true");
+    icon.innerHTML = tone === "success"
+      ? '<circle cx="12" cy="12" r="10"></circle><path d="m8 12 2.5 2.5L16 9"></path>'
+      : '<circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path>';
+
+    const messageText = document.createElement("span");
+    messageText.className = "offline-app-message-text";
+    messageText.textContent = message;
+    toast.append(icon, messageText);
+    host.replaceChildren(toast);
+
+    let pointerStartX = null;
+    toast.addEventListener("pointerdown", function (event) {
+      if (event.button !== 0) return;
+      pointerStartX = event.clientX;
+      toast.dataset.dragging = "true";
+      try { toast.setPointerCapture(event.pointerId); } catch {}
+    });
+    toast.addEventListener("pointermove", function (event) {
+      if (pointerStartX === null) return;
+      toast.style.setProperty("--message-drag-offset", (event.clientX - pointerStartX) + "px");
+    });
+    function finishSwipe(event) {
+      if (pointerStartX === null) return;
+      const offset = event.clientX - pointerStartX;
+      pointerStartX = null;
+      delete toast.dataset.dragging;
+      if (Math.abs(offset) >= 96) {
+        toast.style.setProperty("--message-dismiss-offset", (offset < 0 ? "-100vw" : "100vw"));
+        toast.dataset.dismissing = "true";
+        window.setTimeout(function () { if (toast.parentNode === host) host.replaceChildren(); }, 450);
+      } else {
+        toast.style.setProperty("--message-drag-offset", "0px");
+      }
+    }
+    toast.addEventListener("pointerup", finishSwipe);
+    toast.addEventListener("pointercancel", finishSwipe);
+
+    window.requestAnimationFrame(function () { toast.dataset.visible = "true"; });
+    function dismiss() {
+      if (toast.parentNode !== host) return;
+      delete toast.dataset.visible;
+      toast.dataset.dismissing = "true";
+      window.setTimeout(function () { if (toast.parentNode === host) host.replaceChildren(); }, 450);
+    }
+    standaloneMessageTimer = window.setTimeout(dismiss, 5000);
+  }
+  function showAppMessage(message, tone) {
+    if (!message) return;
+    const payload = {
+      type: "foxiesdeck:app-message",
+      message: message,
+      tone: tone,
+      durationMs: 5000,
+    };
+    if (window.parent !== window) {
+      window.parent.postMessage(payload, window.location.origin);
+      return;
+    }
+    showStandaloneAppMessage(message, tone);
+  }
+  function element(id) { return document.getElementById(id); }
+
+  async function boot() {
+    if (!document.body.hasAttribute("data-offline-shell")) return;
+    const params = new URLSearchParams(location.search);
+    const visualMode = params.get("visual");
+    const testMode = visualMode === "offline";
+    if (testMode && window.parent === window) {
+      location.replace("/visual-test-offline");
+      return;
+    }
+    const profileId = testMode ? "visual-test" : activeProfileId();
+    let state = { profile: null, cards: [], notes: [], locale: "en", learningLanguage: "en" };
+
+    const fallbackLocale = localeCode(localStorage.getItem(LOCALE_KEY)) || localeCode(navigator.language) || "en";
+    const cached = testMode ? null : await storageApi.getSnapshot(profileId).catch(function () { return null; });
+    const savedProfile = cached && cached.profile;
+    const userLocale = localeCode(savedProfile && (savedProfile.nativeLanguage || savedProfile.locale)) || fallbackLocale;
+    const strings = copy[userLocale] || copy.en;
+    state.locale = userLocale;
+    state.learningLanguage = testMode ? "es" : localeCode(localStorage.getItem(CARD_LANGUAGE_KEY))
+      || localeCode(savedProfile && (savedProfile.cardLanguage || savedProfile.learningLanguage))
+      || "en";
+    state.cards = (cached && cached.cards) || [];
+    const offlineProfileIds = profileId === "guest" ? ["guest"] : [profileId, "guest"];
+    const storedNoteEntries = testMode ? [] : (await Promise.all(offlineProfileIds.map(function (storedProfileId) {
+      return storageApi.listNotes(storedProfileId).catch(function () { return []; });
+    }))).flat();
+    state.notes = testMode ? [] : storedNoteEntries.map(function (entry) {
+      const note = entry.note || {};
+      return Object.assign({}, note, {
+        storageProfileId: entry.profileId || profileId,
+        targetLanguage: localeCode(note.targetLanguage) || state.learningLanguage,
+        nativeLocale: localeCode(note.nativeLocale) || state.locale,
+      });
+    });
+    if (testMode && visualMode === "offline") {
+      state.cards = [
+        { inventory: { cardId: "demo-1", status: "active", correctCount: 2 }, card: { language: "es", term: "aprender", tier: "A2", termKind: "word", pronunciation: "a.pɾenˈdeɾ", translations: { en: "to learn", tr: "öğrenmek" }, translation: "to learn", example: "Quiero aprender español." } },
+        { inventory: { cardId: "demo-2", status: "learned", correctCount: 6 }, card: { language: "es", term: "la sobremesa", tier: "B1", termKind: "fixed_phrase", pronunciation: "la so.βɾeˈme.sa", translations: { en: "conversation after a meal", tr: "yemek sonrası sohbet" }, translation: "conversation after a meal", example: "La sobremesa duró una hora." } },
+        { inventory: { cardId: "demo-3", status: "active", correctCount: 1 }, card: { language: "de", term: "lernen", tier: "A1", termKind: "word", pronunciation: "ˈlɛʁnən", translations: { en: "to learn", tr: "öğrenmek" }, translation: "to learn", example: "Ich lerne Deutsch." } },
+      ];
+    }
+
+    document.documentElement.lang = userLocale;
+    document.documentElement.dir = userLocale === "ar" ? "rtl" : "ltr";
+    document.body.dataset.offlineNativeLanguage = userLocale;
+    document.body.dataset.offlineCardLanguage = state.learningLanguage;
+    document.documentElement.classList.toggle("super-water-locale", SUPER_WATER_LOCALES.has(userLocale));
+    text(element("card-language-label"), cardLanguageLabelCopy[userLocale] || cardLanguageLabelCopy.en);
+    const cardLanguageSelect = element("card-language-select");
+    const cardLanguageCurrent = element("card-language-current");
+    const cardLanguageOptions = element("card-language-options");
+    languagePickerOrder.forEach(function (language) {
+      const option = document.createElement("button");
+      option.type = "button";
+      option.className = "language-option";
+      option.setAttribute("role", "option");
+      option.dataset.language = language;
+      option.textContent = languageDisplayName(language, userLocale);
+      option.addEventListener("click", function () { selectCardLanguage(language); });
+      cardLanguageOptions.appendChild(option);
+    });
+    renderLanguagePicker();
+    element("note-input").dir = state.learningLanguage === "ar" ? "rtl" : "auto";
+    text(element("status-label"), strings.status);
+    heading(element("offline-title"), strings.title, userLocale);
+    text(element("reconnect-label"), strings.reconnect);
+    heading(element("deck-title"), strings.deck, userLocale);
+    heading(element("notes-title"), strings.notes, userLocale);
+    text(element("note-label"), strings.notePlaceholder);
+    element("note-input").placeholder = strings.notePlaceholder;
+    element("add-note").setAttribute("aria-label", strings.addNote);
+
+    function renderLanguagePicker() {
+      cardLanguageCurrent.textContent = languageDisplayName(state.learningLanguage, userLocale);
+      cardLanguageOptions.querySelectorAll(".language-option").forEach(function (option) {
+        option.setAttribute("aria-selected", option.dataset.language === state.learningLanguage ? "true" : "false");
+      });
+      cardLanguageSelect.setAttribute("aria-label", (cardLanguageLabelCopy[userLocale] || cardLanguageLabelCopy.en) + ": " + cardLanguageCurrent.textContent);
+    }
+
+    function closeLanguagePicker(restoreFocus) {
+      cardLanguageOptions.hidden = true;
+      cardLanguageSelect.setAttribute("aria-expanded", "false");
+      if (restoreFocus) cardLanguageSelect.focus();
+    }
+
+    function selectCardLanguage(language) {
+      const selectedLanguage = localeCode(language);
+      if (!selectedLanguage) return;
+      state.learningLanguage = selectedLanguage;
+      document.body.dataset.offlineCardLanguage = selectedLanguage;
+      element("note-input").dir = selectedLanguage === "ar" ? "rtl" : "auto";
+      renderLanguagePicker();
+      closeLanguagePicker(true);
+      renderCards();
+      renderNotes();
+    }
+
+    cardLanguageSelect.addEventListener("click", function () {
+      const shouldOpen = cardLanguageOptions.hidden;
+      cardLanguageOptions.hidden = !shouldOpen;
+      cardLanguageSelect.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+      if (shouldOpen) {
+        const selected = cardLanguageOptions.querySelector('[data-language="' + state.learningLanguage + '"]');
+        if (selected) selected.focus();
+      }
+    });
+    cardLanguageSelect.addEventListener("keydown", function (event) {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        if (cardLanguageOptions.hidden) cardLanguageSelect.click();
+      }
+    });
+    cardLanguageOptions.addEventListener("keydown", function (event) {
+      const options = Array.from(cardLanguageOptions.querySelectorAll(".language-option"));
+      const currentIndex = options.indexOf(document.activeElement);
+      let nextIndex = currentIndex;
+      if (event.key === "ArrowDown") nextIndex = Math.min(options.length - 1, currentIndex + 1);
+      else if (event.key === "ArrowUp") nextIndex = Math.max(0, currentIndex - 1);
+      else if (event.key === "Home") nextIndex = 0;
+      else if (event.key === "End") nextIndex = options.length - 1;
+      else if (event.key === "Escape") { event.preventDefault(); closeLanguagePicker(true); return; }
+      else return;
+      event.preventDefault();
+      if (options[nextIndex]) options[nextIndex].focus();
+    });
+    document.addEventListener("pointerdown", function (event) {
+      if (!element("language-picker").contains(event.target)) closeLanguagePicker(false);
+    });
+
+    function renderCards() {
+      const root = element("saved-cards");
+      root.replaceChildren();
+      const entries = state.cards.filter(function (entry) {
+        return entry.card && localeCode(entry.card.language) === state.learningLanguage;
+      });
+      if (!entries.length) {
+        const empty = document.createElement("p"); empty.className = "empty";
+        empty.textContent = state.cards.length ? (noCardsInLanguageCopy[userLocale] || noCardsInLanguageCopy.en) : strings.noCards;
+        root.appendChild(empty); return;
+      }
+      const tierStyles = {
+        A1: { accent: "#10b981", ink: "#047857", points: 10, requirement: 4 },
+        A2: { accent: "#0ea5e9", ink: "#0369a1", points: 20, requirement: 4 },
+        B1: { accent: "#8b5cf6", ink: "#6d28d9", points: 40, requirement: 6 },
+        B2: { accent: "#f59e0b", ink: "#b45309", points: 50, requirement: 6 },
+        C1: { accent: "#f43f5e", ink: "#be123c", points: 100, requirement: 8 },
+      };
+      const languageNames = {
+        en: "English", de: "Deutsch", fr: "Français", es: "Español", it: "Italiano", pt: "Português", nl: "Nederlands",
+        pl: "Polski", tr: "Türkçe", ru: "Русский", ar: "العربية", ja: "日本語", ko: "한국어", "zh-CN": "中文",
+      };
+      const termKinds = {
+        en: { word: "Word", phrase: "Phrase" }, tr: { word: "Kelime", phrase: "Kalıp" }, de: { word: "Wort", phrase: "Ausdruck" },
+        ru: { word: "Слово", phrase: "Фраза" }, fr: { word: "Mot", phrase: "Expression" }, es: { word: "Palabra", phrase: "Expresión" },
+        it: { word: "Parola", phrase: "Espressione" }, pt: { word: "Palavra", phrase: "Expressão" }, nl: { word: "Woord", phrase: "Uitdrukking" },
+        pl: { word: "Słowo", phrase: "Wyrażenie" }, ar: { word: "كلمة", phrase: "عبارة" }, ja: { word: "単語", phrase: "フレーズ" },
+        ko: { word: "단어", phrase: "표현" }, "zh-CN": { word: "单词", phrase: "短语" },
+      };
+      function makeNode(tagName, className, content) {
+        const node = document.createElement(tagName);
+        node.className = className;
+        if (content !== undefined) node.textContent = content;
+        return node;
+      }
+      entries.forEach(function (entry) {
+        const card = entry.card || {};
+        const inventory = entry.inventory || {};
+        const tier = tierStyles[card.tier] || tierStyles.A1;
+        const isLearned = inventory.status === "learned";
+        const progress = isLearned ? tier.requirement : Math.max(0, Math.min(tier.requirement, Number(inventory.correctCount) || 0));
+        const row = document.createElement("article"); row.className = "card";
+        row.dataset.savedCardTier = card.tier || "A1";
+        row.dataset.savedCardStatus = isLearned ? "learned" : "active";
+        row.dataset.cardLanguage = card.language || "";
+        row.style.setProperty("--tier-accent", tier.accent);
+        row.style.setProperty("--tier-ink", tier.ink);
+        const header = makeNode("div", "card-header");
+        header.append(makeNode("span", "card-tier", card.tier || "A1"));
+        const body = makeNode("div", "card-body");
+        const meta = makeNode("div", "card-meta");
+        meta.append(makeNode("span", "card-language-code", languageNames[card.language] || card.language || ""));
+        const points = makeNode("span", "card-points");
+        points.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2.5 2.9 5.88 6.49.94-4.7 4.58 1.11 6.46L12 17.31l-5.8 3.05 1.1-6.46-4.69-4.58 6.49-.94L12 2.5Z"/></svg>';
+        points.appendChild(document.createTextNode(String(tier.points)));
+        meta.append(points);
+        const pronunciation = makeNode("div", "card-pronunciation");
+        pronunciation.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+        const pronunciationText = document.createElement("span"); pronunciationText.textContent = card.pronunciation || "";
+        pronunciation.append(pronunciationText);
+        const termNode = makeNode("h3", "card-term", card.term || card.translation || "");
+        const kinds = termKinds[userLocale] || termKinds.en;
+        const kindNode = makeNode("span", "card-kind", card.termKind === "fixed_phrase" ? kinds.phrase : kinds.word);
+        const translationNode = makeNode("p", "card-translation");
+        const translated = card.translations && (card.translations[userLocale] || card.translations.en);
+        translationNode.textContent = translated || card.translation || "";
+        body.append(meta);
+        if (card.pronunciation) body.append(pronunciation);
+        body.append(termNode, kindNode, translationNode);
+        const footer = makeNode("div", "card-footer");
+        const example = card.example || (Array.isArray(card.examples) && card.examples[0] && card.examples[0].sentence) || "";
+        if (example) footer.append(makeNode("p", "card-example", example));
+        const progressLabel = makeNode("div", "card-progress-label");
+        progressLabel.append(makeNode("span", "", isLearned ? strings.learned : strings.active), makeNode("span", "", progress + "/" + tier.requirement));
+        const track = makeNode("div", "card-progress-track");
+        const fill = makeNode("div", "card-progress-fill"); fill.style.width = (progress / tier.requirement * 100) + "%";
+        track.append(fill); footer.append(progressLabel, track);
+        row.append(header, body, footer); root.appendChild(row);
+      });
+    }
+
+    function notesForSelectedLanguage() {
+      return state.notes.filter(function (note) {
+        return localeCode(note.targetLanguage) === state.learningLanguage;
+      });
+    }
+
+    function storageProfileForNote(note) { return note.storageProfileId || profileId; }
+    function isSameNote(left, right) {
+      return left.id === right.id && storageProfileForNote(left) === storageProfileForNote(right);
+    }
+    function renderNotes() {
+      const root = element("notes-list"); root.replaceChildren();
+      const notes = notesForSelectedLanguage();
+      if (notes.length) {
+        notes.forEach(function (note) {
+          const row = document.createElement("div"); row.className = "note-row";
+          row.dataset.targetLanguage = note.targetLanguage;
+          const content = document.createElement("div"); content.className = "note-content";
+          const language = document.createElement("span"); language.className = "note-language"; language.textContent = languageDisplayName(note.targetLanguage, userLocale);
+          const noteText = document.createElement("span"); noteText.className = "note-text"; noteText.textContent = note.text;
+          content.append(language, noteText);
+          const remove = document.createElement("button"); remove.className = "remove-note"; remove.type = "button"; remove.textContent = "×"; remove.setAttribute("aria-label", strings.close);
+          remove.addEventListener("click", async function () {
+            if (!testMode) {
+              try { await storageApi.removeNote(storageProfileForNote(note), note.id); }
+              catch { showAppMessage(saveErrorCopy[userLocale] || saveErrorCopy.en, "error"); return; }
+            }
+            state.notes = state.notes.filter(function (item) { return !isSameNote(item, note); });
+            renderNotes();
+          });
+          row.append(content, remove); root.appendChild(row);
+        });
+      }
+    }
+
+    function openModal() { closeLanguagePicker(false); state.dismissed = false; element("notes-modal").classList.add("open"); element("close-modal").focus(); }
+    function closeModal() { state.dismissed = true; element("notes-modal").classList.remove("open"); }
+
+    function renderModal() {
+      const notesRoot = element("modal-notes"); const resultRoot = element("generated-results");
+      const notes = testMode ? notesForSelectedLanguage() : allNotes();
+      const drafts = testMode ? draftsForSelectedLanguage() : allDrafts();
+      notesRoot.replaceChildren(); resultRoot.replaceChildren();
+      element("notes-modal").dataset.conversionState = state.conversionState;
+      notes.forEach(function (note) {
+        const node = document.createElement("div"); node.className = "modal-note"; node.dataset.targetLanguage = note.targetLanguage;
+        node.textContent = languageDisplayName(note.targetLanguage, userLocale) + " · " + note.text;
+        notesRoot.appendChild(node);
+      });
+      drafts.forEach(function (draft) {
+        const data = draft.generated || {};
+        const item = document.createElement("article"); item.className = "generated";
+        item.dataset.cardLanguage = data.language || draft.targetLanguage || "";
+        const language = document.createElement("div"); language.className = "generated-language";
+        language.textContent = languageDisplayName(data.language || draft.targetLanguage, userLocale);
+        const term = document.createElement("div"); term.className = "term"; term.textContent = data.term || "";
+        const translation = document.createElement("div"); translation.className = "translation"; translation.textContent = data.translations && (data.translations[userLocale] || data.translations.en) || "";
+        const definition = document.createElement("div"); definition.className = "definition"; definition.textContent = data.definitions && (data.definitions[userLocale] || data.definitions.en) || "";
+        const add = document.createElement("button"); add.type = "button"; add.className = "primary"; add.textContent = strings.addDeck;
+        add.addEventListener("click", async function () {
+          if (testMode) { add.textContent = strings.added; add.disabled = true; return; }
+          add.disabled = true; add.textContent = strings.adding; text(element("modal-feedback"), "");
+          try {
+            const response = await fetch("/api/cards/offline-create", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+            const payload = await response.json().catch(function () { return {}; });
+            if (!response.ok || payload.status !== "success") throw new Error(payload.message || payload.errorCode || strings.addError);
+            if (payload.data && payload.data.card && payload.data.card.cardId) add.dataset.cardId = payload.data.card.cardId;
+            const draftProfileId = draft.storageProfileId || profileId;
+            await storageApi.removeDraft(draftProfileId, draft.id);
+            state.drafts = state.drafts.filter(function (entry) { return !(entry.id === draft.id && (entry.storageProfileId || profileId) === draftProfileId); });
+            add.textContent = strings.added;
+            renderModal(); renderNotes();
+          } catch (error) { add.disabled = false; add.textContent = strings.addDeck; text(element("modal-feedback"), error && error.message || strings.addError); }
+        });
+        item.append(language, term, translation, definition, add); resultRoot.appendChild(item);
+      });
+      const actions = element("modal-actions");
+      actions.style.display = notes.length ? "flex" : "none";
+      const convertButton = element("convert-all");
+      convertButton.disabled = state.conversionState === "processing";
+      convertButton.textContent = state.conversionState === "processing" ? strings.converting : strings.convert;
+      if (!notes.length && !drafts.length) { const empty = document.createElement("p"); empty.className = "empty"; empty.textContent = strings.emptyModal; resultRoot.appendChild(empty); }
+    }
+
+    let activeProbe = null;
+    async function probeSite() {
+      if (testMode) return true;
+      if (!navigator.onLine) return false;
+      if (activeProbe) return activeProbe;
+      const controller = new AbortController();
+      const timeout = window.setTimeout(function () { controller.abort(); }, 5000);
+      activeProbe = (async function () {
+        try {
+          const response = await fetch("/api/offline/reachability", { method: "GET", cache: "no-store", credentials: "same-origin", headers: { "Cache-Control": "no-cache" }, signal: controller.signal });
+          return response.ok;
+        } catch { return false; }
+        finally { window.clearTimeout(timeout); activeProbe = null; }
+      })();
+      return activeProbe;
+    }
+
+    function returnToAppAfterReconnect() {
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: "foxiesdeck:offline-reconnected" }, window.location.origin);
+        return;
+      }
+
+      let destination = new URLSearchParams(location.search).get("returnTo") || "/";
+      try {
+        const parsed = new URL(destination, location.origin);
+        if (parsed.origin !== location.origin) destination = "/";
+        else {
+          parsed.searchParams.set("twa", "1");
+          parsed.searchParams.set("native", "1");
+          destination = parsed.toString();
+        }
+      } catch {
+        destination = "/?twa=1&native=1";
+      }
+      location.replace(destination);
+    }
+
+    element("note-form").addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const input = element("note-input"); const value = input.value.trim().slice(0, 120);
+      if (!value) return;
+      const note = { id: makeId(), text: value, targetLanguage: state.learningLanguage, nativeLocale: state.locale, storageProfileId: profileId, createdAt: new Date().toISOString() };
+      if (!testMode) {
+        try { await storageApi.putNote(profileId, note); }
+        catch { showAppMessage(saveErrorCopy[userLocale] || saveErrorCopy.en, "error"); return; }
+      }
+      state.notes.unshift(note); input.value = ""; renderNotes();
+    });
+
+    element("reconnect").addEventListener("click", async function () {
+      const button = element("reconnect"); button.disabled = true;
+      text(element("reconnect-label"), strings.reconnecting);
+      let leavingOfflineScreen = false;
+      try {
+        const connected = await probeSite();
+        if (testMode) {
+          showAppMessage(strings.testReconnect, "error");
+        } else if (!connected) {
+          showAppMessage(strings.noConnection, "error");
+        } else {
+          leavingOfflineScreen = true;
+          returnToAppAfterReconnect();
+        }
+      } catch {
+        showAppMessage(strings.noConnection, "error");
+      } finally {
+        if (!leavingOfflineScreen) {
+          button.disabled = false;
+          text(element("reconnect-label"), strings.reconnect);
+        }
+      }
+    });
+
+    renderCards(); renderNotes();
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { void boot(); }, { once: true });
+  else void boot();
+})();
