@@ -37,5 +37,3 @@ describe("shared content pool planning", () => {
     expect(plan.reduce((total, item) => total + item.row.quantity, 0)).toBe(4);
   });
 });
-
-\n

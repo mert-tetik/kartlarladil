@@ -76,5 +76,3 @@ export function buildSharedPoolPlan<TGroup, TRow extends SharedPoolRow>(sources:
     } satisfies SharedPoolPlan<TGroup, TRow>;
   });
 }
-
-\n
