@@ -462,7 +462,7 @@ export function ProductionAutomationTable({ onBack }: { onBack: () => void }) {
     try {
       const saved = await saveAutomation();
       if (!saved) throw new Error("The current automation table could not be saved.");
-      const response = await fetch("/api/twitter-automation/automation-runs", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ horizonDays, scope: "production" }) });
+      const response = await fetch("/api/twitter-automation/automation-runs", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ horizonDays, requestKey: crypto.randomUUID(), scope: "production" }) });
       const payload = await response.json().catch(() => null) as { errorCode?: string; run?: { id?: string } } | null;
       if (!response.ok || !payload?.run?.id) throw new Error(payload?.errorCode === "automation_targets_missing" ? "Select at least one account for each platform." : "The automation run could not be created.");
       setActiveRunId(payload.run.id);

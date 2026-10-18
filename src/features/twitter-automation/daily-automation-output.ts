@@ -57,6 +57,22 @@ export function createDailyAutomationOutputIdentity(input: {
   };
 }
 
+/**
+ * A generated slot belongs to one explicit bulk run, not to a calendar day.
+ * Replaying the same creation request therefore reuses its output ids, while a
+ * separately started run always gets an independent set of outputs.
+ */
+export function createRunAutomationOutputIdentity(input: {
+  runId: string;
+  slotKey: string;
+}): DailyAutomationOutputIdentity {
+  const generationKey = ["foxiesdeck-run-v1", input.runId, input.slotKey].join(":");
+  return {
+    id: deterministicUuid(generationKey),
+    generationKey,
+  };
+}
+
 export function createDailyAutomationOutputMetadata(input: DailyAutomationOutputMetadata) {
   return {
     [DAILY_OUTPUT_METADATA_KEY]: {

@@ -5,6 +5,18 @@ Android release uses a native WebView shell. Local UI media is packaged in a
 Play Asset Delivery install-time asset pack and transparently served through
 the WebView request interceptor.
 
+## Separate website and AAB logos
+
+The website branding, favicon, web/PWA metadata, and website-generated social
+visuals use `public/AppLogdfo.png`.
+
+The Android/AAB launcher icon is intentionally separate and must use only
+`public/AppLogo2.png`. `AppLogdfo.png` must never be used for the AAB launcher,
+maskable icon, or Android fallback densities. `scripts/init-twa.mjs` overrides
+the icon read from the website manifest, and `scripts/generate-launcher-icons.mjs`
+is the single Android resource-generation path; it always reads
+`public/AppLogo2.png`.
+
 ## What is included
 
 - Next.js remains the source of truth for UI and server features.

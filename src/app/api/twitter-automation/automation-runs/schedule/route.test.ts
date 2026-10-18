@@ -50,4 +50,21 @@ describe("automation run scheduling", () => {
     expect(await response.json()).toEqual({ scheduled: 4, failed: 1, skipped: 2 });
     expect(scheduleRunMock).toHaveBeenCalledWith(runId);
   });
+
+  it("can retry scheduling one output without invoking the generation retry flow", async () => {
+    const runId = "2d13ccca-d537-4a5a-9a08-20df9c391007";
+    const outputId = "3d13ccca-d537-4a5a-9a08-20df9c391007";
+    fromMock.mockReturnValue({
+      select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: runId }, error: null }) }) }) }),
+    });
+    scheduleRunMock.mockResolvedValue({ scheduled: 1, failed: 0, skipped: 0 });
+
+    const response = await POST(new NextRequest("http://localhost/api/twitter-automation/automation-runs/schedule", {
+      method: "POST",
+      body: JSON.stringify({ runId, outputId }),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(scheduleRunMock).toHaveBeenCalledWith(runId, { outputId });
+  });
 });

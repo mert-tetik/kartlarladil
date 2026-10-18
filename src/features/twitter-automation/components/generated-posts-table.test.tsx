@@ -6,6 +6,7 @@ import { stageBrowserImage, stageBrowserVideo } from "@/features/twitter-automat
 import { resolveBrowserMusicVideoSourceUrl } from "@/features/twitter-automation/browser-video-source";
 import { canRenderMusicVideoDeterministically, createOfflineMusicVideoAudioContext, prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
 import { AUTOMATION_RETRY_DELAYS_MS } from "@/features/twitter-automation/automation-resilience";
+import { UPLOAD_POST_REQUEST_RECHECK_DELAY_MS, UPLOAD_POST_REQUEST_UNCONFIRMED_CODE } from "@/features/twitter-automation/upload-post-schedule-constants";
 
 vi.mock("next/image", () => ({
   // eslint-disable-next-line @next/next/no-img-element
@@ -54,6 +55,90 @@ describe("GeneratedPostsTable", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.useRealTimers();
+  });
+
+  it("lets the user stop one bulk run, review ready posts, and explicitly finish that same run", async () => {
+    vi.useFakeTimers();
+    const queuedOutput = {
+      id: "8113ccca-d537-4a5a-9a08-20df9c391007",
+      day_offset: 1,
+      group_name: "Test batch",
+      content_type: "text",
+      generator: "fun-post",
+      language: "en",
+      native_language: "tr",
+      tier: "A1",
+      scheduled_at: "2026-10-20T12:00:00+03:00",
+      status: "queued",
+      caption: null,
+      mediaUrl: null,
+      mediaUrls: [],
+      media_type: null,
+      error_code: null,
+      run: { schedule_date: "2026-10-20", generation_stopped_at: null, finished_by_user_at: null },
+    };
+    const readyOutput = {
+      ...queuedOutput,
+      id: "8213ccca-d537-4a5a-9a08-20df9c391007",
+      status: "ready_to_schedule",
+      caption: "Ready post",
+    };
+    let stopped = false;
+    let finished = false;
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.startsWith("/api/twitter-automation/automation-runs?")) {
+        const outputs = stopped
+          ? [
+            { ...queuedOutput, status: "skipped", run: { ...queuedOutput.run, generation_stopped_at: "2026-10-18T12:00:00Z" } },
+            { ...readyOutput, run: { ...readyOutput.run, generation_stopped_at: "2026-10-18T12:00:00Z", finished_by_user_at: finished ? "2026-10-18T12:05:00Z" : null } },
+          ]
+          : [queuedOutput, readyOutput];
+        return { ok: true, json: async () => ({ outputs }) };
+      }
+      if (url === "/api/twitter-automation/automation-runs/finish") {
+        const body = JSON.parse(String(init?.body)) as { action: string };
+        if (body.action === "stop-generation") stopped = true;
+        if (body.action === "finish") finished = true;
+        return { ok: true, json: async () => ({ ok: true, finished: body.action === "finish" }) };
+      }
+      if (url === "/api/twitter-automation/automation-runs/refresh-media") return { ok: true, json: async () => ({ checked: 0, invalid: 0 }) };
+      return { ok: true, json: async () => ({}) };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId="8013ccca-d537-4a5a-9a08-20df9c391007" scope="test" />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText(/Yayın günü: 20 Ekim 2026/u)).toBeVisible();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Bu kadarı yeterli — sonuçlara geç" }));
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByRole("button", { name: "Run'ı bitir" })).toBeVisible();
+    expect(screen.getByText("Atlandı")).toBeVisible();
+    expect(fetchMock).toHaveBeenCalledWith("/api/twitter-automation/automation-runs/finish", expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({ runId: "8013ccca-d537-4a5a-9a08-20df9c391007", action: "stop-generation", scope: "test" }),
+    }));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Run'ı bitir" }));
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(screen.getByText("Bu toplu üretim run'ı tamamlandı.")).toBeVisible();
+    expect(fetchMock).toHaveBeenCalledWith("/api/twitter-automation/automation-runs/finish", expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({ runId: "8013ccca-d537-4a5a-9a08-20df9c391007", action: "finish", scope: "test" }),
+    }));
   });
 
   it("keeps a failed output's error detail on the media preview tooltip", async () => {
@@ -450,6 +535,166 @@ describe("GeneratedPostsTable", () => {
     });
     const scheduleCall = fetchMock.mock.calls.find(([input]) => String(input) === "/api/twitter-automation/automation-runs/schedule");
     expect(scheduleCall).toBeDefined();
+  });
+
+  it("retries a schedule failure without offering or invoking content generation retry", async () => {
+    vi.useFakeTimers();
+    const output = {
+      id: "cc13ccca-d537-4a5a-9a08-20df9c391007",
+      day_offset: 1,
+      group_name: "Schedule test",
+      content_type: "text",
+      generator: "fun-post",
+      language: "en",
+      native_language: "tr",
+      tier: "A1",
+      scheduled_at: "2026-10-19T10:00:00+03:00",
+      status: "ready_to_schedule",
+      quality_status: "passed",
+      schedule_status: "failed",
+      schedule_error_code: "upload_post_rejected",
+      schedule_error_detail: "HTTP 400: Scheduled time is not available.",
+      caption: "Generated content remains intact.",
+      mediaUrl: null,
+      mediaUrls: [],
+      media_type: null,
+      error_code: null,
+    } as const;
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.startsWith("/api/twitter-automation/automation-runs?")) return { ok: true, json: async () => ({ outputs: [output] }) };
+      if (url === "/api/twitter-automation/automation-runs/schedule") return { ok: true, json: async () => ({ scheduled: 1, failed: 0, skipped: 0 }) };
+      if (url === "/api/twitter-automation/automation-runs/retry") throw new Error("schedule retry must not regenerate content");
+      throw new Error(`Unexpected request: ${url} ${init?.method ?? "GET"}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId="cc13ccca-d537-4a5a-9a08-20df9c391007" scope="production" />);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+
+    expect(screen.getByText(/HTTP 400: Scheduled time is not available\./u)).toBeVisible();
+    expect(screen.getByRole("button", { name: /Schedule.*yeniden dene/u })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Yeniden \u00fcret" })).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Schedule.*yeniden dene/u }));
+      await Promise.resolve();
+    });
+
+    const scheduleCall = fetchMock.mock.calls.find(([input]) => String(input) === "/api/twitter-automation/automation-runs/schedule");
+    expect(scheduleCall).toBeDefined();
+    expect(JSON.parse(String(scheduleCall?.[1]?.body))).toMatchObject({ runId: "cc13ccca-d537-4a5a-9a08-20df9c391007", outputId: output.id });
+    expect(fetchMock.mock.calls.some(([input]) => String(input) === "/api/twitter-automation/automation-runs/retry")).toBe(false);
+  });
+
+  it("keeps an unconfirmed Upload-Post request out of failed state and checks it without finishing the run", async () => {
+    vi.useFakeTimers();
+    const output = {
+      id: "ed13ccca-d537-4a5a-9a08-20df9c391007",
+      day_offset: 1,
+      group_name: "Async schedule test",
+      content_type: "text",
+      generator: "fun-post",
+      language: "en",
+      native_language: "tr",
+      tier: "A1",
+      scheduled_at: new Date(Date.now() + 60 * 60 * 1_000).toISOString(),
+      status: "ready_to_schedule",
+      quality_status: "passed",
+      schedule_status: "processing",
+      schedule_error_code: UPLOAD_POST_REQUEST_UNCONFIRMED_CODE,
+      schedule_error_detail: "Provider response pending verification.",
+      schedule_attempted_at: new Date(Date.now() - UPLOAD_POST_REQUEST_RECHECK_DELAY_MS - 1_000).toISOString(),
+      caption: "Generated content remains intact.",
+      mediaUrl: null,
+      mediaUrls: [],
+      media_type: null,
+      error_code: null,
+      run: { schedule_date: "2026-10-19", generation_stopped_at: null, finished_by_user_at: null },
+    } as const;
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.startsWith("/api/twitter-automation/automation-runs?")) return { ok: true, json: async () => ({ outputs: [output] }) };
+      if (url === "/api/twitter-automation/automation-runs/schedule") return { ok: true, json: async () => ({ scheduled: 0, failed: 0, processing: 1 }) };
+      if (url === "/api/twitter-automation/automation-runs/finish") throw new Error("pending provider work must not be finished");
+      if (url === "/api/twitter-automation/automation-runs/retry") throw new Error("pending provider work must not regenerate content");
+      throw new Error(`Unexpected request: ${url} ${init?.method ?? "GET"}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId={output.id} scope="production" />);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+
+    expect(screen.getByText(/Upload-Post yanıtı henüz doğrulanmadı/u)).toBeVisible();
+    const checkStatus = screen.getByRole("button", { name: "Upload-Post durumunu kontrol et" });
+    expect(checkStatus).toBeEnabled();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Run'ı bitir" }));
+      await Promise.resolve();
+    });
+    expect(fetchMock.mock.calls.some(([input]) => String(input) === "/api/twitter-automation/automation-runs/finish")).toBe(false);
+
+    await act(async () => {
+      fireEvent.click(checkStatus);
+      await Promise.resolve();
+    });
+    expect(fetchMock.mock.calls.some(([input]) => String(input) === "/api/twitter-automation/automation-runs/schedule")).toBe(true);
+    expect(fetchMock.mock.calls.some(([input]) => String(input) === "/api/twitter-automation/automation-runs/retry")).toBe(false);
+  });
+
+  it("offers regeneration instead of schedule retry for expired generated media", async () => {
+    vi.useFakeTimers();
+    const output = {
+      id: "dc13ccca-d537-4a5a-9a08-20df9c391007",
+      day_offset: 1,
+      group_name: "Expired media test",
+      content_type: "image",
+      generator: "ai-mini-quiz",
+      language: "en",
+      native_language: "tr",
+      tier: "A1",
+      scheduled_at: "2026-10-19T10:00:00+03:00",
+      status: "failed",
+      quality_status: "passed",
+      schedule_status: "pending",
+      schedule_error_code: null,
+      error_code: "automation_media_retention_expired",
+      last_error_detail: "Automation media retention window expired.",
+      caption: "Generated caption",
+      mediaUrl: null,
+      mediaUrls: [],
+      media_type: null,
+    } as const;
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.startsWith("/api/twitter-automation/automation-runs?")) return { ok: true, json: async () => ({ outputs: [output] }) };
+      if (url === "/api/twitter-automation/automation-runs/retry") return { ok: true, json: async () => ({ status: "queued" }) };
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId={output.id} scope="production" />);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); await Promise.resolve(); });
+    const regenerateButton = screen.getByRole("button", { name: "Yeniden \u00fcret" });
+
+    expect(screen.queryByText(/Schedule hat/iu)).not.toBeInTheDocument();
+    expect(regenerateButton).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /Schedule.*yeniden dene/u })).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([input]) => String(input) === "/api/twitter-automation/automation-runs/retry")).toBe(false);
+
+    await act(async () => {
+      fireEvent.click(regenerateButton);
+      await Promise.resolve();
+    });
+    expect(fetchMock.mock.calls.some(([input]) => String(input) === "/api/twitter-automation/automation-runs/retry")).toBe(true);
+    expect(fetchMock.mock.calls.some(([input]) => String(input) === "/api/twitter-automation/automation-runs/schedule")).toBe(false);
   });
 
   it("refreshes result-screen media and reloads preview URLs", async () => {

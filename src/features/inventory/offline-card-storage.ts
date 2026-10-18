@@ -39,6 +39,8 @@ export interface OfflineGeneratedCardDraft {
   targetLanguage: LanguageCode;
   generated: GeneratedCardResponse;
   createdAt: string;
+  /** The card was optimistically added and is waiting for cloud confirmation. */
+  pendingAdd?: boolean;
 }
 
 export interface OfflineGeneratedCardDraftEntry {

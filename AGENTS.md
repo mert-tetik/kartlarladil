@@ -391,6 +391,14 @@ Kart kataloğu uygulama bundle'ında tutulur (`VOCABULARY_CARDS`), ancak kullan�
 - `src/features/twitter-automation/social-studio-version.ts` içindeki `SOCIAL_CONTENT_STUDIO_VERSION`, Social Content Studio arayüzünde görünür.
 - Her kullanıcı talebiyle yapılan uygulama güncellemesinde bu long integer değerini tam olarak `1` artır. Sadece inceleme, açıklama, durum raporu veya salt commit/push taleplerinde artırma.
 
+## Canonical App Logo
+
+- Website branding, favicon, web/PWA metadata'sı ve website tarafından üretilen sosyal içerik görselleri `public/AppLogdfo.png` kullanır.
+- Android/AAB launcher ikonu bundan tamamen ayrıdır ve yalnızca `public/AppLogo2.png` kullanır.
+- `AppLogdfo.png` kesinlikle AAB launcher, maskable icon veya Android fallback density kaynağı olarak kullanılmamalıdır.
+- `scripts/init-twa.mjs` web manifestinden gelen iconu AAB için `AppLogo2.png` ile override eder; `scripts/generate-launcher-icons.mjs` launcher yoğunluklarını yalnızca `public/AppLogo2.png` üzerinden oluşturur.
+- `logo2.png`, `logo.webp`, eski `icon*.png` dosyaları veya başka herhangi bir logo kaynağı tekrar kullanılmamalıdır.
+
 ## Kullanışlı Referanslar
 
 - `README.md` — yüksek seviye açıklama, tech stack, komutlar, ürün kuralları.

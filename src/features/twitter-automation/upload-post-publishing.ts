@@ -4,7 +4,11 @@ import crypto from "node:crypto";
 import { isLanguageCode } from "@/data/languages";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createTitleOnlySocialTitle, getSocialDownloadTitle } from "@/features/twitter-automation/social-video-titles";
+import { adaptSocialCaptionHashtags, getSocialPostHashtags, usesDorficVisualStyle } from "@/features/twitter-automation/social-platform-hashtags";
 import { normalizeUploadPostPlatform, UPLOAD_POST_CONTENT_PLATFORMS } from "@/features/twitter-automation/upload-post-capabilities";
+import { getUploadPostScheduleFields } from "@/features/twitter-automation/upload-post-schedule-fields";
+import { findAcceptedUploadPostSchedule, getUploadPostRequestStatus } from "@/features/twitter-automation/upload-post-schedule-recovery";
+import { UploadPostRejectedError } from "@/features/twitter-automation/upload-post-provider-error";
 
 const UPLOAD_POST_BASE_URL = "https://api.upload-post.com/api";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -53,6 +57,11 @@ export type UploadPostPublishOptions = {
   gbpTopicType?: "STANDARD" | "EVENT" | "OFFER";
   gbpCtaType?: "BOOK" | "ORDER" | "SHOP" | "LEARN_MORE" | "SIGN_UP" | "CALL";
   gbpCtaUrl?: string;
+};
+
+export type UploadPostMediaBundle = {
+  asset?: DataUrlAsset | RemoteVideoAsset;
+  assets?: DataUrlAsset[];
 };
 
 type UploadPostResponse = {
@@ -267,13 +276,13 @@ async function getTarget(socialMediaId: number) {
   return { platform: normalizeUploadPostPlatform(data["Social Media"]), accountName: data["Account Name"].trim(), profileUsername };
 }
 
-async function submitUpload(endpoint: string, form: FormData, requestId: string, platform: string) {
+async function submitUpload(endpoint: string, form: FormData, idempotencyKey: string, platform: string) {
   const apiKey = getRequiredEnvironmentValue("UPLOAD_POST_API_KEY");
   const response = await fetch(`${UPLOAD_POST_BASE_URL}${endpoint}`, {
     method: "POST",
     headers: {
       Authorization: `Apikey ${apiKey}`,
-      "Idempotency-Key": requestId,
+      "Idempotency-Key": idempotencyKey,
     },
     body: form,
     cache: "no-store",
@@ -282,14 +291,15 @@ async function submitUpload(endpoint: string, form: FormData, requestId: string,
   const payload = await response.json().catch(() => null) as UploadPostResponse | null;
   const providerResult = payload?.results?.[platform];
   if (!response.ok || !payload?.success || providerResult?.success === false || providerResult?.error) {
+    const rejection = new UploadPostRejectedError(response.status, providerResult?.error ?? payload?.message, response.headers);
     console.error("[upload-post] publish rejected", {
       endpoint,
       platform,
-      requestId,
+      requestId: form.get("request_id"),
       status: response.status,
-      providerError: providerResult?.error ?? payload?.message ?? null,
+      providerError: rejection.detail,
     });
-    throw new Error("upload_post_rejected");
+    throw rejection;
   }
 
   const firstResult = Object.values(payload.results ?? {}).find((result) => typeof result?.url === "string");
@@ -300,72 +310,204 @@ async function submitUpload(endpoint: string, form: FormData, requestId: string,
   };
 }
 
-export async function publishWithUploadPost({ socialMediaId, caption, title, nativeLanguage, learningLanguage, asset, assets, scheduledFor, requestId, options }: {
+export async function publishWithUploadPost({ socialMediaId, caption, title, nativeLanguage, learningLanguage, generator, renderPlan, applySocialHashtagPolicy = false, asset, assets, mediaType, mediaCount, loadMedia, scheduledFor, requestId, idempotencyKey, externalId, reconcileExistingSchedule, reconcileRequestIds, attemptedScheduledAt, onRequestRotation, options }: {
   socialMediaId: number;
   caption: string;
   title?: string;
   nativeLanguage?: string;
   learningLanguage?: string;
+  generator?: string;
+  renderPlan?: unknown;
+  applySocialHashtagPolicy?: boolean;
   asset?: DataUrlAsset | RemoteVideoAsset;
   assets?: DataUrlAsset[];
+  mediaType?: "image" | "video" | null;
+  mediaCount?: number;
+  loadMedia?: () => Promise<UploadPostMediaBundle>;
   scheduledFor?: string;
   requestId?: string;
+  idempotencyKey?: string;
+  externalId?: string;
+  reconcileExistingSchedule?: boolean;
+  reconcileRequestIds?: readonly string[];
+  attemptedScheduledAt?: readonly string[];
+  onRequestRotation?: (request: { requestId: string; idempotencyKey: string }) => Promise<void>;
   options?: UploadPostPublishOptions;
 }) {
   const target = await getTarget(socialMediaId);
   if (target.platform === "reddit") throw new Error("upload_post_reddit_unavailable");
-  if (assets?.length && target.platform === "pinterest" && assets.length > 5) throw new Error("upload_post_carousel_limit");
-  const supportedPlatforms = assets?.length ? UPLOAD_POST_CONTENT_PLATFORMS.image : !asset ? UPLOAD_POST_CONTENT_PLATFORMS.text : isRemoteVideoAsset(asset) ? UPLOAD_POST_CONTENT_PLATFORMS.video : UPLOAD_POST_CONTENT_PLATFORMS.image;
+  const actualMediaCount = mediaCount ?? assets?.length ?? (asset ? 1 : 0);
+  if (target.platform === "pinterest" && actualMediaCount > 5) throw new Error("upload_post_carousel_limit");
+  const declaredMediaType = mediaType ?? (assets?.length ? "image" : asset ? isRemoteVideoAsset(asset) ? "video" : "image" : null);
+  const supportedPlatforms = declaredMediaType === "video"
+    ? UPLOAD_POST_CONTENT_PLATFORMS.video
+    : declaredMediaType === "image"
+      ? UPLOAD_POST_CONTENT_PLATFORMS.image
+      : UPLOAD_POST_CONTENT_PLATFORMS.text;
   if (!supportedPlatforms.has(target.platform)) throw new Error("upload_post_unsupported_content");
 
-  const hasMedia = Boolean(asset || assets?.length);
+  const hasMedia = Boolean(declaredMediaType || asset || assets?.length);
   const requestedNativeLanguage = nativeLanguage ?? "";
   const requestedLearningLanguage = learningLanguage ?? "";
   const resolvedNativeLanguage = isLanguageCode(requestedNativeLanguage) ? requestedNativeLanguage : "en";
   const resolvedLearningLanguage = isLanguageCode(requestedLearningLanguage) ? requestedLearningLanguage : resolvedNativeLanguage;
+  const isDorficVisual = usesDorficVisualStyle(generator, renderPlan);
+  const socialHashtags = applySocialHashtagPolicy
+    ? getSocialPostHashtags({
+      platform: target.platform,
+      learningLanguage: resolvedLearningLanguage,
+      nativeLanguage: resolvedNativeLanguage,
+      dorficVisual: isDorficVisual,
+    })
+    : undefined;
+  const socialCaption = applySocialHashtagPolicy
+    ? adaptSocialCaptionHashtags({
+      caption,
+      platform: target.platform,
+      learningLanguage: resolvedLearningLanguage,
+      nativeLanguage: resolvedNativeLanguage,
+      dorficVisual: isDorficVisual,
+    })
+    : caption;
   const explicitTitle = title?.trim();
-  const defaultTitle = hasMedia ? getSocialDownloadTitle(resolvedNativeLanguage) : caption;
+  const defaultTitle = hasMedia ? getSocialDownloadTitle(resolvedNativeLanguage) : socialCaption;
   const providerTitle = explicitTitle || (
     hasMedia && TITLE_ONLY_PLATFORMS.has(target.platform)
-      ? createTitleOnlySocialTitle(caption, resolvedNativeLanguage, resolvedLearningLanguage)
+      ? createTitleOnlySocialTitle(caption, resolvedNativeLanguage, resolvedLearningLanguage, 100, socialHashtags)
       : defaultTitle
   );
+  let uploadRequestId = requestId ?? crypto.randomUUID();
+  let uploadIdempotencyKey = idempotencyKey ?? uploadRequestId;
+  const apiKey = getRequiredEnvironmentValue("UPLOAD_POST_API_KEY");
+
+  const resolveRequestStatus = async (ids: readonly string[]) => {
+    const statuses: Array<Awaited<ReturnType<typeof getUploadPostRequestStatus>>> = [];
+    for (const id of [...new Set(ids.map((value) => value.trim()).filter(Boolean))]) {
+      const status = await getUploadPostRequestStatus({ apiKey, requestId: id });
+      if (status.jobId) return { kind: "scheduled" as const, jobId: status.jobId, requestId: status.requestId };
+      statuses.push(status);
+    }
+    const pendingRequest = statuses.find(({ status, platformStatuses }) => status === "pending" || status === "queued" || status === "processing" || status === "in_progress"
+      || platformStatuses.some((platformStatus) => platformStatus === "queued" || platformStatus === "processing" || platformStatus === "retryable"));
+    if (pendingRequest) {
+      return { kind: "processing" as const, requestId: pendingRequest.requestId };
+    }
+    if (statuses.some(({ status }) => status === "completed")) return { kind: "completed" as const };
+    if (statuses.some(({ status }) => status === "failed")) {
+      return { kind: "failed" as const };
+    }
+    return { kind: "not_found" as const };
+  };
+
+  const submit = async (endpoint: string, form: FormData) => {
+    const result = await submitUpload(endpoint, form, uploadIdempotencyKey, target.platform);
+    if (!scheduledFor || result.jobId) return { ...result, idempotencyKey: uploadIdempotencyKey, pending: false };
+
+    const status = await resolveRequestStatus([result.requestId ?? uploadRequestId]);
+    if (status.kind === "scheduled") {
+      return { ...result, requestId: status.requestId, jobId: status.jobId, idempotencyKey: uploadIdempotencyKey, pending: false };
+    }
+    if (status.kind === "completed") {
+      const recoveredJobId = externalId
+        ? await findAcceptedUploadPostSchedule({
+          apiKey,
+          profileUsername: target.profileUsername,
+          externalId,
+          requestIds: [result.requestId ?? uploadRequestId],
+          attemptedScheduledAt: attemptedScheduledAt?.length ? attemptedScheduledAt : [scheduledFor],
+        })
+        : null;
+      if (recoveredJobId) return { ...result, jobId: recoveredJobId, idempotencyKey: uploadIdempotencyKey, pending: false };
+      throw new Error("upload_post_schedule_reconciliation_incomplete");
+    }
+    if (status.kind === "failed") throw new Error("upload_post_schedule_async_failed");
+
+    // The provider accepted the HTTP request but has not exposed a schedulable
+    // job yet. Keep its request id so a later attempt checks status instead of
+    // uploading the same media again.
+    return {
+      ...result,
+      requestId: result.requestId ?? uploadRequestId,
+      idempotencyKey: uploadIdempotencyKey,
+      pending: true,
+    };
+  };
+
+  if (scheduledFor && externalId && reconcileExistingSchedule) {
+    const recoveredJobId = await findAcceptedUploadPostSchedule({
+      apiKey,
+      profileUsername: target.profileUsername,
+      externalId,
+      requestIds: reconcileRequestIds?.length ? reconcileRequestIds : [uploadRequestId],
+      attemptedScheduledAt: attemptedScheduledAt?.length ? attemptedScheduledAt : [scheduledFor],
+    });
+    if (recoveredJobId) return { requestId: uploadRequestId, jobId: recoveredJobId, postUrl: null, idempotencyKey: uploadIdempotencyKey, pending: false };
+
+    const status = await resolveRequestStatus(reconcileRequestIds?.length ? reconcileRequestIds : [uploadRequestId]);
+    if (status.kind === "scheduled") {
+      return { requestId: status.requestId, jobId: status.jobId, postUrl: null, idempotencyKey: uploadIdempotencyKey, pending: false };
+    }
+    if (status.kind === "processing") {
+      return { requestId: status.requestId, jobId: null, postUrl: null, idempotencyKey: uploadIdempotencyKey, pending: true };
+    }
+    if (status.kind === "completed") {
+      const completedJobId = await findAcceptedUploadPostSchedule({
+        apiKey,
+        profileUsername: target.profileUsername,
+        externalId,
+        requestIds: reconcileRequestIds?.length ? reconcileRequestIds : [uploadRequestId],
+        attemptedScheduledAt: attemptedScheduledAt?.length ? attemptedScheduledAt : [scheduledFor],
+      });
+      if (completedJobId) return { requestId: uploadRequestId, jobId: completedJobId, postUrl: null, idempotencyKey: uploadIdempotencyKey, pending: false };
+      throw new Error("upload_post_schedule_reconciliation_incomplete");
+    }
+    if (status.kind === "failed") {
+      // A confirmed terminal failure is safe to retry with a fresh idempotency
+      // key. Reusing the old key could replay the provider's cached failure.
+      uploadRequestId = crypto.randomUUID();
+      uploadIdempotencyKey = crypto.randomUUID();
+      // Persist the replacement before contacting the provider. If the POST
+      // times out, the next attempt must reconcile this exact idempotency key.
+      await onRequestRotation?.({ requestId: uploadRequestId, idempotencyKey: uploadIdempotencyKey });
+    }
+  }
 
   const form = new FormData();
   form.append("user", target.profileUsername);
   form.append("platform[]", target.platform);
   form.append("title", providerTitle);
-  form.append("description", caption);
-  const uploadRequestId = requestId ?? crypto.randomUUID();
+  form.append("description", socialCaption);
   form.append("request_id", uploadRequestId);
-  if (scheduledFor) {
-    const scheduledDate = new Date(scheduledFor);
-    if (Number.isNaN(scheduledDate.getTime()) || scheduledDate.getTime() <= Date.now()) throw new Error("invalid_scheduled_date");
-    form.append("scheduled_date", scheduledDate.toISOString());
-    form.append("timezone", "Europe/Istanbul");
-  }
+  if (externalId) form.append("external_id", externalId);
+  for (const [name, value] of getUploadPostScheduleFields(scheduledFor)) form.append(name, value);
+  if (scheduledFor) form.append("async_upload", "true");
   appendPlatformSettings(form, target.platform, providerTitle, options);
 
-  if (assets?.length) {
-    assets.forEach((carouselAsset, index) => {
+  const loadedMedia = loadMedia ? await loadMedia() : null;
+  const publishAssets = loadedMedia?.assets ?? assets;
+  const publishAsset = loadedMedia?.asset ?? asset;
+  if (declaredMediaType && !publishAsset && !publishAssets?.length) throw new Error("automation_media_missing");
+
+  if (publishAssets?.length) {
+    publishAssets.forEach((carouselAsset, index) => {
       const image = parseImageDataUrl(carouselAsset);
       form.append("photos[]", new Blob([image], { type: carouselAsset.mimeType }), `foxiesdeck-carousel-${index + 1}.${getExtension(carouselAsset.mimeType)}`);
     });
-    return submitUpload("/upload_photos", form, uploadRequestId, target.platform);
+    return submit("/upload_photos", form);
   }
 
-  if (!asset) return submitUpload("/upload_text", form, uploadRequestId, target.platform);
+  if (!publishAsset) return submit("/upload_text", form);
 
-  if (isRemoteVideoAsset(asset)) {
-    const source = new URL(asset.sourceUrl);
+  if (isRemoteVideoAsset(publishAsset)) {
+    const source = new URL(publishAsset.sourceUrl);
     if (source.protocol !== "https:") throw new Error("invalid_media");
     form.append("video", source.toString());
-    return submitUpload("/upload", form, uploadRequestId, target.platform);
+    return submit("/upload", form);
   }
 
-  const image = parseImageDataUrl(asset);
-  form.append("photos[]", new Blob([image], { type: asset.mimeType }), `foxiesdeck.${getExtension(asset.mimeType)}`);
-  return submitUpload("/upload_photos", form, uploadRequestId, target.platform);
+  const image = parseImageDataUrl(publishAsset);
+  form.append("photos[]", new Blob([image], { type: publishAsset.mimeType }), `foxiesdeck.${getExtension(publishAsset.mimeType)}`);
+  return submit("/upload_photos", form);
 }
 
 export type { DataUrlAsset, RemoteVideoAsset };

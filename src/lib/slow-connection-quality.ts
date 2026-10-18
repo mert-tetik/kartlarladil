@@ -19,22 +19,23 @@ export interface ResourceTransferEstimate {
   throughputMbps: number;
 }
 
-export const SLOW_CONNECTION_LATENCY_MS = 1_800;
-export const VERY_SLOW_CONNECTION_LATENCY_MS = 3_500;
+export const SLOW_CONNECTION_LATENCY_MS = 8_000;
+export const VERY_SLOW_CONNECTION_LATENCY_MS = 12_000;
 export const MIN_RESOURCE_TRANSFER_BYTES = 64 * 1_024;
-export const SLOW_RESOURCE_THROUGHPUT_MBPS = 0.45;
+export const SLOW_RESOURCE_THROUGHPUT_MBPS = 0.05;
+export const CUSTOM_CARD_GENERATION_STALLED_EVENT = "foxiesdeck:custom-card-generation-stalled";
 
 export function isSlowConnectionEstimate(estimate?: NetworkConnectionEstimate | null) {
   if (!estimate) return false;
 
   const effectiveType = estimate.effectiveType?.toLowerCase();
-  if (effectiveType === "slow-2g" || effectiveType === "2g") return true;
+  if (effectiveType === "slow-2g") return true;
 
   const hasDownlink = typeof estimate.downlink === "number" && Number.isFinite(estimate.downlink);
   const hasRtt = typeof estimate.rtt === "number" && Number.isFinite(estimate.rtt);
 
-  if (hasDownlink && estimate.downlink! <= 0.35) return true;
-  return hasDownlink && hasRtt && estimate.downlink! <= 0.9 && estimate.rtt! >= 1_400;
+  if (hasDownlink && estimate.downlink! <= 0.08) return true;
+  return hasDownlink && hasRtt && estimate.downlink! <= 0.2 && estimate.rtt! >= 2_500;
 }
 
 export function isSlowReachabilitySample(

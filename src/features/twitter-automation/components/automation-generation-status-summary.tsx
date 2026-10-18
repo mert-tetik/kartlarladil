@@ -4,7 +4,7 @@ import { Check, Clock3, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { isFailedAutomationOutput, isSuccessfulAutomationOutput, isWaitingAutomationOutput } from "@/features/twitter-automation/automation-output-status";
+import { isFailedAutomationOutput, isSkippedAutomationOutput, isSuccessfulAutomationOutput, isWaitingAutomationOutput } from "@/features/twitter-automation/automation-output-status";
 import { cn } from "@/lib/utils";
 
 type AutomationGenerationStatusSummaryOutput = {
@@ -20,7 +20,7 @@ type GeneratorCount = {
 };
 
 type StatusDefinition = {
-  id: "successful" | "failed" | "waiting";
+  id: "successful" | "failed" | "waiting" | "skipped";
   label: string;
   icon: LucideIcon;
   matches: (status: string) => boolean;
@@ -67,6 +67,15 @@ const STATUS_DEFINITIONS: StatusDefinition[] = [
     buttonClassName: "border-transparent bg-[#eab308] text-white hover:bg-[#ca8a04] focus-visible:outline-white",
     iconClassName: "text-white",
     menuClassName: "border-[#b68e2c]/45 bg-[#292214] text-[#ffeaac]",
+  },
+  {
+    id: "skipped",
+    label: "Atlandı",
+    icon: X,
+    matches: (status) => isSkippedAutomationOutput({ status }),
+    buttonClassName: "border-transparent bg-[#64748b] text-white hover:bg-[#475569] focus-visible:outline-white",
+    iconClassName: "text-white",
+    menuClassName: "border-[#64748b]/45 bg-[#1f2937] text-[#e2e8f0]",
   },
 ];
 

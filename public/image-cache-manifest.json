@@ -1,6 +1,14 @@
 {
-  "version": "f5ee2af198fb4b2cc9d1471ed0d3b827443af30f07ff37d518883764c147fcf3",
+  "version": "bdc685f64ca7815b4c811d06afe19ea70e7721345740fe7f13306e4041f85aae",
   "assets": [
+    {
+      "url": "/AppLogdfo.png",
+      "revision": "b169a81479ca80f6b62db27b178d9c63c5aab1207a89373d5016ed93ca638118"
+    },
+    {
+      "url": "/AppLogo2.png",
+      "revision": "b29ca0b86cbca3b3be19287211f3a940521e867fef0f08c620379feb1f602418"
+    },
     {
       "url": "/ai-characters/campus-friend.webp",
       "revision": "0c4f4aeca56a247158028dcb6b60dd833933ed3f07e4449079c79068a59c2915"
@@ -168,10 +176,6 @@
     {
       "url": "/ai-chat-backgrounds/wise-elder.webp",
       "revision": "939db71c60560111fd13b797fee3b4645950c258becab00324ee9f69d8627e52"
-    },
-    {
-      "url": "/apple-icon.png",
-      "revision": "9d0fa2d0789ef328934bafacf721deb9f3f2a026c0851044958a9a9ceac5ada0"
     },
     {
       "url": "/automation-group-icons/flags/cn.svg",
@@ -754,18 +758,6 @@
       "revision": "044a01c658904e8669555f86c7190fdd12130f7c65d5dbad66ccc809b3ee1725"
     },
     {
-      "url": "/icon-192.png",
-      "revision": "ed4a6a197835c213d1c5b7a767337361ba59f90cffd74043739dbdf0681bfb1c"
-    },
-    {
-      "url": "/icon-maskable.png",
-      "revision": "adcf88711a2a566f12a1c34cdf39ceac1098c9a07f1278a2ba9e9bd3c3e8e109"
-    },
-    {
-      "url": "/icon.png",
-      "revision": "409b22d33bc30e334fed550e07d94dd4381e74f9edf78a68462b0076ef646957"
-    },
-    {
       "url": "/install/add-to-home-screen-menu.png",
       "revision": "652685c41f23968e22fcdcd9a6bc9b3adf8afb03f73d17a1805d6204e5b04994"
     },
@@ -800,10 +792,6 @@
     {
       "url": "/leaderboard/series-leaderboard-icon-v20261006-4.png",
       "revision": "c796d07c9bbf30921ccf3c2ce473e6d54b2ae0ce4f1fa15a65823e9774705d11"
-    },
-    {
-      "url": "/logo.webp",
-      "revision": "dc9c3d199ba64af3ddebcbd19e9978e0d560e0c082a1b55766652fb9c15e0f41"
     },
     {
       "url": "/main-points-display-background-center.png",
@@ -4683,6 +4671,10 @@
     }
   ],
   "criticalAssets": [
+    {
+      "url": "/AppLogdfo.png",
+      "revision": "b169a81479ca80f6b62db27b178d9c63c5aab1207a89373d5016ed93ca638118"
+    },
     {
       "url": "/ai-characters/campus-friend.webp",
       "revision": "0c4f4aeca56a247158028dcb6b60dd833933ed3f07e4449079c79068a59c2915"

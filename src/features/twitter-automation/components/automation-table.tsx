@@ -648,7 +648,7 @@ function LegacyAutomationTable({ onBack, scope = "production" }: {
       const response = await fetch("/api/twitter-automation/automation-runs", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ horizonDays, scope }),
+        body: JSON.stringify({ horizonDays, requestKey: crypto.randomUUID(), scope }),
       });
       const payload = await response.json().catch(() => null) as { errorCode?: string; run?: { id?: string } } | null;
       if (!response.ok || !payload?.run?.id) throw new Error(payload?.errorCode === "automation_targets_missing" ? "Select at least one social account for each automation row." : "The automation run could not be created.");

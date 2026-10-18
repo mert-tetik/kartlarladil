@@ -41,7 +41,7 @@ export function estimateRemainingGenerationSeconds({ outputs, activeOutputId, ac
   learnedDurationsMs?: LearnedGenerationDurations;
 }) {
   return outputs.reduce((total, output) => {
-    if (output.status === "ready_to_schedule" || output.status === "scheduled" || output.status === "failed") return total;
+    if (output.status === "ready_to_schedule" || output.status === "scheduled" || output.status === "failed" || output.status === "skipped") return total;
     const estimate = learnedGenerationSeconds(output.generator, learnedDurationsMs) ?? estimateGenerationSeconds(output);
     return total + (output.id === activeOutputId ? Math.max(0, estimate - Math.max(0, activeElapsedSeconds)) : estimate);
   }, 0);

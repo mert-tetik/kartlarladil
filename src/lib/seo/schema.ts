@@ -1,4 +1,4 @@
-import { APP_NAME, SITE_URL } from "@/lib/constants";
+import { APP_NAME, SITE_LOGO_PATH, SITE_URL } from "@/lib/constants";
 
 export function createWebSiteSchema() {
   return {
@@ -15,7 +15,7 @@ export function createOrganizationSchema() {
     "@type": "Organization",
     name: APP_NAME,
     url: SITE_URL,
-    logo: `${SITE_URL}/icon.png`,
+    logo: `${SITE_URL}${SITE_LOGO_PATH}`,
     contactPoint: {
       "@type": "ContactPoint",
       email: "foxiesdeck@outlook.com",

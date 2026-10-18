@@ -4,7 +4,7 @@ import { isLanguageCode } from "@/data/languages";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { FOXIESDECK_MASCOT_VOICE } from "@/features/twitter-automation/poyo-speech";
-import { generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
+import { FOXIESDECK_MASCOT_IMAGE_STYLE, generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
 import { generateSocialStudioTextWithFallback, getSocialStudioResponsesErrorCode, getSocialStudioResponsesProviderLabel, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import { finalizeNativeCaption } from "@/features/twitter-automation/social-video-titles";
@@ -101,6 +101,7 @@ async function createVideoPlan(card: VocabularyCard, language: LanguageCode, nat
     "You are the senior creative director for FoxiesDeck, a playful vocabulary-card app.",
     "Return exactly one JSON object with four string fields: framePrompt, spokenBefore, spokenAfter, caption. Do not add markdown or any text outside JSON.",
     "framePrompt is a detailed English prompt for an avatar-ready vertical social visual. The generated source is center-cropped to 9:16, so keep every critical element inside the central 80% width. Put the featured FoxiesDeck vocabulary card fully readable in the upper third. The supplied mascot reference must appear as a faithful polished 3D version of the same 2D mascot, chest-up in the lower half, facing the camera with its full mouth unobstructed for lip sync. Choose one random but tasteful scene that supports the featured word. Preserve generous negative space and do not use sparkles, grids, fake interface chrome, or unrelated logos.",
+    `Apply this visual direction to framePrompt: ${FOXIESDECK_MASCOT_IMAGE_STYLE}`,
     "spokenBefore and spokenAfter are spoken by the fox mascot in the selected native language, not the learning language. The exact featured word is inserted between them later and must not appear in either field. spokenBefore is a very short natural lead-in of 3 to 8 words, ending as if introducing the word. spokenAfter contains a compact explanation in one or two natural sentences, around 16 to 26 words total: lively, warm, lightly funny, and genuinely useful. Include one brief playful image, comparison, or tiny joke that fits the word. Do not use quotation marks, hashtags, stage directions, or English unless English is the selected native language.",
     "caption must be a ready-to-post caption in the selected native language, with a short hook. Do not include any hashtags, because the app appends curated hashtags for the selected learning language after generation.",
     "The featured word must be completely random and must not repeat any word used in previous generations, even when this request runs immediately after another one.",

@@ -1,13 +1,8 @@
 export const BROWSER_VIDEO_MAX_ATTEMPTS = 3;
 
-const FIRST_BROWSER_VIDEO_TIMEOUT_MS = 2 * 60 * 1_000;
-const BROWSER_VIDEO_TIMEOUT_STEP_MS = 60 * 1_000;
+export const BROWSER_VIDEO_PLAN_TIMEOUT_MS = 10 * 60 * 1_000;
+export const BROWSER_VIDEO_RENDER_STALL_TIMEOUT_MS = 5 * 60 * 1_000;
 const BROWSER_VIDEO_RETRY_DELAYS_MS = [1_000, 3_000] as const;
-
-export function browserVideoTimeoutMs(attempt: number) {
-  const normalizedAttempt = Math.max(1, Math.min(BROWSER_VIDEO_MAX_ATTEMPTS, Math.floor(attempt)));
-  return FIRST_BROWSER_VIDEO_TIMEOUT_MS + (normalizedAttempt - 1) * BROWSER_VIDEO_TIMEOUT_STEP_MS;
-}
 
 export function shouldRetryBrowserVideo(attempt: number) {
   return attempt < BROWSER_VIDEO_MAX_ATTEMPTS;
@@ -23,6 +18,10 @@ export function browserVideoFailureCode(error: unknown, fallback = "browser_vide
   return /^[a-z][a-z\d_]{2,119}$/u.test(candidate) ? candidate : fallback;
 }
 
-export function formatBrowserVideoTimeout(attempt: number) {
-  return `${Math.round(browserVideoTimeoutMs(attempt) / 60_000)} dk`;
+export function shouldRetryBrowserVideoFailure(errorCode: string) {
+  return errorCode.endsWith("_timeout")
+    || errorCode.endsWith("_failed")
+    || errorCode.endsWith("_unavailable")
+    || errorCode === "recording_failed"
+    || errorCode === "automation_processing_failed";
 }

@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { SlowConnectionMonitor } from "@/components/slow-connection-monitor";
 import { ThemeProvider } from "@/components/theme-provider";
+import { CUSTOM_CARD_GENERATION_STALLED_EVENT } from "@/lib/slow-connection-quality";
 
 const routerMocks = vi.hoisted(() => ({ push: vi.fn() }));
 
@@ -105,11 +106,11 @@ it("lets Escape dismiss the prompt without navigating", async () => {
   expect(routerMocks.push).not.toHaveBeenCalled();
 });
 
-it("opens globally when the browser reports a 2g connection", async () => {
+it("opens globally when the browser reports a slow-2g connection", async () => {
   window.history.replaceState({}, "", "/learn");
   const originalConnection = Object.getOwnPropertyDescriptor(navigator, "connection");
   const connection = new EventTarget();
-  Object.defineProperty(connection, "effectiveType", { value: "2g" });
+  Object.defineProperty(connection, "effectiveType", { value: "slow-2g" });
   Object.defineProperty(navigator, "connection", {
     configurable: true,
     value: connection,
@@ -132,6 +133,24 @@ it("opens globally when the browser reports a 2g connection", async () => {
     } else {
       Reflect.deleteProperty(navigator, "connection");
     }
+  }
+});
+
+it("opens when custom-card generation stays pending for 20 seconds", async () => {
+  window.history.replaceState({}, "", "/create-card");
+  const view = render(
+    <LocaleProvider initialLocale="en">
+      <ThemeProvider initialTheme="default-dark">
+        <SlowConnectionMonitor />
+      </ThemeProvider>
+    </LocaleProvider>,
+  );
+
+  try {
+    window.dispatchEvent(new Event(CUSTOM_CARD_GENERATION_STALLED_EVENT));
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
+  } finally {
+    view.unmount();
   }
 });
 
@@ -178,7 +197,7 @@ it("uses repeated slow real asset transfers as a prompt signal", async () => {
       transferSize: 64 * 1_024,
       encodedBodySize: 64 * 1_024,
       responseStart: 100,
-      responseEnd: 1_600,
+      responseEnd: 15_000,
     } as unknown as PerformanceResourceTiming);
 
     MockPerformanceObserver.lastInstance?.emit([

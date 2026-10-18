@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import type { ReactElement } from "react";
+import type { FormEvent, ReactElement } from "react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
@@ -85,9 +85,25 @@ describe("VocabularyCardView", () => {
     await user.click(screen.getByRole("button", { name: "Ekle" }));
 
     expect(addCard).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[data-tutorial-target="card-add"]')).toHaveAttribute("type", "button");
     expect(container.firstElementChild).toHaveAttribute("data-card-face", "front");
     expect(container.querySelector('[data-card-footer-mode="auto"]')?.querySelectorAll("button")).toHaveLength(1);
     expect(container.querySelector('[data-tutorial-target="card-add"]')?.parentElement).toHaveClass("w-full");
+  });
+
+  it("does not submit a surrounding form when adding a card", async () => {
+    const user = userEvent.setup();
+    const submit = vi.fn((event: FormEvent<HTMLFormElement>) => event.preventDefault());
+
+    renderCard(
+      <form onSubmit={submit}>
+        <VocabularyCardView card={testCard} onAdd={vi.fn()} />
+      </form>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Ekle" }));
+
+    expect(submit).not.toHaveBeenCalled();
   });
 
   it("shows a supplied already-owned label and disables the add action", () => {

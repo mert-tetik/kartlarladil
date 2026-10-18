@@ -6,7 +6,8 @@ export type AutomationOutputStatus =
   | "awaiting_browser_video"
   | "ready_to_schedule"
   | "scheduled"
-  | "failed";
+  | "failed"
+  | "skipped";
 
 type AutomationOutputStatusLike = {
   status: string;
@@ -25,6 +26,10 @@ export function isFailedAutomationOutput(output: AutomationOutputStatusLike) {
   return output.status === "failed";
 }
 
+export function isSkippedAutomationOutput(output: AutomationOutputStatusLike) {
+  return output.status === "skipped";
+}
+
 export function isWaitingAutomationOutput(output: AutomationOutputStatusLike) {
-  return !isSuccessfulAutomationOutput(output) && !isFailedAutomationOutput(output);
+  return !isSuccessfulAutomationOutput(output) && !isFailedAutomationOutput(output) && !isSkippedAutomationOutput(output);
 }

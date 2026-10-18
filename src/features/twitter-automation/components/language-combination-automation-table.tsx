@@ -1420,7 +1420,7 @@ export function LanguageCombinationAutomationTable({
       const response = await fetch("/api/twitter-automation/automation-runs", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ horizonDays, scope: "production" }),
+        body: JSON.stringify({ horizonDays, requestKey: crypto.randomUUID(), scope: "production" }),
       });
       const payload = (await response.json().catch(() => null)) as {
         errorCode?: string;

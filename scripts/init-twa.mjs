@@ -38,8 +38,8 @@ const PACKAGE_ID =
   process.env.TWA_PACKAGE_ID || "com.LigidTools.Glidecore";
 const APP_VERSION_CODE = process.env.TWA_VERSION_CODE
   ? Number.parseInt(process.env.TWA_VERSION_CODE, 10)
-  : 154;
-const APP_VERSION_NAME = process.env.TWA_VERSION_NAME || "4.3.40";
+  : 155;
+const APP_VERSION_NAME = process.env.TWA_VERSION_NAME || "4.3.41";
 const KEYSTORE_PATH = process.env.TWA_KEYSTORE_PATH
   ? path.resolve(process.env.TWA_KEYSTORE_PATH)
   : undefined;
@@ -229,6 +229,14 @@ async function main() {
     twaManifest.host = TARGET_HOST;
     twaManifest.startUrl = TARGET_START_URL;
     twaManifest.packageId = PACKAGE_ID;
+
+    // The web/PWA manifest intentionally uses the website logo. Android
+    // launcher resources must never inherit that choice: AAB builds use only
+    // public/AppLogo2.png, even when this init step reads the live web manifest.
+    const aabLogoUrl = new URL("/AppLogo2.png", `https://${TARGET_HOST}`).toString();
+    twaManifest.iconUrl = aabLogoUrl;
+    twaManifest.maskableIconUrl = aabLogoUrl;
+    twaManifest.monochromeIconUrl = undefined;
 
     if (APP_VERSION_CODE != null && Number.isFinite(APP_VERSION_CODE)) {
       twaManifest.appVersionCode = APP_VERSION_CODE;

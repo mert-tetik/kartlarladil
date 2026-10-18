@@ -252,22 +252,28 @@ Upload-Post'un ilgili endpointine gonderir. Tarayicida uretilen local WebM music
 video blob'u public bir video URL'si olmadigi icin bu akista henuz publish edilmez;
 indirilebilir export olarak kalir.
 
-15.1. Gecici medya staging ve temizlik
+15.1. Gecici medya staging ve gunluk run temizligi
 
 Automation tarafinda uretilen AI image ve AI avatar video, Upload-Post'a
 gonderilmeden once private social-studio-automation bucket'ina kopyalanir.
 Video tesliminde Upload-Post'a bu kopyanin 24 saat gecerliligi olan signed URL'i
-verilir; image teslimi ise ayni private kopyadan okunarak yapilir. Basarili
-schedule'dan 48 saat sonra dosya ve output'un medya referansi silinir. Failed
-medya 24 saat, stale aktif medya ise 48 saat sonra temizlenir. Hazir
-ready_to_schedule medya kullanici schedule edene veya Generated Posts icinden
-acikca silene kadar korunur; boylece inceleme ekranindaki kalici checkpoint
-beklenmedik bir cron calismasiyla kaybolmaz. Ayrica output tablosunda referansi
-kalmayan 24 saatten eski orphan staging dosyalari da silinir.
+verilir; image teslimi ise ayni private kopyadan okunarak yapilir. Gunluk cron
+calismasinda bucket'taki tum medya dosyalari silinir ve
+social_content_automation_runs tablosundaki tum run'lar temizlenir. Output
+kayitlari run_id foreign key'i uzerinden cascade ile silinir. Boylece bekleyen,
+tamamlanmis, basarisiz veya planlanmis run'lar dahil onceki gunlerden kalan tum
+run/output verileri ve Storage medyalari temizlenir. Automation ayarlari ve
+run'lardan bagimsiz toplu performans istatistikleri korunur.
 
 Vercel Cron her gun 03:15 UTC'de /api/twitter-automation/maintenance endpointini
-calistirir. Bu endpoint CRON_SECRET ile Bearer auth ister ve sadece automation/
-prefixli staging medya dosyalarini, durum ve retention kurallarina gore temizler.
+calistirir. Bu endpoint CRON_SECRET ile Bearer auth ister, bucket'i recursive
+olarak sayfalayip tum medyalari siler ve tum run kayitlarini cascade ile temizler.
+Bu tam temizlik bilerek uygulanir: operasyon plani run'lari sabah baslatmak,
+uretimi ve incelemeyi tamamlayip icerikleri ayni gun gece olmadan Upload-Post'a
+schedule etmektir. Run'lar arsiv olarak tutulmaz; gunluk cron yeni gun icin
+automation run/output verisini ve staging medyasini sifirlar. Bu nedenle
+schedule edilmesi gereken icerikler cron calismadan once provider tarafinda
+basariyla schedule edilmis olmalidir.
 Migration: supabase/migrations/20260801000000_expand_social_automation_staging_storage.sql
 
 Mevcut studio endpoint ailesi:
@@ -597,9 +603,9 @@ Migration: supabase/migrations/20260731122229_add_social_content_automation_runs
 Generation istemci tarafindaki Generated Posts worker'iyle ilerler; overlay
 kapanirsa veya sayfa yenilenirse output checkpoint'leri Supabase'den tekrar
 okunur. Aktif veya tamamlanamayan son run sayfa acilisinda tekrar goruntulenir;
-retry/backoff ve renderer lease bilgileri output kaydinda korunur. Storage
-cleanup cron'u, retention suresi dolan veya orphan kalan medya dosyalarini
-ayri olarak temizler.
+retry/backoff ve renderer lease bilgileri output kaydinda korunur. Gunluk
+cleanup cron'u tum automation run/output kayitlarini ve bucket medyalarini siler;
+yeni gune onceki run'lardan bagimsiz baslanir.
 
 
 16. ILGILI KAYNAK DOSYALAR
@@ -629,7 +635,7 @@ ayri olarak temizler.
   Bir sonraki kuyruğu ureten, video durumunu kontrol eden ve Upload-Post'a
   schedule eden worker endpointi.
 - src/app/api/twitter-automation/maintenance/route.ts
-  48 saatlik staging grace period'u dolan medya dosyalarini temizleyen Cron endpointi.
+  Gunluk tum run/output ve automation Storage medyalarini temizleyen Cron endpointi.
 - src/app/api/twitter-automation/media-stage/route.ts
   Browser WebM Blob'lari icin signed upload token'i ve Upload-Post teslim signed URL'ini verir.
 - src/features/twitter-automation/browser-media-stage.ts

@@ -10,6 +10,7 @@ import { useTheme } from "@/components/theme-provider";
 import { getAccessibleForeground } from "@/lib/color-contrast";
 import {
   estimateResourceTransfer,
+  CUSTOM_CARD_GENERATION_STALLED_EVENT,
   isSlowConnectionEstimate,
   isSlowReachabilitySample,
   MIN_RESOURCE_TRANSFER_BYTES,
@@ -31,7 +32,7 @@ interface NavigatorWithNetworkInformation extends Navigator {
 const PROMPT_COOLDOWN_MS = 15 * 60 * 1_000;
 const PROBE_INTERVAL_MS = 30 * 1_000;
 const CONFIRMATION_DELAY_MS = 2_500;
-const PROBE_TIMEOUT_MS = 5_000;
+const PROBE_TIMEOUT_MS = 12_000;
 const RECENT_RESOURCE_WINDOW_MS = 60_000;
 const MAX_SEEN_RESOURCE_ENTRIES = 512;
 const PROMPT_DISMISSAL_KEY = "foxiesdeck:slow-connection-prompt-dismissed-until:v1";
@@ -90,6 +91,17 @@ export function SlowConnectionMonitor() {
     isOpenRef.current = false;
     setIsOpen(false);
   }, []);
+
+  useEffect(() => {
+    if (isOfflineRoute(pathname)) return;
+
+    function handleCustomCardGenerationStalled() {
+      if (navigator.onLine) openPrompt();
+    }
+
+    window.addEventListener(CUSTOM_CARD_GENERATION_STALLED_EVENT, handleCustomCardGenerationStalled);
+    return () => window.removeEventListener(CUSTOM_CARD_GENERATION_STALLED_EVENT, handleCustomCardGenerationStalled);
+  }, [openPrompt, pathname]);
 
   useEffect(() => {
     if (isOfflineRoute(pathname)) return;
@@ -403,7 +415,7 @@ export function SlowConnectionMonitor() {
         <Wifi aria-hidden="true" className="slow-connection-prompt-icon mx-auto size-10" strokeWidth={2.4} />
         <h2
           className={cn(
-            "slow-connection-prompt-title mt-4 text-2xl font-bold leading-tight sm:text-[1.75rem]",
+            "slow-connection-prompt-title mt-4 text-2xl font-bold leading-tight text-white sm:text-[1.75rem]",
             useSuperWater && "font-super-water",
           )}
           id="slow-connection-title"
@@ -412,7 +424,7 @@ export function SlowConnectionMonitor() {
         </h2>
         <p
           className={cn(
-            "slow-connection-prompt-description mx-auto mt-3 max-w-sm text-center text-base font-semibold leading-6",
+            "slow-connection-prompt-description mx-auto mt-3 max-w-sm text-center text-base font-semibold leading-6 text-white",
             useSuperWater && "font-super-water",
           )}
           id="slow-connection-description"

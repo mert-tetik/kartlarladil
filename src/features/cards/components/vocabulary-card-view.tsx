@@ -724,6 +724,7 @@ function CardFront({
             ) : null}
             {onAdd ? (
               <Button
+                type="button"
                 onClick={handleAddClick}
                 disabled={showOwnedState || addLoading || addDisabled}
                 data-tutorial-target="card-add"

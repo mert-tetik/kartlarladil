@@ -65,7 +65,7 @@ export function WordOfTheDayImage({ card, nativeLanguage, mode }: WordOfTheDayIm
 
         <header className="relative z-10 flex items-start justify-between">
           <div className="flex items-center gap-4">
-            <img alt="FoxiesDeck logosu" className="h-16 w-16 shrink-0 object-contain" src="/logo.webp" />
+            <img alt="FoxiesDeck logosu" className="h-16 w-16 shrink-0 object-contain" src="/AppLogdfo.png" />
             <h1 className="translate-y-1 font-sans text-4xl font-semibold leading-tight">
               {titleDisplay}
             </h1>

@@ -15,9 +15,18 @@
     pl: "Polish", tr: "Turkish", ru: "Russian", ar: "Arabic", ja: "Japanese", ko: "Korean", "zh-CN": "Chinese (Simplified)",
   };
   const cardLanguageLabelCopy = {
-    en: "Card language", tr: "Kart dili", de: "Kartensprache", ru: "Язык карточек", fr: "Langue des cartes",
-    es: "Idioma de las tarjetas", it: "Lingua delle carte", pt: "Idioma dos cartões", nl: "Kaarttaal", pl: "Język kart",
-    ar: "لغة البطاقات", ja: "カードの言語", ko: "카드 언어", "zh-CN": "卡片语言",
+    en: "Card Language", tr: "Kart Dili", de: "Kartensprache", ru: "Язык карточек", fr: "Langue des cartes",
+    es: "Idioma de las cartas", it: "Lingua delle carte", pt: "Idioma do cartão", nl: "Kaarttaal", pl: "Język kart",
+    ar: "لغة البطاقة", ja: "カードの言語", ko: "카드 언어", "zh-CN": "卡片语言",
+  };
+  const selectLanguageCopy = {
+    en: "Select language", tr: "Dil seç", de: "Select language", ru: "Выбрать язык", fr: "Select language",
+    es: "Select language", it: "Select language", pt: "Select language", nl: "Select language", pl: "Select language",
+    ar: "Select language", ja: "Select language", ko: "Select language", "zh-CN": "Select language",
+  };
+  const languageNativeName = {
+    en: "English", de: "Deutsch", fr: "Français", es: "Español", it: "Italiano", pt: "Português", nl: "Nederlands",
+    pl: "Polski", tr: "Türkçe", ru: "Русский", ar: "العربية", ja: "日本語", ko: "한국어", "zh-CN": "简体中文",
   };
   const noCardsInLanguageCopy = {
     en: "No saved cards in this language.", tr: "Bu dilde kaydedilmiş kartın yok.", de: "Für diese Sprache sind keine Karten gespeichert.",
@@ -25,6 +34,22 @@
     es: "No hay tarjetas guardadas en este idioma.", it: "Non ci sono carte salvate in questa lingua.", pt: "Não há cartões salvos neste idioma.",
     nl: "Er zijn geen kaarten opgeslagen in deze taal.", pl: "Brak zapisanych kart w tym języku.", ar: "لا توجد بطاقات محفوظة بهذه اللغة.",
     ja: "この言語で保存されたカードはありません。", ko: "이 언어로 저장된 카드가 없습니다.", "zh-CN": "没有保存此语言的卡片。",
+  };
+  const savedCardFilterCopy = {
+    en: { label: "Saved card status", active: "To learn", learned: "Learned", emptyActive: "No cards to learn in this language.", emptyLearned: "No learned cards in this language." },
+    tr: { label: "Kaydedilmiş kart durumu", active: "Öğrenilecek", learned: "Öğrenilmiş", emptyActive: "Bu dilde öğrenilecek kartın yok.", emptyLearned: "Bu dilde öğrenilmiş kartın yok." },
+    de: { label: "Status gespeicherter Karten", active: "Zu lernen", learned: "Gelernt", emptyActive: "Keine Karten zum Lernen in dieser Sprache.", emptyLearned: "Keine gelernten Karten in dieser Sprache." },
+    ru: { label: "Статус сохранённых карточек", active: "К изучению", learned: "Выученные", emptyActive: "В этом языке нет карточек для изучения.", emptyLearned: "В этом языке нет выученных карточек." },
+    fr: { label: "Statut des cartes enregistrées", active: "À apprendre", learned: "Apprises", emptyActive: "Aucune carte à apprendre dans cette langue.", emptyLearned: "Aucune carte apprise dans cette langue." },
+    es: { label: "Estado de las tarjetas guardadas", active: "Por aprender", learned: "Aprendidas", emptyActive: "No hay tarjetas por aprender en este idioma.", emptyLearned: "No hay tarjetas aprendidas en este idioma." },
+    it: { label: "Stato delle schede salvate", active: "Da imparare", learned: "Imparate", emptyActive: "Non ci sono schede da imparare in questa lingua.", emptyLearned: "Non ci sono schede imparate in questa lingua." },
+    pt: { label: "Estado dos cartões salvos", active: "Para aprender", learned: "Aprendidos", emptyActive: "Não há cartões para aprender neste idioma.", emptyLearned: "Não há cartões aprendidos neste idioma." },
+    nl: { label: "Status van opgeslagen kaarten", active: "Nog te leren", learned: "Geleerd", emptyActive: "Er zijn geen kaarten meer te leren in deze taal.", emptyLearned: "Er zijn geen geleerde kaarten in deze taal." },
+    pl: { label: "Stan zapisanych kart", active: "Do nauczenia", learned: "Nauczone", emptyActive: "W tym języku nie ma kart do nauczenia.", emptyLearned: "W tym języku nie ma nauczonych kart." },
+    ar: { label: "حالة البطاقات المحفوظة", active: "للتعلم", learned: "تم تعلمها", emptyActive: "لا توجد بطاقات لتعلمها بهذه اللغة.", emptyLearned: "لا توجد بطاقات متعلمة بهذه اللغة." },
+    ja: { label: "保存したカードの状態", active: "学習する", learned: "習得済み", emptyActive: "この言語には学習するカードがありません。", emptyLearned: "この言語には習得済みのカードがありません。" },
+    ko: { label: "저장된 카드 상태", active: "학습할 카드", learned: "학습 완료", emptyActive: "이 언어에는 학습할 카드가 없어요.", emptyLearned: "이 언어에는 학습 완료된 카드가 없어요." },
+    "zh-CN": { label: "已保存卡片状态", active: "待学习", learned: "已学会", emptyActive: "此语言没有待学习的卡片。", emptyLearned: "此语言没有已学会的卡片。" },
   };
   const saveErrorCopy = {
     en: "Couldn't save the note. Check device storage.",
@@ -308,6 +333,26 @@
     return languageNameFallback[code] || code;
   }
 
+  const languageFlagEmoji = {
+    en: "🇬🇧", de: "🇩🇪", fr: "🇫🇷", es: "🇪🇸", it: "🇮🇹", pt: "🇵🇹", nl: "🇳🇱",
+    pl: "🇵🇱", tr: "🇹🇷", ru: "🇷🇺", ar: "🇸🇦", ja: "🇯🇵", ko: "🇰🇷", "zh-CN": "🇨🇳",
+  };
+
+  function renderLanguageFlag(node, language) {
+    if (!node) return;
+    node.replaceChildren();
+    node.dataset.language = language;
+    const image = document.createElement("img");
+    image.src = "/flags/language/" + language + ".png";
+    image.alt = "";
+    image.setAttribute("aria-hidden", "true");
+    image.addEventListener("error", function () {
+      node.replaceChildren();
+      node.textContent = languageFlagEmoji[language] || "🌐";
+    }, { once: true });
+    node.appendChild(image);
+  }
+
   function makeId() {
     return window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
   }
@@ -416,19 +461,27 @@
       return;
     }
     const profileId = testMode ? "visual-test" : activeProfileId();
-    let state = { profile: null, cards: [], notes: [], locale: "en", learningLanguage: "en" };
+    let state = { profile: null, cards: [], notes: [], drafts: [], locale: "en", learningLanguage: "en", cardFilter: "active", conversionState: "idle" };
 
     const fallbackLocale = localeCode(localStorage.getItem(LOCALE_KEY)) || localeCode(navigator.language) || "en";
     const cached = testMode ? null : await storageApi.getSnapshot(profileId).catch(function () { return null; });
     const savedProfile = cached && cached.profile;
     const userLocale = localeCode(savedProfile && (savedProfile.nativeLanguage || savedProfile.locale)) || fallbackLocale;
     const strings = copy[userLocale] || copy.en;
+    const cardFilterButtons = Array.from(document.querySelectorAll("[data-card-filter]"));
     state.locale = userLocale;
     state.learningLanguage = testMode ? "es" : localeCode(localStorage.getItem(CARD_LANGUAGE_KEY))
       || localeCode(savedProfile && (savedProfile.cardLanguage || savedProfile.learningLanguage))
       || "en";
     state.cards = (cached && cached.cards) || [];
     const offlineProfileIds = profileId === "guest" ? ["guest"] : [profileId, "guest"];
+    const storedDraftEntries = testMode ? [] : (await Promise.all(offlineProfileIds.map(function (storedProfileId) {
+      return storageApi.listDrafts(storedProfileId).catch(function () { return []; });
+    }))).flat();
+    state.drafts = testMode ? [] : storedDraftEntries.map(function (entry) {
+      const draft = entry.draft || {};
+      return Object.assign({}, draft, { storageProfileId: entry.profileId || profileId });
+    });
     const storedNoteEntries = testMode ? [] : (await Promise.all(offlineProfileIds.map(function (storedProfileId) {
       return storageApi.listNotes(storedProfileId).catch(function () { return []; });
     }))).flat();
@@ -453,17 +506,59 @@
     document.body.dataset.offlineNativeLanguage = userLocale;
     document.body.dataset.offlineCardLanguage = state.learningLanguage;
     document.documentElement.classList.toggle("super-water-locale", SUPER_WATER_LOCALES.has(userLocale));
-    text(element("card-language-label"), cardLanguageLabelCopy[userLocale] || cardLanguageLabelCopy.en);
+    heading(element("card-language-label"), cardLanguageLabelCopy[userLocale] || cardLanguageLabelCopy.en, userLocale);
     const cardLanguageSelect = element("card-language-select");
     const cardLanguageCurrent = element("card-language-current");
+    const cardLanguageCurrentFlag = element("card-language-current-flag");
+    const cardLanguageSelectLabel = element("card-language-select-label");
+    const cardLanguageSheet = element("card-language-sheet");
+    const cardLanguageSheetBackdrop = element("card-language-sheet-backdrop");
+    const cardLanguageSheetClose = element("card-language-sheet-close");
+    const cardLanguageSheetPanel = cardLanguageSheet.querySelector(".language-sheet-panel");
+    const cardLanguageSheetDragHandle = element("card-language-sheet-drag-handle");
+    const cardLanguageSheetTitle = element("card-language-sheet-title");
+    const cardLanguageSheetVisual = element("card-language-sheet-visual");
     const cardLanguageOptions = element("card-language-options");
-    languagePickerOrder.forEach(function (language) {
+    let languageSheetCloseTimer = 0;
+    let languageSheetDragStartY = null;
+    let languageSheetDragOffsetY = 0;
+    const languageOptions = languagePickerOrder.map(function (language) {
+      return {
+        language: language,
+        count: state.cards.filter(function (entry) {
+          return entry.card && localeCode(entry.card.language) === language;
+        }).length,
+      };
+    }).sort(function (left, right) { return right.count - left.count; });
+    heading(cardLanguageSelectLabel, cardLanguageLabelCopy[userLocale] || cardLanguageLabelCopy.en, userLocale);
+    heading(cardLanguageSheetTitle, selectLanguageCopy[userLocale] || selectLanguageCopy.en, userLocale);
+    cardLanguageSheetBackdrop.setAttribute("aria-label", strings.close);
+    cardLanguageSheetClose.setAttribute("aria-label", strings.close);
+    languageOptions.forEach(function (languageOption) {
+      const language = languageOption.language;
       const option = document.createElement("button");
       option.type = "button";
       option.className = "language-option";
       option.setAttribute("role", "option");
       option.dataset.language = language;
-      option.textContent = languageDisplayName(language, userLocale);
+      const leading = document.createElement("span");
+      leading.className = "language-option-leading";
+      const outline = document.createElement("span");
+      outline.className = "language-option-outline";
+      const outlineFlag = document.createElement("span");
+      outlineFlag.className = "language-option-flag";
+      outlineFlag.setAttribute("aria-hidden", "true");
+      renderLanguageFlag(outlineFlag, language);
+      outline.appendChild(outlineFlag);
+      const flag = document.createElement("span");
+      flag.className = "language-option-flag";
+      flag.setAttribute("aria-hidden", "true");
+      renderLanguageFlag(flag, language);
+      leading.append(outline, flag);
+      const name = document.createElement("span");
+      name.className = "language-option-name";
+      name.textContent = languageNativeName[language] || language;
+      option.append(leading, name);
       option.addEventListener("click", function () { selectCardLanguage(language); });
       cardLanguageOptions.appendChild(option);
     });
@@ -479,7 +574,9 @@
     element("add-note").setAttribute("aria-label", strings.addNote);
 
     function renderLanguagePicker() {
-      cardLanguageCurrent.textContent = languageDisplayName(state.learningLanguage, userLocale);
+      heading(cardLanguageCurrent, languageDisplayName(state.learningLanguage, userLocale), userLocale);
+      renderLanguageFlag(cardLanguageCurrentFlag, state.learningLanguage);
+      renderLanguageFlag(cardLanguageSheetVisual, state.learningLanguage);
       cardLanguageOptions.querySelectorAll(".language-option").forEach(function (option) {
         option.setAttribute("aria-selected", option.dataset.language === state.learningLanguage ? "true" : "false");
       });
@@ -487,9 +584,34 @@
     }
 
     function closeLanguagePicker(restoreFocus) {
-      cardLanguageOptions.hidden = true;
+      window.clearTimeout(languageSheetCloseTimer);
+      cardLanguageSheet.dataset.open = "false";
+      cardLanguageSheet.dataset.closing = "true";
+      cardLanguageSheet.setAttribute("aria-hidden", "true");
+      cardLanguageSheet.setAttribute("inert", "");
+      document.body.classList.remove("language-sheet-open");
       cardLanguageSelect.setAttribute("aria-expanded", "false");
-      if (restoreFocus) cardLanguageSelect.focus();
+      cardLanguageSheetPanel.removeAttribute("data-dragging");
+      cardLanguageSheetPanel.style.removeProperty("transform");
+      languageSheetCloseTimer = window.setTimeout(function () {
+        cardLanguageSheet.dataset.closing = "false";
+      }, 360);
+      if (restoreFocus) window.setTimeout(function () { cardLanguageSelect.focus(); }, 0);
+    }
+
+    function openLanguagePicker() {
+      window.clearTimeout(languageSheetCloseTimer);
+      cardLanguageSheet.dataset.closing = "false";
+      cardLanguageSheet.setAttribute("aria-hidden", "false");
+      cardLanguageSheet.removeAttribute("inert");
+      document.body.classList.add("language-sheet-open");
+      cardLanguageSelect.setAttribute("aria-expanded", "true");
+      cardLanguageSheetPanel.style.removeProperty("transform");
+      window.requestAnimationFrame(function () { cardLanguageSheet.dataset.open = "true"; });
+      window.setTimeout(function () {
+        const selected = cardLanguageOptions.querySelector('[data-language="' + state.learningLanguage + '"]');
+        if (selected) selected.focus();
+      }, 80);
     }
 
     function selectCardLanguage(language) {
@@ -505,18 +627,13 @@
     }
 
     cardLanguageSelect.addEventListener("click", function () {
-      const shouldOpen = cardLanguageOptions.hidden;
-      cardLanguageOptions.hidden = !shouldOpen;
-      cardLanguageSelect.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
-      if (shouldOpen) {
-        const selected = cardLanguageOptions.querySelector('[data-language="' + state.learningLanguage + '"]');
-        if (selected) selected.focus();
-      }
+      if (cardLanguageSheet.dataset.open === "true") closeLanguagePicker(true);
+      else openLanguagePicker();
     });
     cardLanguageSelect.addEventListener("keydown", function (event) {
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault();
-        if (cardLanguageOptions.hidden) cardLanguageSelect.click();
+        if (cardLanguageSheet.dataset.open !== "true") cardLanguageSelect.click();
       }
     });
     cardLanguageOptions.addEventListener("keydown", function (event) {
@@ -532,19 +649,82 @@
       event.preventDefault();
       if (options[nextIndex]) options[nextIndex].focus();
     });
-    document.addEventListener("pointerdown", function (event) {
-      if (!element("language-picker").contains(event.target)) closeLanguagePicker(false);
+    cardLanguageSheetBackdrop.addEventListener("click", function () { closeLanguagePicker(true); });
+    cardLanguageSheetClose.addEventListener("click", function () { closeLanguagePicker(true); });
+    cardLanguageSheetDragHandle.addEventListener("pointerdown", function (event) {
+      if (cardLanguageSheet.dataset.open !== "true") return;
+      languageSheetDragStartY = event.clientY;
+      languageSheetDragOffsetY = 0;
+      cardLanguageSheetPanel.setAttribute("data-dragging", "true");
+      cardLanguageSheetDragHandle.setPointerCapture(event.pointerId);
     });
+    cardLanguageSheetDragHandle.addEventListener("pointermove", function (event) {
+      if (languageSheetDragStartY === null) return;
+      languageSheetDragOffsetY = Math.max(0, event.clientY - languageSheetDragStartY);
+      cardLanguageSheetPanel.style.transform = "translateY(" + languageSheetDragOffsetY + "px)";
+    });
+    function finishLanguageSheetDrag() {
+      if (languageSheetDragStartY === null) return;
+      const shouldClose = languageSheetDragOffsetY > 110;
+      languageSheetDragStartY = null;
+      languageSheetDragOffsetY = 0;
+      cardLanguageSheetPanel.removeAttribute("data-dragging");
+      if (shouldClose) {
+        closeLanguagePicker(true);
+      } else {
+        cardLanguageSheetPanel.style.removeProperty("transform");
+      }
+    }
+    cardLanguageSheetDragHandle.addEventListener("pointerup", finishLanguageSheetDrag);
+    cardLanguageSheetDragHandle.addEventListener("pointercancel", finishLanguageSheetDrag);
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && cardLanguageSheet.dataset.open === "true") {
+        event.preventDefault();
+        closeLanguagePicker(true);
+      }
+    });
+
+    function cardsForSelectedLanguage() {
+      return state.cards.filter(function (entry) {
+        return entry.card && localeCode(entry.card.language) === state.learningLanguage;
+      });
+    }
+
+    function renderCardFilter() {
+      const entries = cardsForSelectedLanguage();
+      const counts = { active: 0, learned: 0 };
+      entries.forEach(function (entry) {
+        counts[entry.inventory && entry.inventory.status === "learned" ? "learned" : "active"] += 1;
+      });
+      const filterCopy = savedCardFilterCopy[userLocale] || savedCardFilterCopy.en;
+      const filterRow = element("saved-card-filter-row");
+      if (filterRow) filterRow.setAttribute("aria-label", filterCopy.label);
+      cardFilterButtons.forEach(function (button) {
+        const filter = button.dataset.cardFilter === "learned" ? "learned" : "active";
+        const selected = state.cardFilter === filter;
+        button.setAttribute("aria-pressed", selected ? "true" : "false");
+        button.setAttribute("aria-label", filterCopy[filter]);
+        text(element("saved-card-filter-" + filter + "-label"), filterCopy[filter]);
+        text(element("saved-card-filter-" + filter + "-count"), String(counts[filter]));
+      });
+    }
 
     function renderCards() {
       const root = element("saved-cards");
       root.replaceChildren();
-      const entries = state.cards.filter(function (entry) {
-        return entry.card && localeCode(entry.card.language) === state.learningLanguage;
+      const allEntries = cardsForSelectedLanguage();
+      renderCardFilter();
+      const entries = allEntries.filter(function (entry) {
+        return state.cardFilter === "learned"
+          ? entry.inventory && entry.inventory.status === "learned"
+          : !entry.inventory || entry.inventory.status !== "learned";
       });
       if (!entries.length) {
         const empty = document.createElement("p"); empty.className = "empty";
-        empty.textContent = state.cards.length ? (noCardsInLanguageCopy[userLocale] || noCardsInLanguageCopy.en) : strings.noCards;
+        const filterCopy = savedCardFilterCopy[userLocale] || savedCardFilterCopy.en;
+        empty.textContent = allEntries.length
+          ? (state.cardFilter === "learned" ? filterCopy.emptyLearned : filterCopy.emptyActive)
+          : (state.cards.length ? (noCardsInLanguageCopy[userLocale] || noCardsInLanguageCopy.en) : strings.noCards);
         root.appendChild(empty); return;
       }
       const tierStyles = {
@@ -617,11 +797,28 @@
       });
     }
 
+    cardFilterButtons.forEach(function (button) {
+      button.addEventListener("click", function () {
+        const filter = button.dataset.cardFilter === "learned" ? "learned" : "active";
+        if (state.cardFilter === filter) return;
+        state.cardFilter = filter;
+        renderCards();
+      });
+    });
+
     function notesForSelectedLanguage() {
       return state.notes.filter(function (note) {
         return localeCode(note.targetLanguage) === state.learningLanguage;
       });
     }
+
+    function allNotes() { return state.notes; }
+    function draftsForSelectedLanguage() {
+      return state.drafts.filter(function (draft) {
+        return localeCode(draft.targetLanguage || (draft.generated && draft.generated.language)) === state.learningLanguage;
+      });
+    }
+    function allDrafts() { return state.drafts; }
 
     function storageProfileForNote(note) { return note.storageProfileId || profileId; }
     function isSameNote(left, right) {

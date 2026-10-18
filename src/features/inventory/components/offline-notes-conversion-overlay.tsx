@@ -29,6 +29,7 @@ import {
 } from "@/features/inventory/offline-notes-visual-test-fixtures";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
+import { vibrate } from "@/lib/vibration";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 
 const OVERLAY_ANIMATION_MS = 360;
@@ -191,7 +192,7 @@ function OfflineNotesConversionOverlayContent() {
     termKeys: new Set(),
   }));
   const [conversionBusy, setConversionBusy] = useState(false);
-  const [addingDraftId, setAddingDraftId] = useState<string | null>(null);
+  const [pendingDraftIds, setPendingDraftIds] = useState<Set<string>>(() => new Set());
   const [bulkAdding, setBulkAdding] = useState(false);
   const [subscriptionRestrictionOpen, setSubscriptionRestrictionOpen] = useState(false);
   const [activeCardLimitDetails, setActiveCardLimitDetails] = useState<{ addedCount: number; skippedCount: number } | null>(null);
@@ -202,6 +203,10 @@ function OfflineNotesConversionOverlayContent() {
   const dismissedRef = useRef(false);
   const refreshInFlightRef = useRef(false);
   const draftAddInFlightRef = useRef(false);
+  const draftAddQueueRef = useRef(new Map<string, DraftEntry>());
+  const draftPersistenceRef = useRef(new Map<string, Promise<void>>());
+  const blockedByCardLimitRef = useRef(false);
+  const flushDraftAddQueueRef = useRef<() => Promise<void>>(async () => undefined);
   const visualTestInitializedRef = useRef(false);
   const visualTestNotesRef = useRef<NoteEntry[]>([]);
   const showMessageRef = useRef(showMessage);
@@ -280,6 +285,23 @@ function OfflineNotesConversionOverlayContent() {
       setNotes(nextNotes);
       setDrafts(nextDrafts);
 
+      // A pending optimistic add survives route changes and remounts in the
+      // same IndexedDB draft record. Rehydrate it into the retry queue.
+      for (const entry of nextDrafts) {
+        if (!entry.draft.pendingAdd || draftAddQueueRef.current.has(entry.draft.id)) continue;
+        draftAddQueueRef.current.set(entry.draft.id, entry);
+        setPendingDraftIds((current) => {
+          const next = new Set(current);
+          next.add(entry.draft.id);
+          return next;
+        });
+        setLocallyAddedCards((current) => {
+          const termKeys = current.ownerId === currentOwnerId ? new Set(current.termKeys) : new Set<string>();
+          termKeys.add(getGeneratedCardTermKey(entry.draft.generated));
+          return { ownerId: currentOwnerId, termKeys };
+        });
+      }
+
       if (nextNotes.length === 0 && nextDrafts.length === 0) {
         dismissedRef.current = false;
         didAutoConvertRef.current = false;
@@ -300,7 +322,7 @@ function OfflineNotesConversionOverlayContent() {
     } finally {
       refreshInFlightRef.current = false;
     }
-  }, [isAvailable, isVisualTestMode, phase, userId]);
+  }, [currentOwnerId, isAvailable, isVisualTestMode, phase, userId]);
 
   useEffect(() => {
     if (!isAvailable || !isVisualTestMode) {
@@ -454,7 +476,10 @@ function OfflineNotesConversionOverlayContent() {
     let cancelled = false;
 
     const refresh = () => {
-      if (!cancelled) void refreshPending();
+      if (cancelled) return;
+      void refreshPending().finally(() => {
+        if (!cancelled) void flushDraftAddQueueRef.current();
+      });
     };
     const handleOffline = () => {
       dismissedRef.current = false;
@@ -513,99 +538,112 @@ function OfflineNotesConversionOverlayContent() {
   }
 
   async function addDraftToDeck(entry: DraftEntry): Promise<"added" | "limit"> {
-    const response = await fetch("/api/cards/offline-create", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(entry.draft.generated),
-    });
-    const payload = await response.json().catch(() => ({})) as { status?: string; errorCode?: string };
-    if (payload.errorCode === "free_active_card_limit") return "limit";
-    if (!response.ok || payload.status !== "success") throw new Error("offline_note_add_failed");
-
-    const termKey = getGeneratedCardTermKey(entry.draft.generated);
-    setLocallyAddedCards((current) => {
-      const termKeys = current.ownerId === currentOwnerId ? new Set(current.termKeys) : new Set<string>();
-      termKeys.add(termKey);
-      return { ownerId: currentOwnerId, termKeys };
-    });
-    await removeOfflineGeneratedDraft(entry.profileId, entry.draft.id);
-    setDrafts((current) => current.filter((candidate) => candidate.draft.id !== entry.draft.id));
-    return "added";
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 15_000);
+    try {
+      const response = await fetch("/api/cards/offline-create", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entry.draft.generated),
+        signal: controller.signal,
+      });
+      const payload = await response.json().catch(() => ({})) as { status?: string; errorCode?: string };
+      if (payload.errorCode === "free_active_card_limit") return "limit";
+      if (!response.ok || payload.status !== "success") throw new Error("offline_note_add_failed");
+      return "added";
+    } finally {
+      window.clearTimeout(timeout);
+    }
   }
 
   function showActiveCardLimit(addedCount: number, remainingCount: number) {
+    blockedByCardLimitRef.current = true;
     setActiveCardLimitDetails({ addedCount, skippedCount: remainingCount });
     setSubscriptionRestrictionOpen(true);
   }
 
-  async function handleAddDraft(entry: DraftEntry) {
-    if (draftAddInFlightRef.current || conversionBusy) return;
-    draftAddInFlightRef.current = true;
-    setAddingDraftId(entry.draft.id);
+  function markDraftAsOptimisticallyAdded(entry: DraftEntry): Promise<void> {
+    draftAddQueueRef.current.set(entry.draft.id, entry);
+    setPendingDraftIds((current) => {
+      const next = new Set(current);
+      next.add(entry.draft.id);
+      return next;
+    });
+    setLocallyAddedCards((current) => {
+      const termKeys = current.ownerId === currentOwnerId ? new Set(current.termKeys) : new Set<string>();
+      termKeys.add(getGeneratedCardTermKey(entry.draft.generated));
+      return { ownerId: currentOwnerId, termKeys };
+    });
 
-    try {
-      const result = await addDraftToDeck(entry);
-      if (result === "limit") {
-        showActiveCardLimit(0, drafts.length);
-        return;
+    const persistence = saveOfflineGeneratedDraft(entry.profileId, { ...entry.draft, pendingAdd: true }).catch((error) => {
+      console.warn("[FoxiesDeck offline] Could not persist the pending card add.", error);
+    });
+    draftPersistenceRef.current.set(entry.draft.id, persistence);
+    void persistence.finally(() => {
+      if (draftPersistenceRef.current.get(entry.draft.id) === persistence) {
+        draftPersistenceRef.current.delete(entry.draft.id);
       }
-
-      showMessage(t("offline.notes.addedToDeck"), "success");
-      if (drafts.length <= 1 && notes.length === 0) closeOverlay();
-    } catch {
-      showMessage(t("offline.notes.addError"), "error");
-    } finally {
-      draftAddInFlightRef.current = false;
-      setAddingDraftId(null);
-    }
+    });
+    return persistence;
   }
 
-  async function handleAddAllDrafts() {
-    if (draftAddInFlightRef.current || conversionBusy || !canCheckDeck || addableDrafts.length === 0) return;
+  async function flushDraftAddQueue() {
+    if (draftAddInFlightRef.current || blockedByCardLimitRef.current || !navigator.onLine || draftAddQueueRef.current.size === 0) return;
     draftAddInFlightRef.current = true;
-    setBulkAdding(true);
-    const queue = [...addableDrafts];
-    const addedTermKeys = new Set(currentDeckTermIndex);
-    const addedDraftIds = new Set<string>();
     let addedCount = 0;
-    let hitLimit = false;
 
     try {
-      for (let index = 0; index < queue.length; index += 1) {
-        const entry = queue[index]!;
-        const termKey = getGeneratedCardTermKey(entry.draft.generated);
-        if (addedTermKeys.has(termKey)) continue;
-
-        setAddingDraftId(entry.draft.id);
+      for (const [draftId, entry] of [...draftAddQueueRef.current.entries()]) {
+        await draftPersistenceRef.current.get(draftId);
         const result = await addDraftToDeck(entry);
         if (result === "limit") {
-          hitLimit = true;
-          const remainingTermKeys = new Set<string>();
-          for (const pendingEntry of queue.slice(index)) {
-            const pendingKey = getGeneratedCardTermKey(pendingEntry.draft.generated);
-            if (!addedTermKeys.has(pendingKey)) remainingTermKeys.add(pendingKey);
-          }
-          showActiveCardLimit(addedCount, remainingTermKeys.size);
+          showActiveCardLimit(addedCount, draftAddQueueRef.current.size);
           break;
         }
-        addedTermKeys.add(termKey);
-        addedDraftIds.add(entry.draft.id);
+
+        await removeOfflineGeneratedDraft(entry.profileId, draftId);
+        draftAddQueueRef.current.delete(draftId);
+        setPendingDraftIds((current) => {
+          const next = new Set(current);
+          next.delete(draftId);
+          return next;
+        });
+        setDrafts((current) => current.filter((candidate) => candidate.draft.id !== draftId));
         addedCount += 1;
       }
-
-      if (addedCount > 0 && !hitLimit) {
-        showMessage(t("offline.notes.addedAllToDeck", { count: addedCount }), "success");
-      }
-      if (notes.length === 0 && drafts.every((entry) => addedDraftIds.has(entry.draft.id))) closeOverlay();
     } catch {
-      showMessage(t("offline.notes.addError"), "error");
+      // Keep the draft in IndexedDB. The online/focus retry loop will try again.
     } finally {
       draftAddInFlightRef.current = false;
-      setAddingDraftId(null);
-      setBulkAdding(false);
     }
 
+    if (addedCount > 0) {
+      showMessage(
+        addedCount === 1 ? t("offline.notes.addedToDeck") : t("offline.notes.addedAllToDeck", { count: addedCount }),
+        "success",
+      );
+    }
+    if (draftAddQueueRef.current.size === 0 && notes.length === 0) closeOverlay();
+  }
+
+  useEffect(() => {
+    flushDraftAddQueueRef.current = flushDraftAddQueue;
+  });
+
+  function handleAddDraft(entry: DraftEntry) {
+    if (conversionBusy || pendingDraftIds.has(entry.draft.id)) return;
+    vibrate("tap");
+    void markDraftAsOptimisticallyAdded(entry).then(() => flushDraftAddQueueRef.current());
+  }
+
+  function handleAddAllDrafts() {
+    if (conversionBusy || !canCheckDeck || addableDrafts.length === 0) return;
+    vibrate("tap");
+    setBulkAdding(true);
+    const persistOperations = addableDrafts.map(markDraftAsOptimisticallyAdded);
+    setBulkAdding(false);
+    void Promise.all(persistOperations).then(() => flushDraftAddQueueRef.current());
   }
 
   function handleConvertNotes(entries: NoteEntry[]) {
@@ -680,7 +718,7 @@ function OfflineNotesConversionOverlayContent() {
                 const generated = entry.draft.generated;
                 const previewCard = buildPreviewVocabularyCard(generated);
                 const card = { ...previewCard, id: entry.draft.id, sourceKey: entry.draft.id };
-                const adding = addingDraftId === entry.draft.id;
+                const adding = pendingDraftIds.has(entry.draft.id);
                 const termKey = getGeneratedCardTermKey(generated);
                 const alreadyInDeck = canCheckDeck && currentDeckTermIndex.has(termKey);
                 return (
@@ -698,7 +736,7 @@ function OfflineNotesConversionOverlayContent() {
                       ownedLabel={t("offline.notes.alreadyInDeck")}
                       addLoading={adding}
                       addLoadingLabel={t("offline.notes.addingToDeck")}
-                      addDisabled={bulkAdding || conversionBusy || (addingDraftId !== null && !adding)}
+                      addDisabled={bulkAdding || conversionBusy}
                       showActions={false}
                       footerMode="empty"
                       translationLocale={locale}
@@ -723,7 +761,7 @@ function OfflineNotesConversionOverlayContent() {
             {drafts.length > 0 && (!canCheckDeck || addableDrafts.length > 0) ? (
               <button
                 type="button"
-                disabled={!canCheckDeck || conversionBusy || bulkAdding || addingDraftId !== null}
+                disabled={!canCheckDeck || conversionBusy || bulkAdding}
                 onClick={() => void handleAddAllDrafts()}
                 className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-foreground transition-[filter,transform] active:translate-y-0.5 active:brightness-95 disabled:cursor-wait disabled:opacity-70"
                 style={{ boxShadow: "0 3px 0 color-mix(in srgb, var(--brand) 72%, black)" }}
@@ -735,7 +773,7 @@ function OfflineNotesConversionOverlayContent() {
             {visibleNotes.length > 0 && (feedback === "conversion" || drafts.length === 0) ? (
               <button
                 type="button"
-                disabled={conversionBusy || bulkAdding || addingDraftId !== null}
+                disabled={conversionBusy || bulkAdding || pendingDraftIds.size > 0}
                 onClick={() => void handleConvertNotes(visibleNotes)}
                 className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-foreground transition-[filter,transform] active:translate-y-0.5 active:brightness-95 disabled:cursor-wait disabled:opacity-70"
                 style={{ boxShadow: "0 3px 0 color-mix(in srgb, var(--brand) 72%, black)" }}
@@ -768,7 +806,10 @@ function OfflineNotesConversionOverlayContent() {
           setSubscriptionRestrictionOpen(open);
           if (!open) setActiveCardLimitDetails(null);
         }}
-        onPurchaseSuccess={() => handleAddAllDrafts()}
+        onPurchaseSuccess={() => {
+          blockedByCardLimitRef.current = false;
+          void flushDraftAddQueueRef.current();
+        }}
       />
     </>
   );

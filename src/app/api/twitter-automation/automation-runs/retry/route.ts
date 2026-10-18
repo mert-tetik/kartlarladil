@@ -86,12 +86,13 @@ export async function POST(request: NextRequest) {
 
     const { data: run, error: runError } = await supabase
       .from("social_content_automation_runs")
-      .select("id")
+      .select("id,generation_stopped_at,finished_by_user_at")
       .eq("id", output.run_id)
       .eq("owner_key", ownerKey)
       .maybeSingle();
     if (runError) return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
     if (!run) return NextResponse.json({ errorCode: "automation_output_not_found" }, { status: 404 });
+    if (run.generation_stopped_at || run.finished_by_user_at) return NextResponse.json({ errorCode: "automation_run_generation_stopped" }, { status: 409 });
     const retryingStaleProcessing = isStaleProcessing(output);
     const retryableWaitingStatus = output.status === "queued" || output.status === "awaiting_browser_image" || output.status === "awaiting_browser_video";
     if (output.status !== "failed" && !retryingStaleProcessing && !retryableWaitingStatus) return NextResponse.json({ errorCode: "automation_output_retry_not_available" }, { status: 409 });

@@ -1,10 +1,13 @@
 import { AudioBufferSource, BufferTarget, CanvasSource, canEncodeAudio, canEncodeVideo, Output, WebMOutputFormat } from "mediabunny";
 import { releaseMusicVideoAudioContext } from "@/features/twitter-automation/automation-music-video-audio-session";
+import { awaitBrowserVideoOperation } from "@/features/twitter-automation/browser-video-operation";
 import type { OriginalMascotLearningVideoScene } from "@/features/twitter-automation/original-mascot-learning-video";
 import type { LanguageCode } from "@/types/domain";
 
 type OriginalMascotLearningVideoRenderOptions = {
   audioContext: BaseAudioContext;
+  signal?: AbortSignal;
+  onProgress?: (progress: number) => void;
   scenes: readonly OriginalMascotLearningVideoScene[];
   language?: LanguageCode;
   nativeLanguage?: LanguageCode;
@@ -70,12 +73,23 @@ type OriginalMascotVideoAssets = {
   splash: PreparedSplash;
 };
 
-function loadImage(source: string) {
+function loadImage(source: string, signal?: AbortSignal) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
+    const cleanup = () => signal?.removeEventListener("abort", onAbort);
+    const onAbort = () => {
+      image.removeAttribute("src");
+      cleanup();
+      reject(new Error("browser_video_render_timeout"));
+    };
+    if (signal?.aborted) {
+      onAbort();
+      return;
+    }
     image.decoding = "async";
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("video_asset_load_failed"));
+    image.onload = () => { cleanup(); resolve(image); };
+    image.onerror = () => { cleanup(); reject(new Error("video_asset_load_failed")); };
+    signal?.addEventListener("abort", onAbort, { once: true });
     image.src = source;
   });
 }
@@ -525,33 +539,42 @@ function getFlagSource(language?: LanguageCode) {
   return language ? `/flags/language/${language}.png` : null;
 }
 
-async function loadOriginalMascotVideoAssets(scenes: readonly OriginalMascotLearningVideoScene[], language?: LanguageCode, nativeLanguage?: LanguageCode): Promise<OriginalMascotVideoAssets> {
+async function loadOriginalMascotVideoAssets(scenes: readonly OriginalMascotLearningVideoScene[], language?: LanguageCode, nativeLanguage?: LanguageCode, signal?: AbortSignal): Promise<OriginalMascotVideoAssets> {
   const speakerSource = getSpeakerMascotSource(scenes);
   const learningFlagSource = getFlagSource(language);
   const nativeFlagSource = getFlagSource(nativeLanguage);
   const [original, mascot4, mascot18, splash, speaker, learningFlag, nativeFlag] = await Promise.all([
-    loadImage("/mascot-variations/Original.png"),
-    loadImage("/mascots/mascot4.webp"),
-    loadImage("/mascots/mascot18.png"),
-    loadImage("/splash.png"),
-    speakerSource ? loadImage(speakerSource) : Promise.resolve(null),
-    learningFlagSource ? loadImage(learningFlagSource) : Promise.resolve(null),
-    nativeFlagSource ? loadImage(nativeFlagSource) : Promise.resolve(null),
+    loadImage("/mascot-variations/Original.png", signal),
+    loadImage("/mascots/mascot4.webp", signal),
+    loadImage("/mascots/mascot18.png", signal),
+    loadImage("/splash.png", signal),
+    speakerSource ? loadImage(speakerSource, signal) : Promise.resolve(null),
+    learningFlagSource ? loadImage(learningFlagSource, signal) : Promise.resolve(null),
+    nativeFlagSource ? loadImage(nativeFlagSource, signal) : Promise.resolve(null),
   ]);
   // Ensure the Super Water display font is loaded before drawing so the first
   // frames do not fall back to a system font.
   if (document.fonts) {
-    await document.fonts.load('600 160px "Super Water"').catch(() => undefined);
+    try {
+      await awaitBrowserVideoOperation(() => document.fonts.load('600 160px "Super Water"'), signal);
+    } catch (error) {
+      if (signal?.aborted) throw error;
+    }
   }
   return { original, mascot4, mascot18, speaker, learningFlag, nativeFlag, splash: prepareSplash(splash) };
 }
 
-async function decodeOriginalMascotAudio(audioContext: BaseAudioContext, scenes: readonly OriginalMascotLearningVideoScene[]) {
+async function decodeOriginalMascotAudio(audioContext: BaseAudioContext, scenes: readonly OriginalMascotLearningVideoScene[], signal?: AbortSignal, onProgress?: (progress: number) => void) {
+  let decodedCount = 0;
   return await Promise.all(scenes.map(async (scene) => {
     if (!scene.audioDataUrl) return null;
-    const response = await fetch(scene.audioDataUrl);
+    const response = await fetch(scene.audioDataUrl, { signal });
     if (!response.ok) throw new Error("speech_load_failed");
-    return await audioContext.decodeAudioData(await response.arrayBuffer());
+    const encodedAudio = await response.arrayBuffer();
+    const buffer = await awaitBrowserVideoOperation(() => audioContext.decodeAudioData(encodedAudio), signal);
+    decodedCount += 1;
+    onProgress?.(0.01 + (decodedCount / scenes.length) * 0.04);
+    return buffer;
   }));
 }
 
@@ -560,6 +583,7 @@ async function renderOriginalMascotOfflineAudio(
   scenes: readonly OriginalMascotLearningVideoScene[],
   starts: readonly number[],
   durationSeconds: number,
+  signal?: AbortSignal,
 ) {
   const sampleRate = 48_000;
   const offlineContext = new OfflineAudioContext(2, Math.ceil(durationSeconds * sampleRate), sampleRate);
@@ -575,22 +599,32 @@ async function renderOriginalMascotOfflineAudio(
       scheduleCountdownTicks(offlineContext, offlineContext.destination, starts[index]!, scene.durationSeconds ?? 5);
     }
   });
-  return await offlineContext.startRendering();
+  return await awaitBrowserVideoOperation(() => offlineContext.startRendering(), signal);
 }
 
-export async function canRenderOriginalMascotDeterministically() {
+export async function canRenderOriginalMascotDeterministically(signal?: AbortSignal) {
   if (typeof OfflineAudioContext === "undefined") return false;
-  return await canEncodeVideo("vp8", { width: CANVAS_WIDTH, height: CANVAS_HEIGHT, bitrate: VIDEO_BITRATE })
-    && await canEncodeAudio("opus", { numberOfChannels: 2, sampleRate: 48_000, bitrate: AUDIO_BITRATE });
+  try {
+    const [video, audio] = await Promise.all([
+      awaitBrowserVideoOperation(() => canEncodeVideo("vp8", { width: CANVAS_WIDTH, height: CANVAS_HEIGHT, bitrate: VIDEO_BITRATE }), signal),
+      awaitBrowserVideoOperation(() => canEncodeAudio("opus", { numberOfChannels: 2, sampleRate: 48_000, bitrate: AUDIO_BITRATE }), signal),
+    ]);
+    return video && audio;
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    return false;
+  }
 }
 
-async function renderDeterministicOriginalMascotLearningVideo({ audioContext, scenes, language, nativeLanguage }: OriginalMascotLearningVideoRenderOptions) {
-  const [assets, buffers] = await Promise.all([
-    loadOriginalMascotVideoAssets(scenes, language, nativeLanguage),
-    decodeOriginalMascotAudio(audioContext, scenes),
-  ]);
-
+async function renderDeterministicOriginalMascotLearningVideo({ audioContext, scenes, language, nativeLanguage, signal, onProgress }: OriginalMascotLearningVideoRenderOptions) {
+  let output: Output | null = null;
   try {
+    onProgress?.(0.01);
+    const [assets, buffers] = await Promise.all([
+      loadOriginalMascotVideoAssets(scenes, language, nativeLanguage, signal),
+      decodeOriginalMascotAudio(audioContext, scenes, signal, onProgress),
+    ]);
+    if (signal?.aborted) throw new Error("browser_video_render_timeout");
     const { starts, durationSeconds } = getOriginalMascotTiming(buffers, scenes);
     const frameCount = Math.ceil(durationSeconds * FRAME_RATE);
     const frameDuration = 1 / FRAME_RATE;
@@ -601,20 +635,31 @@ async function renderDeterministicOriginalMascotLearningVideo({ audioContext, sc
     if (!context) throw new Error("canvas_not_supported");
 
     const target = new BufferTarget();
-    const output = new Output({ format: new WebMOutputFormat(), target });
+    output = new Output({ format: new WebMOutputFormat(), target });
     const videoSource = new CanvasSource(canvas, { codec: "vp8", bitrate: VIDEO_BITRATE, keyFrameInterval: 2 });
     const audioSource = new AudioBufferSource({ codec: "opus", bitrate: AUDIO_BITRATE });
     output.addVideoTrack(videoSource, { maximumPacketCount: frameCount });
     output.addAudioTrack(audioSource);
-    await output.start();
-    await audioSource.add(await renderOriginalMascotOfflineAudio(buffers, scenes, starts, frameCount * frameDuration));
+    await awaitBrowserVideoOperation(() => output!.start(), signal);
+    onProgress?.(0.08);
+    const renderedAudio = await renderOriginalMascotOfflineAudio(buffers, scenes, starts, frameCount * frameDuration, signal);
+    await awaitBrowserVideoOperation(() => audioSource.add(renderedAudio), signal);
+    if (signal?.aborted) throw new Error("browser_video_render_timeout");
+    onProgress?.(0.12);
     for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
+      if (signal?.aborted) throw new Error("browser_video_render_timeout");
       drawOriginalMascotFrame(context, assets, scenes, starts, durationSeconds, frameIndex * frameDuration);
-      await videoSource.add(frameIndex * frameDuration, frameDuration, { keyFrame: frameIndex % (FRAME_RATE * 2) === 0 });
+      await awaitBrowserVideoOperation(() => videoSource.add(frameIndex * frameDuration, frameDuration, { keyFrame: frameIndex % (FRAME_RATE * 2) === 0 }), signal);
+      if (frameIndex % 15 === 0 || frameIndex === frameCount - 1) onProgress?.((frameIndex + 1) / frameCount);
     }
-    await output.finalize();
+    if (signal?.aborted) throw new Error("browser_video_render_timeout");
+    onProgress?.(1);
+    await awaitBrowserVideoOperation(() => output!.finalize(), signal);
     if (!target.buffer) throw new Error("deterministic_recording_failed");
     return new Blob([target.buffer], { type: await output.getMimeType() });
+  } catch (error) {
+    if (output && output.state !== "canceled" && output.state !== "finalized") await output.cancel().catch(() => undefined);
+    throw error;
   } finally {
     await releaseMusicVideoAudioContext(audioContext);
   }
@@ -627,12 +672,15 @@ function isRealtimeAudioContext(audioContext: BaseAudioContext): audioContext is
   return "createMediaStreamDestination" in audioContext && typeof audioContext.createMediaStreamDestination === "function";
 }
 
-async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes, language, nativeLanguage }: RealtimeOriginalMascotLearningVideoRenderOptions) {
+async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes, language, nativeLanguage, signal, onProgress }: RealtimeOriginalMascotLearningVideoRenderOptions) {
   if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") throw new Error("video_not_supported");
   if (scenes.length < 2 || scenes.length > 20) throw new Error("invalid_video_scene_count");
 
-  const assets = await loadOriginalMascotVideoAssets(scenes, language, nativeLanguage);
-  const buffers = await decodeOriginalMascotAudio(audioContext, scenes);
+  const [assets, buffers] = await Promise.all([
+    loadOriginalMascotVideoAssets(scenes, language, nativeLanguage, signal),
+    decodeOriginalMascotAudio(audioContext, scenes, signal, onProgress),
+  ]);
+  if (signal?.aborted) throw new Error("browser_video_render_timeout");
   const { starts, durationSeconds } = getOriginalMascotTiming(buffers, scenes);
   const canvas = document.createElement("canvas");
   canvas.width = CANVAS_WIDTH;
@@ -646,7 +694,9 @@ async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes,
   const mimeType = recorderMimeType();
   const recorder = mimeType ? new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4_500_000 }) : new MediaRecorder(stream);
   const chunks: BlobPart[] = [];
+  let rejectCompleted: (error: unknown) => void = () => undefined;
   const completed = new Promise<Blob>((resolve, reject) => {
+    rejectCompleted = reject;
     recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
     recorder.onerror = () => reject(new Error("recording_failed"));
     recorder.onstop = () => resolve(new Blob(chunks, { type: recorder.mimeType || "video/webm" }));
@@ -666,16 +716,29 @@ async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes,
 
   let animationId = 0;
   let stopped = false;
+  let stopTimer: number | null = null;
   const startedAt = performance.now();
   const drawFrame = (now: number) => {
     const elapsed = Math.min(durationSeconds, (now - startedAt) / 1000);
     drawOriginalMascotFrame(context, assets, scenes, starts, durationSeconds, elapsed);
+    onProgress?.(durationSeconds ? elapsed / durationSeconds : 1);
     if (!stopped && elapsed < durationSeconds) animationId = window.requestAnimationFrame(drawFrame);
   };
 
+  const abortRecording = () => {
+    stopped = true;
+    window.cancelAnimationFrame(animationId);
+    if (stopTimer !== null) window.clearTimeout(stopTimer);
+    stopTimer = null;
+    videoStream.getTracks().forEach((track) => track.stop());
+    if (recorder.state !== "inactive") recorder.stop();
+    rejectCompleted(new Error("browser_video_render_timeout"));
+  };
+  signal?.addEventListener("abort", abortRecording, { once: true });
+
   drawFrame(startedAt);
   recorder.start(250);
-  window.setTimeout(() => {
+  stopTimer = window.setTimeout(() => {
     stopped = true;
     window.cancelAnimationFrame(animationId);
     videoStream.getTracks().forEach((track) => track.stop());
@@ -685,6 +748,8 @@ async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes,
   try {
     return await completed;
   } finally {
+    if (stopTimer !== null) window.clearTimeout(stopTimer);
+    signal?.removeEventListener("abort", abortRecording);
     stream.getTracks().forEach((track) => track.stop());
     destination.disconnect();
     await releaseMusicVideoAudioContext(audioContext);
@@ -694,7 +759,7 @@ async function renderRealtimeOriginalMascotLearningVideo({ audioContext, scenes,
 /** Browser-only 9:16 renderer with frame-exact WebCodecs export on Chrome/Android. */
 export async function renderOriginalMascotLearningVideo(options: OriginalMascotLearningVideoRenderOptions) {
   if (options.scenes.length < 2 || options.scenes.length > 20) throw new Error("invalid_video_scene_count");
-  if (await canRenderOriginalMascotDeterministically()) {
+  if (await canRenderOriginalMascotDeterministically(options.signal)) {
     return await renderDeterministicOriginalMascotLearningVideo(options);
   }
   if (!isRealtimeAudioContext(options.audioContext)) throw new Error("browser_video_realtime_audio_required");

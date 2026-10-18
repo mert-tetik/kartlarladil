@@ -8,7 +8,7 @@ import { estimateRemainingGenerationSeconds, formatEstimatedDuration } from "@/f
 import { aiGenerationBoundaryIndex, prioritizeAutomationGenerations } from "@/features/twitter-automation/automation-generation-priority";
 import { stageBrowserImage, stageBrowserVideo } from "@/features/twitter-automation/browser-media-stage";
 import { BrowserImageRenderError, browserImageFailureCode, retryBrowserImageOperation } from "@/features/twitter-automation/browser-image-retry";
-import { browserVideoFailureCode, browserVideoRetryDelayMs, browserVideoTimeoutMs, formatBrowserVideoTimeout, shouldRetryBrowserVideo } from "@/features/twitter-automation/browser-video-retry";
+import { BROWSER_VIDEO_PLAN_TIMEOUT_MS, BROWSER_VIDEO_RENDER_STALL_TIMEOUT_MS, browserVideoFailureCode, browserVideoRetryDelayMs, shouldRetryBrowserVideo, shouldRetryBrowserVideoFailure } from "@/features/twitter-automation/browser-video-retry";
 import { getOrCreateBrowserVideoPlan, type BrowserVideoPlan } from "@/features/twitter-automation/browser-video-plan";
 import { resolveBrowserMusicVideoSourceUrl } from "@/features/twitter-automation/browser-video-source";
 import { AutomationBrowserImageRenderer, type AutomationBrowserImageOutput } from "@/features/twitter-automation/components/automation-browser-image-renderer";
@@ -19,11 +19,12 @@ import { canRenderMusicVideoDeterministically, closeAutomationMusicVideoAudioSes
 import { canRenderOriginalMascotDeterministically, renderOriginalMascotLearningVideo } from "@/features/twitter-automation/original-mascot-learning-video-renderer";
 import { automationScopeSearchParams, type AutomationScope } from "@/features/twitter-automation/automation-scope";
 import { AUTOMATION_RETRY_DELAYS_MS } from "@/features/twitter-automation/automation-resilience";
-import { isFailedAutomationOutput, isSuccessfulAutomationOutput } from "@/features/twitter-automation/automation-output-status";
+import { isFailedAutomationOutput, isSkippedAutomationOutput, isSuccessfulAutomationOutput } from "@/features/twitter-automation/automation-output-status";
+import { UPLOAD_POST_REQUEST_RECHECK_DELAY_MS, UPLOAD_POST_REQUEST_UNCONFIRMED_CODE } from "@/features/twitter-automation/upload-post-schedule-constants";
 import { cn } from "@/lib/utils";
 import type { LanguageCode } from "@/types/domain";
 
-type AutomationOutputStatus = "queued" | "processing" | "generating_video" | "awaiting_browser_image" | "awaiting_browser_video" | "ready_to_schedule" | "scheduled" | "failed";
+type AutomationOutputStatus = "queued" | "processing" | "generating_video" | "awaiting_browser_image" | "awaiting_browser_video" | "ready_to_schedule" | "scheduled" | "failed" | "skipped";
 
 type AutomationOutput = {
   id: string;
@@ -41,6 +42,12 @@ type AutomationOutput = {
   mediaUrl: string | null;
   mediaUrls?: string[];
   media_type: "image" | "video" | null;
+  schedule_status?: "pending" | "processing" | "partially_scheduled" | "failed" | "scheduled";
+  schedule_error_code?: string | null;
+  schedule_error_detail?: string | null;
+  schedule_attempt_count?: number;
+  schedule_attempted_at?: string | null;
+  schedule_completed_at?: string | null;
   bucketStatus?: "stored" | "missing" | "database" | "not_checked" | "unavailable";
   error_code: string | null;
   last_error_detail?: string | null;
@@ -54,6 +61,11 @@ type AutomationOutput = {
   quality_status?: "pending" | "passed" | "failed";
   quality_error?: string | null;
   render_plan?: unknown;
+  run?: {
+    schedule_date?: string;
+    generation_stopped_at?: string | null;
+    finished_by_user_at?: string | null;
+  } | null;
 };
 
 type LoadState = "loading" | "ready" | "error";
@@ -137,7 +149,7 @@ function isGenerationComplete(output: AutomationOutput) {
 }
 
 function isOutputSettled(output: AutomationOutput) {
-  return isGenerationComplete(output) || isFailedAutomationOutput(output);
+  return isGenerationComplete(output) || isFailedAutomationOutput(output) || isSkippedAutomationOutput(output);
 }
 
 function isReadyForSchedule(output: AutomationOutput) {
@@ -146,6 +158,11 @@ function isReadyForSchedule(output: AutomationOutput) {
 
 function needsGeneration(output: AutomationOutput) {
   return !isOutputSettled(output);
+}
+
+function formatRunDate(value: string | undefined) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/u.test(value)) return null;
+  return new Intl.DateTimeFormat("tr-TR", { dateStyle: "long", timeZone: "Europe/Istanbul" }).format(new Date(`${value}T12:00:00+03:00`));
 }
 
 function pendingGenerationMessage(output: AutomationOutput, isInterruptedReview: boolean) {
@@ -185,26 +202,29 @@ function abortableBrowserVideoTask<T>(task: Promise<T>, signal: AbortSignal) {
   });
 }
 
-async function canUseOfflineAudioForBrowserVideo(plan: BrowserVideoPlan) {
+async function canUseOfflineAudioForBrowserVideo(plan: BrowserVideoPlan, signal: AbortSignal) {
   try {
-    if (plan.kind === "confused") return await canRenderConfusedWordsDeterministically();
-    if (plan.kind === "dialogue") return await canRenderDialogueDeterministically();
-    if (plan.kind === "original") return await canRenderOriginalMascotDeterministically();
+    if (plan.kind === "confused") return await canRenderConfusedWordsDeterministically(signal);
+    if (plan.kind === "dialogue") return await abortableBrowserVideoTask(canRenderDialogueDeterministically(), signal);
+    if (plan.kind === "original") return await canRenderOriginalMascotDeterministically(signal);
     // Social image sources are at most this 9:16 raster. A successful probe
     // means the actual, equal-or-smaller source can use WebCodecs as well.
-    return await canRenderMusicVideoDeterministically(1080, 1920);
+    return await abortableBrowserVideoTask(canRenderMusicVideoDeterministically(1080, 1920), signal);
   } catch {
+    if (signal.aborted) throw new Error("browser_video_render_timeout");
     return false;
   }
 }
 
-async function renderBrowserVideoPlan(output: AutomationOutput, plan: BrowserVideoPlan, audioContext: BaseAudioContext, signal: AbortSignal) {
+async function renderBrowserVideoPlan(output: AutomationOutput, plan: BrowserVideoPlan, audioContext: BaseAudioContext, signal: AbortSignal, onProgress: (progress: number) => void) {
   if (plan.kind === "confused") {
-    return await abortableBrowserVideoTask(renderConfusedWordsVideo({
+    return await renderConfusedWordsVideo({
       audioContext,
+      signal,
+      onProgress,
       phases: plan.phases,
       scenes: plan.scenes,
-    }), signal);
+    });
   }
   if (plan.kind === "dialogue") {
     return await abortableBrowserVideoTask(renderDialogueVideo({
@@ -217,21 +237,23 @@ async function renderBrowserVideoPlan(output: AutomationOutput, plan: BrowserVid
     }), signal);
   }
   if (plan.kind === "original") {
-    return await abortableBrowserVideoTask(renderOriginalMascotLearningVideo({
+    return await renderOriginalMascotLearningVideo({
       audioContext,
+      signal,
+      onProgress,
       scenes: plan.scenes,
       language: output.language,
       nativeLanguage: output.native_language,
-    }), signal);
+    });
   }
   if (!output.mediaUrl) throw new Error("browser_video_source_unavailable");
   return await abortableBrowserVideoTask(renderMusicVideo({ audioContext, imageUrl: output.mediaUrl, musicUrl: plan.musicUrl }), signal);
 }
 
-async function renderPreparedBrowserVideo(output: AutomationOutput, plan: BrowserVideoPlan, signal: AbortSignal, scope: AutomationScope) {
+async function renderPreparedBrowserVideo(output: AutomationOutput, plan: BrowserVideoPlan, signal: AbortSignal, onProgress: (progress: number) => void) {
   let audioContext: BaseAudioContext | null = null;
   try {
-    const useOfflineAudio = await canUseOfflineAudioForBrowserVideo(plan);
+    const useOfflineAudio = await canUseOfflineAudioForBrowserVideo(plan, signal);
     try {
       audioContext = useOfflineAudio
         ? createOfflineMusicVideoAudioContext()
@@ -242,7 +264,8 @@ async function renderPreparedBrowserVideo(output: AutomationOutput, plan: Browse
 
     let blob: Blob;
     try {
-      blob = await renderBrowserVideoPlan(output, plan, audioContext, signal);
+      onProgress(0);
+      blob = await renderBrowserVideoPlan(output, plan, audioContext, signal, onProgress);
     } catch (error) {
       if (useOfflineAudio && browserVideoFailureCode(error) === "browser_video_realtime_audio_required") {
         await releaseMusicVideoAudioContext(audioContext);
@@ -251,24 +274,13 @@ async function renderPreparedBrowserVideo(output: AutomationOutput, plan: Browse
         } catch (fallbackError) {
           throw new Error(browserVideoFailureCode(fallbackError, "browser_video_audio_prepare_failed"));
         }
-        blob = await renderBrowserVideoPlan(output, plan, audioContext, signal);
+        blob = await renderBrowserVideoPlan(output, plan, audioContext, signal, onProgress);
       } else {
         throw new Error(browserVideoFailureCode(error, "browser_video_encode_failed"));
       }
     }
 
-    try {
-      const staged = await abortableBrowserVideoTask(stageBrowserVideo(blob, "automation-video", output.id), signal);
-      const response = await fetch("/api/twitter-automation/automation-runs/process", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ outputId: output.id, stagedMediaPath: staged.path, ...(plan.kind === "music" ? {} : { caption: plan.caption }), scope }),
-        signal,
-      });
-      if (!response.ok) throw new Error("automation_processing_failed");
-    } catch {
-      throw new Error("browser_video_stage_failed");
-    }
+    return blob;
   } finally {
     if (!isAutomationMusicVideoAudioContext(audioContext)) await releaseMusicVideoAudioContext(audioContext);
   }
@@ -340,6 +352,10 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   const [processingOutputId, setProcessingOutputId] = useState<string | null>(null);
   const [processingStartedAt, setProcessingStartedAt] = useState<number | null>(null);
   const [isSchedulingAll, setIsSchedulingAll] = useState(false);
+  const [isStoppingGeneration, setIsStoppingGeneration] = useState(false);
+  const [isFinishingRun, setIsFinishingRun] = useState(false);
+  const [isGenerationStoppedLocally, setIsGenerationStoppedLocally] = useState(false);
+  const [isRunFinishedLocally, setIsRunFinishedLocally] = useState(false);
   const [isRefreshingGeneratedMedia, setIsRefreshingGeneratedMedia] = useState(false);
   const [message, setMessage] = useState("");
   const [now, setNow] = useState(() => Date.now());
@@ -414,20 +430,26 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   }, [browserImageOutputs.length, browserVideoOutputs.length, generationQueue]);
   const completeCount = useMemo(() => outputs.filter(isGenerationComplete).length, [outputs]);
   const readyOutputs = useMemo(() => outputs.filter(isReadyForSchedule), [outputs]);
+  const providerProcessingOutputs = useMemo(() => outputs.filter((output) => output.schedule_error_code === UPLOAD_POST_REQUEST_UNCONFIRMED_CODE), [outputs]);
   const failedOutputs = useMemo(() => outputs.filter(isFailedAutomationOutput), [outputs]);
   const unresolvedOutputs = useMemo(() => outputs.filter(needsGeneration), [outputs]);
   const staleProcessingOutputs = useMemo(() => outputs.filter((output) => isStaleProcessingOutput(output, now)), [now, outputs]);
-  const recoveryOutputs = useMemo(() => [...failedOutputs, ...staleProcessingOutputs], [failedOutputs, staleProcessingOutputs]);
+  const recoveryOutputs = useMemo(() => [
+    ...failedOutputs.filter((output) => output.error_code !== "automation_media_retention_expired"),
+    ...staleProcessingOutputs,
+  ], [failedOutputs, staleProcessingOutputs]);
+  const hasStoppedGeneration = isGenerationStoppedLocally || outputs.some((output) => Boolean(output.run?.generation_stopped_at));
+  const isRunFinished = isRunFinishedLocally || outputs.some((output) => Boolean(output.run?.finished_by_user_at));
   const progress = outputs.length ? Math.round((completeCount / outputs.length) * 100) : 0;
   const aiGenerationDividerPercent = useMemo(() => {
     const boundaryIndex = aiGenerationBoundaryIndex(outputs);
     return boundaryIndex > 0 && boundaryIndex < outputs.length ? (boundaryIndex / outputs.length) * 100 : null;
   }, [outputs]);
-  const isIdleAfterGeneration = state === "ready" && outputs.length > 0 && !nextOutput && !browserImageOutputs.length && !browserVideoOutputs.length && !processingOutputId;
-  const shouldRecoverFailedOutputs = isIdleAfterGeneration && !isInterruptedReview && recoveryOutputs.length > 0 && renderRecoveryAttempt < MAX_AUTOMATIC_RENDER_RECOVERY_ATTEMPTS;
+  const isIdleAfterGeneration = state === "ready" && outputs.length > 0 && !nextOutput && !browserImageOutputs.length && !browserVideoOutputs.length && (!processingOutputId || hasStoppedGeneration);
+  const shouldRecoverFailedOutputs = isIdleAfterGeneration && !hasStoppedGeneration && !isInterruptedReview && recoveryOutputs.length > 0 && renderRecoveryAttempt < MAX_AUTOMATIC_RENDER_RECOVERY_ATTEMPTS;
   // Waiting work is not a result. Keep processing visible until each output
   // reaches a successful or a concrete failed state.
-  const isReviewReady = isIdleAfterGeneration && !isRecoveringFailedOutputs && !unresolvedOutputs.length && (!failedOutputs.length || renderRecoveryAttempt >= MAX_AUTOMATIC_RENDER_RECOVERY_ATTEMPTS);
+  const isReviewReady = isIdleAfterGeneration && !isRecoveringFailedOutputs && !unresolvedOutputs.length && (!recoveryOutputs.length || renderRecoveryAttempt >= MAX_AUTOMATIC_RENDER_RECOVERY_ATTEMPTS);
   const isResultScreen = isReviewReady || isInterruptedReview;
   const activeOutput = processingOutputId ? outputs.find((output) => output.id === processingOutputId) ?? null : browserImageOutputs[0] ?? nextOutput;
   const estimatedSecondsRemaining = useMemo(() => estimateRemainingGenerationSeconds({
@@ -443,7 +465,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   const nextRenderRecoveryDelayMs = AUTOMATION_RETRY_DELAYS_MS[Math.min(renderRecoveryAttempt, AUTOMATION_RETRY_DELAYS_MS.length - 1)]!;
 
   const processNext = useCallback(async () => {
-    if (!nextOutput || processingOutputId) return;
+    if (!nextOutput || processingOutputId || isStoppingGeneration || hasStoppedGeneration) return;
     setProcessingOutputId(nextOutput.id);
     setProcessingStartedAt(Date.now());
     setMessage("");
@@ -463,7 +485,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       setProcessingOutputId(null);
       setProcessingStartedAt(null);
     }
-  }, [load, nextOutput, processingOutputId, scope]);
+  }, [hasStoppedGeneration, isStoppingGeneration, load, nextOutput, processingOutputId, scope]);
 
   const beginBrowserImageRender = useCallback((outputId: string) => {
     setProcessingOutputId(outputId);
@@ -484,11 +506,12 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     }
   }, [scope]);
 
-  const persistBrowserImagePlan = useCallback(async (output: AutomationOutput, browserRenderPlan: unknown) => {
+  const persistBrowserImagePlan = useCallback(async (output: AutomationOutput, browserRenderPlan: unknown, signal?: AbortSignal) => {
     const response = await fetch("/api/twitter-automation/automation-runs/process", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ outputId: output.id, browserRenderPlan, scope }),
+      signal,
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => null) as { errorCode?: string } | null;
@@ -556,26 +579,59 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
 
   const renderBrowserVideo = useCallback(async (output: AutomationOutput, attempt: number) => {
     if (processingOutputId) return;
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), browserVideoTimeoutMs(attempt));
+    let activeController: AbortController | null = null;
+    let activeAbortCode = "browser_video_plan_timeout";
+    let timeout: number | null = null;
+    const clearActiveTimeout = () => {
+      if (timeout !== null) window.clearTimeout(timeout);
+      timeout = null;
+    };
     let shouldRetry = false;
     let hasPreparedPlan = false;
     setProcessingOutputId(output.id);
     setProcessingStartedAt(Date.now());
     setMessage("");
     try {
-      const plan = await getOrCreateBrowserVideoPlan(browserVideoPlans.current, output, controller.signal);
+      const planController = new AbortController();
+      activeController = planController;
+      activeAbortCode = "browser_video_plan_timeout";
+      timeout = window.setTimeout(() => planController.abort(), BROWSER_VIDEO_PLAN_TIMEOUT_MS);
+      const plan = await getOrCreateBrowserVideoPlan(browserVideoPlans.current, output, planController.signal);
       hasPreparedPlan = true;
-      if (!output.render_plan) await persistBrowserImagePlan(output, plan);
-      const sourceUrl = await resolveBrowserMusicVideoSourceUrl(output, scope, controller.signal);
-      await renderPreparedBrowserVideo(sourceUrl ? { ...output, mediaUrl: sourceUrl } : output, plan, controller.signal, scope);
+      if (!output.render_plan) await persistBrowserImagePlan(output, plan, planController.signal);
+      const sourceUrl = await resolveBrowserMusicVideoSourceUrl(output, scope, planController.signal);
+      clearActiveTimeout();
+
+      const renderController = new AbortController();
+      activeController = renderController;
+      activeAbortCode = "browser_video_render_timeout";
+      const resetRenderStallWatchdog = () => {
+        clearActiveTimeout();
+        timeout = window.setTimeout(() => renderController.abort(), BROWSER_VIDEO_RENDER_STALL_TIMEOUT_MS);
+      };
+      resetRenderStallWatchdog();
+      const blob = await renderPreparedBrowserVideo(sourceUrl ? { ...output, mediaUrl: sourceUrl } : output, plan, renderController.signal, resetRenderStallWatchdog);
+      clearActiveTimeout();
+
+      let staged: Awaited<ReturnType<typeof stageBrowserVideo>>;
+      try {
+        staged = await stageBrowserVideo(blob, "automation-video", output.id);
+      } catch {
+        throw new Error("browser_video_stage_failed");
+      }
+      const response = await fetch("/api/twitter-automation/automation-runs/process", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ outputId: output.id, stagedMediaPath: staged.path, ...(plan.kind === "music" ? {} : { caption: plan.caption }), scope }),
+      });
+      if (!response.ok) throw new Error("browser_video_stage_failed");
     } catch (error) {
-      const errorCode = controller.signal.aborted ? "browser_video_render_timeout" : browserVideoFailureCode(error);
-      if (hasPreparedPlan && shouldRetryBrowserVideo(attempt)) {
+      const errorCode = activeController?.signal.aborted ? activeAbortCode : browserVideoFailureCode(error);
+      if (shouldRetryBrowserVideo(attempt) && shouldRetryBrowserVideoFailure(errorCode)) {
         shouldRetry = true;
-        setMessage(errorCode === "browser_video_render_timeout"
-          ? `${getOutputLabel(output)} ${formatBrowserVideoTimeout(attempt)} içinde tamamlanamadı. ${formatBrowserVideoTimeout(attempt + 1)} limitli yeniden deneme hazırlanıyor.`
-          : `${getOutputLabel(output)} tekrar renderlanacak. ${formatBrowserVideoTimeout(attempt + 1)} limitli deneme hazırlanıyor.`);
+        setMessage(hasPreparedPlan
+          ? `${getOutputLabel(output)} render işlemi ilerlemedi. Güvenli iptal sonrası ${attempt + 1}. deneme hazırlanıyor.`
+          : `${getOutputLabel(output)} plan/ses hazırlığı tamamlanmadı. ${attempt + 1}. deneme hazırlanıyor.`);
       } else {
         try {
           const failureResponse = await fetch("/api/twitter-automation/automation-runs/process", {
@@ -584,13 +640,13 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
             body: JSON.stringify({ outputId: output.id, browserVideoError: errorCode, scope }),
           });
           if (!failureResponse.ok) throw new Error("automation_video_failure_update_failed");
-          setMessage(errorCode === "browser_video_render_timeout" ? `${getOutputLabel(output)} tüm otomatik denemelerde zaman aşımına uğradı; kuyruk sonraki içerikle devam ediyor.` : `${getOutputLabel(output)} sesli olarak renderlanamadı; kuyruk sonraki içerikle devam ediyor.`);
+          setMessage(`${getOutputLabel(output)} tamamlanamadı (${errorCode}); kuyruk sonraki içerikle devam ediyor.`);
         } catch {
           setMessage(`${getOutputLabel(output)} renderlanamadı ve hata durumu kaydedilemedi.`);
         }
       }
     } finally {
-      window.clearTimeout(timeout);
+      clearActiveTimeout();
       await load();
       setProcessingOutputId(null);
       setProcessingStartedAt(null);
@@ -615,7 +671,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   }, [load, persistBrowserImagePlan, processingOutputId, scope]);
 
   const scheduleAll = useCallback(async () => {
-    if (isTestAutomation || !readyOutputs.length || isSchedulingAll || processingOutputId) return;
+    if (isTestAutomation || isRunFinished || !readyOutputs.length || isSchedulingAll || processingOutputId || retryingOutputId) return;
     setIsSchedulingAll(true);
     setMessage("");
     try {
@@ -624,18 +680,104 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ runId, scope }),
       });
-      const payload = await response.json().catch(() => null) as { scheduled?: number; failed?: number; skipped?: number; errorCode?: string } | null;
+      const payload = await response.json().catch(() => null) as { scheduled?: number; failed?: number; processing?: number; skipped?: number; errorCode?: string } | null;
       if (!response.ok) throw new Error(payload?.errorCode ?? "automation_schedule_failed");
       const scheduledCount = payload?.scheduled ?? 0;
       const skippedMessage = payload?.skipped ? ` ${payload.skipped} hazır olmayan içerik atlandı.` : "";
-      setMessage(payload?.failed ? `${scheduledCount} içerik schedule edildi; ${payload.failed} içerik schedule edilemedi.${skippedMessage}` : `${scheduledCount} içerik belirlenen tarih ve saatlere schedule edildi.${skippedMessage}`);
+      const processingMessage = payload?.processing
+        ? ` ${payload.processing} içerik Upload-Post tarafından işleniyor; aynı medya tekrar yüklenmedi, durum tekrar kontrol edilecek.`
+        : "";
+      setMessage(payload?.failed
+        ? `${scheduledCount} içerik schedule edildi; ${payload.failed} içerik schedule edilemedi.${processingMessage}${skippedMessage}`
+        : payload?.processing
+          ? `${scheduledCount} içerik schedule edildi.${processingMessage}${skippedMessage}`
+          : `${scheduledCount} içerik belirlenen tarih ve saatlere schedule edildi.${skippedMessage}`);
     } catch {
       setMessage("İçerikler schedule edilemedi. Review ekranındaki içerikler korunuyor; tekrar deneyebilirsin.");
     } finally {
       await load();
       setIsSchedulingAll(false);
     }
-  }, [isSchedulingAll, isTestAutomation, load, processingOutputId, readyOutputs.length, runId, scope]);
+  }, [isRunFinished, isSchedulingAll, isTestAutomation, load, processingOutputId, readyOutputs.length, retryingOutputId, runId, scope]);
+
+  const stopGeneration = useCallback(async () => {
+    if (isStoppingGeneration || hasStoppedGeneration || !outputs.length || isRunFinished) return;
+    setIsStoppingGeneration(true);
+    setIsGenerationStoppedLocally(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/twitter-automation/automation-runs/finish", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ runId, action: "stop-generation", scope }),
+      });
+      const payload = await response.json().catch(() => null) as { errorCode?: string } | null;
+      if (!response.ok) throw new Error(payload?.errorCode ?? "automation_run_stop_failed");
+      setIsInterruptedReview(false);
+      await load(true);
+      setMessage("Yeni içerik üretimi durduruldu. Hazır içerikleri şimdi gözden geçirip schedule edebilirsin.");
+    } catch {
+      const refreshed = await load(true);
+      const stopped = Boolean(refreshed?.some((output) => output.run?.generation_stopped_at));
+      setIsGenerationStoppedLocally(stopped);
+      setMessage(stopped
+        ? "Üretim durduruldu; hazır içerikler korunuyor."
+        : "Üretim durdurulamadı. Aynı run güvenle devam ediyor; tekrar deneyebilirsin.");
+    } finally {
+      setIsStoppingGeneration(false);
+    }
+  }, [hasStoppedGeneration, isRunFinished, isStoppingGeneration, load, outputs.length, runId, scope]);
+
+  const finishRun = useCallback(async () => {
+    if (isFinishingRun || isRunFinished || isSchedulingAll || processingOutputId || retryingOutputId || unresolvedOutputs.length) return;
+    if (providerProcessingOutputs.length) {
+      setMessage("Upload-Post tarafında işlenen medya var; run'ı bitirmeden önce yayın durumunun kesinleşmesini beklemeliyiz.");
+      return;
+    }
+    setIsFinishingRun(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/twitter-automation/automation-runs/finish", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ runId, action: "finish", scope }),
+      });
+      const payload = await response.json().catch(() => null) as { errorCode?: string } | null;
+      if (!response.ok) throw new Error(payload?.errorCode ?? "automation_run_finish_failed");
+      setIsRunFinishedLocally(true);
+      await load();
+      setMessage("Bu toplu üretim run'ı tamamlandı.");
+    } catch {
+      setMessage("Run tamamlanamadı. Devam eden işlemler bittiğinde tekrar deneyebilirsin.");
+    } finally {
+      setIsFinishingRun(false);
+    }
+  }, [isFinishingRun, isRunFinished, isSchedulingAll, load, processingOutputId, providerProcessingOutputs.length, retryingOutputId, runId, scope, unresolvedOutputs.length]);
+
+  const retryScheduleOutput = useCallback(async (output: AutomationOutput) => {
+    if (isTestAutomation || processingOutputId || retryingOutputId || isSchedulingAll) return;
+    setRetryingOutputId(output.id);
+    setMessage("");
+    try {
+      const response = await fetch("/api/twitter-automation/automation-runs/schedule", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ runId, outputId: output.id, scope }),
+      });
+      const payload = await response.json().catch(() => null) as { scheduled?: number; failed?: number; processing?: number; errorCode?: string } | null;
+      if (!response.ok) throw new Error(payload?.errorCode ?? "automation_schedule_failed");
+      setMessage(payload?.processing
+        ? `${getOutputLabel(output)} Upload-Post'ta işleniyor; tekrar yükleme yapılmadı. Biraz sonra durumu yeniden kontrol et.`
+        : payload?.failed
+          ? `${getOutputLabel(output)} schedule edilemedi; oluşturulan içerik korunuyor. Tekrar deneyebilirsin.`
+          : `${getOutputLabel(output)} schedule edildi.`);
+    } catch {
+      setMessage(`${getOutputLabel(output)} schedule edilemedi. Üretilen içerik korunuyor; schedule işlemini tekrar deneyebilirsin.`);
+    } finally {
+      await load();
+      setRetryingOutputId(null);
+    }
+  }, [isSchedulingAll, isTestAutomation, load, processingOutputId, retryingOutputId, runId, scope]);
 
   const refreshGeneratedMedia = useCallback(async () => {
     if (isRefreshingGeneratedMedia || processingOutputId) return;
@@ -661,13 +803,13 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   }, [isRefreshingGeneratedMedia, load, processingOutputId, runId, scope]);
 
   const resumeAutomation = useCallback(async () => {
-    if (processingOutputId || retryingOutputId) return;
+    if (hasStoppedGeneration || processingOutputId || retryingOutputId) return;
     setMessage("");
     const refreshedOutputs = await load(true);
     if (!refreshedOutputs) return;
     setIsInterruptedReview(false);
     if (refreshedOutputs.some(needsGeneration)) setMessage("Bağlantı geri geldi. Üretim kuyruğu kaldığı yerden devam ediyor.");
-  }, [load, processingOutputId, retryingOutputId]);
+  }, [hasStoppedGeneration, load, processingOutputId, retryingOutputId]);
 
   const cancelResumeCooldown = useCallback(() => {
     setIsResumeCooldownCancelled(true);
@@ -675,7 +817,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   }, []);
 
   const retryOutput = useCallback(async (output: AutomationOutput) => {
-    if (processingOutputId || retryingOutputId) return;
+    if (hasStoppedGeneration || isRunFinished || processingOutputId || retryingOutputId) return;
 
     setRetryingOutputId(output.id);
     setMessage("");
@@ -708,7 +850,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     } finally {
       setRetryingOutputId(null);
     }
-  }, [processingOutputId, retryingOutputId, scope]);
+  }, [hasStoppedGeneration, isRunFinished, processingOutputId, retryingOutputId, scope]);
 
   const deleteOutput = useCallback(async (output: AutomationOutput) => {
     if (deletingOutputId || processingOutputId || output.status === "scheduled") return;
@@ -834,22 +976,22 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   }, [isRecoveringFailedOutputs, recoveryOutputs, renderRecoveryEndsAt, retryRecoveryOutputs, shouldRecoverFailedOutputs]);
 
   useEffect(() => {
-    if (!nextOutput || processingOutputId || state !== "ready" || isRecoveringFailedOutputs) return;
+    if (hasStoppedGeneration || isStoppingGeneration || !nextOutput || processingOutputId || state !== "ready" || isRecoveringFailedOutputs) return;
     const delay = nextOutput.status === "generating_video" ? 8_000 : 500;
     const timer = window.setTimeout(() => void processNext(), delay);
     return () => window.clearTimeout(timer);
-  }, [isRecoveringFailedOutputs, nextOutput, processNext, processingOutputId, state]);
+  }, [hasStoppedGeneration, isRecoveringFailedOutputs, isStoppingGeneration, nextOutput, processNext, processingOutputId, state]);
 
   useEffect(() => {
     const hasPendingServerProcessing = unresolvedOutputs.some((output) => output.status === "processing");
     const hasDelayedRecovery = unresolvedOutputs.some((output) => !isAttemptDue(output, Date.now()));
-    if ((!nextOutput && !hasPendingServerProcessing && !hasDelayedRecovery) || processingOutputId || state !== "ready" || isInterruptedReview || isRecoveringFailedOutputs) return;
+    if (hasStoppedGeneration || (!nextOutput && !hasPendingServerProcessing && !hasDelayedRecovery) || processingOutputId || state !== "ready" || isInterruptedReview || isRecoveringFailedOutputs) return;
     const timer = window.setInterval(() => void load(), nextOutput?.status === "generating_video" ? 8_000 : 4_000);
     return () => window.clearInterval(timer);
-  }, [isInterruptedReview, isRecoveringFailedOutputs, load, nextOutput, processingOutputId, state, unresolvedOutputs]);
+  }, [hasStoppedGeneration, isInterruptedReview, isRecoveringFailedOutputs, load, nextOutput, processingOutputId, state, unresolvedOutputs]);
 
   useEffect(() => {
-    if (state !== "ready" || processingOutputId || isInterruptedReview || isRecoveringFailedOutputs) return;
+    if (hasStoppedGeneration || isStoppingGeneration || state !== "ready" || processingOutputId || isInterruptedReview || isRecoveringFailedOutputs) return;
     const nextBrowserVideo = browserVideoOutputs.find((output) => !autoStartedBrowserVideoIds.current.has(output.id));
     if (!nextBrowserVideo) return;
 
@@ -858,7 +1000,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
     autoStartedBrowserVideoIds.current.add(nextBrowserVideo.id);
     const timer = window.setTimeout(() => void renderBrowserVideo(nextBrowserVideo, attempt), 0);
     return () => window.clearTimeout(timer);
-  }, [browserVideoOutputs, browserVideoRetryToken, isInterruptedReview, isRecoveringFailedOutputs, processingOutputId, renderBrowserVideo, state]);
+  }, [browserVideoOutputs, browserVideoRetryToken, hasStoppedGeneration, isInterruptedReview, isRecoveringFailedOutputs, isStoppingGeneration, processingOutputId, renderBrowserVideo, state]);
 
   useEffect(() => () => {
     browserVideoRetryTimers.current.forEach((timer) => window.clearTimeout(timer));
@@ -899,9 +1041,10 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       : state === "loading"
         ? "İçerik sırası hazırlanıyor"
         : "İçerikler hazırlanıyor");
+  const scheduleDateText = formatRunDate(outputs.find((output) => output.run?.schedule_date)?.run?.schedule_date);
 
   return <section aria-labelledby={`automation-run-${runId}-title`} aria-live="polite" className="flex max-h-[calc(100dvh-2rem)] w-[min(70rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl bg-[#2c63e1] text-white shadow-sm">
-    {state === "ready" && !isInterruptedReview && browserImageOutput ? <AutomationBrowserImageRenderer
+    {state === "ready" && !isInterruptedReview && !hasStoppedGeneration && !isStoppingGeneration && browserImageOutput ? <AutomationBrowserImageRenderer
       key={browserImageOutput.id}
       onComplete={handleBrowserImageComplete}
       onError={handleBrowserImageError}
@@ -910,7 +1053,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       output={browserImageOutput}
     /> : null}
     <header className="flex min-h-14 shrink-0 items-center justify-between gap-3 px-4">
-      <div className="min-w-0"><p className="truncate text-sm font-semibold" id={`automation-run-${runId}-title`}>{isResultScreen ? "Üretilen içerikler" : "İçerikler hazırlanıyor"}</p><p className="truncate text-xs text-white">{outputs.length} içerik · {completeCount} başarılı</p></div>
+      <div className="min-w-0"><p className="truncate text-sm font-semibold" id={`automation-run-${runId}-title`}>{isRunFinished ? "Tamamlanan toplu üretim" : isResultScreen ? "Üretilen içerikler" : "İçerikler hazırlanıyor"}</p><p className="truncate text-xs text-white">{outputs.length} içerik · {completeCount} başarılı{scheduleDateText ? ` · Yayın günü: ${scheduleDateText}` : ""}</p></div>
       <div className="flex items-center gap-2"><Button aria-label="İçerik durumunu yenile" className="size-8 rounded border-transparent bg-white/[0.06] p-0 text-white hover:bg-white/[0.12]" disabled={state === "loading" || Boolean(processingOutputId) || isSchedulingAll || isRefreshingGeneratedMedia} onClick={() => void load(true)} type="button"><RefreshCw className={cn("size-3.5", (state === "loading" || isRefreshingGeneratedMedia) && "animate-spin")} /></Button><Button className="h-8 rounded border-white/10 bg-white/[0.06] px-3 text-xs text-white hover:bg-white/[0.12]" disabled={Boolean(processingOutputId) || isSchedulingAll || isRefreshingGeneratedMedia || (state === "ready" && !isReviewReady)} onClick={onClose} type="button"><X className="size-3.5" />Kapat</Button></div>
     </header>
 
@@ -936,23 +1079,30 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{outputs.map((output) => {
         const ready = isReadyForSchedule(output);
         const scheduled = output.status === "scheduled";
+        const skipped = output.status === "skipped";
+        const providerProcessing = output.schedule_error_code === UPLOAD_POST_REQUEST_UNCONFIRMED_CODE;
+        const scheduleFailed = !providerProcessing && (output.schedule_status === "failed" || output.schedule_status === "partially_scheduled");
+        const providerRecheckReady = providerProcessing && now - Date.parse(output.schedule_attempted_at ?? "") >= UPLOAD_POST_REQUEST_RECHECK_DELAY_MS;
         const isPendingVerification = needsGeneration(output);
         const canRetry = output.status === "failed" || isPendingVerification;
         const storageStatus = bucketStatusLabel(output);
         return <article className="overflow-hidden rounded-2xl border border-white/30 bg-white p-3 text-black" key={output.id}>
-          <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-semibold text-black">{output.group_name}</p><p className="mt-1 truncate text-[11px] text-black">{getOutputLabel(output)}</p></div>{ready || scheduled ? <div className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-black"><Check aria-label="İçerik başarılı" className="size-4" />Başarılı</div> : isPendingVerification ? <div className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-black"><CircleAlert aria-label="İçerik beklemede" className="size-4" />Beklemede</div> : <div className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-black"><CircleAlert aria-label="İçerik üretilemedi" className="size-4" />Hatalı</div>}</div>
+          <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-semibold text-black">{output.group_name}</p><p className="mt-1 truncate text-[11px] text-black">{getOutputLabel(output)}</p></div>{scheduleFailed ? <div className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-[#b42318]"><CircleAlert aria-label="Schedule başarısız" className="size-4" />Schedule hatası</div> : ready || scheduled ? <div className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-black"><Check aria-label="İçerik başarılı" className="size-4" />Başarılı</div> : skipped ? <div className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-[#64748b]"><CircleAlert aria-label="İçerik atlandı" className="size-4" />Atlandı</div> : isPendingVerification ? <div className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-black"><CircleAlert aria-label="İçerik beklemede" className="size-4" />Beklemede</div> : <div className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-black"><CircleAlert aria-label="İçerik üretilemedi" className="size-4" />Üretim hatası</div>}</div>
+          {providerProcessing ? <div className="mt-3 rounded-lg border border-[#f1d28a] bg-[#fff9e8] px-2.5 py-2 text-[11px] leading-4 text-[#795600]">Upload-Post yanıtı henüz doğrulanmadı. Olası çift paylaşımı önlemek için aynı medya yeniden gönderilmeden önce mevcut istek kontrol edilecek.</div> : null}
           <div className="mt-3 flex items-center gap-2 text-xs text-black"><CalendarClock className="size-3.5 shrink-0 text-black" /><span>{scheduled ? "Schedule edildi:" : "Schedule zamanı:"} {formatScheduledAt(output.scheduled_at)}</span></div>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold"><span className={storageStatus.className}>{storageStatus.label}</span><span className="font-mono text-[10px] text-black/55">#{output.id.slice(0, 8)}</span></div>
           <div className="relative mt-3">
             {output.mediaUrls?.length ? <div className="grid grid-cols-3 gap-1 overflow-hidden rounded-xl border border-black/10 bg-black p-1">{output.mediaUrls.map((mediaUrl, index) => <div className="relative aspect-[3/4] overflow-hidden rounded-lg" key={mediaUrl}><Image alt={`${output.group_name} görseli ${index + 1}`} className="object-cover" fill sizes="(min-width: 1280px) 7rem, (min-width: 768px) 9vw, 28vw" src={mediaUrl} unoptimized /></div>)}</div> : output.mediaUrl ? <div className="overflow-hidden rounded-xl border border-black/10 bg-black">{output.media_type === "video" ? <video className="aspect-video w-full object-contain" controls src={output.mediaUrl} /> : <div className="relative aspect-square"><Image alt={`${output.group_name} üretilen içerik`} className="object-contain" fill sizes="(min-width: 1280px) 22rem, (min-width: 768px) 30vw, 90vw" src={output.mediaUrl} unoptimized /></div>}</div> : output.content_type === "text" ? <div className="flex min-h-28 items-start gap-2 rounded-xl border border-black/10 bg-[#f5f7fb] p-3 text-xs leading-5 text-black"><MessageSquareText className="mt-0.5 size-4 shrink-0 text-black" /><p>{output.caption ?? "Metin içeriği hazırlanamadı."}</p></div> : <div className="grid aspect-square place-items-center rounded-xl border border-dashed border-black/10 bg-[#f5f7fb] text-black">{output.content_type === "video" ? <Video className="size-6" /> : <ImageIcon className="size-6" />}</div>}
             <MediaStatusHint errorCode={output.error_code} errorDetail={formatProviderFailureDetail(output)} pendingMessage={isPendingVerification ? pendingGenerationMessage(output, isInterruptedReview) : undefined} />
           </div>
-          {canRetry ? <Button className={cn("mt-3 h-8 w-full px-3 text-xs", isPendingVerification ? "border border-[#f1c75b]/50 bg-[#312816] text-[#ffe7a0] hover:bg-[#40351e]" : "border border-[#ffb9c1]/45 bg-[#3b211e] text-[#ffd9de] hover:bg-[#4a2822]")} disabled={Boolean(processingOutputId) || Boolean(retryingOutputId)} onClick={() => void retryOutput(output)} type="button">{retryingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}{isPendingVerification ? "Yeniden dene" : "Yeniden üret"}</Button> : null}
+          {scheduleFailed ? <div className="mt-3 rounded-lg border border-[#f4b9b4] bg-[#fff0ef] px-2.5 py-2 text-[11px] leading-4 text-[#8e2118]">Schedule başarısız oldu; üretim dosyaları ve içerik korunuyor. Hata: {output.schedule_error_detail ?? output.schedule_error_code ?? "automation_schedule_failed"}</div> : null}
+          {providerProcessing ? <Button className="mt-3 h-8 w-full border border-[#f1c75b]/50 bg-[#312816] px-3 text-xs text-[#ffe7a0] hover:bg-[#40351e]" disabled={!providerRecheckReady || isTestAutomation || isRunFinished || Boolean(processingOutputId) || Boolean(retryingOutputId) || isSchedulingAll} onClick={() => void retryScheduleOutput(output)} type="button">{retryingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}{providerRecheckReady ? "Upload-Post durumunu kontrol et" : "Upload-Post işlemi sürüyor"}</Button> : null}
+          {scheduleFailed && output.schedule_error_code !== "automation_scheduled_at_in_past" ? <Button className="mt-3 h-8 w-full border border-[#f1c75b]/50 bg-[#312816] px-3 text-xs text-[#ffe7a0] hover:bg-[#40351e]" disabled={isTestAutomation || isRunFinished || Boolean(processingOutputId) || Boolean(retryingOutputId) || isSchedulingAll} onClick={() => void retryScheduleOutput(output)} type="button">{retryingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}Schedule&apos;ı yeniden dene</Button> : canRetry && !hasStoppedGeneration && !isRunFinished ? <Button className={cn("mt-3 h-8 w-full px-3 text-xs", isPendingVerification ? "border border-[#f1c75b]/50 bg-[#312816] text-[#ffe7a0] hover:bg-[#40351e]" : "border border-[#ffb9c1]/45 bg-[#3b211e] text-[#ffd9de] hover:bg-[#4a2822]")} disabled={Boolean(processingOutputId) || Boolean(retryingOutputId)} onClick={() => void retryOutput(output)} type="button">{retryingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}{isPendingVerification ? "Yeniden dene" : "Yeniden üret"}</Button> : null}
           {!scheduled ? <Button aria-label="Generated postu ve Storage kaydını sil" className="mt-2 h-8 w-full border border-[#fecaca] bg-[#fff1f2] px-3 text-xs text-[#c0262d] hover:bg-[#fee2e2]" disabled={Boolean(processingOutputId) || Boolean(retryingOutputId) || Boolean(deletingOutputId)} onClick={() => void deleteOutput(output)} title="Generated postu ve Storage kaydını sil" type="button">{deletingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}İçeriği ve Storage kaydını sil</Button> : null}
         </article>;
       })}</div>
     </main>}
 
-    {isResultScreen ? <footer className="flex shrink-0 flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-white">{isInterruptedReview ? FLOW_REFRESH_ERROR_MESSAGE : isTestAutomation ? "TEST modu: üretilen içerikler production'a schedule edilemez." : message || (readyOutputs.length ? `${readyOutputs.length} içerik schedule onayını bekliyor.` : "Schedule edilecek hazır içerik kalmadı.")}</p><div className="flex flex-wrap gap-2">{isInterruptedReview ? <ResumeAutomationControl cooldownSeconds={resumeCooldownSeconds} disabled={Boolean(processingOutputId) || Boolean(retryingOutputId)} onCancelCooldown={cancelResumeCooldown} onResume={() => void resumeAutomation()} /> : null}<div className="flex flex-col gap-2"><Button className="h-10 bg-white px-4 text-sm text-[#2c63e1] hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-45" disabled={isTestAutomation || !readyOutputs.length || isSchedulingAll || Boolean(processingOutputId) || isRefreshingGeneratedMedia} onClick={() => void scheduleAll()} title={isTestAutomation ? "TEST modunda production scheduling kapalıdır" : "Yalnızca hazır içerikler schedule edilir"} type="button">{isTestAutomation ? <CalendarClock className="size-4" /> : isSchedulingAll ? <LoaderCircle className="size-4 animate-spin" /> : <CalendarClock className="size-4" />}{isTestAutomation ? "Schedule all kilitli (TEST)" : `Schedule all (${readyOutputs.length})`}</Button><Button className="h-9 border border-white/15 bg-white/[0.06] px-4 text-xs text-white hover:bg-white/[0.12] disabled:cursor-not-allowed disabled:opacity-45" disabled={Boolean(processingOutputId) || isSchedulingAll || isRefreshingGeneratedMedia} onClick={() => void refreshGeneratedMedia()} title="Önizlemeleri Storage’dan yeniden yükle ve medyayı doğrula" type="button">{isRefreshingGeneratedMedia ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}Önizlemeleri yenile</Button></div></div></footer> : <footer className="flex min-h-10 shrink-0 items-center px-4 text-xs text-white">{renderRecoveryStatus || message || progressStatus}</footer>}
+    {isResultScreen ? <footer className="flex shrink-0 flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-white">{isRunFinished ? "Bu toplu üretim run'ı tamamlandı." : isInterruptedReview ? FLOW_REFRESH_ERROR_MESSAGE : isTestAutomation ? "TEST modu: üretilen içerikler production'a schedule edilemez." : message || (readyOutputs.length ? `${readyOutputs.length} içerik schedule onayını bekliyor.` : "Schedule edilecek hazır içerik kalmadı.")}</p><div className="flex flex-wrap gap-2">{isInterruptedReview && !hasStoppedGeneration ? <ResumeAutomationControl cooldownSeconds={resumeCooldownSeconds} disabled={Boolean(processingOutputId) || Boolean(retryingOutputId)} onCancelCooldown={cancelResumeCooldown} onResume={() => void resumeAutomation()} /> : null}<div className="flex flex-col gap-2">{!hasStoppedGeneration && unresolvedOutputs.length > 0 ? <Button className="h-10 border border-white/20 bg-white/[0.08] px-4 text-sm text-white hover:bg-white/[0.14] disabled:opacity-45" disabled={isStoppingGeneration || isRunFinished} onClick={() => void stopGeneration()} type="button">{isStoppingGeneration ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />}Kalanları atla</Button> : null}<Button className="h-10 bg-white px-4 text-sm text-[#2c63e1] hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-45" disabled={isRunFinished || isTestAutomation || !readyOutputs.length || isSchedulingAll || Boolean(processingOutputId) || Boolean(retryingOutputId) || isRefreshingGeneratedMedia} onClick={() => void scheduleAll()} title={isTestAutomation ? "TEST modunda production scheduling kapalıdır" : "Yalnızca hazır içerikler schedule edilir; başarısız olanlar schedule olarak yeniden denenir."} type="button">{isTestAutomation ? <CalendarClock className="size-4" /> : isSchedulingAll ? <LoaderCircle className="size-4 animate-spin" /> : <CalendarClock className="size-4" />}{isTestAutomation ? "Schedule all kilitli (TEST)" : `Schedule all (${readyOutputs.length})`}</Button><Button className="h-9 border border-white/15 bg-white/[0.06] px-4 text-xs text-white hover:bg-white/[0.12] disabled:cursor-not-allowed disabled:opacity-45" disabled={isRunFinished || Boolean(processingOutputId) || Boolean(retryingOutputId) || isSchedulingAll || isRefreshingGeneratedMedia} onClick={() => void refreshGeneratedMedia()} title="Önizlemeleri Storage’dan yeniden yükle ve medyayı doğrula" type="button">{isRefreshingGeneratedMedia ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}Önizlemeleri yenile</Button>{!isRunFinished ? <Button className="h-10 bg-[#c7f05d] px-4 text-sm font-semibold text-[#17240a] hover:bg-[#d6ff74] disabled:cursor-not-allowed disabled:opacity-45" disabled={isFinishingRun || isSchedulingAll || Boolean(processingOutputId) || Boolean(retryingOutputId) || unresolvedOutputs.length > 0 || isRefreshingGeneratedMedia} onClick={() => void finishRun()} title="Bu batch'i sonlandır; daha sonra bu run'a üretim eklenmez." type="button">{isFinishingRun ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />}{isFinishingRun ? "Run bitiriliyor…" : "Run'ı bitir"}</Button> : null}</div></div></footer> : <footer className="flex min-h-12 shrink-0 items-center justify-between gap-3 px-4 py-2 text-xs text-white"><span>{renderRecoveryStatus || message || progressStatus}</span><Button className="h-9 shrink-0 bg-white px-3 text-xs font-semibold text-[#2c63e1] hover:bg-white/90 disabled:opacity-50" disabled={!outputs.length || state === "loading" || isStoppingGeneration || hasStoppedGeneration || isRunFinished} onClick={() => void stopGeneration()} type="button">{isStoppingGeneration ? <LoaderCircle className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}{isStoppingGeneration ? "Durduruluyor…" : "Bu kadarı yeterli — sonuçlara geç"}</Button></footer>}
   </section>;
 }

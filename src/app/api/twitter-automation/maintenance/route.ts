@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cleanupStagedAutomationMedia } from "@/features/twitter-automation/automation-run-service";
+import { cleanupAllAutomationRunData } from "@/features/twitter-automation/automation-maintenance-service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,9 +13,10 @@ export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ errorCode: "forbidden" }, { status: 403 });
 
   try {
-    const result = await cleanupStagedAutomationMedia();
+    const result = await cleanupAllAutomationRunData();
     return NextResponse.json(result);
-  } catch {
-    return NextResponse.json({ errorCode: "automation_media_cleanup_failed" }, { status: 503 });
+  } catch (error) {
+    console.error("[automation-maintenance] Daily run and media cleanup failed", error);
+    return NextResponse.json({ errorCode: "automation_run_cleanup_failed" }, { status: 503 });
   }
 }

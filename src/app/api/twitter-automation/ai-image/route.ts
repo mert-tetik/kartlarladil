@@ -3,7 +3,7 @@ import { TIERS } from "@/data/tiers";
 import { isLanguageCode } from "@/data/languages";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
-import { generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
+import { FOXIESDECK_MASCOT_IMAGE_STYLE, generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
 import { generateSocialStudioTextWithFallback, getSocialStudioResponsesErrorCode, getSocialStudioResponsesProviderLabel, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
 import { createNativeVisualCaption, finalizeNativeCaption } from "@/features/twitter-automation/social-video-titles";
@@ -146,12 +146,13 @@ async function createArtDirection(mode: ImageMode, language: LanguageCode, nativ
         ? "Return one JSON object with exactly three fields: artDirection, caption, and falseFriend. falseFriend is an object. Do not add markdown or any text outside the JSON object."
         : "Return one JSON object with exactly two string fields: artDirection and caption. Do not add markdown or any text outside the JSON object.",
       "artDirection must be a detailed, production-ready English image-generation prompt for a 1:1 social media visual.",
+      FOXIESDECK_MASCOT_IMAGE_STYLE,
       "caption must be a ready-to-post social caption written in the selected native language. It needs a concise hook or title and natural emoji only when appropriate. Do not include any hashtags, because the app appends curated hashtags for the selected learning language after generation. Keep the caption itself below 240 characters. If the visual asks a question, quiz, or challenge, never reveal or hint at its answer in the caption.",
       "For False Friends mode only, also include a falseFriend object with exactly four string fields: firstTerm, secondTerm, firstMeaning, secondMeaning. Choose two real, related words from the selected learning language whose nuances differ clearly in intensity, register, scope, or typical situation. Do not choose cross-language false cognates, lookalikes, direct translations, antonyms, or interchangeable synonyms. The native language is only for writing the caption and explaining meanings, never for selecting the two terms. The pair must be completely random and must not repeat any false-friend pair used in the previous few generations.",
       `Caption format for this mode: ${CAPTION_BRIEFS[mode]}`,
       "Describe composition, camera angle, visual hierarchy, precise placement, lighting, material finish, typography treatment, and the relationship between the mascot and vocabulary cards.",
-      "Use a polished minimalist 3D card-collecting aesthetic. Cards must look like real FoxiesDeck vocabulary cards, not generic flashcards.",
-      "Use the selected card tier as the dominant colour family. Keep generous negative space and strong social-media readability.",
+      "Use a polished premium 3D card-collecting aesthetic. Cards must look like real FoxiesDeck vocabulary cards, not generic flashcards.",
+      "Keep the overall scene orange-led, while preserving each selected card tier's real signature colour on the card and tier badge. Keep generous negative space and strong social-media readability.",
       "Three brand reference images are supplied in this exact order. Reference image 1 is FoxiesDeck's fox mascot. Use that exact mascot identity whenever a mascot appears. It is a 2D character by default; if the requested composition needs 3D, reinterpret the same face, ears, tail, palette, and expression as a faithful polished 3D figurine, never as a different fox or animal.",
       "Reference image 2 is the official FoxiesDeck splash wordmark. When the composition needs the FoxiesDeck name, reproduce only this wordmark, not a newly invented type treatment.",
       "Reference image 3 is the official FoxiesDeck logo. If a compact logo mark is useful, use this exact logo and do not substitute a generic symbol.",

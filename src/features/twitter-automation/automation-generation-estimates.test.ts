@@ -19,6 +19,7 @@ describe("automation generation estimates", () => {
       outputs: [
         { id: "ready", contentType: "text", generator: "fun-post", status: "ready_to_schedule" },
         { id: "failed", contentType: "image", generator: "ai-mini-quiz", status: "failed" },
+        { id: "skipped", contentType: "video", generator: "marketing-dialogue-video", status: "skipped" },
         { id: "audio", contentType: "video", generator: "music-word-of-the-day", status: "awaiting_browser_video" },
       ],
     })).toBe(180);

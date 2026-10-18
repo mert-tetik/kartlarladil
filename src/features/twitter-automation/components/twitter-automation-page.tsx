@@ -34,6 +34,7 @@ import { stageBrowserVideo } from "@/features/twitter-automation/browser-media-s
 import { renderConfusedWordsVideo, type ConfusedWordsVideoScene } from "@/features/twitter-automation/confused-words-video-renderer";
 import { renderDialogueVideo, type DialogueVideoScene } from "@/features/twitter-automation/dialogue-video-renderer";
 import { MUSIC_VIDEO_DURATION_SECONDS, prepareMusicVideoAudio, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
+import { SOCIAL_AUDIO_TRACKS } from "@/features/twitter-automation/social-audio-tracks";
 import { renderOriginalMascotLearningVideo } from "@/features/twitter-automation/original-mascot-learning-video-renderer";
 import type { OriginalMascotLearningVideoMode, OriginalMascotLearningVideoPayload } from "@/features/twitter-automation/original-mascot-learning-video";
 import { formatSocialStudioClientFailure, formatSocialStudioFailure, type SocialStudioFailurePayload } from "@/features/twitter-automation/social-studio-diagnostics";
@@ -164,16 +165,6 @@ const VIDEO_GENERATOR_OPTIONS: Array<{ value: VideoGeneratorMode; label: string;
     description: `A ${MUSIC_VIDEO_DURATION_SECONDS}-second visual loop with a licensed social-video soundtrack`,
   })),
 ];
-
-const SOCIAL_VIDEO_MUSIC_TRACKS = [
-  { label: "Music 1", url: "/social-audio/music1.mp3" },
-  { label: "Music 2", url: "/social-audio/music2.mp3" },
-  { label: "Music 3", url: "/social-audio/music3.mp3" },
-  { label: "Music 4", url: "/social-audio/music4.mp3" },
-  { label: "Music 5", url: "/social-audio/music5.mp3" },
-  { label: "Music 6", url: "/social-audio/music6.mp3" },
-  { label: "Music 7", url: "/social-audio/music7.mp3" },
-] as const;
 
 const GENERATOR_OPTIONS = {
   text: [
@@ -1073,7 +1064,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
   async function generateMusicVideo(mode: MusicVideoGeneratorMode) {
     const sourceMode = getMusicVideoImageMode(mode);
-    const musicTrack = SOCIAL_VIDEO_MUSIC_TRACKS[Math.floor(Math.random() * SOCIAL_VIDEO_MUSIC_TRACKS.length)];
+    const musicTrack = SOCIAL_AUDIO_TRACKS[Math.floor(Math.random() * SOCIAL_AUDIO_TRACKS.length)]!;
     let audioContext: AudioContext | null = null;
 
     setIsLoading(true);

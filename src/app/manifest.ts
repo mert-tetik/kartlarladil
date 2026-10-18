@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { APP_NAME } from "@/lib/constants";
+import { APP_NAME, SITE_LOGO_PATH } from "@/lib/constants";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -18,27 +18,18 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ["education", "lifestyle"],
     icons: [
       {
-        src: "/icon-192.png",
-        sizes: "192x192",
+        // This is the website/PWA icon. AAB generation overrides its icon
+        // sources explicitly with public/AppLogo2.png.
+        src: SITE_LOGO_PATH,
+        sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icon.png",
-        sizes: "1024x1024",
-        type: "image/png",
-        purpose: "any",
-      },
-      {
-        src: "/icon-maskable.png",
-        sizes: "1024x1024",
+        src: SITE_LOGO_PATH,
+        sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
-      },
-      {
-        src: "/apple-icon.png",
-        sizes: "180x180",
-        type: "image/png",
       },
     ],
   };

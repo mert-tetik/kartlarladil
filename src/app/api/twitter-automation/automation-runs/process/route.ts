@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
 
     const { data: run, error: runError } = await supabase
       .from("social_content_automation_runs")
-      .select("id")
+      .select("id,generation_stopped_at,finished_by_user_at")
       .eq("id", candidate.run_id)
       .eq("owner_key", ownerKey)
       .maybeSingle();
@@ -112,6 +112,9 @@ export async function POST(request: NextRequest) {
     if (!run) {
       logAutomationOutputFailure("automation_output_not_found", candidate, new Error("automation_output_not_found"), { scope: ownerKey });
       return NextResponse.json({ errorCode: "automation_output_not_found" }, { status: 404 });
+    }
+    if (run.generation_stopped_at || run.finished_by_user_at) {
+      return NextResponse.json({ errorCode: "automation_run_generation_stopped" }, { status: 409 });
     }
     if (stagedPaths.some((path) => !isStagedMediaPathForOutput(path, candidate.id))) {
       logAutomationOutputFailure("automation_staged_media_output_mismatch", candidate, new Error("automation_staged_media_output_mismatch"), { scope: ownerKey });

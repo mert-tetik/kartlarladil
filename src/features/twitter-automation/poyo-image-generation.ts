@@ -8,6 +8,12 @@ const IMAGE_TASK_TIMEOUT_MS = 300_000;
 const IMAGE_TASK_POLL_INTERVAL_MS = 5_000;
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 
+export const FOXIESDECK_MASCOT_IMAGE_STYLE = [
+  "GLOBAL FOXIESDECK MASCOT VISUAL DIRECTION — orange-led DORFic × Frutiger Aero.",
+  "Give the scene an optimistic, bright-daylight retro-futurist atmosphere led by vivid tangerine, warm orange, amber, and warm white. Use glossy translucent glass, a few floating glass spheres, rounded built-in forms, subtle orbital rings, fine horizontal light bands, and soft water-like reflections. Add restrained aqua or mint highlights as secondary accents; orange remains the dominant environmental mood. Keep it polished and airy, never noisy or generic neon-gradient wallpaper.",
+  "Preserve the exact FoxiesDeck fox mascot identity and the requested subject, layout, and all specified text. Apply this style to the scene, lighting, surfaces, and materials; do not alter vocabulary facts or legibility. Preserve any semantically required tier colours on the vocabulary cards and badges, while keeping the overall atmosphere orange-led.",
+].join("\n");
+
 type PoyoImageSize = "1:1" | "2:3";
 type PoyoTaskStatus = "not_started" | "running" | "finished" | "failed";
 
@@ -52,12 +58,12 @@ async function getBrandReferenceUrls(apiKey: string) {
   // even though the image provider needs only these three references.
   const mascot = await readFile(join(process.cwd(), "public", "mascots", "mascot1.webp"));
   const wordmark = await readFile(join(process.cwd(), "public", "splash.png"));
-  const logo = await readFile(join(process.cwd(), "public", "logo.webp"));
+  const logo = await readFile(join(process.cwd(), "public", "AppLogdfo.png"));
 
   return await Promise.all([
     uploadBase64Asset(`data:image/webp;base64,${mascot.toString("base64")}`, `${requestId}-foxiesdeck-mascot.webp`, apiKey),
     uploadBase64Asset(`data:image/png;base64,${wordmark.toString("base64")}`, `${requestId}-foxiesdeck-wordmark.png`, apiKey),
-    uploadBase64Asset(`data:image/webp;base64,${logo.toString("base64")}`, `${requestId}-foxiesdeck-logo.webp`, apiKey),
+    uploadBase64Asset(`data:image/png;base64,${logo.toString("base64")}`, `${requestId}-foxiesdeck-logo.png`, apiKey),
   ]);
 }
 
@@ -155,6 +161,7 @@ export async function generatePoyoImageEdit({
 }) {
   const apiKey = getPoyoApiKey();
   const imageUrls = await getBrandReferenceUrls(apiKey);
-  const taskId = await submitImageEdit(prompt, size, imageUrls, apiKey);
+  const mascotStyledPrompt = `${prompt.trim()}\n\n${FOXIESDECK_MASCOT_IMAGE_STYLE}`;
+  const taskId = await submitImageEdit(mascotStyledPrompt, size, imageUrls, apiKey);
   return await downloadImage(await waitForImage(taskId, apiKey, timeoutMs));
 }

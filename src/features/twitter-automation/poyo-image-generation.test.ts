@@ -19,7 +19,7 @@ describe("PoYo GPT Image 2 image editing", () => {
         const body = JSON.parse(init?.body as string) as { file_name: string };
         const fileName = body.file_name.endsWith("mascot.webp") ? "mascot.webp"
           : body.file_name.endsWith("wordmark.png") ? "wordmark.png"
-            : "logo.webp";
+            : "logo.png";
         return Response.json({ data: { file_url: `https://poyo.test/${fileName}` } });
       }
       if (input.endsWith("/api/generate/submit")) return Response.json({ data: { task_id: "image-task-1" } });
@@ -40,17 +40,19 @@ describe("PoYo GPT Image 2 image editing", () => {
     expect(request).toEqual({
       model: "gpt-image-2-edit",
       input: {
-        prompt: "Create a FoxiesDeck card",
+        prompt: expect.stringContaining("Create a FoxiesDeck card"),
         image_urls: [
           "https://poyo.test/mascot.webp",
           "https://poyo.test/wordmark.png",
-          "https://poyo.test/logo.webp",
+          "https://poyo.test/logo.png",
         ],
         quality: "low",
         size: "1:1",
         resolution: "1K",
       },
     });
+    expect(request.input.prompt).toContain("orange-led DORFic × Frutiger Aero");
+    expect(request.input.prompt).toContain("floating glass spheres");
     expect(result.dataUrl).toBe("data:image/webp;base64,AQID");
   });
 

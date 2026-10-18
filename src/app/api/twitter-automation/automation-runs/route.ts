@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { hasSocialStudioAutomationSession, hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
@@ -9,9 +10,9 @@ import { listAutomationStoragePaths, logAutomationRequestFailure } from "@/featu
 import { buildLanguageCombinationPlan } from "@/features/twitter-automation/language-combination-planning";
 import { buildSharedPoolPlan, type SharedPoolSource } from "@/features/twitter-automation/shared-pool-planning";
 import {
-  createDailyAutomationOutputIdentity,
   createDailyAutomationOutputMetadata,
   readDailyAutomationOutputMetadata,
+  createRunAutomationOutputIdentity,
 } from "@/features/twitter-automation/daily-automation-output";
 import { getSocialDownloadTitle } from "@/features/twitter-automation/social-video-titles";
 
@@ -100,6 +101,7 @@ const superGroupsSchema = z.array(z.object({
 const storedAutomationStateSchema = z.union([groupsSchema, z.object({ groups: groupsSchema, superGroups: superGroupsSchema }).passthrough()]);
 const requestSchema = z.object({
   horizonDays: z.union([z.literal(1), z.literal(3), z.literal(7)]),
+  requestKey: z.string().uuid().optional(),
   scope: z.enum(["production", "test"]).optional(),
 }).strict();
 
@@ -107,6 +109,9 @@ type AutomationRow = z.infer<typeof rowSchema>;
 type SelectableContentType = z.infer<typeof selectableContentTypeSchema>;
 type OutputLanguage = (typeof LANGUAGE_CODES)[number];
 type PlannedOutput = {
+  id: string;
+  generationKey: string;
+  generationDate: string;
   dayOffset: number;
   combinationId: string;
   generationIndex: number;
@@ -124,35 +129,24 @@ async function isAuthorized(request: NextRequest) {
   return await hasSocialStudioAutomationSession(request.headers.get("cookie"));
 }
 
-function istanbulDateParts(date: Date) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Istanbul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "";
-  return { year: Number(get("year")), month: Number(get("month")), day: Number(get("day")) };
+function addCalendarDays(date: string, days: number) {
+  const [year, month, day] = date.split("-").map(Number);
+  const target = new Date(Date.UTC(year!, month! - 1, day! + days));
+  return `${target.getUTCFullYear()}-${String(target.getUTCMonth() + 1).padStart(2, "0")}-${String(target.getUTCDate()).padStart(2, "0")}`;
 }
 
-function createScheduledAt(dayOffset: number, start: string, end: string) {
-  const today = istanbulDateParts(new Date());
-  const target = new Date(Date.UTC(today.year, today.month - 1, today.day + dayOffset));
+function createScheduledAt(scheduleDate: string, dayOffset: number, start: string, end: string) {
+  const [year, month, day] = addCalendarDays(scheduleDate, dayOffset - 1).split("-").map(Number);
   const startMinutes = Number(start.slice(0, 2)) * 60 + Number(start.slice(3));
   const endMinutes = Number(end.slice(0, 2)) * 60 + Number(end.slice(3));
   const minute = startMinutes + Math.floor(Math.random() * (endMinutes - startMinutes + 1));
-  const year = target.getUTCFullYear();
-  const month = String(target.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(target.getUTCDate()).padStart(2, "0");
   const hour = String(Math.floor(minute / 60)).padStart(2, "0");
   const minutes = String(minute % 60).padStart(2, "0");
-  return `${year}-${month}-${day}T${hour}:${minutes}:00+03:00`;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T${hour}:${minutes}:00+03:00`;
 }
 
-function generationDateForDayOffset(dayOffset: number) {
-  const today = istanbulDateParts(new Date());
-  const target = new Date(Date.UTC(today.year, today.month - 1, today.day + dayOffset));
-  return `${target.getUTCFullYear()}-${String(target.getUTCMonth() + 1).padStart(2, "0")}-${String(target.getUTCDate()).padStart(2, "0")}`;
+function generationDateForDayOffset(scheduleDate: string, dayOffset: number) {
+  return addCalendarDays(scheduleDate, dayOffset - 1);
 }
 
 function targetAccountIds(row: AutomationRow) {
@@ -168,9 +162,9 @@ function seededRandom(seed: string) {
   return ((hash >>> 0) % 1_000_000) / 1_000_000;
 }
 
-function createReservedScheduledAt(dayOffset: number, start: string, end: string, accountIds: number[], reservations: Map<number, number[]>) {
+function createReservedScheduledAt(scheduleDate: string, dayOffset: number, start: string, end: string, accountIds: number[], reservations: Map<number, number[]>) {
   for (let attempt = 0; attempt < 120; attempt += 1) {
-    const candidate = createScheduledAt(dayOffset, start, end);
+    const candidate = createScheduledAt(scheduleDate, dayOffset, start, end);
     const candidateTime = new Date(candidate).getTime();
     if (!Number.isFinite(candidateTime)) continue;
     const hasConflict = accountIds.some((accountId) => (reservations.get(accountId) ?? []).some((reservedAt) => Math.abs(reservedAt - candidateTime) < AUTOMATION_MIN_ACCOUNT_SCHEDULE_GAP_MS));
@@ -242,13 +236,13 @@ export async function GET(request: NextRequest) {
   const includeMedia = request.nextUrl.searchParams.get("includeMedia") === "1";
   if (requestedRunId && !z.string().uuid().safeParse(requestedRunId).success) return NextResponse.json({ errorCode: "invalid_automation_run" }, { status: 400 });
   let runId: string | null = requestedRunId;
-  let latestRun: { id: string; horizon_days: number; status: string; created_at: string } | null = null;
+  let latestRun: { id: string; horizon_days: number; status: string; created_at: string; schedule_date: string; generation_stopped_at: string | null; finished_by_user_at: string | null } | null = null;
   try {
     const supabase = createSupabaseAdminClient();
     if (!runId && latestOnly) {
       const { data, error: latestRunError } = await supabase
         .from("social_content_automation_runs")
-        .select("id,horizon_days,status,created_at")
+        .select("id,horizon_days,status,created_at,schedule_date,generation_stopped_at,finished_by_user_at")
         .eq("owner_key", ownerKey)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -264,7 +258,7 @@ export async function GET(request: NextRequest) {
     const outputLimit = runId ? 1_000 : 300;
     let query = supabase
       .from("social_content_automation_outputs")
-      .select("id,run_id,day_offset,group_name,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,last_error_detail,last_provider,last_provider_status,last_provider_attempt_count,last_provider_request_id,attempt_count,next_attempt_at,last_error_class,quality_status,quality_error,quality_checked_at,lease_renderer_id,lease_expires_at,renderer_heartbeat_at,render_plan,generation_attempt_started_at,duration_recorded_at,created_at,updated_at,generated_at,scheduled_at_upload_post,run:social_content_automation_runs!inner(id,horizon_days,status,created_at,preflight_status,preflight_details,auto_schedule_on_success,auto_schedule_error)")
+      .select("id,run_id,day_offset,group_name,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,last_error_detail,last_provider,last_provider_status,last_provider_attempt_count,last_provider_request_id,attempt_count,next_attempt_at,last_error_class,quality_status,quality_error,quality_checked_at,lease_renderer_id,lease_expires_at,renderer_heartbeat_at,render_plan,generation_attempt_started_at,duration_recorded_at,created_at,updated_at,generated_at,scheduled_at_upload_post,schedule_status,schedule_error_code,schedule_error_detail,schedule_attempt_count,schedule_attempted_at,schedule_completed_at,run:social_content_automation_runs!inner(id,horizon_days,status,created_at,schedule_date,generation_stopped_at,finished_by_user_at,preflight_status,preflight_details,auto_schedule_on_success,auto_schedule_error)")
       .eq("run.owner_key", ownerKey)
       .order("scheduled_at", { ascending: true })
       .limit(outputLimit);
@@ -373,27 +367,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ errorCode: "automation_preflight_storage_failed" }, { status: 503 });
     }
 
-    const { data: existingSchedules, error: scheduleError } = await supabase
-      .from("social_content_automation_outputs")
-      .select("scheduled_at,target_account_ids,run:social_content_automation_runs!inner(owner_key)")
-      .eq("run.owner_key", ownerKey)
-      .gte("scheduled_at", new Date().toISOString())
-      .in("status", ["queued", "processing", "generating_video", "awaiting_browser_image", "awaiting_browser_video", "ready_to_schedule", "scheduled"])
-      .limit(2_000);
-    if (scheduleError) {
-      logAutomationRequestFailure("automation_preflight_schedule_failed", scheduleError, { scope: ownerKey });
-      return NextResponse.json({ errorCode: "automation_preflight_schedule_failed" }, { status: 503 });
-    }
-    const reservations = new Map<number, number[]>();
-    for (const schedule of existingSchedules ?? []) {
-      const timestamp = new Date(schedule.scheduled_at).getTime();
-      if (!Number.isFinite(timestamp) || !Array.isArray(schedule.target_account_ids)) continue;
-      for (const accountId of schedule.target_account_ids) {
-        if (typeof accountId !== "number") continue;
-        reservations.set(accountId, [...(reservations.get(accountId) ?? []), timestamp]);
-      }
-    }
-
     const isProductionPool = normalizeAutomationScope(parsedRequest.data.scope) === "production";
     const hasLanguageCombinationRows = isProductionPool && sourceRows.some(({ row }) => Boolean(row.dailyQuantities));
     const combinationPlanningSources = hasLanguageCombinationRows
@@ -408,91 +381,152 @@ export async function POST(request: NextRequest) {
     const outputsPerDay = hasLanguageCombinationRows
       ? combinationPlanningSources.reduce((total, item) => total + item.quantity, 0)
       : (isProductionPool ? legacyPlanningSources : testPlanningSources).reduce((total, item) => total + item.row.quantity, 0);
+    const { data: existingSchedules, error: scheduleError } = await supabase
+      .from("social_content_automation_outputs")
+      .select("id,scheduled_at,target_account_ids,run:social_content_automation_runs!inner(owner_key)")
+      .eq("run.owner_key", ownerKey)
+      .gte("scheduled_at", new Date().toISOString())
+      .in("status", ["queued", "processing", "generating_video", "awaiting_browser_image", "awaiting_browser_video", "ready_to_schedule", "scheduled"])
+      .limit(2_000);
+    if (scheduleError) {
+      logAutomationRequestFailure("automation_preflight_schedule_failed", scheduleError, { scope: ownerKey });
+      return NextResponse.json({ errorCode: "automation_preflight_schedule_failed" }, { status: 503 });
+    }
+    const requestKey = parsedRequest.data.requestKey ?? randomUUID();
+    const { data: allocatedRunRows, error: allocationError } = await supabase.rpc("create_social_content_automation_run", {
+      p_owner_key: ownerKey,
+      p_request_key: requestKey,
+      p_horizon_days: parsedRequest.data.horizonDays,
+      p_total_outputs: outputsPerDay * parsedRequest.data.horizonDays,
+      p_preflight_details: { storage: "passed", accounts: selectedAccountIds.length, scheduleGapMinutes: AUTOMATION_MIN_ACCOUNT_SCHEDULE_GAP_MS / 60_000, renderer: "checking" },
+    });
+    const allocatedRun = Array.isArray(allocatedRunRows) ? allocatedRunRows[0] as { id?: string; schedule_date?: string; was_created?: boolean } | undefined : undefined;
+    if (allocationError || !allocatedRun?.id || !allocatedRun.schedule_date) {
+      logAutomationRequestFailure("automation_run_create_failed", allocationError ?? new Error("automation_run_missing_after_allocation"), { scope: ownerKey, outputCount: outputsPerDay * parsedRequest.data.horizonDays });
+      return NextResponse.json({ errorCode: "automation_run_create_failed" }, { status: 503 });
+    }
+    const runId = allocatedRun.id;
+    const { data: run, error: runReadError } = await supabase
+      .from("social_content_automation_runs")
+      .select("id,horizon_days,created_at,schedule_date,status,generation_stopped_at,finished_by_user_at")
+      .eq("id", runId)
+      .eq("owner_key", ownerKey)
+      .maybeSingle();
+    if (runReadError || !run) {
+      logAutomationRequestFailure("automation_durable_run_read_failed", runReadError ?? new Error("automation_run_missing"), { scope: ownerKey, runId });
+      return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
+    }
+    if (run.generation_stopped_at || run.finished_by_user_at) return NextResponse.json({ errorCode: "automation_run_already_closed" }, { status: 409 });
+
+    const planSlots: Array<{
+      dayOffset: number;
+      slotKey: string;
+      group: { name: string };
+      row: AutomationRow;
+      generationIndex: number;
+      forcedContentType?: SelectableContentType;
+      fallbackTargetIds: number[];
+    }> = [];
+    for (let dayOffset = 1; dayOffset <= parsedRequest.data.horizonDays; dayOffset += 1) {
+      if (hasLanguageCombinationRows) {
+        for (const { group, row, contentType, quantity, targetIds } of combinationPlanningSources) {
+          for (let outputIndex = 0; outputIndex < quantity; outputIndex += 1) {
+            planSlots.push({ dayOffset, slotKey: `day-${dayOffset}:row-${row.id}:${contentType}:${outputIndex + 1}`, group, row, generationIndex: outputIndex + 1, forcedContentType: contentType, fallbackTargetIds: targetIds.map(Number) });
+          }
+        }
+      } else {
+        const sources = isProductionPool ? legacyPlanningSources : testPlanningSources;
+        for (const { group, row, targetIdsByOutput } of sources) {
+          for (let outputIndex = 0; outputIndex < row.quantity; outputIndex += 1) {
+            planSlots.push({ dayOffset, slotKey: `day-${dayOffset}:row-${row.id}:item-${outputIndex + 1}`, group, row, generationIndex: outputIndex + 1, fallbackTargetIds: (targetIdsByOutput[outputIndex] ?? []).map(Number) });
+          }
+        }
+      }
+    }
+    const identities = planSlots.map((slot) => ({ slot, ...createRunAutomationOutputIdentity({ runId, slotKey: slot.slotKey }) }));
+    const plannedIds = identities.map((identity) => identity.id);
     type DurableExistingOutput = {
       id: string;
       run_id: string;
       scheduled_at: string;
       target_account_ids: unknown;
       status: string;
+      group_name: string;
       content_type: SelectableContentType;
       generator: string;
       language: OutputLanguage;
       native_language: OutputLanguage;
       tier: AutomationRow["tier"];
     };
-    const durableExistingById = new Map<string, DurableExistingOutput>();
-    if (hasLanguageCombinationRows) {
-      const plannedDurableIds = Array.from({ length: parsedRequest.data.horizonDays }, (_, index) => index + 1).flatMap((dayOffset) => {
-        const generationDate = generationDateForDayOffset(dayOffset);
-        return combinationPlanningSources.flatMap(({ row, contentType, quantity }) => Array.from({ length: quantity }, (_, outputIndex) => createDailyAutomationOutputIdentity({
-          ownerKey,
-          generationDate,
-          combinationId: row.id,
-          contentType,
-          generationIndex: outputIndex + 1,
-        }).id));
-      });
-      if (plannedDurableIds.length) {
-        const { data, error } = await supabase
-          .from("social_content_automation_outputs")
-          .select("id,run_id,scheduled_at,target_account_ids,status,content_type,generator,language,native_language,tier,run:social_content_automation_runs!inner(owner_key)")
-          .in("id", plannedDurableIds)
-          .eq("run.owner_key", ownerKey);
-        if (error) {
-          logAutomationRequestFailure("automation_durable_outputs_read_failed", error, { scope: ownerKey, outputCount: plannedDurableIds.length });
-          return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
-        }
-        for (const output of (data ?? []) as DurableExistingOutput[]) durableExistingById.set(output.id, output);
-        for (const output of durableExistingById.values()) {
-          const scheduledTime = new Date(output.scheduled_at).getTime();
-          if (!Number.isFinite(scheduledTime) || !Array.isArray(output.target_account_ids)) continue;
-          for (const accountId of output.target_account_ids) {
-            if (typeof accountId !== "number") continue;
-            reservations.set(accountId, [...(reservations.get(accountId) ?? []), scheduledTime]);
-          }
-        }
+    const { data: existingOutputs, error: existingOutputsError } = plannedIds.length
+      ? await supabase.from("social_content_automation_outputs")
+        .select("id,run_id,scheduled_at,target_account_ids,status,group_name,content_type,generator,language,native_language,tier")
+        .eq("run_id", runId)
+        .in("id", plannedIds)
+        .returns<DurableExistingOutput[]>()
+      : { data: [], error: null };
+    if (existingOutputsError) {
+      logAutomationRequestFailure("automation_durable_outputs_read_failed", existingOutputsError, { scope: ownerKey, runId, outputCount: plannedIds.length });
+      return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
+    }
+    const existingById = new Map((existingOutputs ?? []).map((output) => [output.id, output]));
+
+    const ownOutputIds = new Set(plannedIds);
+    const reservations = new Map<number, number[]>();
+    for (const schedule of existingSchedules ?? []) {
+      if (ownOutputIds.has(schedule.id)) continue;
+      const timestamp = new Date(schedule.scheduled_at).getTime();
+      if (!Number.isFinite(timestamp) || !Array.isArray(schedule.target_account_ids)) continue;
+      for (const accountId of schedule.target_account_ids) {
+        if (typeof accountId !== "number") continue;
+        reservations.set(accountId, [...(reservations.get(accountId) ?? []), timestamp]);
       }
     }
-    const plannedRows: PlannedOutput[] = Array.from({ length: parsedRequest.data.horizonDays }, (_, index) => index + 1).flatMap((dayOffset) => {
-      if (hasLanguageCombinationRows) {
-        return combinationPlanningSources.flatMap(({ group, row, contentType, quantity, targetIds }) => Array.from({ length: quantity }, (_, outputIndex) => {
-          const generationDate = generationDateForDayOffset(dayOffset);
-          const identity = createDailyAutomationOutputIdentity({ ownerKey, generationDate, combinationId: row.id, contentType, generationIndex: outputIndex + 1 });
-          const existing = durableExistingById.get(identity.id);
-          const fallbackTargetIds = targetIds.map(Number);
-          const persistedTargetIds = existing && Array.isArray(existing.target_account_ids)
-            ? existing.target_account_ids.map(Number).filter((accountId) => Number.isSafeInteger(accountId) && accountId > 0)
-            : [];
-          const numericTargetIds = persistedTargetIds.length ? persistedTargetIds : fallbackTargetIds;
-          const scheduledAt = existing?.scheduled_at ?? createReservedScheduledAt(dayOffset, row.scheduleStart, row.scheduleEnd, numericTargetIds, reservations);
-          if (!scheduledAt) return null;
-          const stableSeed = `${ownerKey}:${generationDate}:${row.id}:${contentType}:${outputIndex + 1}`;
-          const resolved = existing ? { contentType: existing.content_type, generator: existing.generator } : resolveContentMode(row, contentType, () => seededRandom(stableSeed));
-          const { language, nativeLanguage } = existing
-            ? { language: existing.language, nativeLanguage: existing.native_language }
-            : resolveOutputLanguages(row, () => seededRandom(`${stableSeed}:language`));
-          return { dayOffset, combinationId: row.id, generationIndex: outputIndex + 1, groupName: group.name, contentType: resolved.contentType, generator: resolved.generator, language, nativeLanguage, tier: row.tier, scheduledAt, targetIds: numericTargetIds };
-        })).filter((row): row is PlannedOutput => row !== null);
-      }
 
-      const sources = isProductionPool ? legacyPlanningSources : testPlanningSources;
-      return sources.flatMap(({ group, row, targetIdsByOutput }) => Array.from({ length: row.quantity }, (_, outputIndex) => {
-        const targetIds = targetIdsByOutput[outputIndex] ?? [];
-        const scheduledAt = createReservedScheduledAt(dayOffset, row.scheduleStart, row.scheduleEnd, targetIds, reservations);
-        if (!scheduledAt) return null;
-        const stableSeed = `${ownerKey}:${scheduledAt.slice(0, 10)}:${row.id}:${outputIndex + 1}`;
-        const resolved = resolveContentMode(row, undefined, () => seededRandom(stableSeed));
-        const { language, nativeLanguage } = resolveOutputLanguages(row, () => seededRandom(`${stableSeed}:language`));
-        return { dayOffset, combinationId: row.id, generationIndex: outputIndex + 1, groupName: group.name, contentType: resolved.contentType, generator: resolved.generator, language, nativeLanguage, tier: row.tier, scheduledAt, targetIds };
-      })).filter((row): row is PlannedOutput => row !== null);
-    });
+    const plannedRows: PlannedOutput[] = [];
+    for (const { slot, id, generationKey } of identities) {
+      const generationDate = generationDateForDayOffset(run.schedule_date, slot.dayOffset);
+      const existing = existingById.get(id);
+      const targetIds = existing && Array.isArray(existing.target_account_ids)
+        ? existing.target_account_ids.map(Number).filter((accountId) => Number.isSafeInteger(accountId) && accountId > 0)
+        : slot.fallbackTargetIds;
+      const scheduledAt = existing?.scheduled_at ?? createReservedScheduledAt(run.schedule_date, slot.dayOffset, slot.row.scheduleStart, slot.row.scheduleEnd, targetIds, reservations);
+      if (!scheduledAt) continue;
+      const stableSeed = `${runId}:${generationDate}:${slot.slotKey}`;
+      const resolved = existing
+        ? { contentType: existing.content_type, generator: existing.generator }
+        : resolveContentMode(slot.row, slot.forcedContentType, () => seededRandom(stableSeed));
+      const languages = existing
+        ? { language: existing.language, nativeLanguage: existing.native_language }
+        : resolveOutputLanguages(slot.row, () => seededRandom(`${stableSeed}:language`));
+      const tier = existing?.tier ?? slot.row.tier;
+      plannedRows.push({
+        id,
+        generationKey,
+        generationDate,
+        dayOffset: slot.dayOffset,
+        combinationId: slot.row.id,
+        generationIndex: slot.generationIndex,
+        groupName: existing?.group_name ?? slot.group.name,
+        contentType: resolved.contentType,
+        generator: resolved.generator,
+        language: languages.language,
+        nativeLanguage: languages.nativeLanguage,
+        tier,
+        scheduledAt,
+        targetIds,
+      });
+      if (existing) {
+        const timestamp = new Date(existing.scheduled_at).getTime();
+        if (Number.isFinite(timestamp)) for (const accountId of targetIds) reservations.set(accountId, [...(reservations.get(accountId) ?? []), timestamp]);
+      }
+    }
     if (plannedRows.length !== outputsPerDay * parsedRequest.data.horizonDays) {
-      logAutomationRequestFailure("automation_preflight_schedule_gap_failed", new Error("automation_preflight_schedule_gap_failed"), { scope: ownerKey, expectedOutputCount: outputsPerDay * parsedRequest.data.horizonDays, plannedOutputCount: plannedRows.length, horizonDays: parsedRequest.data.horizonDays });
+      logAutomationRequestFailure("automation_preflight_schedule_gap_failed", new Error("automation_preflight_schedule_gap_failed"), { scope: ownerKey, runId, expectedOutputCount: outputsPerDay * parsedRequest.data.horizonDays, plannedOutputCount: plannedRows.length, horizonDays: parsedRequest.data.horizonDays });
       return NextResponse.json({ errorCode: "automation_preflight_schedule_gap_failed" }, { status: 409 });
     }
     const needsBrowserRenderer = plannedRows.some((row) => requiresBrowserRenderer(row.generator));
-    const { data: renderer } = await supabase
-      .from("social_content_automation_renderers")
+    const { data: renderer } = await supabase.from("social_content_automation_renderers")
       .select("last_heartbeat_at")
       .eq("owner_key", ownerKey)
       .eq("active", true)
@@ -501,77 +535,9 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .maybeSingle<{ last_heartbeat_at: string | null }>();
     const rendererOnline = Boolean(renderer?.last_heartbeat_at && Date.now() - new Date(renderer.last_heartbeat_at).getTime() <= 45_000);
-    const plannedRowsWithIdentity = plannedRows.map((row) => {
-      const generationDate = generationDateForDayOffset(row.dayOffset);
-      const identity = createDailyAutomationOutputIdentity({
-        ownerKey,
-        generationDate,
-        combinationId: row.combinationId,
-        contentType: row.contentType,
-        generationIndex: row.generationIndex,
-      });
-      return { ...row, generationDate, ...identity };
-    });
-    const plannedIds = plannedRowsWithIdentity.map((row) => row.id);
-    const { data: existingOutputs, error: existingOutputsError } = plannedIds.length
-      ? await supabase
-        .from("social_content_automation_outputs")
-        .select("id,run_id,run:social_content_automation_runs!inner(id,owner_key)")
-        .in("id", plannedIds)
-        .eq("run.owner_key", ownerKey)
-      : { data: [], error: null };
-    if (existingOutputsError) {
-      logAutomationRequestFailure("automation_durable_outputs_read_failed", existingOutputsError, { scope: ownerKey, outputCount: plannedRows.length });
-      return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
-    }
-
-    const existingById = new Map((existingOutputs ?? []).map((output) => [output.id, output]));
-    const existingRunCounts = new Map<string, number>();
-    for (const output of existingOutputs ?? []) existingRunCounts.set(output.run_id, (existingRunCounts.get(output.run_id) ?? 0) + 1);
-    let canonicalRunId = [...existingRunCounts.entries()].sort((first, second) => second[1] - first[1])[0]?.[0] ?? null;
-    let run: { id: string; horizon_days: number; created_at: string } | null = null;
-    let runWasCreated = false;
-    if (canonicalRunId) {
-      const { data: existingRun, error: existingRunError } = await supabase
-        .from("social_content_automation_runs")
-        .select("id,horizon_days,created_at")
-        .eq("id", canonicalRunId)
-        .eq("owner_key", ownerKey)
-        .maybeSingle();
-      if (existingRunError || !existingRun) {
-        logAutomationRequestFailure("automation_durable_run_read_failed", existingRunError ?? new Error("automation_run_missing"), { scope: ownerKey, runId: canonicalRunId });
-        return NextResponse.json({ errorCode: "automation_runs_unavailable" }, { status: 503 });
-      }
-      run = existingRun;
-      const duplicateRunOutputIds = (existingOutputs ?? []).filter((output) => output.run_id !== canonicalRunId).map((output) => output.id);
-      if (duplicateRunOutputIds.length) {
-        const { error: moveError } = await supabase
-          .from("social_content_automation_outputs")
-          .update({ run_id: canonicalRunId, updated_at: new Date().toISOString() })
-          .in("id", duplicateRunOutputIds);
-        if (moveError) {
-          logAutomationRequestFailure("automation_durable_outputs_merge_failed", moveError, { scope: ownerKey, runId: canonicalRunId, outputCount: duplicateRunOutputIds.length });
-          return NextResponse.json({ errorCode: "automation_outputs_create_failed" }, { status: 503 });
-        }
-      }
-    } else {
-      const { data: createdRun, error: runError } = await supabase
-        .from("social_content_automation_runs")
-        .insert({ owner_key: ownerKey, horizon_days: parsedRequest.data.horizonDays, status: "queued", total_outputs: plannedRows.length, preflight_status: "passed", preflight_checked_at: new Date().toISOString(), preflight_details: { storage: "passed", accounts: selectedAccountIds.length, scheduleGapMinutes: AUTOMATION_MIN_ACCOUNT_SCHEDULE_GAP_MS / 60_000, renderer: needsBrowserRenderer ? rendererOnline ? "online" : "offline" : "not_required" } })
-        .select("id,horizon_days,created_at")
-        .single();
-      if (runError || !createdRun) {
-        logAutomationRequestFailure("automation_run_create_failed", runError ?? new Error("automation_run_missing_after_insert"), { scope: ownerKey, outputCount: plannedRows.length });
-        return NextResponse.json({ errorCode: "automation_run_create_failed" }, { status: 503 });
-      }
-      run = createdRun;
-      canonicalRunId = createdRun.id;
-      runWasCreated = true;
-    }
-
-    const rows = plannedRowsWithIdentity.filter((row) => !existingById.has(row.id)).map((row) => ({
+    const rows = plannedRows.filter((row) => !existingById.has(row.id)).map((row) => ({
       id: row.id,
-      run_id: canonicalRunId!,
+      run_id: runId,
       day_offset: row.dayOffset,
       group_name: row.groupName,
       content_type: row.contentType,
@@ -591,32 +557,28 @@ export async function POST(request: NextRequest) {
       status: "queued",
     }));
     if (rows.length) {
-      const { error: outputsError } = await supabase.from("social_content_automation_outputs").insert(rows);
+      const { error: outputsError } = await supabase.from("social_content_automation_outputs").upsert(rows, { onConflict: "id", ignoreDuplicates: true });
       if (outputsError) {
-        logAutomationRequestFailure("automation_outputs_create_failed", outputsError, { scope: ownerKey, runId: canonicalRunId, outputCount: rows.length });
-        if (runWasCreated) await supabase.from("social_content_automation_runs").delete().eq("id", canonicalRunId);
+        logAutomationRequestFailure("automation_outputs_create_failed", outputsError, { scope: ownerKey, runId, outputCount: rows.length });
         return NextResponse.json({ errorCode: "automation_outputs_create_failed" }, { status: 503 });
       }
     }
-    const runUpdate: Record<string, unknown> = {
-      horizon_days: Math.max(run.horizon_days, parsedRequest.data.horizonDays),
-      total_outputs: plannedRows.length,
-      preflight_status: "passed",
-      preflight_checked_at: new Date().toISOString(),
-    };
-    if (rows.length) {
-      runUpdate.status = "queued";
-      runUpdate.completed_at = null;
-    }
-    const { error: runUpdateError } = await supabase
-      .from("social_content_automation_runs")
-      .update(runUpdate)
-      .eq("id", canonicalRunId);
+    const { error: runUpdateError } = await supabase.from("social_content_automation_runs")
+      .update({
+        total_outputs: plannedRows.length,
+        preflight_status: "passed",
+        preflight_checked_at: new Date().toISOString(),
+        preflight_details: { storage: "passed", accounts: selectedAccountIds.length, scheduleGapMinutes: AUTOMATION_MIN_ACCOUNT_SCHEDULE_GAP_MS / 60_000, renderer: needsBrowserRenderer ? rendererOnline ? "online" : "offline" : "not_required" },
+        ...(allocatedRun.was_created && rows.length ? { status: "queued", completed_at: null } : {}),
+      })
+      .eq("id", runId)
+      .is("generation_stopped_at", null)
+      .is("finished_by_user_at", null);
     if (runUpdateError) {
-      logAutomationRequestFailure("automation_run_update_failed", runUpdateError, { scope: ownerKey, runId: canonicalRunId });
+      logAutomationRequestFailure("automation_run_update_failed", runUpdateError, { scope: ownerKey, runId });
       return NextResponse.json({ errorCode: "automation_run_update_failed" }, { status: 503 });
     }
-    return NextResponse.json({ run, outputCount: plannedRows.length, reusedOutputCount: plannedRows.length - rows.length, runReused: !runWasCreated }, { status: runWasCreated ? 201 : 200 });
+    return NextResponse.json({ run: { ...run, schedule_date: run.schedule_date }, outputCount: plannedRows.length, reusedOutputCount: plannedRows.length - rows.length, runReused: !allocatedRun.was_created }, { status: allocatedRun.was_created ? 201 : 200 });
   } catch (error) {
     logAutomationRequestFailure("automation_run_create_request_failed", error, { scope: ownerKey, horizonDays: parsedRequest.data.horizonDays });
     return NextResponse.json({ errorCode: "automation_run_create_failed" }, { status: 503 });

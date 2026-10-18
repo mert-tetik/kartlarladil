@@ -2,8 +2,7 @@ import type { DialogueVideoScene } from "@/features/twitter-automation/dialogue-
 import type { ConfusedWordsVideoScene } from "@/features/twitter-automation/confused-words-video-renderer";
 import type { OriginalMascotLearningVideoMode, OriginalMascotLearningVideoPayload } from "@/features/twitter-automation/original-mascot-learning-video";
 import type { LanguageCode, Tier } from "@/types/domain";
-
-const MUSIC_TRACKS = ["/social-audio/music1.mp3", "/social-audio/music2.mp3", "/social-audio/music3.mp3", "/social-audio/music4.mp3", "/social-audio/music5.mp3", "/social-audio/music6.mp3", "/social-audio/music7.mp3"] as const;
+import { pickSocialAudioTrack } from "@/features/twitter-automation/social-audio-tracks";
 
 export type BrowserVideoPlanOutput = {
   id: string;
@@ -57,7 +56,7 @@ function isOriginalMascotLearningVideo(generator: string): generator is Original
 }
 
 function randomMusicTrack() {
-  return MUSIC_TRACKS[Math.floor(Math.random() * MUSIC_TRACKS.length)]!;
+  return pickSocialAudioTrack().url;
 }
 
 export async function prepareBrowserVideoPlan(output: BrowserVideoPlanOutput, signal: AbortSignal): Promise<BrowserVideoPlan> {

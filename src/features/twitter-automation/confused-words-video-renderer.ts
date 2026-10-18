@@ -1,5 +1,6 @@
 import { AudioBufferSource, BufferTarget, CanvasSource, canEncodeAudio, canEncodeVideo, Output, WebMOutputFormat } from "mediabunny";
 import { releaseMusicVideoAudioContext } from "@/features/twitter-automation/automation-music-video-audio-session";
+import { awaitBrowserVideoOperation } from "@/features/twitter-automation/browser-video-operation";
 import type { VocabularyCard } from "@/types/domain";
 
 export type ConfusedWordsVideoScene = {
@@ -18,6 +19,8 @@ type ConfusedWordsCardPair = {
 
 type ConfusedWordsVideoRenderOptions = {
   audioContext: BaseAudioContext;
+  signal?: AbortSignal;
+  onProgress?: (progress: number) => void;
   cardImageUrls?: readonly string[];
   phases?: readonly ConfusedWordsCardPair[];
   /** Legacy two-card input retained for Automation Table render requests. */
@@ -59,12 +62,23 @@ export function getConfusedWordsPhaseIndex(sceneIndex: number) {
   return Math.floor(sceneIndex / MASCOT_BY_PHASE_SCENE.length);
 }
 
-function loadImage(source: string) {
+function loadImage(source: string, signal?: AbortSignal) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
+    const cleanup = () => signal?.removeEventListener("abort", onAbort);
+    const onAbort = () => {
+      image.removeAttribute("src");
+      cleanup();
+      reject(new Error("browser_video_render_timeout"));
+    };
+    if (signal?.aborted) {
+      onAbort();
+      return;
+    }
     image.decoding = "async";
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("video_asset_load_failed"));
+    image.onload = () => { cleanup(); resolve(image); };
+    image.onerror = () => { cleanup(); reject(new Error("video_asset_load_failed")); };
+    signal?.addEventListener("abort", onAbort, { once: true });
     image.src = source;
   });
 }
@@ -292,12 +306,19 @@ function getConfusedWordsTiming(audioBuffers: readonly AudioBuffer[], playbackRa
   return { starts, durationSeconds: elapsedSeconds + 0.28 };
 }
 
-async function decodeConfusedWordsAudio(audioContext: BaseAudioContext, scenes: readonly ConfusedWordsVideoScene[]) {
-  return await Promise.all(scenes.map(async (scene) => {
-    const response = await fetch(scene.audioDataUrl);
+async function decodeConfusedWordsAudio(audioContext: BaseAudioContext, scenes: readonly ConfusedWordsVideoScene[], signal?: AbortSignal, onProgress?: (progress: number) => void) {
+  let decodedCount = 0;
+  const buffers = await Promise.all(scenes.map(async (scene) => {
+    const response = await fetch(scene.audioDataUrl, { signal });
     if (!response.ok) throw new Error("speech_load_failed");
-    return await audioContext.decodeAudioData(await response.arrayBuffer());
+    const encodedAudio = await response.arrayBuffer();
+    const buffer = await awaitBrowserVideoOperation(() => audioContext.decodeAudioData(encodedAudio), signal);
+    decodedCount += 1;
+    onProgress?.(0.01 + (decodedCount / scenes.length) * 0.04);
+    return buffer;
   }));
+  if (signal?.aborted) throw new Error("browser_video_render_timeout");
+  return buffers;
 }
 
 async function renderConfusedWordsOfflineAudio(
@@ -305,6 +326,7 @@ async function renderConfusedWordsOfflineAudio(
   playbackRates: readonly number[],
   starts: readonly number[],
   durationSeconds: number,
+  signal?: AbortSignal,
 ) {
   const sampleRate = 48_000;
   const offlineContext = new OfflineAudioContext(2, Math.ceil(durationSeconds * sampleRate), sampleRate);
@@ -329,24 +351,33 @@ async function renderConfusedWordsOfflineAudio(
     }
     source.start(sourceStart);
   });
-  return await offlineContext.startRendering();
+  return await awaitBrowserVideoOperation(() => offlineContext.startRendering(), signal);
 }
 
-export async function canRenderConfusedWordsDeterministically() {
+export async function canRenderConfusedWordsDeterministically(signal?: AbortSignal) {
   if (typeof OfflineAudioContext === "undefined") return false;
-  return await canEncodeVideo("vp8", { width: CANVAS_WIDTH, height: CANVAS_HEIGHT, bitrate: VIDEO_BITRATE })
-    && await canEncodeAudio("opus", { numberOfChannels: 2, sampleRate: 48_000, bitrate: AUDIO_BITRATE });
+  try {
+    const [video, audio] = await Promise.all([
+      awaitBrowserVideoOperation(() => canEncodeVideo("vp8", { width: CANVAS_WIDTH, height: CANVAS_HEIGHT, bitrate: VIDEO_BITRATE }), signal),
+      awaitBrowserVideoOperation(() => canEncodeAudio("opus", { numberOfChannels: 2, sampleRate: 48_000, bitrate: AUDIO_BITRATE }), signal),
+    ]);
+    return video && audio;
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    return false;
+  }
 }
 
 async function loadConfusedWordsAssets(options: ConfusedWordsVideoRenderOptions) {
   const { cardImageUrls, firstCardImageUrl, secondCardImageUrl } = options;
+  const { signal } = options;
   const normalizedCardUrls = cardImageUrls?.length ? cardImageUrls : [firstCardImageUrl, secondCardImageUrl].filter((url): url is string => Boolean(url));
   const [splash, mascot3, mascot4, mascot18, ...cardImages] = await Promise.all([
-    loadImage("/splash.png"),
-    loadImage("/mascots/mascot3.webp"),
-    loadImage("/mascots/mascot4.webp"),
-    loadImage("/mascots/mascot18.png"),
-    ...normalizedCardUrls.map((url) => loadImage(url)),
+    loadImage("/splash.png", signal),
+    loadImage("/mascots/mascot3.webp", signal),
+    loadImage("/mascots/mascot4.webp", signal),
+    loadImage("/mascots/mascot18.png", signal),
+    ...normalizedCardUrls.map((url) => loadImage(url, signal)),
   ]);
   return {
     tintedSplash: prepareTintedSplash(splash, findVisibleImageBounds(splash)),
@@ -357,9 +388,15 @@ async function loadConfusedWordsAssets(options: ConfusedWordsVideoRenderOptions)
 }
 
 async function renderDeterministicConfusedWordsVideo(options: ConfusedWordsVideoRenderOptions) {
-  const { audioContext, scenes } = options;
-  const [assets, audioBuffers] = await Promise.all([loadConfusedWordsAssets(options), decodeConfusedWordsAudio(audioContext, scenes)]);
+  const { audioContext, scenes, signal, onProgress } = options;
+  let output: Output | null = null;
   try {
+    onProgress?.(0.01);
+    const [assets, audioBuffers] = await Promise.all([
+      loadConfusedWordsAssets(options),
+      decodeConfusedWordsAudio(audioContext, scenes, signal, onProgress),
+    ]);
+    if (signal?.aborted) throw new Error("browser_video_render_timeout");
     const playbackRates = scenes.map((scene) => scene.playbackRate ?? 1);
     const { starts, durationSeconds } = getConfusedWordsTiming(audioBuffers, playbackRates);
     const frameCount = Math.ceil(durationSeconds * FRAME_RATE);
@@ -370,20 +407,31 @@ async function renderDeterministicConfusedWordsVideo(options: ConfusedWordsVideo
     const context = canvas.getContext("2d");
     if (!context) throw new Error("canvas_not_supported");
     const target = new BufferTarget();
-    const output = new Output({ format: new WebMOutputFormat(), target });
+    output = new Output({ format: new WebMOutputFormat(), target });
     const videoSource = new CanvasSource(canvas, { codec: "vp8", bitrate: VIDEO_BITRATE, keyFrameInterval: 2 });
     const audioSource = new AudioBufferSource({ codec: "opus", bitrate: AUDIO_BITRATE });
     output.addVideoTrack(videoSource, { maximumPacketCount: frameCount });
     output.addAudioTrack(audioSource);
-    await output.start();
-    await audioSource.add(await renderConfusedWordsOfflineAudio(audioBuffers, playbackRates, starts, frameCount * frameDuration));
+    await awaitBrowserVideoOperation(() => output!.start(), signal);
+    onProgress?.(0.08);
+    const renderedAudio = await renderConfusedWordsOfflineAudio(audioBuffers, playbackRates, starts, frameCount * frameDuration, signal);
+    await awaitBrowserVideoOperation(() => audioSource.add(renderedAudio), signal);
+    if (signal?.aborted) throw new Error("browser_video_render_timeout");
+    onProgress?.(0.12);
     for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
+      if (signal?.aborted) throw new Error("browser_video_render_timeout");
       drawConfusedWordsFrame(context, assets, scenes, starts, durationSeconds, frameIndex * frameDuration);
-      await videoSource.add(frameIndex * frameDuration, frameDuration, { keyFrame: frameIndex % (FRAME_RATE * 2) === 0 });
+      await awaitBrowserVideoOperation(() => videoSource.add(frameIndex * frameDuration, frameDuration, { keyFrame: frameIndex % (FRAME_RATE * 2) === 0 }), signal);
+      if (frameIndex % 15 === 0 || frameIndex === frameCount - 1) onProgress?.((frameIndex + 1) / frameCount);
     }
-    await output.finalize();
+    if (signal?.aborted) throw new Error("browser_video_render_timeout");
+    onProgress?.(1);
+    await awaitBrowserVideoOperation(() => output!.finalize(), signal);
     if (!target.buffer) throw new Error("deterministic_recording_failed");
     return new Blob([target.buffer], { type: await output.getMimeType() });
+  } catch (error) {
+    if (output && output.state !== "canceled" && output.state !== "finalized") await output.cancel().catch(() => undefined);
+    throw error;
   } finally {
     await releaseMusicVideoAudioContext(audioContext);
   }
@@ -404,7 +452,11 @@ async function renderRealtimeConfusedWordsVideo(options: RealtimeConfusedWordsVi
   const phaseCount = scenes.length / MASCOT_BY_PHASE_SCENE.length;
   if (phasePairs.length < phaseCount && !cardImageUrls?.length && !firstCardImageUrl && !secondCardImageUrl) throw new Error("confused_words_cards_unavailable");
 
-  const [assets, audioBuffers] = await Promise.all([loadConfusedWordsAssets(options), decodeConfusedWordsAudio(audioContext, scenes)]);
+  const [assets, audioBuffers] = await Promise.all([
+    loadConfusedWordsAssets(options),
+    decodeConfusedWordsAudio(audioContext, scenes, options.signal, options.onProgress),
+  ]);
+  if (options.signal?.aborted) throw new Error("browser_video_render_timeout");
   const playbackRates = scenes.map((scene) => scene.playbackRate ?? 1);
   const { starts, durationSeconds } = getConfusedWordsTiming(audioBuffers, playbackRates);
   const canvas = document.createElement("canvas");
@@ -428,7 +480,9 @@ async function renderRealtimeConfusedWordsVideo(options: RealtimeConfusedWordsVi
   const mimeType = recorderMimeType();
   const recorder = mimeType ? new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4_500_000 }) : new MediaRecorder(stream);
   const chunks: BlobPart[] = [];
+  let rejectComplete: (error: unknown) => void = () => undefined;
   const complete = new Promise<Blob>((resolve, reject) => {
+    rejectComplete = reject;
     recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
     recorder.onerror = () => reject(new Error("recording_failed"));
     recorder.onstop = () => resolve(new Blob(chunks, { type: recorder.mimeType || "video/webm" }));
@@ -459,16 +513,30 @@ async function renderRealtimeConfusedWordsVideo(options: RealtimeConfusedWordsVi
   });
 
   let renderTimer: number | null = null;
+  let stopTimer: number | null = null;
+  const abortRecording = () => {
+    if (renderTimer !== null) window.clearInterval(renderTimer);
+    renderTimer = null;
+    if (stopTimer !== null) window.clearTimeout(stopTimer);
+    stopTimer = null;
+    options.signal?.removeEventListener("abort", abortRecording);
+    if (recorder.state !== "inactive") recorder.stop();
+    rejectComplete(new Error("browser_video_render_timeout"));
+  };
+  options.signal?.addEventListener("abort", abortRecording, { once: true });
   const drawFrame = () => {
     const elapsed = Math.min(durationSeconds, Math.max(0, audioContext.currentTime - startTime));
     drawConfusedWordsFrame(context, assets, scenes, starts, durationSeconds, elapsed);
+    options.onProgress?.(durationSeconds ? elapsed / durationSeconds : 1);
   };
 
   recorder.start(250);
   drawFrame();
   renderTimer = window.setInterval(drawFrame, 1000 / 30);
-  window.setTimeout(() => {
+  stopTimer = window.setTimeout(() => {
     if (renderTimer !== null) window.clearInterval(renderTimer);
+    if (stopTimer !== null) window.clearTimeout(stopTimer);
+    options.signal?.removeEventListener("abort", abortRecording);
     drawFrame();
     if (recorder.state !== "inactive") recorder.stop();
   }, (durationSeconds + 0.12) * 1000);
@@ -477,6 +545,8 @@ async function renderRealtimeConfusedWordsVideo(options: RealtimeConfusedWordsVi
     return await complete;
   } finally {
     if (renderTimer !== null) window.clearInterval(renderTimer);
+    if (stopTimer !== null) window.clearTimeout(stopTimer);
+    options.signal?.removeEventListener("abort", abortRecording);
     stream.getTracks().forEach((track) => track.stop());
     destination.disconnect();
     canvas.remove();
@@ -492,7 +562,7 @@ export async function renderConfusedWordsVideo(options: ConfusedWordsVideoRender
   if (phasePairs.length < phaseCount && !options.cardImageUrls?.length && !options.firstCardImageUrl && !options.secondCardImageUrl) {
     throw new Error("confused_words_cards_unavailable");
   }
-  if (await canRenderConfusedWordsDeterministically()) {
+  if (await canRenderConfusedWordsDeterministically(options.signal)) {
     return await renderDeterministicConfusedWordsVideo(options);
   }
   if (!isRealtimeAudioContext(options.audioContext)) throw new Error("browser_video_realtime_audio_required");

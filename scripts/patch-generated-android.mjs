@@ -191,6 +191,7 @@ const HYBRID_MANIFEST = ({ packageName }) => `<?xml version="1.0" encoding="utf-
         </intent>
     </queries>
 
+    <!-- Launcher resources are generated only from public/AppLogo2.png. -->
     <application
         android:name="${packageName}.Application"
         android:allowBackup="true"
@@ -249,6 +250,14 @@ const HYBRID_MANIFEST = ({ packageName }) => `<?xml version="1.0" encoding="utf-
         </provider>
     </application>
 </manifest>
+`;
+
+const APP_ICON = `<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The launcher artwork is generated from public/AppLogo2.png only. -->
+    <background android:drawable="@mipmap/ic_maskable" />
+    <foreground android:drawable="@android:color/transparent" />
+</adaptive-icon>
 `;
 
 const APP_THEME = `<?xml version="1.0" encoding="utf-8"?>
@@ -388,6 +397,10 @@ export async function patchGeneratedAndroidProject(
   await writeText(
     path.join(projectDir, "app", "src", "main", "AndroidManifest.xml"),
     HYBRID_MANIFEST({ packageName }),
+  );
+  await writeText(
+    path.join(projectDir, "app", "src", "main", "res", "mipmap-anydpi-v26", "ic_launcher.xml"),
+    APP_ICON,
   );
   await writeText(path.join(projectDir, "app", "src", "main", "res", "values", "styles.xml"), APP_THEME);
   await writeText(

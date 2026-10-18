@@ -2,6 +2,7 @@ import "server-only";
 
 import { SOCIAL_AUTOMATION_INTERNAL_SESSION_COOKIE, createSocialAutomationInternalSession } from "@/features/twitter-automation/social-studio-auth";
 import { publishWithUploadPost, type DataUrlAsset, type RemoteVideoAsset } from "@/features/twitter-automation/upload-post-publishing";
+import { UploadPostRejectedError } from "@/features/twitter-automation/upload-post-provider-error";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { LanguageCode, Tier } from "@/types/domain";
 import {
@@ -10,20 +11,35 @@ import {
   MAX_AUTOMATION_RECOVERY_ATTEMPTS,
   nextAutomationAttemptAt,
 } from "@/features/twitter-automation/automation-resilience";
-import { notifyAutomationRunTerminal } from "@/features/twitter-automation/automation-push-service";
 import { createFoxiesDeckDownloadCaption, getSocialDownloadTitle } from "@/features/twitter-automation/social-video-titles";
 import { getSocialStudioProviderFailureDetails, getSocialStudioResponsesErrorCode } from "@/features/twitter-automation/social-studio-poyo";
 import { renderServerMusicVideo } from "@/features/twitter-automation/server-music-video-renderer";
 import { mergeDailyAutomationOutputMetadata, readDailyAutomationOutputMetadata, type DailyAutomationOutputMetadata } from "@/features/twitter-automation/daily-automation-output";
+import { AUTOMATION_SCHEDULE_MIN_LEAD_MS, isAutomationScheduleExpired, resolveAutomationScheduleAt, type AutomationScheduleReservation } from "@/features/twitter-automation/automation-schedule-policy";
+import { UPLOAD_POST_REQUEST_RECHECK_DELAY_MS, UPLOAD_POST_REQUEST_UNCONFIRMED_CODE } from "@/features/twitter-automation/upload-post-schedule-constants";
 
 const AUTOMATION_BUCKET = "social-studio-automation";
 const AUTOMATION_MEDIA_PREFIX = "automation/";
 const STAGED_MEDIA_URL_SECONDS = 24 * 60 * 60;
-const STAGED_MEDIA_RETENTION_MS = 48 * 60 * 60 * 1000;
-const FAILED_MEDIA_RETENTION_MS = 24 * 60 * 60 * 1000;
-const STALE_ACTIVE_MEDIA_RETENTION_MS = 48 * 60 * 60 * 1000;
 const STORAGE_PAGE_SIZE = 1000;
 const SCHEDULE_OUTPUT_CONCURRENCY = 3;
+const DEFINITIVE_SCHEDULE_FAILURE_CODES = new Set([
+  "account_not_found",
+  "automation_caption_missing",
+  "automation_media_missing",
+  "automation_media_read_failed",
+  "automation_media_store_failed",
+  "automation_media_url_failed",
+  "automation_target_missing",
+  "invalid_media",
+  "invalid_scheduled_date",
+  "upload_post_carousel_limit",
+  "upload_post_not_configured",
+  "upload_post_profile_not_configured",
+  "upload_post_rate_limited",
+  "upload_post_reddit_unavailable",
+  "upload_post_unsupported_content",
+]);
 const MAX_STAGED_IMAGE_BYTES = 6 * 1024 * 1024;
 const MAX_STAGED_VIDEO_BYTES = 100 * 1024 * 1024;
 const IMAGE_GENERATORS = ["ai-word-of-the-day", "ai-mini-quiz", "ai-false-friends", "ai-daily-challenge", "ai-vocabulary-progression", "ai-example-sentences"] as const;
@@ -67,7 +83,8 @@ const TIER_OPTIONS: Tier[] = ["A1", "A2", "B1", "B2", "C1"];
 
 type ImageGenerator = (typeof IMAGE_GENERATORS)[number];
 type TextGenerator = (typeof TEXT_GENERATORS)[number];
-type OutputStatus = "queued" | "processing" | "generating_video" | "awaiting_browser_image" | "awaiting_browser_video" | "ready_to_schedule" | "scheduled" | "failed";
+type OutputStatus = "queued" | "processing" | "generating_video" | "awaiting_browser_image" | "awaiting_browser_video" | "ready_to_schedule" | "scheduled" | "failed" | "skipped";
+type ScheduleStatus = "pending" | "processing" | "partially_scheduled" | "failed" | "scheduled";
 
 type AiImagePlan = {
   artDirection: string;
@@ -116,6 +133,12 @@ export type AutomationOutputRecord = {
   media_type: "image" | "video" | null;
   provider_task_id: string | null;
   upload_post_jobs: unknown;
+  schedule_status?: ScheduleStatus;
+  schedule_error_code?: string | null;
+  schedule_error_detail?: string | null;
+  schedule_attempt_count?: number;
+  schedule_attempted_at?: string | null;
+  schedule_completed_at?: string | null;
   error_code?: string | null;
   last_error_detail?: string | null;
   last_provider?: "poyo" | "openai" | null;
@@ -133,7 +156,17 @@ export type AutomationOutputRecord = {
   duration_recorded_at?: string | null;
 };
 
-type UploadJob = { socialMediaId: number; jobId: string | null; requestId: string | null; postUrl: string | null };
+type UploadJob = {
+  socialMediaId: number;
+  jobId: string | null;
+  status?: "processing" | "scheduled" | "failed";
+  requestId: string | null;
+  idempotencyKey?: string | null;
+  postUrl: string | null;
+  scheduledAt: string | null;
+  externalId?: string | null;
+  attemptedScheduledAt?: string[];
+};
 
 function pick<T>(items: readonly T[]) {
   return items[Math.floor(Math.random() * items.length)]!;
@@ -290,7 +323,7 @@ async function createStagedVideoUrl(path: string) {
 
 function asAccountIds(value: unknown) {
   if (!Array.isArray(value)) return [];
-  return value.flatMap((item) => typeof item === "number" && Number.isInteger(item) && item > 0 ? [item] : []);
+  return [...new Set(value.flatMap((item) => typeof item === "number" && Number.isInteger(item) && item > 0 ? [item] : []))];
 }
 
 function asUploadJobs(value: unknown): UploadJob[] {
@@ -301,8 +334,17 @@ function asUploadJobs(value: unknown): UploadJob[] {
     return typeof job.socialMediaId === "number" && Number.isInteger(job.socialMediaId) ? [{
       socialMediaId: job.socialMediaId,
       jobId: typeof job.jobId === "string" ? job.jobId : null,
+      status: job.status === "processing" || job.status === "scheduled" || job.status === "failed"
+        ? job.status
+        : typeof job.jobId === "string" ? "scheduled" : job.requestId || job.idempotencyKey ? "processing" : "failed",
       requestId: typeof job.requestId === "string" ? job.requestId : null,
+      idempotencyKey: typeof job.idempotencyKey === "string" ? job.idempotencyKey : null,
       postUrl: typeof job.postUrl === "string" ? job.postUrl : null,
+      scheduledAt: typeof job.scheduledAt === "string" ? job.scheduledAt : null,
+      externalId: typeof job.externalId === "string" ? job.externalId : null,
+      attemptedScheduledAt: Array.isArray(job.attemptedScheduledAt)
+        ? job.attemptedScheduledAt.filter((value): value is string => typeof value === "string")
+        : [],
     }] : [];
   });
 }
@@ -777,7 +819,7 @@ export async function completeServerMusicVideoOutput(output: AutomationOutputRec
         media_path: stored.path,
         media_paths: [],
         media_type: "video",
-        render_plan: { kind: "server-music-video", caption, musicTrack: rendered.musicTrack },
+        render_plan: { kind: "server-music-video", caption, generator: output.generator, musicTrack: rendered.musicTrack },
       },
     );
     if (ready) await removeStagedSourceImage(sourcePath, output);
@@ -867,6 +909,7 @@ async function prepareMusicVideo(output: AutomationOutputRecord, generator: (typ
   });
   return (await completeServerMusicVideoOutput({
     ...output,
+    generator,
     status: "processing",
     tier,
     caption: source.caption,
@@ -940,59 +983,286 @@ async function resolveVideo(output: AutomationOutputRecord) {
   return { state: "video_ready" as const, path: video.path };
 }
 
-async function scheduleOutput(output: AutomationOutputRecord) {
-  const accountIds = asAccountIds(output.target_account_ids);
-  if (!accountIds.length) throw new Error("automation_target_missing");
-  const description = output.description ?? output.caption;
-  if (!description) throw new Error("automation_caption_missing");
-
-  let asset: DataUrlAsset | RemoteVideoAsset | undefined;
-  let assets: DataUrlAsset[] | undefined;
-  if (output.media_type === "image") {
-    const mediaPaths = asMediaPaths(output.media_paths);
-    if (mediaPaths.length) {
-      assets = await Promise.all(mediaPaths.map(readStoredImage));
-    } else {
-      if (!output.media_path) throw new Error("automation_media_missing");
-      asset = await readStoredImage(output.media_path);
-    }
-  } else if (output.media_type === "video") {
-    if (!output.media_path) throw new Error("automation_media_missing");
-    const sourceUrl = output.media_path.startsWith("https://") ? output.media_path : await createStagedVideoUrl(output.media_path);
-    asset = { sourceUrl, mimeType: videoMimeType(null, output.media_path) };
-  }
-
+async function scheduleOutput(output: AutomationOutputRecord): Promise<"scheduled" | "processing"> {
   const jobs = asUploadJobs(output.upload_post_jobs);
-  const scheduledIds = new Set(jobs.map((job) => job.socialMediaId));
-  for (const socialMediaId of accountIds) {
-    if (scheduledIds.has(socialMediaId)) continue;
-    const result = await publishWithUploadPost({
-      socialMediaId,
-      title: output.title ?? getSocialDownloadTitle(output.native_language),
-      caption: description,
-      nativeLanguage: output.native_language,
-      learningLanguage: output.language,
-      asset,
-      assets,
-      scheduledFor: output.scheduled_at,
-      requestId: `automation-${output.id}-${socialMediaId}`,
+  const attemptedAt = new Date().toISOString();
+  const attemptCount = (output.schedule_attempt_count ?? 0) + 1;
+  let activeSocialMediaId: number | null = null;
+  try {
+    const accountIds = asAccountIds(output.target_account_ids);
+    if (!accountIds.length) throw new Error("automation_target_missing");
+    const description = output.description ?? output.caption;
+    if (!description) throw new Error("automation_caption_missing");
+
+    const mediaPaths = output.media_type === "image" ? asMediaPaths(output.media_paths) : [];
+    const mediaCount = output.media_type === "image"
+      ? mediaPaths.length || (output.media_path ? 1 : 0)
+      : output.media_type === "video" ? 1 : 0;
+    let mediaPromise: Promise<{ asset?: DataUrlAsset | RemoteVideoAsset; assets?: DataUrlAsset[] }> | null = null;
+    const loadMedia = () => {
+      mediaPromise ??= (async () => {
+        if (output.media_type === "image") {
+          if (mediaPaths.length) return { assets: await Promise.all(mediaPaths.map(readStoredImage)) };
+          if (!output.media_path) throw new Error("automation_media_missing");
+          return { asset: await readStoredImage(output.media_path) };
+        }
+        if (output.media_type === "video") {
+          if (!output.media_path) throw new Error("automation_media_missing");
+          const sourceUrl = output.media_path.startsWith("https://") ? output.media_path : await createStagedVideoUrl(output.media_path);
+          return { asset: { sourceUrl, mimeType: videoMimeType(null, output.media_path) } };
+        }
+        return {};
+      })();
+      return mediaPromise;
+    };
+
+    const hasUnconfirmedRequest = jobs.some((job) => job.status === "processing" && !job.jobId);
+    await updateOutput(output.id, {
+      schedule_status: "processing",
+      schedule_attempt_count: attemptCount,
+      schedule_attempted_at: attemptedAt,
+      schedule_error_code: hasUnconfirmedRequest ? UPLOAD_POST_REQUEST_UNCONFIRMED_CODE : null,
+      schedule_error_detail: hasUnconfirmedRequest
+        ? "The provider request is being verified before retrying to prevent duplicate publication."
+        : null,
     });
-    jobs.push({ socialMediaId, jobId: result.jobId, requestId: result.requestId, postUrl: result.postUrl });
-    await updateOutput(output.id, { upload_post_jobs: jobs });
+
+    for (const socialMediaId of accountIds) {
+      activeSocialMediaId = socialMediaId;
+      const existingJob = jobs.find((job) => job.socialMediaId === socialMediaId);
+      if (existingJob?.jobId) continue;
+
+      const isRetryingRejectedRequest = output.schedule_error_code === "upload_post_rejected";
+      const idempotencyKey = isRetryingRejectedRequest
+        ? crypto.randomUUID()
+        : existingJob?.idempotencyKey ?? `automation-${output.id}-${socialMediaId}`;
+      const requestId = isRetryingRejectedRequest
+        ? crypto.randomUUID()
+        : existingJob?.idempotencyKey ?? existingJob?.requestId ?? idempotencyKey;
+      const externalId = existingJob?.externalId ?? `foxiesdeck-automation-${output.id}-${socialMediaId}`;
+      const requestStartedAt = new Date().toISOString();
+      const intent: UploadJob = {
+        socialMediaId,
+        jobId: null,
+        status: "processing",
+        requestId,
+        idempotencyKey,
+        externalId,
+        postUrl: existingJob?.postUrl ?? null,
+        scheduledAt: output.scheduled_at,
+        attemptedScheduledAt: [...new Set([
+          ...(existingJob?.attemptedScheduledAt ?? []),
+          ...(existingJob?.scheduledAt ? [existingJob.scheduledAt] : []),
+          output.scheduled_at,
+        ])].slice(-20),
+      };
+      const existingIndex = jobs.findIndex((job) => job.socialMediaId === socialMediaId);
+      if (existingIndex >= 0) jobs[existingIndex] = intent;
+      else jobs.push(intent);
+
+      // Write the provider intent before the external request. On an interrupted
+      // response, the next attempt reconciles by external_id and request_id.
+      await updateOutput(output.id, {
+        upload_post_jobs: jobs,
+        schedule_status: "processing",
+        schedule_error_code: UPLOAD_POST_REQUEST_UNCONFIRMED_CODE,
+        schedule_error_detail: "The provider request is being verified before retrying to prevent duplicate publication.",
+        schedule_attempted_at: requestStartedAt,
+        schedule_attempt_count: attemptCount,
+      });
+      const result = await publishWithUploadPost({
+        socialMediaId,
+        title: output.title ?? getSocialDownloadTitle(output.native_language),
+        caption: description,
+        nativeLanguage: output.native_language,
+        learningLanguage: output.language,
+        generator: output.generator,
+        renderPlan: output.render_plan,
+        applySocialHashtagPolicy: true,
+        mediaType: output.media_type,
+        mediaCount,
+        loadMedia: output.media_type ? loadMedia : undefined,
+        scheduledFor: output.scheduled_at,
+        requestId,
+        idempotencyKey,
+        externalId,
+        reconcileExistingSchedule: Boolean(existingJob || (output.schedule_attempt_count ?? 0) > 0),
+        reconcileRequestIds: [...new Set([requestId, existingJob?.requestId, existingJob?.idempotencyKey].filter((value): value is string => Boolean(value)))],
+        attemptedScheduledAt: intent.attemptedScheduledAt,
+        onRequestRotation: async (rotatedRequest) => {
+          const currentIndex = jobs.findIndex((job) => job.socialMediaId === socialMediaId);
+          const currentJob = jobs[currentIndex] ?? intent;
+          const rotatedJob: UploadJob = {
+            ...currentJob,
+            jobId: null,
+            status: "processing",
+            requestId: rotatedRequest.requestId,
+            idempotencyKey: rotatedRequest.idempotencyKey,
+          };
+          if (currentIndex >= 0) jobs[currentIndex] = rotatedJob;
+          else jobs.push(rotatedJob);
+          await updateOutput(output.id, {
+            upload_post_jobs: jobs,
+            schedule_status: "processing",
+            schedule_error_code: UPLOAD_POST_REQUEST_UNCONFIRMED_CODE,
+            schedule_error_detail: "A confirmed failed request is being retried with a new provider request. Its status will be verified before another retry.",
+            schedule_attempt_count: attemptCount,
+            schedule_attempted_at: new Date().toISOString(),
+          });
+        },
+      });
+      if (result.pending) {
+        const pendingJob: UploadJob = {
+          ...intent,
+          jobId: null,
+          status: "processing",
+          requestId: result.requestId,
+          idempotencyKey: result.idempotencyKey,
+          postUrl: result.postUrl,
+        };
+        jobs[existingIndex >= 0 ? existingIndex : jobs.length - 1] = pendingJob;
+        await updateOutput(output.id, {
+          upload_post_jobs: jobs,
+          schedule_status: "processing",
+          schedule_error_code: UPLOAD_POST_REQUEST_UNCONFIRMED_CODE,
+          schedule_error_detail: "Upload-Post accepted the request or its response is still propagating. The same request will be checked before any retry.",
+          schedule_attempt_count: attemptCount,
+          schedule_attempted_at: new Date().toISOString(),
+          schedule_completed_at: null,
+        });
+        continue;
+      }
+      if (!result.jobId?.trim()) throw new Error("upload_post_job_id_missing");
+
+      const confirmedJob: UploadJob = {
+        ...intent,
+        jobId: result.jobId,
+        status: "scheduled",
+        // Persist exactly the key sent in Idempotency-Key. This makes retries
+        // safe even if the provider's response request_id is different.
+        requestId: result.requestId,
+        idempotencyKey: result.idempotencyKey,
+        postUrl: result.postUrl,
+      };
+      jobs[existingIndex >= 0 ? existingIndex : jobs.length - 1] = confirmedJob;
+      await updateOutput(output.id, {
+        upload_post_jobs: jobs,
+        schedule_attempted_at: attemptedAt,
+        schedule_attempt_count: attemptCount,
+      });
+    }
+
+    const confirmedTargetIds = new Set(jobs.filter((job) => job.jobId).map((job) => job.socialMediaId));
+    const unresolvedTargetIds = accountIds.filter((socialMediaId) => !confirmedTargetIds.has(socialMediaId));
+    const providerProcessing = jobs.some((job) => job.status === "processing" && !job.jobId && accountIds.includes(job.socialMediaId));
+    if (providerProcessing) {
+      await updateOutput(output.id, {
+        status: "ready_to_schedule",
+        schedule_status: "processing",
+        schedule_error_code: UPLOAD_POST_REQUEST_UNCONFIRMED_CODE,
+        schedule_error_detail: "Upload-Post accepted the request or its response is still propagating. The same request will be checked before any retry.",
+        schedule_attempt_count: attemptCount,
+        schedule_attempted_at: new Date().toISOString(),
+        schedule_completed_at: null,
+        upload_post_jobs: jobs,
+        error_code: null,
+      });
+      return "processing";
+    }
+    if (unresolvedTargetIds.length) throw new Error("upload_post_job_id_missing");
+
+    await updateOutput(output.id, {
+      status: "scheduled",
+      schedule_status: "scheduled",
+      schedule_error_code: null,
+      schedule_error_detail: null,
+      schedule_attempt_count: attemptCount,
+      schedule_attempted_at: attemptedAt,
+      schedule_completed_at: new Date().toISOString(),
+      upload_post_jobs: jobs,
+      scheduled_at_upload_post: new Date().toISOString(),
+      error_code: null,
+      last_error_detail: null,
+      last_provider: null,
+      last_provider_status: null,
+      last_provider_attempt_count: null,
+      last_provider_request_id: null,
+    });
+    return "scheduled";
+  } catch (error) {
+    const failureCode = scheduleFailureCode(error);
+    const isDefinitiveClientRejection = error instanceof UploadPostRejectedError
+      && error.statusCode >= 400
+      && error.statusCode < 500
+      && error.statusCode !== 408;
+    const currentRequestDefinitelyFailed = isDefinitiveClientRejection
+      || DEFINITIVE_SCHEDULE_FAILURE_CODES.has(failureCode)
+      || failureCode === "upload_post_schedule_async_failed";
+    if (activeSocialMediaId !== null && currentRequestDefinitelyFailed) {
+      const activeIndex = jobs.findIndex((job) => job.socialMediaId === activeSocialMediaId);
+      if (activeIndex >= 0 && !jobs[activeIndex]?.jobId) {
+        jobs[activeIndex] = { ...jobs[activeIndex]!, status: "failed" };
+      }
+    }
+    const hasConfirmedJobs = jobs.some((job) => Boolean(job.jobId));
+    const hasUnconfirmedRequest = jobs.some((job) => job.status === "processing" && !job.jobId);
+    const requestOutcomeUnconfirmed = hasUnconfirmedRequest;
+    await updateOutput(output.id, {
+      status: "ready_to_schedule",
+      schedule_status: requestOutcomeUnconfirmed ? "processing" : hasConfirmedJobs ? "partially_scheduled" : "failed",
+      schedule_error_code: requestOutcomeUnconfirmed ? UPLOAD_POST_REQUEST_UNCONFIRMED_CODE : failureCode,
+      schedule_error_detail: requestOutcomeUnconfirmed
+        ? "The provider response could not be confirmed. Its request id will be checked before another upload is attempted."
+        : scheduleFailureDetail(error),
+      schedule_attempt_count: attemptCount,
+      schedule_attempted_at: attemptedAt,
+      schedule_completed_at: null,
+      upload_post_jobs: jobs,
+      error_code: null,
+    });
+    if (requestOutcomeUnconfirmed) return "processing";
+    throw error;
+  }
+}
+
+function scheduleFailureCode(error: unknown) {
+  if (error instanceof UploadPostRejectedError && error.statusCode === 429) return "upload_post_rate_limited";
+  const candidate = error instanceof Error ? error.message : "";
+  return /^[a-z][a-z\d_]{2,119}$/u.test(candidate) ? candidate : "automation_schedule_failed";
+}
+
+function scheduleFailureDetail(error: unknown) {
+  if (error instanceof UploadPostRejectedError) return error.detail;
+  return scheduleFailureCode(error);
+}
+
+async function loadFutureScheduleReservations(ownerKey: string, omittedOutputIds: ReadonlySet<string>, after: string) {
+  const supabase = createSupabaseAdminClient();
+  const reservations: AutomationScheduleReservation[] = [];
+  const pageSize = 1_000;
+  const activeStatuses = ["queued", "processing", "generating_video", "awaiting_browser_image", "awaiting_browser_video", "ready_to_schedule", "scheduled"];
+
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase
+      .from("social_content_automation_outputs")
+      .select("id,scheduled_at,target_account_ids,run:social_content_automation_runs!inner(owner_key)")
+      .eq("run.owner_key", ownerKey)
+      .gte("scheduled_at", after)
+      .in("status", activeStatuses)
+      .order("scheduled_at", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw new Error("automation_schedule_reservations_failed");
+
+    for (const row of data ?? []) {
+      if (omittedOutputIds.has(row.id)) continue;
+      for (const accountId of asAccountIds(row.target_account_ids)) {
+        reservations.push({ accountId, scheduledAt: row.scheduled_at });
+      }
+    }
+    if (!data || data.length < pageSize) break;
   }
 
-  await updateOutput(output.id, {
-    status: "scheduled",
-    upload_post_jobs: jobs,
-    scheduled_at_upload_post: new Date().toISOString(),
-    error_code: null,
-    last_error_detail: null,
-    last_provider: null,
-    last_provider_status: null,
-    last_provider_attempt_count: null,
-    last_provider_request_id: null,
-  });
-  return "scheduled";
+  return reservations;
 }
 
 function asMediaPaths(value: unknown) {
@@ -1069,67 +1339,178 @@ export async function refreshAutomationOutputMediaPreviews(runId: string) {
   return unavailable ? { checked, invalid, unavailable } : { checked, invalid };
 }
 
-export async function scheduleReadyAutomationRun(runId: string) {
+export async function scheduleReadyAutomationRun(runId: string, options: { outputId?: string } = {}) {
   const supabase = createSupabaseAdminClient();
-  const { data: allOutputs, error: readinessError } = await supabase
+  const staleScheduleCutoff = new Date(Date.now() - 15 * 60_000).toISOString();
+  const providerRecheckCutoff = new Date(Date.now() - UPLOAD_POST_REQUEST_RECHECK_DELAY_MS).toISOString();
+  let providerRecheckQuery = supabase
     .from("social_content_automation_outputs")
-    .select("id,status,quality_status")
-    .eq("run_id", runId);
-  if (readinessError) throw new Error("automation_schedule_readiness_failed");
-  // Manual scheduling may publish the verified portion of a batch. Outputs
-  // that are still queued, waiting for recovery, failed, or missing a quality
-  // pass remain untouched and can be retried later.
-  const skipped = (allOutputs ?? []).filter((output) => output.status !== "scheduled" && (output.status !== "ready_to_schedule" || output.quality_status !== "passed")).length;
+    .update({ schedule_attempted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("run_id", runId)
+    .eq("status", "ready_to_schedule")
+    .eq("schedule_status", "processing")
+    .eq("schedule_error_code", UPLOAD_POST_REQUEST_UNCONFIRMED_CODE)
+    .lt("schedule_attempted_at", providerRecheckCutoff);
+  if (options.outputId) providerRecheckQuery = providerRecheckQuery.eq("id", options.outputId);
+  const { data: providerRecheckOutputs, error: providerRecheckError } = await providerRecheckQuery
+    .select("*")
+    .returns<AutomationOutputRecord[]>();
+  if (providerRecheckError) throw new Error("automation_schedule_provider_recheck_failed");
 
-  await supabase.from("social_content_automation_runs").update({ auto_schedule_started_at: new Date().toISOString(), auto_schedule_error: null }).eq("id", runId);
-  const { data: lockedOutputs, error: lockError } = await supabase
+  let staleScheduleQuery = supabase
     .from("social_content_automation_outputs")
-    .update({ status: "processing", updated_at: new Date().toISOString() })
+    .update({ schedule_status: "failed", schedule_error_code: "automation_schedule_attempt_interrupted", schedule_error_detail: "automation_schedule_attempt_interrupted" })
+    .eq("run_id", runId)
+    .eq("schedule_status", "processing")
+    .lt("schedule_attempted_at", staleScheduleCutoff);
+  if (options.outputId) staleScheduleQuery = staleScheduleQuery.eq("id", options.outputId);
+  const { error: staleScheduleError } = await staleScheduleQuery;
+  if (staleScheduleError) throw new Error("automation_schedule_recovery_failed");
+
+  const { data: run, error: runError } = await supabase
+    .from("social_content_automation_runs")
+    .select("owner_key")
+    .eq("id", runId)
+    .maybeSingle<{ owner_key: string }>();
+  if (runError || !run) throw new Error("automation_schedule_run_read_failed");
+
+  let readinessQuery = supabase
+    .from("social_content_automation_outputs")
+    .select("id,status,quality_status,schedule_status,schedule_error_code,schedule_attempt_count,scheduled_at")
+    .eq("run_id", runId);
+  if (options.outputId) readinessQuery = readinessQuery.eq("id", options.outputId);
+  const { data: allOutputs, error: readinessError } = await readinessQuery;
+  if (readinessError) throw new Error("automation_schedule_readiness_failed");
+  const providerRecheckIds = new Set((providerRecheckOutputs ?? []).map((output) => output.id));
+  const alreadyProcessing = (allOutputs ?? []).filter((output) => output.schedule_status === "processing" && !providerRecheckIds.has(output.id)).length;
+  const scheduleEligibleStatuses = ["pending", "failed", "partially_scheduled"];
+  const eligible = (allOutputs ?? []).filter((output) => output.status === "ready_to_schedule"
+    && output.quality_status === "passed"
+    && scheduleEligibleStatuses.includes(output.schedule_status)
+    && output.schedule_error_code !== "automation_scheduled_at_in_past");
+  const skipped = (allOutputs ?? []).filter((output) => output.status !== "scheduled"
+    && !eligible.some((candidate) => candidate.id === output.id)
+    && !providerRecheckIds.has(output.id)).length;
+
+  const { error: runUpdateError } = await supabase.from("social_content_automation_runs")
+    .update({ auto_schedule_started_at: new Date().toISOString(), auto_schedule_error: null })
+    .eq("id", runId);
+  if (runUpdateError) throw new Error("automation_schedule_run_update_failed");
+
+  let lockQuery = supabase
+    .from("social_content_automation_outputs")
+    .update({ schedule_status: "processing", schedule_attempted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq("run_id", runId)
     .eq("status", "ready_to_schedule")
     .eq("quality_status", "passed")
-    .select("id,run_id,day_offset,group_name,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,attempt_count,next_attempt_at,quality_status,quality_error,lease_renderer_id,lease_expires_at,render_plan")
+    .in("schedule_status", scheduleEligibleStatuses)
+    .neq("schedule_error_code", "automation_scheduled_at_in_past");
+  if (options.outputId) lockQuery = lockQuery.eq("id", options.outputId);
+  const { data: lockedOutputs, error: lockError } = await lockQuery
+    .select("id,run_id,day_offset,group_name,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,description,title,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,attempt_count,next_attempt_at,quality_status,quality_error,lease_renderer_id,lease_expires_at,render_plan,schedule_status,schedule_error_code,schedule_attempt_count,schedule_attempted_at")
     .returns<AutomationOutputRecord[]>();
   if (lockError) throw new Error("automation_schedule_lock_failed");
 
   let scheduled = 0;
   let failed = 0;
+  let providerProcessing = 0;
   let nextOutputIndex = 0;
-  const outputsToSchedule = lockedOutputs ?? [];
+  const lockedOutputList = [...(lockedOutputs ?? []), ...(providerRecheckOutputs ?? [])];
+  const pastScheduleOutputs = lockedOutputList.filter((output) => isAutomationScheduleExpired(output.scheduled_at) && !providerRecheckIds.has(output.id));
+  for (const output of pastScheduleOutputs) {
+    failed += 1;
+    await updateOutput(output.id, {
+      schedule_status: "failed",
+      schedule_error_code: "automation_scheduled_at_in_past",
+      schedule_error_detail: "This post's assigned publication time has passed. It was skipped without contacting the publishing provider.",
+      schedule_attempt_count: (output.schedule_attempt_count ?? 0) + 1,
+      schedule_attempted_at: new Date().toISOString(),
+    });
+  }
+  const outputsToSchedule = lockedOutputList.filter((output) => !pastScheduleOutputs.some((expired) => expired.id === output.id));
+  const omittedOutputIds = new Set(outputsToSchedule.map((output) => output.id));
+  let reservations: AutomationScheduleReservation[];
+  try {
+    reservations = await loadFutureScheduleReservations(run.owner_key, omittedOutputIds, new Date(Date.now() - AUTOMATION_SCHEDULE_MIN_LEAD_MS).toISOString());
+  } catch (error) {
+    // Release ordinary claims. Keep unresolved provider requests locked so an
+    // infrastructure failure cannot make the run look finished prematurely.
+    for (const output of outputsToSchedule) {
+      const providerRecheck = providerRecheckIds.has(output.id);
+      await updateOutput(output.id, {
+        schedule_status: providerRecheck ? "processing" : "failed",
+        schedule_error_code: providerRecheck ? UPLOAD_POST_REQUEST_UNCONFIRMED_CODE : "automation_schedule_reservations_failed",
+        schedule_error_detail: providerRecheck
+          ? "The existing provider request is still awaiting verification; reservation data was unavailable, so no new upload was sent."
+          : "automation_schedule_reservations_failed",
+        schedule_attempt_count: (output.schedule_attempt_count ?? 0) + 1,
+      }).catch(() => undefined);
+    }
+    throw error;
+  }
+
+  const plannedOutputs: AutomationOutputRecord[] = [];
+  for (const output of [...outputsToSchedule].sort((first, second) => new Date(first.scheduled_at).getTime() - new Date(second.scheduled_at).getTime())) {
+    try {
+      const accountIds = asAccountIds(output.target_account_ids);
+      const jobs = asUploadJobs(output.upload_post_jobs);
+      const scheduledAccountIds = new Set(jobs.filter((job) => job.jobId).map((job) => job.socialMediaId));
+      for (const job of jobs) {
+        if (!job.jobId) continue;
+        reservations.push({ accountId: job.socialMediaId, scheduledAt: job.scheduledAt ?? output.scheduled_at });
+      }
+      const pendingAccountIds = accountIds.filter((accountId) => !scheduledAccountIds.has(accountId));
+      if (providerRecheckIds.has(output.id)) {
+        for (const accountId of pendingAccountIds) reservations.push({ accountId, scheduledAt: output.scheduled_at });
+        plannedOutputs.push(output);
+        continue;
+      }
+      const scheduledAt = pendingAccountIds.length
+        ? resolveAutomationScheduleAt({ scheduledAt: output.scheduled_at, accountIds: pendingAccountIds, reservations })
+        : output.scheduled_at;
+      if (scheduledAt !== output.scheduled_at) await updateOutput(output.id, { scheduled_at: scheduledAt });
+      plannedOutputs.push({ ...output, scheduled_at: scheduledAt });
+      for (const accountId of pendingAccountIds) reservations.push({ accountId, scheduledAt });
+    } catch (error) {
+      failed += 1;
+      const failureCode = scheduleFailureCode(error);
+      logAutomationOutputFailure("output_schedule_slot_failed", output, error, { scheduling: true });
+      await updateOutput(output.id, {
+        status: "ready_to_schedule",
+        schedule_status: "failed",
+        schedule_error_code: failureCode,
+        schedule_error_detail: scheduleFailureDetail(error),
+        schedule_attempt_count: (output.schedule_attempt_count ?? 0) + 1,
+        schedule_attempted_at: new Date().toISOString(),
+      }).catch((updateError) => logAutomationOutputFailure("output_schedule_state_update_failed", output, updateError, { scheduling: true, nonBlocking: true }));
+    }
+  }
+
   const worker = async () => {
-    while (nextOutputIndex < outputsToSchedule.length) {
-      const output = outputsToSchedule[nextOutputIndex++];
+    while (nextOutputIndex < plannedOutputs.length) {
+      const output = plannedOutputs[nextOutputIndex++];
       if (!output) continue;
       try {
-        await scheduleOutput({ ...output, status: "processing" });
-        scheduled += 1;
+        const outcome = await scheduleOutput({ ...output, status: "processing" });
+        if (outcome === "processing") providerProcessing += 1;
+        else scheduled += 1;
       } catch (error) {
         failed += 1;
         logAutomationOutputFailure("output_schedule_failed", output, error, { scheduling: true });
-        try {
-          await updateOutput(output.id, {
-            status: "failed",
-            error_code: error instanceof Error ? error.message : "automation_schedule_failed",
-          });
-        } catch (error) {
-          // The stale-processing recovery path will safely return this output to the queue.
-          logAutomationOutputFailure("output_failure_state_update_failed", output, error, {
-            nonBlocking: true,
-            originalFailure: error instanceof Error ? error.message : "unknown",
-          });
-        }
       }
     }
   };
-  await Promise.all(Array.from({ length: Math.min(SCHEDULE_OUTPUT_CONCURRENCY, outputsToSchedule.length) }, () => worker()));
+  await Promise.all(Array.from({ length: Math.min(SCHEDULE_OUTPUT_CONCURRENCY, plannedOutputs.length) }, () => worker()));
 
   if (failed) {
     await supabase.from("social_content_automation_runs").update({ auto_schedule_error: "automation_schedule_partial_failure" }).eq("id", runId);
+  } else if (providerProcessing) {
+    await supabase.from("social_content_automation_runs").update({ auto_schedule_error: "automation_schedule_provider_processing" }).eq("id", runId);
   } else {
     await supabase.from("social_content_automation_runs").update({ auto_schedule_completed_at: new Date().toISOString(), auto_schedule_error: null }).eq("id", runId);
   }
   await refreshAutomationRunStatus(runId, { autoSchedule: false });
-  return { scheduled, failed, blocked: false, pending: skipped, skipped };
+  return { scheduled, failed, processing: providerProcessing + alreadyProcessing, blocked: false, pending: skipped, skipped };
 }
 
 export async function processAutomationOutput(output: AutomationOutputRecord) {
@@ -1188,162 +1569,31 @@ export async function processAutomationOutput(output: AutomationOutputRecord) {
 
 export async function refreshAutomationRunStatus(runId: string, options: { autoSchedule?: boolean } = {}) {
   const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase.from("social_content_automation_outputs").select("status").eq("run_id", runId);
+  const [{ data, error }, { data: run, error: runError }] = await Promise.all([
+    supabase.from("social_content_automation_outputs").select("status").eq("run_id", runId),
+    supabase.from("social_content_automation_runs").select("owner_key,status,auto_schedule_on_success,generation_stopped_at,finished_by_user_at").eq("id", runId).maybeSingle<{ owner_key: string; status: string; auto_schedule_on_success: boolean; generation_stopped_at: string | null; finished_by_user_at: string | null }>(),
+  ]);
   if (error) throw new Error("automation_run_status_failed");
+  if (runError) throw new Error("automation_run_status_failed");
+  if (!run || run.finished_by_user_at) return;
   const statuses = (data ?? []).map((item) => item.status as OutputStatus);
   if (statuses.some((status) => status === "queued" || status === "processing" || status === "generating_video" || status === "awaiting_browser_image" || status === "awaiting_browser_video")) {
-    await supabase.from("social_content_automation_runs").update({ status: "processing" }).eq("id", runId);
+    await supabase.from("social_content_automation_runs").update({ status: "processing" }).eq("id", runId).is("finished_by_user_at", null);
     return;
   }
   if (statuses.some((status) => status === "ready_to_schedule")) {
-    const { data: run, error: runError } = await supabase
-      .from("social_content_automation_runs")
-      .select("owner_key,auto_schedule_on_success")
-      .eq("id", runId)
-      .maybeSingle<{ owner_key: string; auto_schedule_on_success: boolean }>();
-    if (runError) throw new Error("automation_run_status_failed");
-    await supabase.from("social_content_automation_runs").update({ status: "ready_to_schedule", completed_at: null }).eq("id", runId);
+    await supabase.from("social_content_automation_runs").update({ status: "ready_to_schedule", completed_at: null }).eq("id", runId).is("finished_by_user_at", null);
     const allReady = statuses.every((status) => status === "ready_to_schedule" || status === "scheduled");
-    if (options.autoSchedule !== false && allReady && run?.owner_key === "social-studio" && run.auto_schedule_on_success) {
+    if (options.autoSchedule !== false && allReady && !run.generation_stopped_at && run.owner_key === "social-studio" && run.auto_schedule_on_success) {
       await scheduleReadyAutomationRun(runId);
     }
     return;
   }
-  const terminalStatus = statuses.some((status) => status === "failed") ? "completed_with_errors" : "completed";
-  const { data: existingRun } = await supabase.from("social_content_automation_runs").select("owner_key,status").eq("id", runId).maybeSingle<{ owner_key: string; status: string }>();
+  // Generation reaching a reviewable state is not the same as the user
+  // finishing the run. Keep the run open until the explicit Generated Posts
+  // action records finished_by_user_at.
   await supabase.from("social_content_automation_runs").update({
-    status: terminalStatus,
-    completed_at: new Date().toISOString(),
-  }).eq("id", runId);
-  if (existingRun?.owner_key === "social-studio" && existingRun.status !== terminalStatus) {
-    await notifyAutomationRunTerminal(existingRun.owner_key, terminalStatus).catch(() => undefined);
-  }
-}
-
-export async function cleanupStagedAutomationMedia(now = new Date()) {
-  const supabase = createSupabaseAdminClient();
-  const outputs: Array<{
-    id: string;
-    status: OutputStatus;
-    media_path: string | null;
-    media_paths: unknown;
-    media_type: "image" | "video" | null;
-    scheduled_at_upload_post: string | null;
-    updated_at: string;
-  }> = [];
-
-  for (let from = 0; ; from += STORAGE_PAGE_SIZE) {
-    const { data, error } = await supabase
-      .from("social_content_automation_outputs")
-      .select("id,status,media_path,media_paths,media_type,scheduled_at_upload_post,updated_at")
-      .order("created_at", { ascending: true })
-      .order("id", { ascending: true })
-      .range(from, from + STORAGE_PAGE_SIZE - 1)
-      .returns<typeof outputs>();
-    if (error) throw new Error("automation_media_cleanup_query_failed");
-    outputs.push(...(data ?? []));
-    if (!data || data.length < STORAGE_PAGE_SIZE) break;
-  }
-
-  const pathsForOutput = (output: (typeof outputs)[number]) => [...new Set([
-    typeof output.media_path === "string" && output.media_path.startsWith(AUTOMATION_MEDIA_PREFIX)
-      ? output.media_path
-      : null,
-    ...asMediaPaths(output.media_paths),
-  ].filter((path): path is string => Boolean(path)))];
-  const allReferencedPaths = new Set(outputs.flatMap(pathsForOutput));
-  const activeStatuses = new Set<OutputStatus>([
-    "queued",
-    "processing",
-    "generating_video",
-    "awaiting_browser_image",
-    "awaiting_browser_video",
-  ]);
-  const failedCutoff = new Date(now.getTime() - FAILED_MEDIA_RETENTION_MS);
-  const activeCutoff = new Date(now.getTime() - STALE_ACTIVE_MEDIA_RETENTION_MS);
-  const scheduledCutoff = new Date(now.getTime() - STAGED_MEDIA_RETENTION_MS);
-  const staleOutputs = outputs.filter((output) => {
-    if (!pathsForOutput(output).length) return false;
-    if (output.status === "scheduled") {
-      return Boolean(output.scheduled_at_upload_post) && new Date(output.scheduled_at_upload_post!).getTime() < scheduledCutoff.getTime();
-    }
-    if (output.status === "failed") return new Date(output.updated_at).getTime() < failedCutoff.getTime();
-    // Ready media is the user's durable review checkpoint. It stays available
-    // until the user schedules or explicitly deletes it; maintenance must not
-    // silently turn a Generated Posts item into a missing asset.
-    if (output.status === "ready_to_schedule") return false;
-    return activeStatuses.has(output.status) && new Date(output.updated_at).getTime() < activeCutoff.getTime();
-  });
-  const staleOutputIds = new Set(staleOutputs.map((output) => output.id));
-  const pathsReferencedByFreshOutputs = new Set(
-    outputs
-      .filter((output) => !staleOutputIds.has(output.id))
-      .flatMap(pathsForOutput),
-  );
-  const removableReferencedPaths = new Set(
-    staleOutputs
-      .flatMap(pathsForOutput)
-      .filter((path) => !pathsReferencedByFreshOutputs.has(path)),
-  );
-
-  const stagedFiles: Array<{ path: string; updatedAt: string | null }> = [];
-  for (let offset = 0; ; offset += STORAGE_PAGE_SIZE) {
-    const { data, error } = await supabase.storage.from(AUTOMATION_BUCKET).list("automation", {
-      limit: STORAGE_PAGE_SIZE,
-      offset,
-      sortBy: { column: "name", order: "asc" },
-    });
-    if (error) throw new Error("automation_media_cleanup_list_failed");
-    const files = (data ?? []).filter((file) => file.metadata !== null);
-    stagedFiles.push(...files.map((file) => ({
-      path: `${AUTOMATION_MEDIA_PREFIX}${file.name}`,
-      updatedAt: file.updated_at ?? file.created_at ?? null,
-    })));
-    if (!data || data.length < STORAGE_PAGE_SIZE) break;
-  }
-
-  const orphanCutoff = failedCutoff;
-  const orphanPaths = stagedFiles
-    .filter((file) => !allReferencedPaths.has(file.path))
-    .filter((file) => file.updatedAt && new Date(file.updatedAt).getTime() < orphanCutoff.getTime())
-    .map((file) => file.path);
-  const pathsToRemove = [...new Set([...removableReferencedPaths, ...orphanPaths])];
-  for (let from = 0; from < pathsToRemove.length; from += STORAGE_PAGE_SIZE) {
-    const batch = pathsToRemove.slice(from, from + STORAGE_PAGE_SIZE);
-    const { error } = await supabase.storage.from(AUTOMATION_BUCKET).remove(batch);
-    if (error) throw new Error("automation_media_cleanup_failed");
-  }
-
-  const removedPaths = new Set(pathsToRemove);
-  const outputsToUpdate = staleOutputs.filter((output) => pathsForOutput(output).some((path) => removedPaths.has(path)));
-  for (const output of outputsToUpdate) {
-    const mediaPath = output.media_path && !removedPaths.has(output.media_path) ? output.media_path : null;
-    const mediaPaths = asMediaPaths(output.media_paths).filter((path) => !removedPaths.has(path));
-    const shouldExpire = output.status !== "scheduled" && output.status !== "failed" && !mediaPath && !mediaPaths.length;
-    const updatePayload: Record<string, unknown> = {
-      media_path: mediaPath,
-      media_paths: mediaPaths,
-      media_type: mediaPath || mediaPaths.length ? output.media_type : null,
-      updated_at: now.toISOString(),
-    };
-    if (shouldExpire) {
-      Object.assign(updatePayload, {
-        status: "failed",
-        error_code: "automation_media_retention_expired",
-        last_error_detail: "Automation media retention window expired.",
-        retry_exhausted_at: now.toISOString(),
-      });
-    }
-    const { error } = await supabase
-      .from("social_content_automation_outputs")
-      .update(updatePayload)
-      .eq("id", output.id);
-    if (error) throw new Error("automation_media_cleanup_update_failed");
-  }
-
-  return {
-    removed: pathsToRemove.length,
-    expiredOutputs: outputsToUpdate.filter((output) => output.status !== "scheduled" && output.status !== "failed").length,
-    orphaned: orphanPaths.length,
-  };
+    status: "ready_to_schedule",
+    completed_at: null,
+  }).eq("id", runId).is("finished_by_user_at", null);
 }

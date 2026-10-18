@@ -9,21 +9,24 @@ import {
 import { DICTIONARIES } from "@/i18n/dictionaries";
 
 describe("slow connection quality signals", () => {
-  it.each(["2g", "slow-2g"])("recognizes the %s connection estimate", (effectiveType) => {
-    expect(isSlowConnectionEstimate({ effectiveType })).toBe(true);
+  it("recognizes only the slow-2g connection estimate", () => {
+    expect(isSlowConnectionEstimate({ effectiveType: "slow-2g" })).toBe(true);
+    expect(isSlowConnectionEstimate({ effectiveType: "2g" })).toBe(false);
   });
 
-  it("uses a very low estimated downlink or a combined high-latency signal", () => {
-    expect(isSlowConnectionEstimate({ downlink: 0.3 })).toBe(true);
-    expect(isSlowConnectionEstimate({ downlink: 0.8, rtt: 1_500 })).toBe(true);
+  it("requires an unusably low estimated speed or extreme latency", () => {
+    expect(isSlowConnectionEstimate({ downlink: 0.05 })).toBe(true);
+    expect(isSlowConnectionEstimate({ downlink: 0.18, rtt: 2_600 })).toBe(true);
+    expect(isSlowConnectionEstimate({ downlink: 0.3, rtt: 1_500 })).toBe(false);
     expect(isSlowConnectionEstimate({ downlink: 4, rtt: 1_500 })).toBe(false);
     expect(isSlowConnectionEstimate({ downlink: 2, rtt: 80, effectiveType: "4g" })).toBe(false);
   });
 
   it("does not prompt for one ordinary slow sample, but does after confirmation", () => {
-    expect(isSlowReachabilitySample(1_900, "success")).toBe(true);
-    expect(shouldRecommendOfflineMode(1_900, "success", 0)).toBe(false);
-    expect(shouldRecommendOfflineMode(1_900, "success", 1)).toBe(true);
+    expect(isSlowReachabilitySample(8_100, "success")).toBe(true);
+    expect(shouldRecommendOfflineMode(8_100, "success", 0)).toBe(false);
+    expect(shouldRecommendOfflineMode(8_100, "success", 1)).toBe(true);
+    expect(shouldRecommendOfflineMode(5_000, "success", 1)).toBe(false);
   });
 
   it("does not mistake a fast HTTP server error for a slow internet connection", () => {
@@ -33,7 +36,7 @@ describe("slow connection quality signals", () => {
   });
 
   it("prompts immediately for a severely slow request or after repeated network failures", () => {
-    expect(shouldRecommendOfflineMode(3_500, "success", 0)).toBe(true);
+    expect(shouldRecommendOfflineMode(12_000, "success", 0)).toBe(true);
     expect(shouldRecommendOfflineMode(400, "network-error", 1)).toBe(true);
     expect(shouldRecommendOfflineMode(400, "network-error", 0)).toBe(false);
     expect(isSlowReachabilitySample(400, "network-error")).toBe(true);
@@ -44,7 +47,7 @@ describe("slow connection quality signals", () => {
       transferSizeBytes: MIN_RESOURCE_TRANSFER_BYTES,
       encodedBodySizeBytes: MIN_RESOURCE_TRANSFER_BYTES,
       responseStartMs: 100,
-      responseEndMs: 1_600,
+      responseEndMs: 15_000,
     });
     const fastTransfer = estimateResourceTransfer({
       transferSizeBytes: 256 * 1_024,

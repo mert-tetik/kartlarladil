@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { APP_NAME, SITE_URL } from "@/lib/constants";
+import { APP_NAME, SITE_LOGO_PATH, SITE_URL } from "@/lib/constants";
 import type { LocaleCode } from "@/types/domain";
 
 export const DEFAULT_TITLE_TEMPLATE = `%s | ${APP_NAME}`;
@@ -30,6 +30,10 @@ export function buildMetadata({
     title: title ? { default: title, template: DEFAULT_TITLE_TEMPLATE } : APP_NAME,
     description,
     applicationName: APP_NAME,
+    icons: {
+      icon: [{ url: SITE_LOGO_PATH, type: "image/png" }],
+      apple: [{ url: SITE_LOGO_PATH, type: "image/png" }],
+    },
     openGraph: {
       type: "website",
       locale,

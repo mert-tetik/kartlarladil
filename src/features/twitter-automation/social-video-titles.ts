@@ -262,8 +262,8 @@ export function getLearningLanguageHashtags(language: LanguageCode, nativeLangua
 /** @deprecated Use getLearningLanguageHashtags; kept for existing integrations. */
 export const getNativeCaptionHashtags = getLearningLanguageHashtags;
 
-export function createTitleOnlySocialTitle(caption: string, nativeLanguage: LanguageCode, learningLanguage: LanguageCode, maxLength = 100) {
-  const hashtags = getLearningLanguageHashtags(learningLanguage, nativeLanguage).slice(0, 3).join(" ");
+export function createTitleOnlySocialTitle(caption: string, nativeLanguage: LanguageCode, learningLanguage: LanguageCode, maxLength = 100, platformHashtags?: readonly string[]) {
+  const hashtags = (platformHashtags ?? getLearningLanguageHashtags(learningLanguage, nativeLanguage).slice(0, 3)).join(" ");
   const callToAction = getSocialDownloadTitle(nativeLanguage);
   const hook = caption
     .replace(/#[\p{L}\p{N}_-]+/gu, "")

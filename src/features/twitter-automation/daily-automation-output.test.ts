@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createDailyAutomationOutputIdentity,
   createDailyAutomationOutputMetadata,
+  createRunAutomationOutputIdentity,
   mergeDailyAutomationOutputMetadata,
   readDailyAutomationOutputMetadata,
 } from "./daily-automation-output";
@@ -35,6 +36,14 @@ describe("daily automation output identity", () => {
 
     expect(new Set([text.id, nextDay.id, image.id]).size).toBe(3);
     expect(new Set([text.generationKey, nextDay.generationKey, image.generationKey]).size).toBe(3);
+  });
+
+  it("keeps one bulk run's slots stable but isolates separately started runs", () => {
+    const slot = { runId: "run-one", slotKey: "day-1:row-1:item-1" };
+    const first = createRunAutomationOutputIdentity(slot);
+    expect(createRunAutomationOutputIdentity(slot)).toEqual(first);
+    expect(createRunAutomationOutputIdentity({ ...slot, runId: "run-two" }).id).not.toBe(first.id);
+    expect(createRunAutomationOutputIdentity({ ...slot, slotKey: "day-1:row-1:item-2" }).id).not.toBe(first.id);
   });
 
   it("keeps the daily checkpoint metadata when a renderer replaces its render plan", () => {

@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-const requestSchema = z.object({ runId: z.string().uuid(), scope: z.enum(["production", "test"]).optional() }).strict();
+const requestSchema = z.object({ runId: z.string().uuid(), outputId: z.string().uuid().optional(), scope: z.enum(["production", "test"]).optional() }).strict();
 
 export async function POST(request: NextRequest) {
   if (!await hasSocialStudioSession(request.headers.get("cookie"))) return NextResponse.json({ errorCode: "unauthorized" }, { status: 401 });
@@ -36,7 +36,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ errorCode: "automation_run_not_found" }, { status: 404 });
     }
 
-    const result = await scheduleReadyAutomationRun(run.id);
+    const result = parsed.data.outputId
+      ? await scheduleReadyAutomationRun(run.id, { outputId: parsed.data.outputId })
+      : await scheduleReadyAutomationRun(run.id);
     return NextResponse.json(result);
   } catch (error) {
     logAutomationRequestFailure("automation_schedule_request_failed", error, {

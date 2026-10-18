@@ -14,6 +14,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { patchGeneratedAndroidProject } from "./patch-generated-android.mjs";
 import { prepareHybridMedia } from "./prepare-hybrid-android.mjs";
+import { generateLauncherIcons } from "./generate-launcher-icons.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -308,6 +309,9 @@ async function main() {
 
   const manifest = readJson(path.join(PROJECT_DIR, "twa-manifest.json"));
   const generatedProject = await patchGeneratedAndroidProject(PROJECT_DIR);
+  // AAB builds are locked to the single canonical app logo. This validation
+  // intentionally runs before any Android build work begins.
+  await generateLauncherIcons(PROJECT_DIR);
   if (
     String(manifest.packageId) !== generatedProject.packageName ||
     String(manifest.host) !== generatedProject.host

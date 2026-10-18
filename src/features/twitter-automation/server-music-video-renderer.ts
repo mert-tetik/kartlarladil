@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { pickSocialAudioTrack } from "@/features/twitter-automation/social-audio-tracks";
 
 const execFileAsync = promisify(execFile);
 
@@ -16,25 +17,11 @@ export const SERVER_MUSIC_VIDEO_MIME_TYPE = "video/mp4" as const;
 const AUTOMATION_BUCKET = "social-studio-automation";
 const MAX_SOURCE_IMAGE_BYTES = 6 * 1024 * 1024;
 const MAX_RENDERED_VIDEO_BYTES = 100 * 1024 * 1024;
-const MUSIC_TRACKS = [
-  "music1.mp3",
-  "music2.mp3",
-  "music3.mp3",
-  "music4.mp3",
-  "music5.mp3",
-  "music6.mp3",
-  "music7.mp3",
-] as const;
-
 export type ServerMusicVideoResult = {
   data: Buffer;
   mimeType: typeof SERVER_MUSIC_VIDEO_MIME_TYPE;
   musicTrack: string;
 };
-
-function pick<T>(items: readonly T[]) {
-  return items[Math.floor(Math.random() * items.length)]!;
-}
 
 function ffmpegExecutable() {
   const configured = process.env.FFMPEG_PATH?.trim();
@@ -127,7 +114,7 @@ export async function renderServerMusicVideo(imagePath: string): Promise<ServerM
   const workDirectory = await mkdtemp(join(tmpdir(), "foxiesdeck-music-video-"));
   const imageFile = join(workDirectory, "source-image");
   const outputFile = join(workDirectory, "music-video.mp4");
-  const musicTrack = pick(MUSIC_TRACKS);
+  const musicTrack = pickSocialAudioTrack().filename;
   const musicFile = join(process.cwd(), "public", "social-audio", musicTrack);
 
   try {
