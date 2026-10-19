@@ -113,12 +113,12 @@ async function readMascotCutout() {
     .toBuffer();
 }
 
-async function createSafeZoneIcon(mascot, size, { transparent = false } = {}) {
+async function createSafeZoneIcon(source, size, { transparent = false } = {}) {
   const contentSize = Math.max(1, Math.round(size * SAFE_ZONE_RATIO));
-  const content = await sharp(mascot)
+  const content = await (transparent ? sharp(source) : sharp(source).flatten({ background: BRAND_ORANGE }))
     .resize(contentSize, contentSize, {
       fit: "contain",
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
+      background: transparent ? { r: 0, g: 0, b: 0, alpha: 0 } : BRAND_ORANGE,
     })
     .png()
     .toBuffer();
@@ -154,7 +154,9 @@ export async function generateLauncherIcons(projectDir = path.join(ROOT, "com.fo
       .toFile(path.join(baseDir, dir, "ic_launcher.png"));
     await fs.writeFile(
       path.join(baseDir, dir, "ic_maskable.png"),
-      await createSafeZoneIcon(mascot, size),
+      // Maskable icons use the complete AppLogo2 artwork scaled into the safe
+      // zone. Keep the orange edge as background; do not create a cutout halo.
+      await createSafeZoneIcon(APP_LOGO_PATH, size),
     );
     console.log(`Generated AppLogo2 legacy launcher resources in ${dir} (${size}x${size})`);
   }
