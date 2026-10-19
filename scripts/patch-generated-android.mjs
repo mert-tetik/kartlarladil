@@ -254,11 +254,13 @@ const HYBRID_MANIFEST = ({ packageName }) => `<?xml version="1.0" encoding="utf-
 
 const APP_ICON = `<?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- The launcher artwork is generated from public/AppLogo2.png only. -->
-    <background android:drawable="@mipmap/ic_maskable" />
-    <foreground android:drawable="@android:color/transparent" />
+    <!-- Both layers are generated from public/AppLogo2.png only. -->
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
 </adaptive-icon>
 `;
+
+const LAUNCHER_COLOR = "#FE6507";
 
 const APP_THEME = `<?xml version="1.0" encoding="utf-8"?>
 <resources>
@@ -361,6 +363,27 @@ async function copyOfflineShellAssets(projectDir) {
   await fs.cp(OFFLINE_SHELL_SOURCE, destination, { recursive: true, force: true });
 }
 
+async function patchLauncherColors(projectDir) {
+  const colorsPath = path.join(projectDir, "app", "src", "main", "res", "values", "colors.xml");
+  let colors;
+  try {
+    colors = await readText(colorsPath);
+  } catch {
+    colors = "<resources>\n</resources>\n";
+  }
+
+  const launcherColor = `    <color name="ic_launcher_background">${LAUNCHER_COLOR}</color>`;
+  if (colors.includes('name="ic_launcher_background"')) {
+    colors = colors.replace(
+      /\s*<color name="ic_launcher_background">[^<]*<\/color>/,
+      `\n${launcherColor}`,
+    );
+  } else {
+    colors = colors.replace("</resources>", `${launcherColor}\n</resources>`);
+  }
+  await writeText(colorsPath, colors);
+}
+
 export async function patchGeneratedAndroidProject(
   projectDir = process.env.TWA_PROJECT_DIR || path.join(ROOT, "com.foxiesdeck"),
 ) {
@@ -402,6 +425,7 @@ export async function patchGeneratedAndroidProject(
     path.join(projectDir, "app", "src", "main", "res", "mipmap-anydpi-v26", "ic_launcher.xml"),
     APP_ICON,
   );
+  await patchLauncherColors(projectDir);
   await writeText(path.join(projectDir, "app", "src", "main", "res", "values", "styles.xml"), APP_THEME);
   await writeText(
     path.join(projectDir, "app", "src", "main", "res", "values-v31", "styles.xml"),

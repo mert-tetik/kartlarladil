@@ -1,15 +1,1557 @@
 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
-⨯ ERROR: This build is using Turbopack, with a `webpack` config and no `turbopack` config.
-   This may be a mistake.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
 
-   As of Next.js 16 Turbopack is enabled by default and
-   custom webpack configurations may need to be migrated to Turbopack.
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
 
-   NOTE: your `webpack` config may have been added by a configuration plugin.
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
 
-   To configure Turbopack, see https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
+https://react.dev/link/hydration-mismatch
 
-   TIP: Many applications work fine under Turbopack with no configuration,
-   if that is the case for you, you can silence this error by passing the
-   `--turbopack` or `--webpack` flag explicitly or simply setting an 
-   empty turbopack config in your Next config file (e.g. `turbopack: {}`).
+  ...
+    <LeaderboardOverlayProvider>
+      <MobileDayStreakOverlayProvider>
+        <AskOverlayProvider>
+          <div className="flex min-h...">
+            <AppNavigation user={{id:"9f26e2...", ...}}>
+              <a>
+              <header data-route-transition-navigation={true} className="sticky top...">
+                <div className="relative f...">
+                  <div>
+                  <nav>
+                  <div>
+                  <div className="flex shrin...">
+                    <PlanBadge className="hidden h-9...">
+                      <Badge className="font-semib...">
+                        <span
++                         className="items-center gap-1 rounded-full border font-semibold hidden h-9 border-white/15 b..."
+-                         className="items-center justify-center rounded-full border hidden h-9 border-white/15 bg-whi..."
+                        >
++                         Free
+-                         
+                    ...
+              ...
+            ...
+        ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at span (<anonymous>)
+    at Badge (src/components/ui/badge.tsx:9:5)
+    at PlanBadge (src/features/subscriptions/components/plan-badge.tsx:88:5)
+    at AppNavigation (src/components/app-navigation.tsx:258:17)
+    at AppShell (src\components\app-shell.tsx:64:31)
+    at RootLayout (src\app\layout.tsx:63:9)
+   7 | }: React.HTMLAttributes<HTMLSpanElement>) {
+   8 |   return (
+>  9 |     <span
+     |     ^
+  10 |       className={cn(
+  11 |         "inline-flex items-center gap-1 rounded-full border border-border bg-background-ca...
+  12 |         className,
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LeaderboardOverlayProvider>
+      <MobileDayStreakOverlayProvider>
+        <AskOverlayProvider>
+          <div className="flex min-h...">
+            <AppNavigation user={{id:"9f26e2...", ...}}>
+              <a>
+              <header data-route-transition-navigation={true} className="sticky top...">
+                <div className="relative f...">
+                  <div>
+                  <nav>
+                  <div>
+                  <div className="flex shrin...">
+                    <PlanBadge className="hidden h-9...">
+                      <Badge className="font-semib...">
+                        <span
++                         className="items-center gap-1 rounded-full border font-semibold hidden h-9 border-white/15 b..."
+-                         className="items-center justify-center rounded-full border hidden h-9 border-white/15 bg-whi..."
+                        >
++                         Free
+-                         
+                    ...
+              ...
+            ...
+        ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at span (<anonymous>)
+    at Badge (src/components/ui/badge.tsx:9:5)
+    at PlanBadge (src/features/subscriptions/components/plan-badge.tsx:88:5)
+    at AppNavigation (src/components/app-navigation.tsx:258:17)
+    at AppShell (src\components\app-shell.tsx:64:31)
+    at RootLayout (src\app\layout.tsx:63:9)
+   7 | }: React.HTMLAttributes<HTMLSpanElement>) {
+   8 |   return (
+>  9 |     <span
+     |     ^
+  10 |       className={cn(
+  11 |         "inline-flex items-center gap-1 rounded-full border border-border bg-background-ca...
+  12 |         className,
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LeaderboardOverlayProvider>
+      <MobileDayStreakOverlayProvider>
+        <AskOverlayProvider>
+          <div className="flex min-h...">
+            <AppNavigation user={{id:"9f26e2...", ...}}>
+              <a>
+              <header data-route-transition-navigation={true} className="sticky top...">
+                <div className="relative f...">
+                  <div>
+                  <nav>
+                  <div>
+                  <div className="flex shrin...">
+                    <PlanBadge className="hidden h-9...">
+                      <Badge className="font-semib...">
+                        <span
++                         className="items-center gap-1 rounded-full border font-semibold hidden h-9 border-white/15 b..."
+-                         className="items-center justify-center rounded-full border hidden h-9 border-white/15 bg-whi..."
+                        >
++                         Free
+-                         
+                    ...
+              ...
+            ...
+        ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at span (<anonymous>)
+    at Badge (src/components/ui/badge.tsx:9:5)
+    at PlanBadge (src/features/subscriptions/components/plan-badge.tsx:88:5)
+    at AppNavigation (src/components/app-navigation.tsx:258:17)
+    at AppShell (src\components\app-shell.tsx:64:31)
+    at RootLayout (src\app\layout.tsx:63:9)
+   7 | }: React.HTMLAttributes<HTMLSpanElement>) {
+   8 |   return (
+>  9 |     <span
+     |     ^
+  10 |       className={cn(
+  11 |         "inline-flex items-center gap-1 rounded-full border border-border bg-background-ca...
+  12 |         className,
+[browser] Uncaught TypeError: Cannot read properties of null (reading 'parentNode')
+    at $RS (http://localhost:3000/developer/social-analytics:1:297500)
+    at <unknown> (http://localhost:3000/developer/social-analytics:1:297569)
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+⚠ Server is approaching the used memory threshold, restarting...
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LeaderboardOverlayProvider>
+      <MobileDayStreakOverlayProvider>
+        <AskOverlayProvider>
+          <div className="flex min-h...">
+            <AppNavigation user={{id:"9f26e2...", ...}}>
+              <a>
+              <header data-route-transition-navigation={true} className="sticky top...">
+                <div className="relative f...">
+                  <div>
+                  <nav>
+                  <div>
+                  <div className="flex shrin...">
+                    <PlanBadge className="hidden h-9...">
+                      <Badge className="font-semib...">
+                        <span
++                         className="items-center gap-1 rounded-full border font-semibold hidden h-9 border-white/15 b..."
+-                         className="items-center justify-center rounded-full border hidden h-9 border-white/15 bg-whi..."
+                        >
++                         Free
+-                         
+                    ...
+              ...
+            ...
+        ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at span (<anonymous>)
+    at Badge (src/components/ui/badge.tsx:9:5)
+    at PlanBadge (src/features/subscriptions/components/plan-badge.tsx:88:5)
+    at AppNavigation (src/components/app-navigation.tsx:258:17)
+    at AppShell (src\components\app-shell.tsx:64:31)
+    at RootLayout (src\app\layout.tsx:63:9)
+   7 | }: React.HTMLAttributes<HTMLSpanElement>) {
+   8 |   return (
+>  9 |     <span
+     |     ^
+  10 |       className={cn(
+  11 |         "inline-flex items-center gap-1 rounded-full border border-border bg-background-ca...
+  12 |         className,
+[browser] Uncaught TypeError: Cannot read properties of null (reading 'parentNode')
+    at $RS (http://localhost:3000/developer/social-analytics:1:237367)
+    at <unknown> (http://localhost:3000/developer/social-analytics:1:237436)
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+⨯ ReferenceError: useState is not defined
+    at SocialAnalyticsAccountManager (src\features\developer\components\social-analytics-account-manager.tsx:213:37)
+  211 |
+  212 | export function SocialAnalyticsAccountManager({ data, platformFilter, onPlatformFilterCha...
+> 213 |   const [editingId, setEditingId] = useState<number | null>(null);
+      |                                     ^
+  214 |   const [draft, setDraft] = useState<AccountDraft | null>(null);
+  215 |   const [draftDirty, setDraftDirty] = useState(false);
+  216 |   const [savingId, setSavingId] = useState<number | null>(null); {
+  digest: '1082034606'
+}
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Error: aborted
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+⨯ uncaughtException: Error: aborted
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+⨯ uncaughtException:  Error: aborted
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+⨯ ReferenceError: useState is not defined
+    at SocialAnalyticsAccountManager (src\features\developer\components\social-analytics-account-manager.tsx:213:37)
+  211 |
+  212 | export function SocialAnalyticsAccountManager({ data, platformFilter, onPlatformFilterCha...
+> 213 |   const [editingId, setEditingId] = useState<number | null>(null);
+      |                                     ^
+  214 |   const [draft, setDraft] = useState<AccountDraft | null>(null);
+  215 |   const [draftDirty, setDraftDirty] = useState(false);
+  216 |   const [savingId, setSavingId] = useState<number | null>(null); {
+  digest: '1082034606'
+}
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+⨯ ReferenceError: useState is not defined
+    at SocialAnalyticsAccountManager (src\features\developer\components\social-analytics-account-manager.tsx:213:37)
+  211 |
+  212 | export function SocialAnalyticsAccountManager({ data, platformFilter, onPlatformFilterCha...
+> 213 |   const [editingId, setEditingId] = useState<number | null>(null);
+      |                                     ^
+  214 |   const [draft, setDraft] = useState<AccountDraft | null>(null);
+  215 |   const [draftDirty, setDraftDirty] = useState(false);
+  216 |   const [savingId, setSavingId] = useState<number | null>(null); {
+  digest: '1154478849'
+}
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+⨯ Error: Module [project]/node_modules/next/dist/client/image-component.js [app-ssr] (ecmascript) was instantiated because it was required from module [project]/node_modules/next/dist/esm/build/templates/app-page.js?page=/developer/social-analytics/page { METADATA_0 => "[project]/src/app/icon.png.mjs { IMAGE => \"[project]/src/app/icon.png (static in ecmascript, tag client)\" } [app-rsc] (structured image object, ecmascript)", METADATA_1 => "[project]/src/app/apple-icon.png.mjs { IMAGE => \"[project]/src/app/apple-icon.png (static in ecmascript, tag client)\" } [app-rsc] (structured image object, ecmascript)", METADATA_2 => "[project]/src/app/opengraph-image--metadata.js [app-rsc] (ecmascript, Next.js Server Component)", MODULE_3 => "[project]/src/app/layout.tsx [app-rsc] (ecmascript, Next.js Server Component)", MODULE_4 => "[project]/src/app/loading.tsx [app-rsc] (ecmascript, Next.js Server Component)", MODULE_5 => "[project]/node_modules/next/dist/client/components/builtin/not-found.js [app-rsc] (ecmascript, Next.js Server Component)", MODULE_6 => "[project]/node_modules/next/dist/client/components/builtin/forbidden.js [app-rsc] (ecmascript, Next.js Server Component)", MODULE_7 => "[project]/node_modules/next/dist/client/components/builtin/unauthorized.js [app-rsc] (ecmascript, Next.js Server Component)", MODULE_8 => "[project]/node_modules/next/dist/client/components/builtin/global-error.js [app-rsc] (ecmascript, Next.js Server Component)", MODULE_9 => "[project]/src/app/developer/social-analytics/page.tsx [app-rsc] (ecmascript, Next.js Server Component)" } [app-rsc] (ecmascript) <locals>, but the module factory is not available.
+This is often caused by a stale browser cache, misconfigured Cache-Control headers, or a service worker serving outdated responses.
+To fix this, make sure your Cache-Control headers allow revalidation of chunks and review your service worker configuration. As an immediate workaround, try hard-reloading the page, clearing the browser cache, or unregistering any service workers.
+    at ignore-listed frames {
+  digest: '516094829'
+}
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LeaderboardOverlayProvider>
+      <MobileDayStreakOverlayProvider>
+        <AskOverlayProvider>
+          <div className="flex min-h...">
+            <AppNavigation user={{id:"9f26e2...", ...}}>
+              <a>
+              <header data-route-transition-navigation={true} className="sticky top...">
+                <div className="relative f...">
+                  <div>
+                  <nav>
+                  <div>
+                  <div className="flex shrin...">
+                    <PlanBadge className="hidden h-9...">
+                      <Badge className="font-semib...">
+                        <span
++                         className="items-center gap-1 rounded-full border font-semibold hidden h-9 border-white/15 b..."
+-                         className="items-center justify-center rounded-full border hidden h-9 border-white/15 bg-whi..."
+                        >
++                         Free
+-                         
+                    ...
+              ...
+            ...
+        ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at span (<anonymous>)
+    at Badge (src/components/ui/badge.tsx:9:5)
+    at PlanBadge (src/features/subscriptions/components/plan-badge.tsx:88:5)
+    at AppNavigation (src/components/app-navigation.tsx:258:17)
+    at AppShell (src\components\app-shell.tsx:64:31)
+    at RootLayout (src\app\layout.tsx:63:9)
+   7 | }: React.HTMLAttributes<HTMLSpanElement>) {
+   8 |   return (
+>  9 |     <span
+     |     ^
+  10 |       className={cn(
+  11 |         "inline-flex items-center gap-1 rounded-full border border-border bg-background-ca...
+  12 |         className,
+[browser] Uncaught TypeError: Cannot read properties of null (reading 'parentNode')
+    at $RS (http://localhost:3000/developer/social-analytics:1:270084)
+    at <unknown> (http://localhost:3000/developer/social-analytics:1:270153)
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+⨯ ./src/features/developer/components/social-analytics-account-manager.tsx:7:1
+Module not found: Can't resolve '@/features/developer/components/social-post-composer-overlay'
+  [90m 5 |[0m ...[36mpe[0m { [33mSocialAnalyticsAccount[0m, [33mSocialAnalyticsData[0m, [33mSocialAnalyticsMetrics[0m, [33mSocialAnalyti...[0m
+  [90m 6 |[0m ...getSocialPlatformTheme, [33mSocialPlatformBrandIcon[0m } [36mfrom[0m [32m"@/features/developer/components...[0m
+[31m[1m>[0m [90m 7 |[0m ...[33mSocialPostComposerOverlay[0m } [36mfrom[0m [32m"@/features/developer/components/social-post-composer-...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 8 |[0m ...
+  [90m 9 |[0m ...berFormatter = [36mnew[0m [33mIntl[0m.[33mNumberFormat[0m([32m"tr-TR"[0m, { maximumFractionDigits: [35m0[0m });
+  [90m10 |[0m ...
+
+Import map: aliased to relative './src/features/developer/components/social-post-composer-overlay' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/features/developer/components/social-analytics-account-manager.tsx:7:1
+Module not found: Can't resolve '@/features/developer/components/social-post-composer-overlay'
+  [90m 5 |[0m ...[36mpe[0m { [33mSocialAnalyticsAccount[0m, [33mSocialAnalyticsData[0m, [33mSocialAnalyticsMetrics[0m, [33mSocialAnalyti...[0m
+  [90m 6 |[0m ...getSocialPlatformTheme, [33mSocialPlatformBrandIcon[0m } [36mfrom[0m [32m"@/features/developer/components...[0m
+[31m[1m>[0m [90m 7 |[0m ...[33mSocialPostComposerOverlay[0m } [36mfrom[0m [32m"@/features/developer/components/social-post-composer-...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 8 |[0m ...
+  [90m 9 |[0m ...berFormatter = [36mnew[0m [33mIntl[0m.[33mNumberFormat[0m([32m"tr-TR"[0m, { maximumFractionDigits: [35m0[0m });
+  [90m10 |[0m ...
+
+Import map: aliased to relative './src/features/developer/components/social-post-composer-overlay' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/features/developer/components/social-analytics-account-manager.tsx:7:1
+Module not found: Can't resolve '@/features/developer/components/social-post-composer-overlay'
+  [90m 5 |[0m ...[36mpe[0m { [33mSocialAnalyticsAccount[0m, [33mSocialAnalyticsData[0m, [33mSocialAnalyticsMetrics[0m, [33mSocialAnalyti...[0m
+  [90m 6 |[0m ...getSocialPlatformTheme, [33mSocialPlatformBrandIcon[0m } [36mfrom[0m [32m"@/features/developer/components...[0m
+[31m[1m>[0m [90m 7 |[0m ...[33mSocialPostComposerOverlay[0m } [36mfrom[0m [32m"@/features/developer/components/social-post-composer-...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 8 |[0m ...
+  [90m 9 |[0m ...berFormatter = [36mnew[0m [33mIntl[0m.[33mNumberFormat[0m([32m"tr-TR"[0m, { maximumFractionDigits: [35m0[0m });
+  [90m10 |[0m ...
+
+Import map: aliased to relative './src/features/developer/components/social-post-composer-overlay' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/features/developer/components/social-analytics-account-manager.tsx:7:1
+Module not found: Can't resolve '@/features/developer/components/social-post-composer-overlay'
+  [90m 5 |[0m ...[36mpe[0m { [33mSocialAnalyticsAccount[0m, [33mSocialAnalyticsData[0m, [33mSocialAnalyticsMetrics[0m, [33mSocialAnalyti...[0m
+  [90m 6 |[0m ...getSocialPlatformTheme, [33mSocialPlatformBrandIcon[0m } [36mfrom[0m [32m"@/features/developer/components...[0m
+[31m[1m>[0m [90m 7 |[0m ...[33mSocialPostComposerOverlay[0m } [36mfrom[0m [32m"@/features/developer/components/social-post-composer-...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 8 |[0m ...
+  [90m 9 |[0m ...berFormatter = [36mnew[0m [33mIntl[0m.[33mNumberFormat[0m([32m"tr-TR"[0m, { maximumFractionDigits: [35m0[0m });
+  [90m10 |[0m ...
+
+Import map: aliased to relative './src/features/developer/components/social-post-composer-overlay' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/features/developer/components/social-analytics-account-manager.tsx:7:1
+Module not found: Can't resolve '@/features/developer/components/social-post-composer-overlay'
+  [90m 5 |[0m ...[36mpe[0m { [33mSocialAnalyticsAccount[0m, [33mSocialAnalyticsData[0m, [33mSocialAnalyticsMetrics[0m, [33mSocialAnalyti...[0m
+  [90m 6 |[0m ...getSocialPlatformTheme, [33mSocialPlatformBrandIcon[0m } [36mfrom[0m [32m"@/features/developer/components...[0m
+[31m[1m>[0m [90m 7 |[0m ...[33mSocialPostComposerOverlay[0m } [36mfrom[0m [32m"@/features/developer/components/social-post-composer-...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 8 |[0m ...
+  [90m 9 |[0m ...berFormatter = [36mnew[0m [33mIntl[0m.[33mNumberFormat[0m([32m"tr-TR"[0m, { maximumFractionDigits: [35m0[0m });
+  [90m10 |[0m ...
+
+Import map: aliased to relative './src/features/developer/components/social-post-composer-overlay' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/features/developer/components/social-analytics-account-manager.tsx:7:1
+Module not found: Can't resolve '@/features/developer/components/social-post-composer-overlay'
+  [90m 5 |[0m ...[36mpe[0m { [33mSocialAnalyticsAccount[0m, [33mSocialAnalyticsData[0m, [33mSocialAnalyticsMetrics[0m, [33mSocialAnalyti...[0m
+  [90m 6 |[0m ...getSocialPlatformTheme, [33mSocialPlatformBrandIcon[0m } [36mfrom[0m [32m"@/features/developer/components...[0m
+[31m[1m>[0m [90m 7 |[0m ...[33mSocialPostComposerOverlay[0m } [36mfrom[0m [32m"@/features/developer/components/social-post-composer-...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 8 |[0m ...
+  [90m 9 |[0m ...berFormatter = [36mnew[0m [33mIntl[0m.[33mNumberFormat[0m([32m"tr-TR"[0m, { maximumFractionDigits: [35m0[0m });
+  [90m10 |[0m ...
+
+Import map: aliased to relative './src/features/developer/components/social-post-composer-overlay' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/features/developer/components/social-analytics-account-manager.tsx:7:1
+Module not found: Can't resolve '@/features/developer/components/social-post-composer-overlay'
+  [90m 5 |[0m ...[36mpe[0m { [33mSocialAnalyticsAccount[0m, [33mSocialAnalyticsData[0m, [33mSocialAnalyticsMetrics[0m, [33mSocialAnalyti...[0m
+  [90m 6 |[0m ...getSocialPlatformTheme, [33mSocialPlatformBrandIcon[0m } [36mfrom[0m [32m"@/features/developer/components...[0m
+[31m[1m>[0m [90m 7 |[0m ...[33mSocialPostComposerOverlay[0m } [36mfrom[0m [32m"@/features/developer/components/social-post-composer-...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 8 |[0m ...
+  [90m 9 |[0m ...berFormatter = [36mnew[0m [33mIntl[0m.[33mNumberFormat[0m([32m"tr-TR"[0m, { maximumFractionDigits: [35m0[0m });
+  [90m10 |[0m ...
+
+Import map: aliased to relative './src/features/developer/components/social-post-composer-overlay' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/features/developer/components/social-analytics-account-manager.tsx:7:1
+Module not found: Can't resolve '@/features/developer/components/social-post-composer-overlay'
+  [90m 5 |[0m ...[36mpe[0m { [33mSocialAnalyticsAccount[0m, [33mSocialAnalyticsData[0m, [33mSocialAnalyticsMetrics[0m, [33mSocialAnalyti...[0m
+  [90m 6 |[0m ...getSocialPlatformTheme, [33mSocialPlatformBrandIcon[0m } [36mfrom[0m [32m"@/features/developer/components...[0m
+[31m[1m>[0m [90m 7 |[0m ...[33mSocialPostComposerOverlay[0m } [36mfrom[0m [32m"@/features/developer/components/social-post-composer-...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 8 |[0m ...
+  [90m 9 |[0m ...berFormatter = [36mnew[0m [33mIntl[0m.[33mNumberFormat[0m([32m"tr-TR"[0m, { maximumFractionDigits: [35m0[0m });
+  [90m10 |[0m ...
+
+Import map: aliased to relative './src/features/developer/components/social-post-composer-overlay' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/features/developer/components/social-analytics-account-manager.tsx:7:1
+Module not found: Can't resolve '@/features/developer/components/social-post-composer-overlay'
+  [90m 5 |[0m ...[36mpe[0m { [33mSocialAnalyticsAccount[0m, [33mSocialAnalyticsData[0m, [33mSocialAnalyticsMetrics[0m, [33mSocialAnalyti...[0m
+  [90m 6 |[0m ...getSocialPlatformTheme, [33mSocialPlatformBrandIcon[0m } [36mfrom[0m [32m"@/features/developer/components...[0m
+[31m[1m>[0m [90m 7 |[0m ...[33mSocialPostComposerOverlay[0m } [36mfrom[0m [32m"@/features/developer/components/social-post-composer-...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 8 |[0m ...
+  [90m 9 |[0m ...berFormatter = [36mnew[0m [33mIntl[0m.[33mNumberFormat[0m([32m"tr-TR"[0m, { maximumFractionDigits: [35m0[0m });
+  [90m10 |[0m ...
+
+Import map: aliased to relative './src/features/developer/components/social-post-composer-overlay' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/features/developer/components/social-analytics-account-manager.tsx:7:1
+Module not found: Can't resolve '@/features/developer/components/social-post-composer-overlay'
+  [90m 5 |[0m ...[36mpe[0m { [33mSocialAnalyticsAccount[0m, [33mSocialAnalyticsData[0m, [33mSocialAnalyticsMetrics[0m, [33mSocialAnalyti...[0m
+  [90m 6 |[0m ...getSocialPlatformTheme, [33mSocialPlatformBrandIcon[0m } [36mfrom[0m [32m"@/features/developer/components...[0m
+[31m[1m>[0m [90m 7 |[0m ...[33mSocialPostComposerOverlay[0m } [36mfrom[0m [32m"@/features/developer/components/social-post-composer-...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 8 |[0m ...
+  [90m 9 |[0m ...berFormatter = [36mnew[0m [33mIntl[0m.[33mNumberFormat[0m([32m"tr-TR"[0m, { maximumFractionDigits: [35m0[0m });
+  [90m10 |[0m ...
+
+Import map: aliased to relative './src/features/developer/components/social-post-composer-overlay' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/features/developer/components/social-analytics-account-manager.tsx:7:1
+Module not found: Can't resolve '@/features/developer/components/social-post-composer-overlay'
+  [90m 5 |[0m ...[36mpe[0m { [33mSocialAnalyticsAccount[0m, [33mSocialAnalyticsData[0m, [33mSocialAnalyticsMetrics[0m, [33mSocialAnalyti...[0m
+  [90m 6 |[0m ...getSocialPlatformTheme, [33mSocialPlatformBrandIcon[0m } [36mfrom[0m [32m"@/features/developer/components...[0m
+[31m[1m>[0m [90m 7 |[0m ...[33mSocialPostComposerOverlay[0m } [36mfrom[0m [32m"@/features/developer/components/social-post-composer-...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 8 |[0m ...
+  [90m 9 |[0m ...berFormatter = [36mnew[0m [33mIntl[0m.[33mNumberFormat[0m([32m"tr-TR"[0m, { maximumFractionDigits: [35m0[0m });
+  [90m10 |[0m ...
+
+Import map: aliased to relative './src/features/developer/components/social-post-composer-overlay' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/features/developer/components/social-analytics-account-manager.tsx:7:1
+Module not found: Can't resolve '@/features/developer/components/social-post-composer-overlay'
+  [90m 5 |[0m ...[36mpe[0m { [33mSocialAnalyticsAccount[0m, [33mSocialAnalyticsData[0m, [33mSocialAnalyticsMetrics[0m, [33mSocialAnalyti...[0m
+  [90m 6 |[0m ...getSocialPlatformTheme, [33mSocialPlatformBrandIcon[0m } [36mfrom[0m [32m"@/features/developer/components...[0m
+[31m[1m>[0m [90m 7 |[0m ...[33mSocialPostComposerOverlay[0m } [36mfrom[0m [32m"@/features/developer/components/social-post-composer-...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 8 |[0m ...
+  [90m 9 |[0m ...berFormatter = [36mnew[0m [33mIntl[0m.[33mNumberFormat[0m([32m"tr-TR"[0m, { maximumFractionDigits: [35m0[0m });
+  [90m10 |[0m ...
+
+Import map: aliased to relative './src/features/developer/components/social-post-composer-overlay' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/features/developer/components/social-analytics-account-manager.tsx:7:1
+Module not found: Can't resolve '@/features/developer/components/social-post-composer-overlay'
+  [90m 5 |[0m ...[36mpe[0m { [33mSocialAnalyticsAccount[0m, [33mSocialAnalyticsData[0m, [33mSocialAnalyticsMetrics[0m, [33mSocialAnalyti...[0m
+  [90m 6 |[0m ...getSocialPlatformTheme, [33mSocialPlatformBrandIcon[0m } [36mfrom[0m [32m"@/features/developer/components...[0m
+[31m[1m>[0m [90m 7 |[0m ...[33mSocialPostComposerOverlay[0m } [36mfrom[0m [32m"@/features/developer/components/social-post-composer-...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 8 |[0m ...
+  [90m 9 |[0m ...berFormatter = [36mnew[0m [33mIntl[0m.[33mNumberFormat[0m([32m"tr-TR"[0m, { maximumFractionDigits: [35m0[0m });
+  [90m10 |[0m ...
+
+Import map: aliased to relative './src/features/developer/components/social-post-composer-overlay' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/features/developer/components/social-analytics-account-manager.tsx:7:1
+Module not found: Can't resolve '@/features/developer/components/social-post-composer-overlay'
+  [90m 5 |[0m ...[36mpe[0m { [33mSocialAnalyticsAccount[0m, [33mSocialAnalyticsData[0m, [33mSocialAnalyticsMetrics[0m, [33mSocialAnalyti...[0m
+  [90m 6 |[0m ...getSocialPlatformTheme, [33mSocialPlatformBrandIcon[0m } [36mfrom[0m [32m"@/features/developer/components...[0m
+[31m[1m>[0m [90m 7 |[0m ...[33mSocialPostComposerOverlay[0m } [36mfrom[0m [32m"@/features/developer/components/social-post-composer-...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 8 |[0m ...
+  [90m 9 |[0m ...berFormatter = [36mnew[0m [33mIntl[0m.[33mNumberFormat[0m([32m"tr-TR"[0m, { maximumFractionDigits: [35m0[0m });
+  [90m10 |[0m ...
+
+Import map: aliased to relative './src/features/developer/components/social-post-composer-overlay' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/features/developer/components/social-analytics-account-manager.tsx:7:1
+Module not found: Can't resolve '@/features/developer/components/social-post-composer-overlay'
+  [90m 5 |[0m ...[36mpe[0m { [33mSocialAnalyticsAccount[0m, [33mSocialAnalyticsData[0m, [33mSocialAnalyticsMetrics[0m, [33mSocialAnalyti...[0m
+  [90m 6 |[0m ...getSocialPlatformTheme, [33mSocialPlatformBrandIcon[0m } [36mfrom[0m [32m"@/features/developer/components...[0m
+[31m[1m>[0m [90m 7 |[0m ...[33mSocialPostComposerOverlay[0m } [36mfrom[0m [32m"@/features/developer/components/social-post-composer-...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 8 |[0m ...
+  [90m 9 |[0m ...berFormatter = [36mnew[0m [33mIntl[0m.[33mNumberFormat[0m([32m"tr-TR"[0m, { maximumFractionDigits: [35m0[0m });
+  [90m10 |[0m ...
+
+Import map: aliased to relative './src/features/developer/components/social-post-composer-overlay' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/features/developer/components/social-analytics-account-manager.tsx:7:1
+Module not found: Can't resolve '@/features/developer/components/social-post-composer-overlay'
+  [90m 5 |[0m ...[36mpe[0m { [33mSocialAnalyticsAccount[0m, [33mSocialAnalyticsData[0m, [33mSocialAnalyticsMetrics[0m, [33mSocialAnalyti...[0m
+  [90m 6 |[0m ...getSocialPlatformTheme, [33mSocialPlatformBrandIcon[0m } [36mfrom[0m [32m"@/features/developer/components...[0m
+[31m[1m>[0m [90m 7 |[0m ...[33mSocialPostComposerOverlay[0m } [36mfrom[0m [32m"@/features/developer/components/social-post-composer-...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 8 |[0m ...
+  [90m 9 |[0m ...berFormatter = [36mnew[0m [33mIntl[0m.[33mNumberFormat[0m([32m"tr-TR"[0m, { maximumFractionDigits: [35m0[0m });
+  [90m10 |[0m ...
+
+Import map: aliased to relative './src/features/developer/components/social-post-composer-overlay' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[browser] Uncaught Error: ./src/features/developer/components/social-analytics-account-manager.tsx:7:1
+Module not found: Can't resolve '@/features/developer/components/social-post-composer-overlay'
+   5 | ...pe { SocialAnalyticsAccount, SocialAnalyticsData, SocialAnalyticsMetrics, SocialAnalyti...
+   6 | ...getSocialPlatformTheme, SocialPlatformBrandIcon } from "@/features/developer/components...
+>  7 | ...SocialPostComposerOverlay } from "@/features/developer/components/social-post-composer-...
+     |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   8 | ...
+   9 | ...berFormatter = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 0 });
+  10 | ...
+
+Import map: aliased to relative './src/features/developer/components/social-post-composer-overlay' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (Error: ./src/features/developer/components/social-analytics-account-manager.tsx:7:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (Error: (./src/features/developer/components/social-analytics-account-manager.tsx:7:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+⨯ ./src/features/developer/components/social-post-composer-overlay.tsx:385:329
+Nullish coalescing operator(??) requires parens when mixing with logical operators
+  [90m383 |[0m ...sending[32m"} onClick={onClose} type="[0mbutton[32m">Vazgeç</button><button className="[0minline-fle...
+  [90m384 |[0m ...
+[31m[1m>[0m [90m385 |[0m ...[32mtle={title} video={video?.sourceUrl ?? videoUrl.trim() || undefined} /><p className="[0mm..[35m.[0m
+  [90m    |[0m                       [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m386 |[0m ...
+  [90m387 |[0m ...
+  [90m388 |[0m ...
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-post-composer-overlay.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-post-composer-overlay.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+
+[browser] Uncaught Error: ./src/features/developer/components/social-post-composer-overlay.tsx:385:329
+Nullish coalescing operator(??) requires parens when mixing with logical operators
+  383 | ...sending"} onClick={onClose} type="button">Vazgeç</button><button className="inline-fle...
+  384 | ...
+> 385 | ...tle={title} video={video?.sourceUrl ?? videoUrl.trim() || undefined} /><p className="m...
+      |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  386 | ...
+  387 | ...
+  388 | ...
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-post-composer-overlay.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-post-composer-overlay.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+
+    at <unknown> (Error: ./src/features/developer/components/social-post-composer-overlay.tsx:385:329)
+    at <unknown> (Error: (./src/features/developer/components/social-post-composer-overlay.tsx:385:329)
+⨯ ./src/features/developer/components/social-post-composer-overlay.tsx:386:329
+Nullish coalescing operator(??) requires parens when mixing with logical operators
+  [90m384 |[0m ...sending[32m"} onClick={onClose} type="[0mbutton[32m">Vazgeç</button><button className="[0minline-fle...
+  [90m385 |[0m ...
+[31m[1m>[0m [90m386 |[0m ...[32mtle={title} video={video?.sourceUrl ?? videoUrl.trim() || undefined} /><p className="[0mm..[35m.[0m
+  [90m    |[0m                       [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m387 |[0m ...
+  [90m388 |[0m ...
+  [90m389 |[0m ...
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-post-composer-overlay.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-post-composer-overlay.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+
+[browser] Uncaught Error: ./src/features/developer/components/social-post-composer-overlay.tsx:386:329
+Nullish coalescing operator(??) requires parens when mixing with logical operators
+  384 | ...sending"} onClick={onClose} type="button">Vazgeç</button><button className="inline-fle...
+  385 | ...
+> 386 | ...tle={title} video={video?.sourceUrl ?? videoUrl.trim() || undefined} /><p className="m...
+      |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  387 | ...
+  388 | ...
+  389 | ...
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-post-composer-overlay.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-post-composer-overlay.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+
+    at <unknown> (Error: ./src/features/developer/components/social-post-composer-overlay.tsx:386:329)
+    at <unknown> (Error: (./src/features/developer/components/social-post-composer-overlay.tsx:386:329)
+⨯ ./src/features/developer/components/social-post-composer-overlay.tsx:386:329
+Nullish coalescing operator(??) requires parens when mixing with logical operators
+  [90m384 |[0m ...sending[32m"} onClick={onClose} type="[0mbutton[32m">Vazgeç</button><button className="[0minline-fle...
+  [90m385 |[0m ...
+[31m[1m>[0m [90m386 |[0m ...[32mtle={title} video={video?.sourceUrl ?? videoUrl.trim() || undefined} /><p className="[0mm..[35m.[0m
+  [90m    |[0m                       [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m387 |[0m ...
+  [90m388 |[0m ...
+  [90m389 |[0m ...
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-post-composer-overlay.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-post-composer-overlay.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+
+[browser] Uncaught Error: ./src/features/developer/components/social-post-composer-overlay.tsx:386:329
+Nullish coalescing operator(??) requires parens when mixing with logical operators
+  384 | ...sending"} onClick={onClose} type="button">Vazgeç</button><button className="inline-fle...
+  385 | ...
+> 386 | ...tle={title} video={video?.sourceUrl ?? videoUrl.trim() || undefined} /><p className="m...
+      |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  387 | ...
+  388 | ...
+  389 | ...
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/features/developer/components/social-post-composer-overlay.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component Browser]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/features/developer/components/social-post-composer-overlay.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-account-manager.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Client Component SSR]
+    ./src/features/developer/components/social-analytics-panel.tsx [Server Component]
+    ./src/app/developer/social-analytics/page.tsx [Server Component]
+
+
+    at <unknown> (Error: ./src/features/developer/components/social-post-composer-overlay.tsx:386:329)
+    at <unknown> (Error: (./src/features/developer/components/social-post-composer-overlay.tsx:386:329)
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LeaderboardOverlayProvider>
+      <MobileDayStreakOverlayProvider>
+        <AskOverlayProvider>
+          <div className="flex min-h...">
+            <AppNavigation user={{id:"9f26e2...", ...}}>
+              <a>
+              <header data-route-transition-navigation={true} className="sticky top...">
+                <div className="relative f...">
+                  <div>
+                  <nav>
+                  <div>
+                  <div className="flex shrin...">
+                    <PlanBadge className="hidden h-9...">
+                      <Badge className="font-semib...">
+                        <span
++                         className="items-center gap-1 rounded-full border font-semibold hidden h-9 border-white/15 b..."
+-                         className="items-center justify-center rounded-full border hidden h-9 border-white/15 bg-whi..."
+                        >
++                         Free
+-                         
+                    ...
+              ...
+            ...
+        ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at span (<anonymous>)
+    at Badge (src/components/ui/badge.tsx:9:5)
+    at PlanBadge (src/features/subscriptions/components/plan-badge.tsx:88:5)
+    at AppNavigation (src/components/app-navigation.tsx:258:17)
+    at AppShell (src\components\app-shell.tsx:64:31)
+    at RootLayout (src\app\layout.tsx:63:9)
+   7 | }: React.HTMLAttributes<HTMLSpanElement>) {
+   8 |   return (
+>  9 |     <span
+     |     ^
+  10 |       className={cn(
+  11 |         "inline-flex items-center gap-1 rounded-full border border-border bg-background-ca...
+  12 |         className,
+[browser] Uncaught TypeError: Cannot read properties of null (reading 'parentNode')
+    at $RS (http://localhost:3000/developer/social-analytics:1:279294)
+    at <unknown> (http://localhost:3000/developer/social-analytics:1:279363)
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+⨯ Error: {"message":"TypeError: fetch failed","details":"TypeError: fetch failed\n\nCaused by: Error: Client network socket disconnected before secure TLS connection was established (ECONNRESET)\nError: Client network socket disconnected before secure TLS connection was established\n    at TLSSocket.onConnectEnd (node:internal/tls/wrap:1709:19)\n    at TLSSocket.emit (node:events:521:24)\n    at endReadableNT (node:internal/streams/readable:1729:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)","hint":"","code":""}
+    at ignore-listed frames {
+  digest: '461211811@E394'
+}
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+⚠ Server is approaching the used memory threshold, restarting...
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LeaderboardOverlayProvider>
+      <MobileDayStreakOverlayProvider>
+        <AskOverlayProvider>
+          <div className="flex min-h...">
+            <AppNavigation user={{id:"9f26e2...", ...}}>
+              <a>
+              <header data-route-transition-navigation={true} className="sticky top...">
+                <div className="relative f...">
+                  <div>
+                  <nav>
+                  <div>
+                  <div className="flex shrin...">
+                    <PlanBadge className="hidden h-9...">
+                      <Badge className="font-semib...">
+                        <span
++                         className="items-center gap-1 rounded-full border font-semibold hidden h-9 border-white/15 b..."
+-                         className="items-center justify-center rounded-full border hidden h-9 border-white/15 bg-whi..."
+                        >
++                         Free
+-                         
+                    ...
+              ...
+            ...
+        ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at span (<anonymous>)
+    at Badge (src/components/ui/badge.tsx:9:5)
+    at PlanBadge (src/features/subscriptions/components/plan-badge.tsx:88:5)
+    at AppNavigation (src/components/app-navigation.tsx:258:17)
+    at AppShell (src\components\app-shell.tsx:64:31)
+    at RootLayout (src\app\layout.tsx:63:9)
+   7 | }: React.HTMLAttributes<HTMLSpanElement>) {
+   8 |   return (
+>  9 |     <span
+     |     ^
+  10 |       className={cn(
+  11 |         "inline-flex items-center gap-1 rounded-full border border-border bg-background-ca...
+  12 |         className,
+[browser] Uncaught TypeError: Cannot read properties of null (reading 'parentNode')
+    at $RS (http://localhost:3000/developer/analytics:1:256382)
+    at <unknown> (http://localhost:3000/developer/analytics:1:256451)
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LeaderboardOverlayProvider>
+      <MobileDayStreakOverlayProvider>
+        <AskOverlayProvider>
+          <div className="flex min-h...">
+            <AppNavigation user={{id:"9f26e2...", ...}}>
+              <a>
+              <header data-route-transition-navigation={true} className="sticky top...">
+                <div className="relative f...">
+                  <div>
+                  <nav>
+                  <div>
+                  <div className="flex shrin...">
+                    <PlanBadge className="hidden h-9...">
+                      <Badge className="font-semib...">
+                        <span
++                         className="items-center gap-1 rounded-full border font-semibold hidden h-9 border-white/15 b..."
+-                         className="items-center justify-center rounded-full border hidden h-9 border-white/15 bg-whi..."
+                        >
++                         Free
+-                         
+                    ...
+              ...
+            ...
+        ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at span (<anonymous>)
+    at Badge (src/components/ui/badge.tsx:9:5)
+    at PlanBadge (src/features/subscriptions/components/plan-badge.tsx:88:5)
+    at AppNavigation (src/components/app-navigation.tsx:258:17)
+    at AppShell (src\components\app-shell.tsx:64:31)
+    at RootLayout (src\app\layout.tsx:63:9)
+   7 | }: React.HTMLAttributes<HTMLSpanElement>) {
+   8 |   return (
+>  9 |     <span
+     |     ^
+  10 |       className={cn(
+  11 |         "inline-flex items-center gap-1 rounded-full border border-border bg-background-ca...
+  12 |         className,
+[browser] Uncaught TypeError: Cannot read properties of null (reading 'parentNode')
+    at $RS (http://localhost:3000/developer/analytics:1:301725)
+    at <unknown> (http://localhost:3000/developer/analytics:1:301794)
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+⚠ Server is approaching the used memory threshold, restarting...
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LeaderboardOverlayProvider>
+      <MobileDayStreakOverlayProvider>
+        <AskOverlayProvider>
+          <div className="flex min-h...">
+            <AppNavigation user={{id:"9f26e2...", ...}}>
+              <a>
+              <header data-route-transition-navigation={true} className="sticky top...">
+                <div className="relative f...">
+                  <div>
+                  <nav>
+                  <div>
+                  <div className="flex shrin...">
+                    <PlanBadge className="hidden h-9...">
+                      <Badge className="font-semib...">
+                        <span
++                         className="items-center gap-1 rounded-full border font-semibold hidden h-9 border-white/15 b..."
+-                         className="items-center justify-center rounded-full border hidden h-9 border-white/15 bg-whi..."
+                        >
++                         Free
+-                         
+                    ...
+              ...
+            ...
+        ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at span (<anonymous>)
+    at Badge (src/components/ui/badge.tsx:9:5)
+    at PlanBadge (src/features/subscriptions/components/plan-badge.tsx:88:5)
+    at AppNavigation (src/components/app-navigation.tsx:258:17)
+    at AppShell (src\components\app-shell.tsx:64:31)
+    at RootLayout (src\app\layout.tsx:63:9)
+   7 | }: React.HTMLAttributes<HTMLSpanElement>) {
+   8 |   return (
+>  9 |     <span
+     |     ^
+  10 |       className={cn(
+  11 |         "inline-flex items-center gap-1 rounded-full border border-border bg-background-ca...
+  12 |         className,
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LeaderboardOverlayProvider>
+      <MobileDayStreakOverlayProvider>
+        <AskOverlayProvider>
+          <div className="flex min-h...">
+            <AppNavigation user={{id:"9f26e2...", ...}}>
+              <a>
+              <header data-route-transition-navigation={true} className="sticky top...">
+                <div className="relative f...">
+                  <div>
+                  <nav>
+                  <div>
+                  <div className="flex shrin...">
+                    <PlanBadge className="hidden h-9...">
+                      <Badge className="font-semib...">
+                        <span
++                         className="items-center gap-1 rounded-full border font-semibold hidden h-9 border-white/15 b..."
+-                         className="items-center justify-center rounded-full border hidden h-9 border-white/15 bg-whi..."
+                        >
++                         Free
+-                         
+                    ...
+              ...
+            ...
+        ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at span (<anonymous>)
+    at Badge (src/components/ui/badge.tsx:9:5)
+    at PlanBadge (src/features/subscriptions/components/plan-badge.tsx:88:5)
+    at AppNavigation (src/components/app-navigation.tsx:258:17)
+    at AppShell (src\components\app-shell.tsx:64:31)
+    at RootLayout (src\app\layout.tsx:63:9)
+   7 | }: React.HTMLAttributes<HTMLSpanElement>) {
+   8 |   return (
+>  9 |     <span
+     |     ^
+  10 |       className={cn(
+  11 |         "inline-flex items-center gap-1 rounded-full border border-border bg-background-ca...
+  12 |         className,
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LeaderboardOverlayProvider>
+      <MobileDayStreakOverlayProvider>
+        <AskOverlayProvider>
+          <div className="flex min-h...">
+            <AppNavigation user={{id:"9f26e2...", ...}}>
+              <a>
+              <header data-route-transition-navigation={true} className="sticky top...">
+                <div className="relative f...">
+                  <div>
+                  <nav>
+                  <div>
+                  <div className="flex shrin...">
+                    <PlanBadge className="hidden h-9...">
+                      <Badge className="font-semib...">
+                        <span
++                         className="items-center gap-1 rounded-full border font-semibold hidden h-9 border-white/15 b..."
+-                         className="items-center justify-center rounded-full border hidden h-9 border-white/15 bg-whi..."
+                        >
++                         Free
+-                         
+                    ...
+              ...
+            ...
+        ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at span (<anonymous>)
+    at Badge (src/components/ui/badge.tsx:9:5)
+    at PlanBadge (src/features/subscriptions/components/plan-badge.tsx:88:5)
+    at AppNavigation (src/components/app-navigation.tsx:258:17)
+    at AppShell (src\components\app-shell.tsx:64:31)
+    at RootLayout (src\app\layout.tsx:63:9)
+   7 | }: React.HTMLAttributes<HTMLSpanElement>) {
+   8 |   return (
+>  9 |     <span
+     |     ^
+  10 |       className={cn(
+  11 |         "inline-flex items-center gap-1 rounded-full border border-border bg-background-ca...
+  12 |         className,
+Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+⨯ Error: aborted
+    at ignore-listed frames
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LeaderboardOverlayProvider>
+      <MobileDayStreakOverlayProvider>
+        <AskOverlayProvider>
+          <div className="flex min-h...">
+            <AppNavigation user={{id:"9f26e2...", ...}}>
+              <a>
+              <header data-route-transition-navigation={true} className="sticky top...">
+                <div className="relative f...">
+                  <div>
+                  <nav>
+                  <div>
+                  <div className="flex shrin...">
+                    <PlanBadge className="hidden h-9...">
+                      <Badge className="font-semib...">
+                        <span
++                         className="items-center gap-1 rounded-full border font-semibold hidden h-9 border-white/15 b..."
+-                         className="items-center justify-center rounded-full border hidden h-9 border-white/15 bg-whi..."
+                        >
++                         Free
+-                         
+                    ...
+              ...
+            ...
+        ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at span (<anonymous>)
+    at Badge (src/components/ui/badge.tsx:9:5)
+    at PlanBadge (src/features/subscriptions/components/plan-badge.tsx:88:5)
+    at AppNavigation (src/components/app-navigation.tsx:258:17)
+    at AppShell (src\components\app-shell.tsx:64:31)
+    at RootLayout (src\app\layout.tsx:63:9)
+   7 | }: React.HTMLAttributes<HTMLSpanElement>) {
+   8 |   return (
+>  9 |     <span
+     |     ^
+  10 |       className={cn(
+  11 |         "inline-flex items-center gap-1 rounded-full border border-border bg-background-ca...
+  12 |         className,

@@ -38,6 +38,13 @@ is the single Android resource-generation path; it always reads
   without downloading the media from the website.
 - The remote website is still loaded for HTML, API calls, authentication and
   future website updates.
+- The offline route is a bundled static shell at `public/offline-shell/` and
+  is copied into the install-time asset pack by `pwa:prepare`. Keep its
+  JavaScript and IndexedDB/localStorage fallback self-contained: the language
+  picker, saved-card status filters, notes and draft cleanup must work after a
+  cold offline launch without a network request. When changing this shell,
+  verify the real-card path on a mobile WebView; do not rely only on the
+  visual-test fixture, which intentionally bypasses storage reads.
 - Google Play Billing 8.0.0 is exposed through the native bridge for the
   Android app; server-side purchase verification remains in the web app.
 - Android WebView does not expose the browser Web Speech Synthesis API, so
@@ -81,12 +88,12 @@ repository-owned patcher then applies API 36, Billing 8, the hybrid WebView,
 and the `ui_media` asset pack configuration.
 
 The current release defaults are `com.LigidTools.Glidecore`, version name
-`4.3.29`, and version code `143`. They can be overridden for a release with:
+`4.3.42`, and version code `156`. They can be overridden for a release with:
 
 ```bash
 TWA_PACKAGE_ID=com.LigidTools.Glidecore
-TWA_VERSION_CODE=143
-TWA_VERSION_NAME=4.3.29
+TWA_VERSION_CODE=156
+TWA_VERSION_NAME=4.3.42
 ```
 
 Keep the signing keystore and its passwords safe. Losing the original signing
@@ -149,6 +156,11 @@ present in the production response.
 - After the remote page has loaded, disable network access and confirm that at
   least one image and one video still come from the local asset pack. A cold
   launch still needs network access for the remote HTML and API layer.
+- From the offline route on a mobile WebView, confirm that the card-language
+  picker and both saved-card status filters respond with cached card data, and
+  that closing the notes-conversion menu removes non-pending local notes and
+  generated drafts while pending deck additions can still finish in the
+  background.
 - Upload the AAB to Play Internal Testing before production.
 - From the Play-installed build, test Google OAuth, subscription purchase and
   restore, speech, deep links and a website-only update.

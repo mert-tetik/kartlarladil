@@ -87,8 +87,30 @@ function snapshotFallbackKey(profileId: string) {
   return `${DATABASE_NAME}:snapshot:${profileId}`;
 }
 
-function fallbackRecordsKey(storeName: "notes", profileId: string) {
+function fallbackRecordsKey(storeName: "notes" | "drafts", profileId: string) {
   return `${DATABASE_NAME}:fallback:${storeName}:${profileId}`;
+}
+
+function readFallbackDraftEntries(profileId: string): OfflineGeneratedCardDraftEntry[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(fallbackRecordsKey("drafts", profileId)) ?? "[]") as unknown;
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.flatMap((record): OfflineGeneratedCardDraftEntry[] => {
+      if (!record || typeof record !== "object") return [];
+      const candidate = record as { profileId?: unknown; draft?: unknown };
+      if (!candidate.draft || typeof candidate.draft !== "object") return [];
+      const draft = candidate.draft as Partial<OfflineGeneratedCardDraft>;
+      if (typeof draft.id !== "string" || !draft.generated) return [];
+
+      return [{
+        profileId: typeof candidate.profileId === "string" ? candidate.profileId : profileId,
+        draft: draft as OfflineGeneratedCardDraft,
+      }];
+    });
+  } catch {
+    return [];
+  }
 }
 
 function readFallbackNoteEntries(profileId: string): OfflineSavedNoteEntry[] {
@@ -114,12 +136,13 @@ async function readOfflineProfileEntries<T>(storeName: "notes" | "drafts", profi
   const database = await openDatabase();
   try {
     const transaction = database.transaction(storeName, "readonly");
+    const completed = waitForTransaction(transaction);
     const request = transaction.objectStore(storeName).index("profileId").getAll(profileId);
     const records = await new Promise<T[]>((resolve, reject) => {
       request.onsuccess = () => resolve((request.result as T[] | undefined) ?? []);
       request.onerror = () => reject(request.error ?? new Error("offline_storage_request_failed"));
     });
-    await waitForTransaction(transaction);
+    await completed;
     return records;
   } finally {
     database.close();
@@ -144,8 +167,19 @@ export async function listOfflineSavedNotes(profileId: string): Promise<OfflineS
 }
 
 export async function listOfflineGeneratedDrafts(profileId: string): Promise<OfflineGeneratedCardDraftEntry[]> {
-  const entries = await readOfflineProfileEntries<{ profileId?: string; draft?: OfflineGeneratedCardDraft }>("drafts", profileId);
-  return entries.flatMap((entry) => entry.draft?.id
+  let indexedDbEntries: Array<{ profileId?: string; draft?: OfflineGeneratedCardDraft }> = [];
+  try {
+    indexedDbEntries = await readOfflineProfileEntries("drafts", profileId);
+  } catch {
+    // A localStorage fallback is used when IndexedDB is unavailable.
+  }
+  const byId = new Map<string, OfflineGeneratedCardDraftEntry>();
+  for (const entry of [...indexedDbEntries, ...readFallbackDraftEntries(profileId)]) {
+    if (entry.draft?.id && !byId.has(entry.draft.id)) {
+      byId.set(entry.draft.id, { profileId: entry.profileId ?? profileId, draft: entry.draft });
+    }
+  }
+  return [...byId.values()].flatMap((entry) => entry.draft?.id
     ? [{ profileId: entry.profileId ?? profileId, draft: entry.draft }]
     : []);
 }
@@ -170,8 +204,9 @@ export async function removeOfflineSavedNote(profileId: string, noteId: string):
     const database = await openDatabase();
     try {
       const transaction = database.transaction("notes", "readwrite");
+      const completed = waitForTransaction(transaction);
       transaction.objectStore("notes").delete(`${profileId}:${noteId}`);
-      await waitForTransaction(transaction);
+      await completed;
       indexedDbDeleted = true;
     } finally {
       database.close();
@@ -186,29 +221,71 @@ export async function removeOfflineSavedNote(profileId: string, noteId: string):
 }
 
 export async function saveOfflineGeneratedDraft(profileId: string, draft: OfflineGeneratedCardDraft): Promise<void> {
-  const database = await openDatabase();
+  const record = {
+    key: `${profileId}:${draft.id}`,
+    profileId,
+    draft,
+    createdAt: draft.createdAt,
+  };
+  let database: IDBDatabase | null = null;
   try {
+    database = await openDatabase();
     const transaction = database.transaction("drafts", "readwrite");
-    transaction.objectStore("drafts").put({
-      key: `${profileId}:${draft.id}`,
-      profileId,
-      draft,
-      createdAt: draft.createdAt,
-    });
-    await waitForTransaction(transaction);
+    const completed = waitForTransaction(transaction);
+    transaction.objectStore("drafts").put(record);
+    await completed;
+    try {
+      localStorage.setItem(fallbackRecordsKey("drafts", profileId), JSON.stringify(
+        readFallbackDraftEntries(profileId).filter((entry) => entry.draft.id !== draft.id),
+      ));
+    } catch {
+      // IndexedDB is already committed; a stale fallback is harmless.
+    }
+  } catch (indexedDbError) {
+    try {
+      const existing = readFallbackDraftEntries(profileId).filter((entry) => entry.draft.id !== draft.id);
+      localStorage.setItem(fallbackRecordsKey("drafts", profileId), JSON.stringify([...existing, record]));
+    } catch (fallbackError) {
+      throw fallbackError instanceof Error ? fallbackError : indexedDbError;
+    }
   } finally {
-    database.close();
+    database?.close();
   }
 }
 
 export async function removeOfflineGeneratedDraft(profileId: string, draftId: string): Promise<void> {
-  const database = await openDatabase();
+  const fallbackKey = fallbackRecordsKey("drafts", profileId);
+  const fallbackEntries = readFallbackDraftEntries(profileId);
+  const hasFallbackCopy = fallbackEntries.some((entry) => entry.draft.id === draftId);
+  let fallbackCleared = !hasFallbackCopy;
+  if (hasFallbackCopy) {
+    try {
+      localStorage.setItem(fallbackKey, JSON.stringify(fallbackEntries.filter((entry) => entry.draft.id !== draftId)));
+      fallbackCleared = true;
+    } catch {
+      fallbackCleared = false;
+    }
+  }
+
+  let indexedDbDeleted = false;
+  let indexedDbError: unknown;
   try {
-    const transaction = database.transaction("drafts", "readwrite");
-    transaction.objectStore("drafts").delete(`${profileId}:${draftId}`);
-    await waitForTransaction(transaction);
-  } finally {
-    database.close();
+    const database = await openDatabase();
+    try {
+      const transaction = database.transaction("drafts", "readwrite");
+      const completed = waitForTransaction(transaction);
+      transaction.objectStore("drafts").delete(`${profileId}:${draftId}`);
+      await completed;
+      indexedDbDeleted = true;
+    } finally {
+      database.close();
+    }
+  } catch (error) {
+    indexedDbError = error;
+  }
+
+  if (!fallbackCleared || (!indexedDbDeleted && !hasFallbackCopy)) {
+    throw indexedDbError ?? new Error("offline_draft_delete_failed");
   }
 }
 
@@ -252,6 +329,7 @@ export async function saveOfflineInventorySnapshot(input: {
     const database = await openDatabase();
     try {
       const transaction = database.transaction(["profiles", "cards"], "readwrite");
+      const completed = waitForTransaction(transaction);
       transaction.objectStore("profiles").put(profile);
       const cardStore = transaction.objectStore("cards");
       records.forEach((record) => cardStore.put(record));
@@ -266,7 +344,7 @@ export async function saveOfflineInventorySnapshot(input: {
         };
       }
 
-      await waitForTransaction(transaction);
+      await completed;
     } finally {
       database.close();
     }

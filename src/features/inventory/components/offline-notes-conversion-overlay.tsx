@@ -12,7 +12,7 @@ import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-
 import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
 import { generatedCardSchema, type GeneratedCardResponse } from "@/features/cards/create-card-schema";
 import { createDeckCardTermIndex, getDraftsNotInDeck, getGeneratedCardTermKey } from "@/features/inventory/offline-notes-card-match";
-import { useInventoryStore } from "@/features/inventory/inventory-store";
+import { InventoryActionError, useInventoryStore } from "@/features/inventory/inventory-store";
 import {
   listOfflineGeneratedDrafts,
   listOfflineSavedNotes,
@@ -207,6 +207,8 @@ function OfflineNotesConversionOverlayContent() {
   const draftPersistenceRef = useRef(new Map<string, Promise<void>>());
   const blockedByCardLimitRef = useRef(false);
   const flushDraftAddQueueRef = useRef<() => Promise<void>>(async () => undefined);
+  const manualCleanupRef = useRef<Promise<void> | null>(null);
+  const autoCloseAfterDeckAddRef = useRef(false);
   const visualTestInitializedRef = useRef(false);
   const visualTestNotesRef = useRef<NoteEntry[]>([]);
   const showMessageRef = useRef(showMessage);
@@ -281,9 +283,10 @@ function OfflineNotesConversionOverlayContent() {
         nextNotes = noteGroups.flat().map((entry) => ({ ...entry, note: entry.note }));
       }
       const nextDrafts = draftGroups.flat().map((entry) => ({ ...entry, draft: entry.draft }));
+      const visibleDrafts = nextDrafts.filter((entry) => !entry.draft.pendingAdd);
       if (draftAddInFlightRef.current) return;
       setNotes(nextNotes);
-      setDrafts(nextDrafts);
+      setDrafts(visibleDrafts);
 
       // A pending optimistic add survives route changes and remounts in the
       // same IndexedDB draft record. Rehydrate it into the retry queue.
@@ -302,10 +305,12 @@ function OfflineNotesConversionOverlayContent() {
         });
       }
 
-      if (nextNotes.length === 0 && nextDrafts.length === 0) {
-        dismissedRef.current = false;
-        didAutoConvertRef.current = false;
-        setFeedback(null);
+      if (nextNotes.length === 0 && visibleDrafts.length === 0) {
+        if (draftAddQueueRef.current.size === 0) {
+          dismissedRef.current = false;
+          didAutoConvertRef.current = false;
+          setFeedback(null);
+        }
         if (phase !== "closed") setPhase("closing");
         return;
       }
@@ -316,6 +321,10 @@ function OfflineNotesConversionOverlayContent() {
       if (nextNotes.length > 0 && !didAutoConvertRef.current) {
         didAutoConvertRef.current = true;
         window.setTimeout(() => {
+          // The user can close the menu during the same event-loop turn that
+          // schedules conversion. Do not start a new conversion after the
+          // cleanup pass has been requested.
+          if (dismissedRef.current) return;
           void convertSavedNotesRef.current(nextNotes, draftProfileId, nextDrafts);
         }, 0);
       }
@@ -343,6 +352,7 @@ function OfflineNotesConversionOverlayContent() {
   useEffect(() => {
     convertSavedNotesRef.current = async (pendingNotes, storageProfileId, knownDrafts) => {
       if (activeConversionRef.current) return activeConversionRef.current;
+      if (dismissedRef.current) return;
       setConversionBusy(true);
       setFeedback(null);
 
@@ -519,41 +529,96 @@ function OfflineNotesConversionOverlayContent() {
     };
   }, [isAvailable, phase]);
 
+  const discardLocalConversionData = useCallback(async () => {
+    if (manualCleanupRef.current) return manualCleanupRef.current;
+
+    const cleanup = (async () => {
+      // A conversion already in progress may commit a draft after the user
+      // taps close. Wait for that operation before taking the final snapshot
+      // of local records so nothing is recreated after cleanup.
+      try {
+        await activeConversionRef.current;
+      } catch {
+        // Conversion errors are already surfaced by the conversion flow.
+      }
+
+      const profileIds = unique([userId ?? "guest", "guest"]);
+      const storedNotes = isVisualTestMode
+        ? []
+        : (await Promise.all(profileIds.map((profileId) => listOfflineSavedNotes(profileId).catch(() => [])))).flat();
+      const storedDrafts = (await Promise.all(profileIds.map((profileId) => listOfflineGeneratedDrafts(profileId).catch(() => [])))).flat();
+      const queuedDraftIds = new Set(draftAddQueueRef.current.keys());
+      const draftsToDelete = storedDrafts.filter((entry) => !queuedDraftIds.has(entry.draft.id));
+
+      await Promise.allSettled([
+        ...storedNotes.map((entry) => removeOfflineSavedNote(entry.profileId, entry.note.id)),
+        ...draftsToDelete.map((entry) => removeOfflineGeneratedDraft(entry.profileId, entry.draft.id)),
+      ]);
+
+      if (isVisualTestMode) visualTestNotesRef.current = [];
+      setNotes([]);
+      setDrafts((current) => current.filter((entry) => queuedDraftIds.has(entry.draft.id)));
+      setFeedback(null);
+    })();
+
+    manualCleanupRef.current = cleanup;
+    try {
+      await cleanup;
+    } finally {
+      manualCleanupRef.current = null;
+    }
+  }, [isVisualTestMode, userId]);
+
+  const closeOverlay = useCallback(() => {
+    dismissedRef.current = true;
+    setPhase((current) => current === "closed" || current === "closing" ? current : "closing");
+    void discardLocalConversionData();
+  }, [discardLocalConversionData]);
+
+  useEffect(() => {
+    if (!autoCloseAfterDeckAddRef.current || drafts.length > 0 || conversionBusy) return;
+    autoCloseAfterDeckAddRef.current = false;
+    closeOverlay();
+  }, [closeOverlay, conversionBusy, drafts.length]);
+
   useEffect(() => {
     if (!isAvailable || phase === "closed") return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         if (subscriptionRestrictionOpen) return;
-        dismissedRef.current = true;
-        setPhase((current) => current === "closed" || current === "closing" ? current : "closing");
+        closeOverlay();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isAvailable, phase, subscriptionRestrictionOpen]);
-
-  function closeOverlay() {
-    dismissedRef.current = true;
-    setPhase((current) => current === "closed" || current === "closing" ? current : "closing");
-  }
+  }, [closeOverlay, isAvailable, phase, subscriptionRestrictionOpen]);
 
   async function addDraftToDeck(entry: DraftEntry): Promise<"added" | "limit"> {
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 15_000);
     try {
-      const response = await fetch("/api/cards/offline-create", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(entry.draft.generated),
-        signal: controller.signal,
+      const generated = entry.draft.generated;
+      await useInventoryStore.getState().createCustomCard({
+        language: generated.language,
+        tier: generated.tier,
+        termKind: generated.termKind,
+        draft: {
+          term: generated.term,
+          partOfSpeech: generated.partOfSpeech,
+          pronunciation: generated.pronunciation,
+          translations: generated.translations,
+          examples: generated.examples.map((example) => ({
+            example: example.sentence,
+            translation: example.translation,
+          })),
+          definitions: generated.definitions,
+          grammar: generated.grammar,
+          termKind: generated.termKind,
+        },
+        optimisticCard: buildPreviewVocabularyCard(generated),
       });
-      const payload = await response.json().catch(() => ({})) as { status?: string; errorCode?: string };
-      if (payload.errorCode === "free_active_card_limit") return "limit";
-      if (!response.ok || payload.status !== "success") throw new Error("offline_note_add_failed");
       return "added";
-    } finally {
-      window.clearTimeout(timeout);
+    } catch (error) {
+      if (error instanceof InventoryActionError && error.errorCode === "free_active_card_limit") return "limit";
+      throw error;
     }
   }
 
@@ -634,6 +699,8 @@ function OfflineNotesConversionOverlayContent() {
   function handleAddDraft(entry: DraftEntry) {
     if (conversionBusy || pendingDraftIds.has(entry.draft.id)) return;
     vibrate("tap");
+    autoCloseAfterDeckAddRef.current = true;
+    setDrafts((current) => current.filter((candidate) => candidate.draft.id !== entry.draft.id));
     void markDraftAsOptimisticallyAdded(entry).then(() => flushDraftAddQueueRef.current());
   }
 
@@ -641,20 +708,25 @@ function OfflineNotesConversionOverlayContent() {
     if (conversionBusy || !canCheckDeck || addableDrafts.length === 0) return;
     vibrate("tap");
     setBulkAdding(true);
+    autoCloseAfterDeckAddRef.current = true;
+    const queuedDraftIds = new Set(addableDrafts.map((entry) => entry.draft.id));
+    setDrafts((current) => current.filter((entry) => !queuedDraftIds.has(entry.draft.id)));
     const persistOperations = addableDrafts.map(markDraftAsOptimisticallyAdded);
-    setBulkAdding(false);
-    void Promise.all(persistOperations).then(() => flushDraftAddQueueRef.current());
+    void Promise.all(persistOperations).then(async () => {
+      setBulkAdding(false);
+      await flushDraftAddQueueRef.current();
+    });
   }
 
   function handleConvertNotes(entries: NoteEntry[]) {
     void convertSavedNotesRef.current(entries, userId ?? "guest", drafts);
   }
 
-  if (!isAvailable || phase === "closed") return null;
+  if (!isAvailable) return null;
 
   const isTransitioning = phase === "opening" || phase === "closing";
   const visibleNotes = notes.filter((entry) => !drafts.some((candidate) => isDraftForNote(candidate.draft, entry)));
-  const content = (
+  const content = phase === "closed" ? null : (
     <div
       data-offline-note-conversion-overlay
       data-offline-note-count={visibleNotes.length}
@@ -790,7 +862,7 @@ function OfflineNotesConversionOverlayContent() {
 
   return (
     <>
-      {createPortal(content, document.body)}
+      {content ? createPortal(content, document.body) : null}
       <UpgradeDialog
         open={subscriptionRestrictionOpen}
         errorCode="free_active_card_limit"

@@ -4,13 +4,743 @@
 
 
 > foxiesdeck@0.1.0 dev
-> next dev --hostname 127.0.0.1 --port 3000
+> next dev --turbopack
 
 ▲ Next.js 16.2.7 (Turbopack)
-- Local:         http://127.0.0.1:3000
-- Network:       http://127.0.0.1:3000
+- Local:         http://localhost:3000
+- Network:       http://10.2.0.2:3000
 - Environments: .env.local
-✓ Ready in 1198ms
+✓ Ready in 5.1s
 Creating turbopack project { dir: 'C:\\Users\\CASPER\\Documents\\kartlarladil', testMode: true }
 
-[?25h
+ GET /manifest.webmanifest 200 in 378ms (next.js: 341ms, proxy.ts: 13ms, application-code: 24ms)
+ GET / 200 in 22.7s (next.js: 6.2s, proxy.ts: 2.2s, application-code: 14.4s)
+ GET /manifest.webmanifest 200 in 263ms (next.js: 245ms, proxy.ts: 10ms, application-code: 9ms)
+ POST / 200 in 1426ms (next.js: 18ms, proxy.ts: 21ms, application-code: 1388ms)
+  └─ ƒ listUserMissionsAction({"bestMemoryLevel":0,"bestWordChallengeLevel":0,"bestWordMatchLevel":0,"...":"3 items not stringified"}) in 1203ms src/features/missions/mission-actions.ts
+ POST / 200 in 739ms (next.js: 10ms, proxy.ts: 56ms, application-code: 673ms)
+  └─ ƒ listCloudInventoryAction() in 659ms src/features/inventory/cloud-actions.ts
+ GET /api/leaderboard 200 in 2.2s (next.js: 234ms, proxy.ts: 385ms, application-code: 1559ms)
+ POST / 200 in 285ms (next.js: 10ms, proxy.ts: 14ms, application-code: 261ms)
+  └─ ƒ loadCustomCardsAction() in 248ms src/features/inventory/cloud-actions.ts
+ GET /api/leaderboard?mode=medals 200 in 2.2s (next.js: 213ms, proxy.ts: 385ms, application-code: 1636ms)
+ POST / 200 in 299ms (next.js: 12ms, proxy.ts: 8ms, application-code: 278ms)
+  └─ ƒ getUserEntitlementsAction() in 263ms src/features/subscriptions/subscription-actions.ts
+ POST / 200 in 2.1s (next.js: 10ms, proxy.ts: 11ms, application-code: 2.0s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2022ms src/features/daily-streak/daily-streak-actions.ts
+ POST / 200 in 213ms (next.js: 11ms, proxy.ts: 12ms, application-code: 190ms)
+  └─ ƒ listUserMissionsAction({"bestMemoryLevel":0,"bestWordChallengeLevel":0,"bestWordMatchLevel":0,"...":"3 items not stringified"}) in 171ms src/features/missions/mission-actions.ts
+ GET /developer 200 in 1144ms (next.js: 133ms, proxy.ts: 25ms, application-code: 986ms)
+ GET /manifest.webmanifest 200 in 46ms (next.js: 22ms, proxy.ts: 9ms, application-code: 15ms)
+ POST / 200 in 1909ms (next.js: 83ms, proxy.ts: 196ms, application-code: 1630ms)
+ GET /manifest.webmanifest 200 in 74ms (next.js: 51ms, proxy.ts: 8ms, application-code: 15ms)
+ POST /developer 200 in 490ms (next.js: 23ms, proxy.ts: 29ms, application-code: 438ms)
+  └─ ƒ listCloudInventoryAction() in 407ms src/features/inventory/cloud-actions.ts
+ POST /developer 200 in 307ms (next.js: 9ms, proxy.ts: 10ms, application-code: 288ms)
+  └─ ƒ loadCustomCardsAction() in 269ms src/features/inventory/cloud-actions.ts
+ POST /developer 200 in 398ms (next.js: 35ms, proxy.ts: 22ms, application-code: 340ms)
+  └─ ƒ getUserEntitlementsAction() in 310ms src/features/subscriptions/subscription-actions.ts
+ POST /developer 200 in 1666ms (next.js: 8ms, proxy.ts: 6ms, application-code: 1652ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1643ms src/features/daily-streak/daily-streak-actions.ts
+ GET /manifest.webmanifest 200 in 48ms (next.js: 13ms, proxy.ts: 12ms, application-code: 22ms)
+ GET /developer/social-analytics 200 in 11.9s (next.js: 161ms, proxy.ts: 36ms, application-code: 11.7s)
+ POST /developer/social-analytics 200 in 2.6s (next.js: 16ms, proxy.ts: 521ms, application-code: 2.1s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2079ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1263ms (next.js: 20ms, proxy.ts: 36ms, application-code: 1208ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1171ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 8.2s
+ GET /developer/social-analytics 200 in 4.4s (next.js: 3.4s, proxy.ts: 613ms, application-code: 399ms)
+ GET /manifest.webmanifest 200 in 75ms (next.js: 49ms, proxy.ts: 9ms, application-code: 17ms)
+✓ Compiled in 1452ms
+ GET /developer/social-analytics 200 in 2.2s (next.js: 1335ms, proxy.ts: 440ms, application-code: 460ms)
+ GET /developer/social-analytics 200 in 1592ms (next.js: 1266ms, proxy.ts: 193ms, application-code: 133ms)
+ GET /manifest.webmanifest 200 in 41ms (next.js: 28ms, proxy.ts: 4ms, application-code: 8ms)
+ POST /developer/social-analytics 200 in 8.7s (next.js: 39ms, proxy.ts: 76ms, application-code: 8.6s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2042ms src/features/daily-streak/daily-streak-actions.ts
+ GET /developer/social-analytics 200 in 5.7s (next.js: 10ms, proxy.ts: 4ms, application-code: 5.7s)
+ GET /developer/social-analytics 200 in 162ms (next.js: 13ms, proxy.ts: 16ms, application-code: 133ms)
+ POST /developer/social-analytics 200 in 1929ms (next.js: 32ms, proxy.ts: 36ms, application-code: 1861ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1834ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 727ms
+ GET /developer/social-analytics 200 in 2.6s (next.js: 1582ms, proxy.ts: 341ms, application-code: 670ms)
+ GET /developer/social-analytics 200 in 140ms (next.js: 12ms, proxy.ts: 38ms, application-code: 91ms)
+ GET /manifest.webmanifest 200 in 39ms (next.js: 23ms, proxy.ts: 6ms, application-code: 10ms)
+ GET /developer/social-analytics 200 in 3.7s (next.js: 8ms, proxy.ts: 3ms, application-code: 3.7s)
+ POST /developer/social-analytics 200 in 5.9s (next.js: 17ms, proxy.ts: 29ms, application-code: 5.8s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1980ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 2.1s (next.js: 13ms, proxy.ts: 70ms, application-code: 2.1s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2034ms src/features/daily-streak/daily-streak-actions.ts
+ GET /api/developer/social-analytics/posts?accountId=6&limit=12 404 in 799ms (next.js: 136ms, proxy.ts: 35ms, application-code: 627ms)
+ POST /developer/social-analytics 200 in 2.7s (next.js: 14ms, proxy.ts: 36ms, application-code: 2.7s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2666ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 2.5s (next.js: 32ms, proxy.ts: 22ms, application-code: 2.4s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2419ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 787ms
+ GET /developer/social-analytics 200 in 4.4s (next.js: 3.6s, proxy.ts: 441ms, application-code: 424ms)
+ GET /developer/social-analytics 200 in 220ms (next.js: 19ms, proxy.ts: 49ms, application-code: 153ms)
+ GET /manifest.webmanifest 200 in 72ms (next.js: 48ms, proxy.ts: 5ms, application-code: 19ms)
+ GET /developer/social-analytics 200 in 4.2s (next.js: 8ms, proxy.ts: 4ms, application-code: 4.1s)
+ POST /developer/social-analytics 200 in 5.3s (next.js: 13ms, proxy.ts: 16ms, application-code: 5.3s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2219ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 2.1s (next.js: 26ms, proxy.ts: 91ms, application-code: 1948ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1931ms src/features/daily-streak/daily-streak-actions.ts
+ GET /api/developer/social-analytics/posts?accountId=3&limit=12 404 in 568ms (next.js: 54ms, proxy.ts: 41ms, application-code: 473ms)
+ GET /api/developer/social-analytics/posts?accountId=7&limit=12 404 in 666ms (next.js: 22ms, proxy.ts: 12ms, application-code: 632ms)
+ GET /manifest.webmanifest 200 in 24ms (next.js: 7ms, proxy.ts: 4ms, application-code: 13ms)
+ GET /api/developer/social-analytics/posts?accountId=7&limit=12 404 in 523ms (next.js: 15ms, proxy.ts: 8ms, application-code: 500ms)
+ POST /developer/social-analytics 200 in 1272ms (next.js: 8ms, proxy.ts: 9ms, application-code: 1255ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1243ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1994ms (next.js: 26ms, proxy.ts: 61ms, application-code: 1907ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1867ms src/features/daily-streak/daily-streak-actions.ts
+ GET /api/developer/social-analytics/posts?accountId=7&limit=12 404 in 717ms (next.js: 69ms, proxy.ts: 33ms, application-code: 615ms)
+ POST /developer/social-analytics 200 in 1181ms (next.js: 61ms, proxy.ts: 66ms, application-code: 1054ms)
+ GET /manifest.webmanifest 200 in 46ms (next.js: 12ms, proxy.ts: 8ms, application-code: 26ms)
+ GET /manifest.webmanifest 200 in 22ms (next.js: 6ms, proxy.ts: 4ms, application-code: 12ms)
+ POST /developer/social-analytics 200 in 485ms (next.js: 16ms, proxy.ts: 20ms, application-code: 449ms)
+  └─ ƒ listCloudInventoryAction() in 428ms src/features/inventory/cloud-actions.ts
+ POST /developer/social-analytics 200 in 426ms (next.js: 16ms, proxy.ts: 97ms, application-code: 314ms)
+  └─ ƒ loadCustomCardsAction() in 299ms src/features/inventory/cloud-actions.ts
+ POST /developer/social-analytics 200 in 418ms (next.js: 10ms, proxy.ts: 9ms, application-code: 398ms)
+  └─ ƒ getUserEntitlementsAction() in 366ms src/features/subscriptions/subscription-actions.ts
+ POST /developer/social-analytics 200 in 1136ms (next.js: 12ms, proxy.ts: 13ms, application-code: 1112ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1095ms src/features/daily-streak/daily-streak-actions.ts
+ GET /developer/social-analytics 200 in 8.6s (next.js: 67ms, proxy.ts: 33ms, application-code: 8.5s)
+✓ Compiled in 796ms
+ GET /developer/social-analytics 200 in 4.3s (next.js: 3.1s, proxy.ts: 461ms, application-code: 710ms)
+ GET /developer/social-analytics 200 in 567ms (next.js: 12ms, proxy.ts: 31ms, application-code: 525ms)
+ GET /developer/social-analytics 200 in 429ms (next.js: 55ms, proxy.ts: 31ms, application-code: 344ms)
+ GET /developer/social-analytics 200 in 433ms (next.js: 16ms, proxy.ts: 32ms, application-code: 385ms)
+ GET /developer/social-analytics 200 in 430ms (next.js: 210ms, proxy.ts: 30ms, application-code: 189ms)
+ GET /manifest.webmanifest 200 in 65ms (next.js: 45ms, proxy.ts: 8ms, application-code: 12ms)
+ POST /developer/social-analytics 200 in 4.8s (next.js: 21ms, proxy.ts: 25ms, application-code: 4.8s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2127ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1218ms (next.js: 27ms, proxy.ts: 24ms, application-code: 1167ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1131ms src/features/daily-streak/daily-streak-actions.ts
+ GET /developer/social-analytics 200 in 6.5s (next.js: 10ms, proxy.ts: 4ms, application-code: 6.5s)
+ GET /developer/social-analytics 200 in 136ms (next.js: 7ms, proxy.ts: 5ms, application-code: 124ms)
+✓ Compiled in 605ms
+ GET /developer/social-analytics 200 in 6.4s (next.js: 2.4s, proxy.ts: 778ms, application-code: 3.2s)
+ GET /developer/social-analytics 200 in 3.0s (next.js: 56ms, proxy.ts: 568ms, application-code: 2.4s)
+ GET /developer/social-analytics 200 in 1508ms (next.js: 12ms, proxy.ts: 1233ms, application-code: 263ms)
+ GET /manifest.webmanifest 200 in 306ms (next.js: 274ms, proxy.ts: 8ms, application-code: 24ms)
+ POST /developer/social-analytics 200 in 6.3s (next.js: 13ms, proxy.ts: 16ms, application-code: 6.3s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1079ms src/features/daily-streak/daily-streak-actions.ts
+ GET /developer/social-analytics 200 in 5.0s (next.js: 10ms, proxy.ts: 11ms, application-code: 4.9s)
+ GET /developer/social-analytics 200 in 126ms (next.js: 8ms, proxy.ts: 5ms, application-code: 113ms)
+ POST /developer/social-analytics 200 in 1953ms (next.js: 12ms, proxy.ts: 25ms, application-code: 1916ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1896ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 661ms (next.js: 9ms, proxy.ts: 13ms, application-code: 640ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 627ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1029ms (next.js: 32ms, proxy.ts: 35ms, application-code: 962ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 927ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 927ms
+ GET /developer/social-analytics 200 in 5.0s (next.js: 4.2s, proxy.ts: 362ms, application-code: 395ms)
+ GET /developer/social-analytics 200 in 219ms (next.js: 38ms, proxy.ts: 38ms, application-code: 143ms)
+ GET /manifest.webmanifest 200 in 114ms (next.js: 88ms, proxy.ts: 8ms, application-code: 18ms)
+ GET /developer/social-analytics 200 in 6.7s (next.js: 12ms, proxy.ts: 4ms, application-code: 6.7s)
+ POST /developer/social-analytics 200 in 4.5s (next.js: 12ms, proxy.ts: 19ms, application-code: 4.4s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1668ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 879ms (next.js: 18ms, proxy.ts: 31ms, application-code: 829ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 801ms src/features/daily-streak/daily-streak-actions.ts
+ GET /api/developer/social-analytics/posts?accountId=7&limit=12 200 in 3.5s (next.js: 373ms, proxy.ts: 29ms, application-code: 3.1s)
+ POST /developer/social-analytics 200 in 1133ms (next.js: 14ms, proxy.ts: 19ms, application-code: 1100ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1078ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 588ms
+ GET /developer/social-analytics 200 in 11.3s (next.js: 6.9s, proxy.ts: 548ms, application-code: 3.8s)
+ GET /developer/social-analytics 200 in 3.6s (next.js: 3.4s, proxy.ts: 52ms, application-code: 201ms)
+ POST /developer/social-analytics 200 in 5.0s (next.js: 20ms, proxy.ts: 53ms, application-code: 4.9s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1558ms src/features/daily-streak/daily-streak-actions.ts
+ GET /manifest.webmanifest 200 in 85ms (next.js: 67ms, proxy.ts: 6ms, application-code: 11ms)
+ GET /developer/social-analytics 200 in 5.1s (next.js: 15ms, proxy.ts: 5ms, application-code: 5.1s)
+ POST /developer/social-analytics 200 in 1290ms (next.js: 19ms, proxy.ts: 19ms, application-code: 1252ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1231ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1104ms (next.js: 15ms, proxy.ts: 26ms, application-code: 1063ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1039ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1454ms (next.js: 13ms, proxy.ts: 15ms, application-code: 1427ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1402ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1110ms (next.js: 19ms, proxy.ts: 27ms, application-code: 1064ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1042ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1121ms (next.js: 17ms, proxy.ts: 13ms, application-code: 1091ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1070ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1404ms (next.js: 16ms, proxy.ts: 21ms, application-code: 1367ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1348ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1046ms (next.js: 33ms, proxy.ts: 33ms, application-code: 980ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 957ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 869ms
+ GET /developer/social-analytics 200 in 6.5s (next.js: 6.0s, proxy.ts: 318ms, application-code: 183ms)
+ GET /manifest.webmanifest 200 in 73ms (next.js: 60ms, proxy.ts: 4ms, application-code: 9ms)
+ POST /developer/social-analytics 200 in 4.2s (next.js: 24ms, proxy.ts: 17ms, application-code: 4.2s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1039ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 604ms
+ GET /developer/social-analytics 200 in 6.0s (next.js: 3.8s, proxy.ts: 388ms, application-code: 1863ms)
+ GET /developer/social-analytics 200 in 1681ms (next.js: 115ms, proxy.ts: 349ms, application-code: 1217ms)
+ GET /manifest.webmanifest 200 in 178ms (next.js: 142ms, proxy.ts: 10ms, application-code: 26ms)
+ GET /developer/social-analytics 200 in 5.1s (next.js: 11ms, proxy.ts: 5ms, application-code: 5.1s)
+ POST /developer/social-analytics 200 in 6.6s (next.js: 51ms, proxy.ts: 45ms, application-code: 6.5s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2553ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1851ms (next.js: 17ms, proxy.ts: 26ms, application-code: 1808ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1772ms src/features/daily-streak/daily-streak-actions.ts
+ GET /api/developer/social-analytics?days=90 200 in 7.2s (next.js: 194ms, proxy.ts: 8ms, application-code: 7.0s)
+ POST /developer/social-analytics 200 in 1049ms (next.js: 17ms, proxy.ts: 19ms, application-code: 1013ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 986ms src/features/daily-streak/daily-streak-actions.ts
+ GET /api/developer/social-analytics?days=7 200 in 7.5s (next.js: 6ms, proxy.ts: 14ms, application-code: 7.5s)
+ POST /developer/social-analytics 200 in 2.6s (next.js: 63ms, proxy.ts: 272ms, application-code: 2.2s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2145ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 598ms
+ GET /developer/social-analytics 200 in 5.0s (next.js: 4.0s, proxy.ts: 473ms, application-code: 512ms)
+✓ Compiled in 0ms
+ GET /developer/social-analytics 200 in 2.9s (next.js: 2.3s, proxy.ts: 424ms, application-code: 185ms)
+ GET /manifest.webmanifest 200 in 442ms (next.js: 375ms, proxy.ts: 6ms, application-code: 61ms)
+✓ Compiled in 452ms
+ GET /developer/social-analytics 200 in 3.2s (next.js: 2.0s, proxy.ts: 494ms, application-code: 688ms)
+ GET /developer/social-analytics 200 in 366ms (next.js: 45ms, proxy.ts: 103ms, application-code: 218ms)
+ GET /manifest.webmanifest 200 in 62ms (next.js: 46ms, proxy.ts: 4ms, application-code: 12ms)
+ GET /developer/social-analytics 200 in 6.8s (next.js: 8ms, proxy.ts: 4ms, application-code: 6.8s)
+ POST /developer/social-analytics 200 in 4.8s (next.js: 21ms, proxy.ts: 24ms, application-code: 4.7s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2288ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 9.8s (next.js: 51ms, proxy.ts: 605ms, application-code: 9.1s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1910ms src/features/daily-streak/daily-streak-actions.ts
+ GET /manifest.webmanifest 200 in 19ms (next.js: 6ms, proxy.ts: 4ms, application-code: 9ms)
+ POST /developer/social-analytics 200 in 2.1s (next.js: 12ms, proxy.ts: 17ms, application-code: 2.0s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2017ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1985ms (next.js: 63ms, proxy.ts: 21ms, application-code: 1901ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1882ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 523ms
+ GET /developer/social-analytics 200 in 5.2s (next.js: 4.5s, proxy.ts: 413ms, application-code: 299ms)
+ GET /developer/social-analytics 200 in 149ms (next.js: 14ms, proxy.ts: 29ms, application-code: 106ms)
+ GET /manifest.webmanifest 200 in 94ms (next.js: 75ms, proxy.ts: 7ms, application-code: 12ms)
+ GET /developer/social-analytics 200 in 6.8s (next.js: 12ms, proxy.ts: 4ms, application-code: 6.7s)
+ POST /developer/social-analytics 200 in 5.4s (next.js: 20ms, proxy.ts: 31ms, application-code: 5.3s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2630ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 864ms (next.js: 52ms, proxy.ts: 28ms, application-code: 783ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 757ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 563ms
+ GET /developer/social-analytics 200 in 5.6s (next.js: 4.8s, proxy.ts: 511ms, application-code: 336ms)
+▲ Next.js 16.2.7 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.2.0.2:3000
+- Environments: .env.local
+✓ Ready in 9.5s
+Creating turbopack project { dir: 'C:\\Users\\CASPER\\Documents\\kartlarladil', testMode: true }
+
+ GET / 200 in 4.9s (next.js: 98ms, proxy.ts: 14ms, application-code: 4.8s)
+ GET /manifest.webmanifest 200 in 185ms (next.js: 149ms, proxy.ts: 8ms, application-code: 27ms)
+ GET /manifest.webmanifest 200 in 45ms (next.js: 10ms, proxy.ts: 21ms, application-code: 13ms)
+ POST /developer/social-analytics 200 in 1060ms (next.js: 36ms, proxy.ts: 16ms, application-code: 1008ms)
+  └─ ƒ listCloudInventoryAction() in 804ms src/features/inventory/cloud-actions.ts
+ GET /developer/social-analytics 200 in 27.7s (next.js: 7.6s, proxy.ts: 977ms, application-code: 19.1s)
+ POST /developer/social-analytics 200 in 660ms (next.js: 12ms, proxy.ts: 24ms, application-code: 624ms)
+  └─ ƒ loadCustomCardsAction() in 606ms src/features/inventory/cloud-actions.ts
+ POST /developer/social-analytics 200 in 461ms (next.js: 14ms, proxy.ts: 9ms, application-code: 438ms)
+  └─ ƒ getUserEntitlementsAction() in 422ms src/features/subscriptions/subscription-actions.ts
+ POST /developer/social-analytics 200 in 1698ms (next.js: 10ms, proxy.ts: 10ms, application-code: 1677ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1663ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1443ms (next.js: 10ms, proxy.ts: 12ms, application-code: 1421ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1408ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1885ms (next.js: 54ms, proxy.ts: 165ms, application-code: 1667ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1617ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 7.7s
+ GET /developer/social-analytics 200 in 9.3s (next.js: 7.9s, proxy.ts: 531ms, application-code: 797ms)
+ GET /developer/social-analytics 200 in 3.6s (next.js: 110ms, proxy.ts: 585ms, application-code: 2.9s)
+ GET /developer/social-analytics 200 in 3.6s (next.js: 24ms, proxy.ts: 586ms, application-code: 3.0s)
+ GET /developer/social-analytics 200 in 5.3s (next.js: 1015ms, proxy.ts: 381ms, application-code: 3.9s)
+ GET /developer/social-analytics 200 in 3.7s (next.js: 257ms, proxy.ts: 583ms, application-code: 2.8s)
+ GET /manifest.webmanifest 200 in 36ms (next.js: 26ms, proxy.ts: 3ms, application-code: 7ms)
+ GET /developer/social-analytics 200 in 4.0s (next.js: 21ms, proxy.ts: 27ms, application-code: 4.0s)
+ GET /manifest.webmanifest 200 in 29ms (next.js: 8ms, proxy.ts: 12ms, application-code: 9ms)
+ GET /developer/social-analytics 200 in 14.6s (next.js: 84ms, proxy.ts: 1507ms, application-code: 13.0s)
+ POST /developer/social-analytics 200 in 5.1s (next.js: 14ms, proxy.ts: 19ms, application-code: 5.0s)
+  └─ ƒ listCloudInventoryAction() in 967ms src/features/inventory/cloud-actions.ts
+ POST /developer/social-analytics 200 in 323ms (next.js: 13ms, proxy.ts: 14ms, application-code: 296ms)
+  └─ ƒ loadCustomCardsAction() in 276ms src/features/inventory/cloud-actions.ts
+ POST /developer/social-analytics 200 in 372ms (next.js: 11ms, proxy.ts: 10ms, application-code: 351ms)
+  └─ ƒ getUserEntitlementsAction() in 333ms src/features/subscriptions/subscription-actions.ts
+ POST /developer/social-analytics 200 in 1782ms (next.js: 12ms, proxy.ts: 11ms, application-code: 1759ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1740ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 2s
+✓ Compiled in 645ms
+ GET /developer/social-analytics 200 in 2.0s (next.js: 1130ms, proxy.ts: 465ms, application-code: 434ms)
+✓ Compiled in 701ms
+ GET /manifest.webmanifest 200 in 147ms (next.js: 62ms, proxy.ts: 65ms, application-code: 20ms)
+ GET /manifest.webmanifest 200 in 39ms (next.js: 10ms, proxy.ts: 13ms, application-code: 16ms)
+ GET /developer/social-analytics 200 in 17.2s (next.js: 1315ms, proxy.ts: 403ms, application-code: 15.5s)
+✓ Compiled in 3.6s
+ POST /developer/social-analytics 200 in 14.5s (next.js: 2.6s, proxy.ts: 543ms, application-code: 11.4s)
+  └─ ƒ listCloudInventoryAction() in 7327ms src/features/inventory/cloud-actions.ts
+ GET /manifest.webmanifest 200 in 54ms (next.js: 36ms, proxy.ts: 8ms, application-code: 10ms)
+ GET /developer/social-analytics 200 in 12.3s (next.js: 1287ms, proxy.ts: 459ms, application-code: 10.6s)
+ GET /manifest.webmanifest 200 in 46ms (next.js: 12ms, proxy.ts: 9ms, application-code: 25ms)
+ POST /developer/social-analytics 200 in 4.8s (next.js: 23ms, proxy.ts: 25ms, application-code: 4.8s)
+  └─ ƒ listCloudInventoryAction() in 733ms src/features/inventory/cloud-actions.ts
+ POST /developer/social-analytics 200 in 294ms (next.js: 18ms, proxy.ts: 16ms, application-code: 261ms)
+  └─ ƒ loadCustomCardsAction() in 235ms src/features/inventory/cloud-actions.ts
+ POST /developer/social-analytics 200 in 436ms (next.js: 20ms, proxy.ts: 21ms, application-code: 396ms)
+  └─ ƒ getUserEntitlementsAction() in 369ms src/features/subscriptions/subscription-actions.ts
+ POST /developer/social-analytics 200 in 1874ms (next.js: 15ms, proxy.ts: 18ms, application-code: 1841ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1817ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 799ms
+ GET /manifest.webmanifest 200 in 173ms (next.js: 115ms, proxy.ts: 22ms, application-code: 36ms)
+✓ Compiled in 966ms
+ GET /manifest.webmanifest 200 in 332ms (next.js: 78ms, proxy.ts: 223ms, application-code: 31ms)
+ GET /developer/social-analytics 200 in 19.5s (next.js: 3.2s, proxy.ts: 605ms, application-code: 15.7s)
+✓ Compiled in 1ms
+ GET /developer/social-analytics 200 in 8.4s (next.js: 1826ms, proxy.ts: 6.3s, application-code: 211ms)
+ POST /developer/social-analytics 200 in 10.6s (next.js: 2.5s, proxy.ts: 704ms, application-code: 7.4s)
+  └─ ƒ listCloudInventoryAction() in 4519ms src/features/inventory/cloud-actions.ts
+ POST /developer/social-analytics 200 in 8.6s (next.js: 5.0s, proxy.ts: 42ms, application-code: 3.5s)
+ GET /manifest.webmanifest 200 in 70ms (next.js: 26ms, proxy.ts: 32ms, application-code: 12ms)
+ GET /manifest.webmanifest 200 in 4.4s (next.js: 31ms, proxy.ts: 4.4s, application-code: 10ms)
+ GET /developer/social-analytics 500 in 24.5s (next.js: 33ms, proxy.ts: 2.3s, application-code: 22.1s)
+ POST /developer/social-analytics 200 in 5.3s (next.js: 14ms, proxy.ts: 4.9s, application-code: 398ms)
+  └─ ƒ listCloudInventoryAction() in 361ms src/features/inventory/cloud-actions.ts
+ POST /developer/social-analytics 200 in 277ms (next.js: 13ms, proxy.ts: 13ms, application-code: 251ms)
+  └─ ƒ loadCustomCardsAction() in 233ms src/features/inventory/cloud-actions.ts
+ POST /developer/social-analytics 200 in 377ms (next.js: 8ms, proxy.ts: 10ms, application-code: 358ms)
+  └─ ƒ getUserEntitlementsAction() in 345ms src/features/subscriptions/subscription-actions.ts
+ POST /developer/social-analytics 200 in 1367ms (next.js: 11ms, proxy.ts: 8ms, application-code: 1348ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1333ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 575ms
+ GET /manifest.webmanifest 200 in 83ms (next.js: 34ms, proxy.ts: 39ms, application-code: 11ms)
+ GET /manifest.webmanifest 200 in 44ms (next.js: 7ms, proxy.ts: 23ms, application-code: 14ms)
+ GET /developer/social-analytics 200 in 21.2s (next.js: 1283ms, proxy.ts: 420ms, application-code: 19.5s)
+ POST /developer/social-analytics 200 in 7.7s (next.js: 1217ms, proxy.ts: 462ms, application-code: 6.0s)
+  └─ ƒ listCloudInventoryAction() in 1085ms src/features/inventory/cloud-actions.ts
+ POST /developer/social-analytics 200 in 293ms (next.js: 10ms, proxy.ts: 10ms, application-code: 273ms)
+  └─ ƒ loadCustomCardsAction() in 237ms src/features/inventory/cloud-actions.ts
+ POST /developer/social-analytics 200 in 347ms (next.js: 13ms, proxy.ts: 20ms, application-code: 314ms)
+  └─ ƒ getUserEntitlementsAction() in 299ms src/features/subscriptions/subscription-actions.ts
+ POST /developer/social-analytics 200 in 1578ms (next.js: 9ms, proxy.ts: 10ms, application-code: 1559ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1545ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 469ms
+ GET /developer/social-analytics 200 in 2.0s (next.js: 1445ms, proxy.ts: 423ms, application-code: 168ms)
+ GET /manifest.webmanifest 200 in 52ms (next.js: 33ms, proxy.ts: 7ms, application-code: 11ms)
+ POST /developer/social-analytics 200 in 7.9s (next.js: 18ms, proxy.ts: 22ms, application-code: 7.8s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1945ms src/features/daily-streak/daily-streak-actions.ts
+○ Compiling /content-automation/social-medias ...
+ GET /content-automation/social-medias 200 in 26.8s (next.js: 11.5s, proxy.ts: 4ms, application-code: 15.3s)
+ GET /developer/social-analytics 200 in 140ms (next.js: 13ms, proxy.ts: 8ms, application-code: 119ms)
+ POST /developer/social-analytics 200 in 3.3s (next.js: 94ms, proxy.ts: 192ms, application-code: 3.0s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2642ms src/features/daily-streak/daily-streak-actions.ts
+ HEAD /content-automation/social-medias 200 in 134ms (next.js: 7ms, proxy.ts: 3ms, application-code: 124ms)
+ HEAD /developer/social-analytics 200 in 103ms (next.js: 6ms, proxy.ts: 6ms, application-code: 91ms)
+✓ Compiled in 733ms
+ GET /developer/social-analytics 200 in 4.7s (next.js: 3.8s, proxy.ts: 603ms, application-code: 241ms)
+ GET /manifest.webmanifest 200 in 85ms (next.js: 70ms, proxy.ts: 4ms, application-code: 10ms)
+○ Compiling /api/developer/social-analytics/accounts ...
+ GET /api/developer/social-analytics/accounts 401 in 3.3s (next.js: 3.3s, proxy.ts: 16ms, application-code: 30ms)
+ POST /developer/social-analytics 200 in 8.1s (next.js: 46ms, proxy.ts: 58ms, application-code: 8.0s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1414ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1208ms (next.js: 35ms, proxy.ts: 19ms, application-code: 1154ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1122ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 2.6s (next.js: 10ms, proxy.ts: 13ms, application-code: 2.5s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2533ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1887ms (next.js: 18ms, proxy.ts: 19ms, application-code: 1850ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1824ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1965ms (next.js: 22ms, proxy.ts: 32ms, application-code: 1910ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1885ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 1199ms
+ GET /developer/social-analytics 200 in 4.5s (next.js: 3.7s, proxy.ts: 473ms, application-code: 302ms)
+ GET /developer/social-analytics 200 in 169ms (next.js: 17ms, proxy.ts: 32ms, application-code: 120ms)
+ GET /manifest.webmanifest 200 in 75ms (next.js: 54ms, proxy.ts: 10ms, application-code: 11ms)
+ POST /developer/social-analytics 200 in 6.1s (next.js: 61ms, proxy.ts: 49ms, application-code: 6.0s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2043ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 2.4s (next.js: 185ms, proxy.ts: 107ms, application-code: 2.1s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2018ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 897ms
+ GET /developer/social-analytics 200 in 4.0s (next.js: 3.2s, proxy.ts: 429ms, application-code: 331ms)
+ GET /developer/social-analytics 200 in 232ms (next.js: 17ms, proxy.ts: 33ms, application-code: 183ms)
+ GET /manifest.webmanifest 200 in 100ms (next.js: 85ms, proxy.ts: 4ms, application-code: 11ms)
+ POST /developer/social-analytics 200 in 3.5s (next.js: 38ms, proxy.ts: 52ms, application-code: 3.4s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1088ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 512ms
+ GET /developer/social-analytics 200 in 3.4s (next.js: 1190ms, proxy.ts: 441ms, application-code: 1778ms)
+ GET /developer/social-analytics 200 in 1642ms (next.js: 117ms, proxy.ts: 348ms, application-code: 1177ms)
+ GET /manifest.webmanifest 200 in 74ms (next.js: 53ms, proxy.ts: 6ms, application-code: 16ms)
+ POST /developer/social-analytics 200 in 4.1s (next.js: 37ms, proxy.ts: 33ms, application-code: 4.0s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1093ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1263ms (next.js: 25ms, proxy.ts: 25ms, application-code: 1214ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1191ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1064ms (next.js: 22ms, proxy.ts: 52ms, application-code: 989ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 973ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 937ms (next.js: 19ms, proxy.ts: 37ms, application-code: 881ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 854ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 2.2s (next.js: 18ms, proxy.ts: 19ms, application-code: 2.1s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2094ms src/features/daily-streak/daily-streak-actions.ts
+ GET /developer/social-analytics 200 in 2.1s (next.js: 1261ms, proxy.ts: 309ms, application-code: 553ms)
+ GET /manifest.webmanifest 200 in 382ms (next.js: 284ms, proxy.ts: 43ms, application-code: 55ms)
+ GET /developer/social-analytics 200 in 2.9s (next.js: 1469ms, proxy.ts: 336ms, application-code: 1088ms)
+ GET /developer/social-analytics 200 in 948ms (next.js: 38ms, proxy.ts: 34ms, application-code: 876ms)
+ GET /developer/social-analytics 200 in 682ms (next.js: 275ms, proxy.ts: 48ms, application-code: 359ms)
+ GET /manifest.webmanifest 200 in 57ms (next.js: 38ms, proxy.ts: 6ms, application-code: 13ms)
+ GET /developer/social-analytics 200 in 1997ms (next.js: 1074ms, proxy.ts: 584ms, application-code: 339ms)
+ GET /developer/social-analytics 200 in 237ms (next.js: 14ms, proxy.ts: 20ms, application-code: 202ms)
+ GET /developer/social-analytics 200 in 135ms (next.js: 13ms, proxy.ts: 17ms, application-code: 106ms)
+ GET /manifest.webmanifest 200 in 45ms (next.js: 30ms, proxy.ts: 5ms, application-code: 10ms)
+ GET /developer/social-analytics 200 in 2.9s (next.js: 1155ms, proxy.ts: 283ms, application-code: 1447ms)
+ GET /developer/social-analytics 200 in 1362ms (next.js: 11ms, proxy.ts: 21ms, application-code: 1330ms)
+ GET /developer/social-analytics 200 in 1243ms (next.js: 77ms, proxy.ts: 96ms, application-code: 1071ms)
+ GET /manifest.webmanifest 200 in 56ms (next.js: 37ms, proxy.ts: 6ms, application-code: 13ms)
+✓ Compiled in 540ms
+ GET /developer/social-analytics 200 in 2.6s (next.js: 1764ms, proxy.ts: 328ms, application-code: 534ms)
+ GET /developer/social-analytics 200 in 387ms (next.js: 16ms, proxy.ts: 31ms, application-code: 339ms)
+ GET /developer/social-analytics 200 in 210ms (next.js: 17ms, proxy.ts: 25ms, application-code: 169ms)
+ GET /manifest.webmanifest 200 in 47ms (next.js: 32ms, proxy.ts: 6ms, application-code: 9ms)
+✓ Compiled in 553ms
+ GET /developer/social-analytics 200 in 2.6s (next.js: 1533ms, proxy.ts: 506ms, application-code: 595ms)
+ GET /developer/social-analytics 200 in 429ms (next.js: 34ms, proxy.ts: 30ms, application-code: 365ms)
+ GET /developer/social-analytics 200 in 245ms (next.js: 19ms, proxy.ts: 28ms, application-code: 198ms)
+ GET /manifest.webmanifest 200 in 50ms (next.js: 34ms, proxy.ts: 4ms, application-code: 12ms)
+ GET /developer/social-analytics 200 in 5.8s (next.js: 3.6s, proxy.ts: 344ms, application-code: 1911ms)
+ GET /manifest.webmanifest 200 in 81ms (next.js: 52ms, proxy.ts: 13ms, application-code: 15ms)
+ POST /developer/social-analytics 200 in 7.9s (next.js: 75ms, proxy.ts: 43ms, application-code: 7.8s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2080ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 2.0s (next.js: 53ms, proxy.ts: 14ms, application-code: 1969ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1940ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1396ms (next.js: 14ms, proxy.ts: 18ms, application-code: 1364ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1340ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1873ms (next.js: 18ms, proxy.ts: 46ms, application-code: 1810ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1792ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1756ms (next.js: 20ms, proxy.ts: 33ms, application-code: 1703ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1689ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1505ms (next.js: 22ms, proxy.ts: 23ms, application-code: 1460ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1438ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1439ms (next.js: 15ms, proxy.ts: 20ms, application-code: 1404ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1386ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 2.7s (next.js: 124ms, proxy.ts: 42ms, application-code: 2.5s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2465ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 2.1s (next.js: 103ms, proxy.ts: 52ms, application-code: 1971ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1928ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1592ms (next.js: 25ms, proxy.ts: 73ms, application-code: 1493ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1442ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 2.2s (next.js: 25ms, proxy.ts: 49ms, application-code: 2.1s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2027ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 2.1s
+ POST /developer/social-analytics 200 in 18.2s (next.js: 6.1s, proxy.ts: 650ms, application-code: 11.5s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2561ms src/features/daily-streak/daily-streak-actions.ts
+ GET /developer/social-analytics 200 in 950ms (next.js: 21ms, proxy.ts: 24ms, application-code: 904ms)
+ GET /developer/social-analytics 200 in 667ms (next.js: 209ms, proxy.ts: 154ms, application-code: 305ms)
+ GET /manifest.webmanifest 200 in 97ms (next.js: 77ms, proxy.ts: 7ms, application-code: 13ms)
+ POST /developer/social-analytics 200 in 1252ms (next.js: 79ms, proxy.ts: 39ms, application-code: 1135ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1080ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1868ms (next.js: 15ms, proxy.ts: 20ms, application-code: 1834ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1817ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1925ms (next.js: 12ms, proxy.ts: 15ms, application-code: 1898ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1886ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1204ms (next.js: 116ms, proxy.ts: 25ms, application-code: 1063ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1023ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 2.3s (next.js: 24ms, proxy.ts: 28ms, application-code: 2.3s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2252ms src/features/daily-streak/daily-streak-actions.ts
+ GET /developer/social-analytics 200 in 2.3s (next.js: 1225ms, proxy.ts: 578ms, application-code: 456ms)
+ GET /developer/social-analytics 200 in 348ms (next.js: 14ms, proxy.ts: 30ms, application-code: 304ms)
+ GET /developer/social-analytics 200 in 183ms (next.js: 17ms, proxy.ts: 27ms, application-code: 139ms)
+ GET /manifest.webmanifest 200 in 41ms (next.js: 28ms, proxy.ts: 3ms, application-code: 10ms)
+✓ Compiled in 2.9s
+ GET /developer/social-analytics 200 in 5.1s (next.js: 3.0s, proxy.ts: 1251ms, application-code: 865ms)
+ GET /developer/social-analytics 200 in 4.1s (next.js: 35ms, proxy.ts: 42ms, application-code: 4.1s)
+ GET /developer/social-analytics 200 in 4.2s (next.js: 79ms, proxy.ts: 40ms, application-code: 4.1s)
+ GET /developer/social-analytics 200 in 4.2s (next.js: 266ms, proxy.ts: 38ms, application-code: 3.9s)
+ GET /developer/social-analytics 200 in 9.0s (next.js: 1910ms, proxy.ts: 355ms, application-code: 6.8s)
+ GET /manifest.webmanifest 200 in 75ms (next.js: 44ms, proxy.ts: 14ms, application-code: 18ms)
+ GET /developer/social-analytics 200 in 7.0s (next.js: 2.2s, proxy.ts: 34ms, application-code: 4.8s)
+ GET /manifest.webmanifest 200 in 56ms (next.js: 15ms, proxy.ts: 20ms, application-code: 20ms)
+ GET /developer/social-analytics 200 in 20.5s (next.js: 20ms, proxy.ts: 2.4s, application-code: 18.1s)
+ POST /developer/social-analytics 200 in 4.6s (next.js: 15ms, proxy.ts: 40ms, application-code: 4.6s)
+  └─ ƒ listCloudInventoryAction() in 1000ms src/features/inventory/cloud-actions.ts
+ POST /developer/social-analytics 200 in 373ms (next.js: 10ms, proxy.ts: 11ms, application-code: 351ms)
+  └─ ƒ loadCustomCardsAction() in 336ms src/features/inventory/cloud-actions.ts
+ POST /developer/social-analytics 200 in 426ms (next.js: 13ms, proxy.ts: 9ms, application-code: 403ms)
+  └─ ƒ getUserEntitlementsAction() in 387ms src/features/subscriptions/subscription-actions.ts
+ POST /developer/social-analytics 200 in 1752ms (next.js: 13ms, proxy.ts: 8ms, application-code: 1731ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1713ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 1323ms
+✓ Compiled in 619ms
+ GET /developer/social-analytics 200 in 2.2s (next.js: 1606ms, proxy.ts: 395ms, application-code: 228ms)
+ GET /manifest.webmanifest 200 in 50ms (next.js: 35ms, proxy.ts: 4ms, application-code: 11ms)
+✓ Compiled in 1364ms
+ GET /developer/social-analytics 200 in 2.5s (next.js: 1502ms, proxy.ts: 479ms, application-code: 545ms)
+ GET /developer/social-analytics 200 in 378ms (next.js: 26ms, proxy.ts: 49ms, application-code: 303ms)
+ GET /developer/social-analytics 200 in 217ms (next.js: 13ms, proxy.ts: 16ms, application-code: 188ms)
+ GET /manifest.webmanifest 200 in 44ms (next.js: 28ms, proxy.ts: 5ms, application-code: 10ms)
+ GET /developer/social-analytics 200 in 7.8s (next.js: 4.2s, proxy.ts: 386ms, application-code: 3.3s)
+ GET /manifest.webmanifest 200 in 198ms (next.js: 134ms, proxy.ts: 14ms, application-code: 50ms)
+ GET /developer/social-analytics 200 in 5.7s (next.js: 3.3s, proxy.ts: 1258ms, application-code: 1153ms)
+ GET /developer/social-analytics 200 in 1260ms (next.js: 27ms, proxy.ts: 637ms, application-code: 596ms)
+ GET /developer/social-analytics 200 in 723ms (next.js: 19ms, proxy.ts: 251ms, application-code: 453ms)
+ GET /manifest.webmanifest 200 in 81ms (next.js: 60ms, proxy.ts: 8ms, application-code: 13ms)
+✓ Compiled in 878ms
+ GET /developer/social-analytics 500 in 2.4s (next.js: 1408ms, proxy.ts: 581ms, application-code: 378ms)
+ GET /developer/social-analytics 500 in 73ms (next.js: 32ms, proxy.ts: 13ms, application-code: 28ms)
+ GET /developer/social-analytics 500 in 84ms (next.js: 42ms, proxy.ts: 13ms, application-code: 29ms)
+ GET /developer/social-analytics 500 in 101ms (next.js: 63ms, proxy.ts: 15ms, application-code: 24ms)
+ GET /developer/social-analytics 500 in 778ms (next.js: 336ms, proxy.ts: 413ms, application-code: 29ms)
+ GET /developer/social-analytics 500 in 827ms (next.js: 304ms, proxy.ts: 502ms, application-code: 21ms)
+ GET /developer/social-analytics 500 in 442ms (next.js: 37ms, proxy.ts: 381ms, application-code: 24ms)
+ GET /manifest.webmanifest 200 in 178ms (next.js: 87ms, proxy.ts: 78ms, application-code: 13ms)
+✓ Compiled in 1672ms
+ GET /developer/social-analytics 200 in 36.0s (next.js: 3.8s, proxy.ts: 20ms, application-code: 32.2s)
+ GET /manifest.webmanifest 200 in 122ms (next.js: 61ms, proxy.ts: 43ms, application-code: 17ms)
+ GET /developer/social-analytics 200 in 8.0s (next.js: 2.1s, proxy.ts: 371ms, application-code: 5.5s)
+ POST /developer/social-analytics 200 in 8.8s (next.js: 23ms, proxy.ts: 2.8s, application-code: 6.0s)
+  └─ ƒ listCloudInventoryAction() in 796ms src/features/inventory/cloud-actions.ts
+ POST /developer/social-analytics 200 in 375ms (next.js: 33ms, proxy.ts: 25ms, application-code: 316ms)
+  └─ ƒ loadCustomCardsAction() in 283ms src/features/inventory/cloud-actions.ts
+ POST /developer/social-analytics 200 in 421ms (next.js: 13ms, proxy.ts: 13ms, application-code: 395ms)
+  └─ ƒ getUserEntitlementsAction() in 375ms src/features/subscriptions/subscription-actions.ts
+ POST /developer/social-analytics 200 in 1720ms (next.js: 14ms, proxy.ts: 14ms, application-code: 1692ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1666ms src/features/daily-streak/daily-streak-actions.ts
+ GET /manifest.webmanifest 200 in 28ms (next.js: 10ms, proxy.ts: 6ms, application-code: 13ms)
+ GET /developer/social-analytics 200 in 37.1s (next.js: 17.8s, proxy.ts: 826ms, application-code: 18.4s)
+ POST /developer/social-analytics 200 in 5.2s (next.js: 26ms, proxy.ts: 41ms, application-code: 5.1s)
+  └─ ƒ listCloudInventoryAction() in 797ms src/features/inventory/cloud-actions.ts
+ POST /developer/social-analytics 200 in 317ms (next.js: 25ms, proxy.ts: 24ms, application-code: 268ms)
+  └─ ƒ loadCustomCardsAction() in 236ms src/features/inventory/cloud-actions.ts
+ POST /developer/social-analytics 200 in 362ms (next.js: 11ms, proxy.ts: 10ms, application-code: 341ms)
+  └─ ƒ getUserEntitlementsAction() in 324ms src/features/subscriptions/subscription-actions.ts
+ POST /developer/social-analytics 200 in 1624ms (next.js: 11ms, proxy.ts: 8ms, application-code: 1605ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1588ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 2.5s (next.js: 20ms, proxy.ts: 35ms, application-code: 2.5s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2429ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 2.6s (next.js: 22ms, proxy.ts: 35ms, application-code: 2.6s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2526ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1490ms (next.js: 20ms, proxy.ts: 38ms, application-code: 1432ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1408ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/social-analytics 200 in 1396ms (next.js: 17ms, proxy.ts: 37ms, application-code: 1343ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1320ms src/features/daily-streak/daily-streak-actions.ts
+ GET /manifest.webmanifest 200 in 95ms (next.js: 78ms, proxy.ts: 5ms, application-code: 12ms)
+ GET /developer 200 in 966ms (next.js: 331ms, proxy.ts: 21ms, application-code: 615ms)
+ GET /manifest.webmanifest 200 in 23ms (next.js: 7ms, proxy.ts: 7ms, application-code: 9ms)
+ GET /developer/analytics 200 in 4.7s (next.js: 190ms, proxy.ts: 10ms, application-code: 4.5s)
+✓ Compiled in 762ms
+ GET /developer/analytics 200 in 8.2s (next.js: 3.8s, proxy.ts: 517ms, application-code: 3.9s)
+ GET /manifest.webmanifest 200 in 73ms (next.js: 52ms, proxy.ts: 9ms, application-code: 12ms)
+ POST /developer/analytics 200 in 2.4s (next.js: 16ms, proxy.ts: 35ms, application-code: 2.4s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2202ms src/features/daily-streak/daily-streak-actions.ts
+ GET /developer/analytics 200 in 15.7s (next.js: 3.4s, proxy.ts: 408ms, application-code: 11.8s)
+ GET /manifest.webmanifest 200 in 200ms (next.js: 124ms, proxy.ts: 42ms, application-code: 34ms)
+ POST /developer/analytics 200 in 2.3s (next.js: 25ms, proxy.ts: 43ms, application-code: 2.2s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2081ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 200 in 900ms (next.js: 24ms, proxy.ts: 32ms, application-code: 843ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 805ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 200 in 1963ms (next.js: 17ms, proxy.ts: 22ms, application-code: 1924ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1898ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 200 in 1790ms (next.js: 18ms, proxy.ts: 22ms, application-code: 1750ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1724ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 200 in 1547ms (next.js: 29ms, proxy.ts: 34ms, application-code: 1484ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1463ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 200 in 2.3s (next.js: 16ms, proxy.ts: 27ms, application-code: 2.3s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2226ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 200 in 2.3s (next.js: 25ms, proxy.ts: 27ms, application-code: 2.3s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2247ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 12.6s
+✓ Finished filesystem cache database compaction in 14.4s
+ GET /developer/analytics 200 in 81s (next.js: 8.7s, proxy.ts: 29ms, application-code: 72s)
+▲ Next.js 16.2.7 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.2.0.2:3000
+- Environments: .env.local
+✓ Ready in 10.7s
+Creating turbopack project { dir: 'C:\\Users\\CASPER\\Documents\\kartlarladil', testMode: true }
+
+ GET /manifest.webmanifest 200 in 274ms (next.js: 216ms, proxy.ts: 20ms, application-code: 38ms)
+ GET /developer/analytics 200 in 18.4s (next.js: 4.6s, proxy.ts: 874ms, application-code: 13.0s)
+ GET /manifest.webmanifest 200 in 42ms (next.js: 13ms, proxy.ts: 17ms, application-code: 13ms)
+ POST /developer/analytics 200 in 983ms (next.js: 17ms, proxy.ts: 19ms, application-code: 948ms)
+  └─ ƒ listCloudInventoryAction() in 764ms src/features/inventory/cloud-actions.ts
+ POST /developer/analytics 200 in 359ms (next.js: 14ms, proxy.ts: 20ms, application-code: 326ms)
+  └─ ƒ loadCustomCardsAction() in 309ms src/features/inventory/cloud-actions.ts
+ POST /developer/analytics 200 in 339ms (next.js: 13ms, proxy.ts: 20ms, application-code: 306ms)
+  └─ ƒ getUserEntitlementsAction() in 285ms src/features/subscriptions/subscription-actions.ts
+ POST /developer/analytics 200 in 1653ms (next.js: 12ms, proxy.ts: 10ms, application-code: 1631ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1614ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 200 in 3.1s (next.js: 18ms, proxy.ts: 31ms, application-code: 3.0s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2947ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 200 in 2.7s (next.js: 65ms, proxy.ts: 50ms, application-code: 2.6s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2554ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 724ms
+ GET /developer/analytics 200 in 5.7s (next.js: 1754ms, proxy.ts: 576ms, application-code: 3.4s)
+ GET /manifest.webmanifest 200 in 54ms (next.js: 37ms, proxy.ts: 6ms, application-code: 11ms)
+✓ Compiled in 653ms
+ GET /developer/analytics 200 in 7.4s (next.js: 1484ms, proxy.ts: 369ms, application-code: 5.6s)
+ GET /manifest.webmanifest 200 in 79ms (next.js: 48ms, proxy.ts: 13ms, application-code: 18ms)
+✓ Compiled in 829ms
+ GET /developer/analytics 200 in 16.6s (next.js: 3.1s, proxy.ts: 490ms, application-code: 13.0s)
+ POST /developer/analytics 200 in 9.6s (next.js: 1478ms, proxy.ts: 456ms, application-code: 7.6s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2146ms src/features/daily-streak/daily-streak-actions.ts
+ GET /developer/analytics 200 in 518ms (next.js: 10ms, proxy.ts: 8ms, application-code: 500ms)
+ GET /manifest.webmanifest 200 in 39ms (next.js: 26ms, proxy.ts: 5ms, application-code: 8ms)
+ POST /developer/analytics 200 in 1717ms (next.js: 17ms, proxy.ts: 31ms, application-code: 1668ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1636ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 200 in 1764ms (next.js: 12ms, proxy.ts: 43ms, application-code: 1710ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1675ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 200 in 2.1s (next.js: 21ms, proxy.ts: 51ms, application-code: 2.1s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2040ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 200 in 1554ms (next.js: 13ms, proxy.ts: 16ms, application-code: 1524ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1509ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 200 in 3.2s (next.js: 15ms, proxy.ts: 20ms, application-code: 3.1s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 3101ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 1804ms
+ GET /developer/analytics 200 in 10.9s (next.js: 4.4s, proxy.ts: 531ms, application-code: 6.0s)
+ GET /manifest.webmanifest 200 in 143ms (next.js: 103ms, proxy.ts: 17ms, application-code: 23ms)
+✓ Compiled in 1424ms
+ GET /developer/analytics 200 in 6.9s (next.js: 1767ms, proxy.ts: 397ms, application-code: 4.8s)
+ GET /manifest.webmanifest 200 in 47ms (next.js: 32ms, proxy.ts: 4ms, application-code: 11ms)
+ GET /developer/analytics 200 in 11.8s (next.js: 2.4s, proxy.ts: 374ms, application-code: 9.0s)
+ GET /developer/analytics 200 in 5.7s (next.js: 1136ms, proxy.ts: 404ms, application-code: 4.2s)
+ GET /developer/analytics 200 in 1005ms (next.js: 19ms, proxy.ts: 181ms, application-code: 804ms)
+ GET /manifest.webmanifest 200 in 48ms (next.js: 31ms, proxy.ts: 7ms, application-code: 10ms)
+✓ Compiled in 964ms
+ GET /developer/analytics 200 in 7.9s (next.js: 2.8s, proxy.ts: 709ms, application-code: 4.3s)
+ GET /manifest.webmanifest 200 in 50ms (next.js: 34ms, proxy.ts: 6ms, application-code: 10ms)
+✓ Compiled in 588ms
+ GET /developer/analytics 200 in 11.3s (next.js: 1465ms, proxy.ts: 411ms, application-code: 9.5s)
+ GET /manifest.webmanifest 200 in 69ms (next.js: 43ms, proxy.ts: 10ms, application-code: 17ms)
+✓ Compiled in 707ms
+ GET /developer/analytics 200 in 18.3s (next.js: 2.3s, proxy.ts: 538ms, application-code: 15.5s)
+ GET /developer/analytics 200 in 10.6s (next.js: 2.0s, proxy.ts: 674ms, application-code: 7.9s)
+ GET /manifest.webmanifest 200 in 98ms (next.js: 58ms, proxy.ts: 14ms, application-code: 26ms)
+ POST /developer/analytics 200 in 2.9s (next.js: 18ms, proxy.ts: 34ms, application-code: 2.8s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1789ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 200 in 1438ms (next.js: 21ms, proxy.ts: 40ms, application-code: 1376ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1337ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 200 in 979ms (next.js: 28ms, proxy.ts: 32ms, application-code: 919ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 895ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 895ms
+ GET /developer/analytics 200 in 673ms (next.js: 15ms, proxy.ts: 29ms, application-code: 628ms)
+ GET /manifest.webmanifest 200 in 55ms (next.js: 38ms, proxy.ts: 6ms, application-code: 11ms)
+ GET /developer/analytics 200 in 7.5s (next.js: 1624ms, proxy.ts: 444ms, application-code: 5.4s)
+ POST /developer/analytics 200 in 1736ms (next.js: 31ms, proxy.ts: 34ms, application-code: 1671ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1523ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 639ms
+✓ Compiled in 515ms
+ GET /developer/analytics 200 in 12.8s (next.js: 1300ms, proxy.ts: 351ms, application-code: 11.1s)
+ GET /developer/analytics 200 in 7.6s (next.js: 1765ms, proxy.ts: 62ms, application-code: 5.8s)
+ GET /developer/analytics 200 in 1505ms (next.js: 17ms, proxy.ts: 564ms, application-code: 924ms)
+ GET /manifest.webmanifest 200 in 71ms (next.js: 48ms, proxy.ts: 7ms, application-code: 16ms)
+ POST /developer/analytics 200 in 3.6s (next.js: 58ms, proxy.ts: 86ms, application-code: 3.4s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1632ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 200 in 2.9s (next.js: 20ms, proxy.ts: 51ms, application-code: 2.8s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2808ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 200 in 2.9s (next.js: 19ms, proxy.ts: 576ms, application-code: 2.3s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2273ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 200 in 2.2s (next.js: 10ms, proxy.ts: 22ms, application-code: 2.1s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2110ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 480ms
+✓ Compiled in 1942ms
+ GET /developer/analytics 200 in 10.0s (next.js: 2.2s, proxy.ts: 13ms, application-code: 7.9s)
+ GET /developer/analytics 200 in 21.0s (next.js: 2.2s, proxy.ts: 4.5s, application-code: 14.3s)
+✓ Compiled in 1547ms
+✓ Compiled in 2.3s
+ GET /developer/analytics 200 in 25.7s (next.js: 1761ms, proxy.ts: 343ms, application-code: 23.6s)
+ GET /developer/analytics 200 in 17.9s (next.js: 139ms, proxy.ts: 277ms, application-code: 17.5s)
+ GET /developer/analytics 200 in 17.9s (next.js: 25ms, proxy.ts: 280ms, application-code: 17.6s)
+ GET /developer/analytics 200 in 17.9s (next.js: 89ms, proxy.ts: 279ms, application-code: 17.6s)
+ GET /developer/analytics 200 in 17.9s (next.js: 1153ms, proxy.ts: 276ms, application-code: 16.5s)
+ GET /developer/analytics 200 in 16.0s (next.js: 3.2s, proxy.ts: 2.5s, application-code: 10.3s)
+✓ Compiled in 676ms
+ GET /developer/analytics 200 in 12.9s (next.js: 19ms, proxy.ts: 523ms, application-code: 12.4s)
+ GET /developer/analytics 200 in 13.3s (next.js: 328ms, proxy.ts: 3.8s, application-code: 9.1s)
+ GET /developer/analytics 200 in 13.3s (next.js: 17ms, proxy.ts: 3.9s, application-code: 9.4s)
+✓ Compiled in 0ms
+ GET /developer/analytics 200 in 16.6s (next.js: 187ms, proxy.ts: 284ms, application-code: 16.1s)
+ GET /developer/analytics 200 in 16.7s (next.js: 153ms, proxy.ts: 398ms, application-code: 16.2s)
+ GET /developer/analytics 200 in 16.8s (next.js: 232ms, proxy.ts: 278ms, application-code: 16.3s)
+✓ Compiled in 5.9s
+ GET /developer/analytics 200 in 38.8s (next.js: 5.4s, proxy.ts: 48ms, application-code: 33.3s)
+ GET /developer/analytics 200 in 53s (next.js: 1708ms, proxy.ts: 648ms, application-code: 50s)
+ GET /developer/analytics 200 in 52s (next.js: 5.5s, proxy.ts: 47ms, application-code: 46s)
+ GET /developer/analytics 200 in 47s (next.js: 250ms, proxy.ts: 182ms, application-code: 47s)
+ GET /developer/analytics 200 in 61s (next.js: 14.1s, proxy.ts: 93ms, application-code: 47s)
+ GET /developer/analytics 200 in 61s (next.js: 20.2s, proxy.ts: 153ms, application-code: 40s)
+ GET /developer/analytics 200 in 18.2s (next.js: 2.8s, proxy.ts: 53ms, application-code: 15.4s)
+ GET /developer/analytics 200 in 31.7s (next.js: 4.0s, proxy.ts: 1444ms, application-code: 26.3s)
+ GET /developer/analytics 200 in 14.9s (next.js: 12.6s, proxy.ts: 1121ms, application-code: 1195ms)
+ GET /manifest.webmanifest 200 in 800ms (next.js: 318ms, proxy.ts: 455ms, application-code: 27ms)
+ GET /manifest.webmanifest 200 in 91ms (next.js: 49ms, proxy.ts: 25ms, application-code: 17ms)
+ POST /developer/analytics 200 in 3.3s (next.js: 60ms, proxy.ts: 215ms, application-code: 3.0s)
+  └─ ƒ listCloudInventoryAction() in 1210ms src/features/inventory/cloud-actions.ts
+ GET /developer/analytics 200 in 31.5s (next.js: 109ms, proxy.ts: 130ms, application-code: 31.2s)
+ POST /developer/analytics 200 in 821ms (next.js: 9ms, proxy.ts: 11ms, application-code: 801ms)
+  └─ ƒ loadCustomCardsAction() in 782ms src/features/inventory/cloud-actions.ts
+ POST /developer/analytics 200 in 488ms (next.js: 26ms, proxy.ts: 21ms, application-code: 441ms)
+  └─ ƒ getUserEntitlementsAction() in 414ms src/features/subscriptions/subscription-actions.ts
+○ Compiling /api/developer/analytics/leaderboards ...
+ GET /api/developer/analytics/leaderboards?board=quiz_attempts&offset=0&limit=10 503 in 6.1s (next.js: 4.0s, proxy.ts: 46ms, application-code: 2.0s)
+ GET /api/developer/analytics/leaderboards?board=quiz_attempts&offset=0&limit=10 503 in 21.1s (next.js: 4.1s, proxy.ts: 30ms, application-code: 16.9s)
+ GET /api/developer/analytics/leaderboards?board=learned_cards&offset=0&limit=10 503 in 21.2s (next.js: 4.1s, proxy.ts: 49ms, application-code: 17.1s)
+ POST /developer/analytics 200 in 14.8s (next.js: 1664ms, proxy.ts: 1011ms, application-code: 12.2s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 12017ms src/features/daily-streak/daily-streak-actions.ts
+ GET /api/developer/analytics/leaderboards?board=quiz_accuracy&offset=0&limit=10 503 in 21.9s (next.js: 4.1s, proxy.ts: 56ms, application-code: 17.8s)
+ GET /api/developer/analytics/leaderboards?board=learned_cards&offset=0&limit=10 503 in 22.7s (next.js: 4.0s, proxy.ts: 33ms, application-code: 18.7s)
+ GET /api/developer/analytics/leaderboards?board=quiz_accuracy&offset=0&limit=10 503 in 22.6s (next.js: 4.0s, proxy.ts: 12ms, application-code: 18.6s)
+✓ Compiled in 896ms
+ GET /developer/analytics 200 in 9.4s (next.js: 3.4s, proxy.ts: 515ms, application-code: 5.5s)
+ GET /manifest.webmanifest 200 in 124ms (next.js: 100ms, proxy.ts: 9ms, application-code: 14ms)
+ GET /api/developer/analytics/leaderboards?board=quiz_attempts&offset=0&limit=10 503 in 9.6s (next.js: 156ms, proxy.ts: 8.2s, application-code: 1244ms)
+ GET /api/developer/analytics/leaderboards?board=quiz_accuracy&offset=0&limit=10 503 in 9.6s (next.js: 183ms, proxy.ts: 8.2s, application-code: 1238ms)
+ GET /api/developer/analytics/leaderboards?board=learned_cards&offset=0&limit=10 503 in 9.6s (next.js: 6ms, proxy.ts: 8.4s, application-code: 1223ms)
+✓ Compiled in 1250ms
+ GET /developer/analytics 200 in 5.6s (next.js: 1391ms, proxy.ts: 625ms, application-code: 3.6s)
+ GET /manifest.webmanifest 200 in 118ms (next.js: 92ms, proxy.ts: 9ms, application-code: 17ms)
+✓ Compiled in 415ms
+ GET /developer/analytics 200 in 8.3s (next.js: 1390ms, proxy.ts: 150ms, application-code: 6.7s)
+ GET /manifest.webmanifest 200 in 87ms (next.js: 62ms, proxy.ts: 8ms, application-code: 17ms)
+ POST /developer/analytics 200 in 6.6s (next.js: 18ms, proxy.ts: 841ms, application-code: 5.7s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2201ms src/features/daily-streak/daily-streak-actions.ts
+ GET /manifest.webmanifest 200 in 22ms (next.js: 8ms, proxy.ts: 5ms, application-code: 9ms)
+ POST /developer/analytics 200 in 2.3s (next.js: 14ms, proxy.ts: 36ms, application-code: 2.2s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2233ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 200 in 1575ms (next.js: 24ms, proxy.ts: 23ms, application-code: 1528ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1498ms src/features/daily-streak/daily-streak-actions.ts
+ GET /api/developer/analytics/leaderboards?board=learned_cards&offset=0&limit=10 503 in 1414ms (next.js: 224ms, proxy.ts: 16ms, application-code: 1173ms)
+ POST /developer/analytics 200 in 2.0s (next.js: 29ms, proxy.ts: 20ms, application-code: 1971ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1936ms src/features/daily-streak/daily-streak-actions.ts
+✓ Compiled in 768ms
+✓ Compiled in 1068ms
+✓ Compiled in 2ms
+ GET /developer/analytics 200 in 42s (next.js: 7.1s, proxy.ts: 340ms, application-code: 34.2s)
+▲ Next.js 16.2.7 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.2.0.2:3000
+- Environments: .env.local
+✓ Ready in 7.9s
+Creating turbopack project { dir: 'C:\\Users\\CASPER\\Documents\\kartlarladil', testMode: true }
+
+ GET /developer/analytics 404 in 9.4s (next.js: 5.8s, proxy.ts: 823ms, application-code: 2.9s)
+ GET /developer/analytics 404 in 5.1s (next.js: 33ms, proxy.ts: 195ms, application-code: 4.8s)
+ GET /manifest.webmanifest 200 in 219ms (next.js: 181ms, proxy.ts: 10ms, application-code: 28ms)
+ GET /manifest.webmanifest 200 in 72ms (next.js: 36ms, proxy.ts: 25ms, application-code: 11ms)
+ POST /developer/analytics 404 in 4.4s (next.js: 83ms, proxy.ts: 17ms, application-code: 4.3s)
+  └─ ƒ listCloudInventoryAction() in 889ms src/features/inventory/cloud-actions.ts
+ POST /developer/analytics 404 in 313ms (next.js: 24ms, proxy.ts: 10ms, application-code: 279ms)
+  └─ ƒ loadCustomCardsAction() in 265ms src/features/inventory/cloud-actions.ts
+ POST /developer/analytics 404 in 452ms (next.js: 25ms, proxy.ts: 11ms, application-code: 415ms)
+  └─ ƒ getUserEntitlementsAction() in 400ms src/features/subscriptions/subscription-actions.ts
+ POST /developer/analytics 404 in 1557ms (next.js: 24ms, proxy.ts: 12ms, application-code: 1521ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1508ms src/features/daily-streak/daily-streak-actions.ts
+ POST /developer/analytics 404 in 2.6s (next.js: 28ms, proxy.ts: 15ms, application-code: 2.6s)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 2426ms src/features/daily-streak/daily-streak-actions.ts
+ GET /developer/analytics 404 in 565ms (next.js: 21ms, proxy.ts: 11ms, application-code: 533ms)
+ GET /manifest.webmanifest 200 in 65ms (next.js: 13ms, proxy.ts: 5ms, application-code: 46ms)
+ GET /manifest.webmanifest 200 in 63ms (next.js: 25ms, proxy.ts: 27ms, application-code: 12ms)
+ POST /developer/analytics 404 in 667ms (next.js: 23ms, proxy.ts: 25ms, application-code: 620ms)
+  └─ ƒ listCloudInventoryAction() in 583ms src/features/inventory/cloud-actions.ts
+ POST /developer/analytics 404 in 449ms (next.js: 60ms, proxy.ts: 27ms, application-code: 362ms)
+  └─ ƒ loadCustomCardsAction() in 344ms src/features/inventory/cloud-actions.ts
+ POST /developer/analytics 404 in 148ms (next.js: 21ms, proxy.ts: 9ms, application-code: 118ms)
+ GET /developer/analytics 404 in 621ms (next.js: 53ms, proxy.ts: 36ms, application-code: 532ms)
+ GET /manifest.webmanifest 200 in 57ms (next.js: 32ms, proxy.ts: 10ms, application-code: 15ms)
+ GET /manifest.webmanifest 200 in 56ms (next.js: 27ms, proxy.ts: 21ms, application-code: 8ms)
+ POST /developer/analytics 404 in 681ms (next.js: 85ms, proxy.ts: 62ms, application-code: 534ms)
+  └─ ƒ listCloudInventoryAction() in 522ms src/features/inventory/cloud-actions.ts
+ POST /developer/analytics 404 in 393ms (next.js: 46ms, proxy.ts: 18ms, application-code: 329ms)
+ GET /manifest.webmanifest 200 in 121ms (next.js: 70ms, proxy.ts: 39ms, application-code: 12ms)
+ GET /developer/analytics 404 in 1450ms (next.js: 26ms, proxy.ts: 22ms, application-code: 1402ms)
+ GET /manifest.webmanifest 200 in 77ms (next.js: 25ms, proxy.ts: 41ms, application-code: 11ms)
+ POST /developer/analytics 404 in 688ms (next.js: 92ms, proxy.ts: 27ms, application-code: 569ms)
+  └─ ƒ listCloudInventoryAction() in 551ms src/features/inventory/cloud-actions.ts
+ POST /developer/analytics 404 in 435ms (next.js: 32ms, proxy.ts: 9ms, application-code: 394ms)
+  └─ ƒ loadCustomCardsAction() in 381ms src/features/inventory/cloud-actions.ts
+ POST /developer/analytics 404 in 534ms (next.js: 45ms, proxy.ts: 8ms, application-code: 481ms)
+  └─ ƒ getUserEntitlementsAction() in 457ms src/features/subscriptions/subscription-actions.ts
+ POST /developer/analytics 404 in 1716ms (next.js: 34ms, proxy.ts: 13ms, application-code: 1669ms)
+  └─ ƒ syncDailyStreakAction("Europe/Istanbul") in 1653ms src/features/daily-streak/daily-streak-actions.ts

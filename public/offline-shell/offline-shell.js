@@ -105,14 +105,22 @@
       const request = indexedDB.open(DB_NAME, DB_VERSION);
       request.onupgradeneeded = function () {
         const db = request.result;
-        const profiles = db.createObjectStore("profiles", { keyPath: "id" });
-        profiles.createIndex("updatedAt", "updatedAt");
-        const cards = db.createObjectStore("cards", { keyPath: "key" });
-        cards.createIndex("profileId", "profileId");
-        const notes = db.createObjectStore("notes", { keyPath: "key" });
-        notes.createIndex("profileId", "profileId");
-        const drafts = db.createObjectStore("drafts", { keyPath: "key" });
-        drafts.createIndex("profileId", "profileId");
+        if (!db.objectStoreNames.contains("profiles")) {
+          const profiles = db.createObjectStore("profiles", { keyPath: "id" });
+          profiles.createIndex("updatedAt", "updatedAt");
+        }
+        if (!db.objectStoreNames.contains("cards")) {
+          const cards = db.createObjectStore("cards", { keyPath: "key" });
+          cards.createIndex("profileId", "profileId");
+        }
+        if (!db.objectStoreNames.contains("notes")) {
+          const notes = db.createObjectStore("notes", { keyPath: "key" });
+          notes.createIndex("profileId", "profileId");
+        }
+        if (!db.objectStoreNames.contains("drafts")) {
+          const drafts = db.createObjectStore("drafts", { keyPath: "key" });
+          drafts.createIndex("profileId", "profileId");
+        }
       };
       request.onsuccess = function () { resolve(request.result); };
       request.onerror = function () { reject(request.error || new Error("offline_storage_unavailable")); };
@@ -138,8 +146,12 @@
     const db = await openDatabase();
     try {
       const tx = db.transaction(storeName, "readonly");
+      // Attach the completion listener before starting/awaiting the request.
+      // Fast Android WebViews can complete a readonly transaction between
+      // request resolution and a later transactionDone() call.
+      const completed = transactionDone(tx);
       const result = await requestValue(tx.objectStore(storeName).index("profileId").getAll(profileId));
-      await transactionDone(tx);
+      await completed;
       return result || [];
     } finally { db.close(); }
   }
@@ -172,6 +184,7 @@
     const db = await openDatabase();
     try {
       const tx = db.transaction(["profiles", "cards"], "readwrite");
+      const completed = transactionDone(tx);
       tx.objectStore("profiles").put({
         id: profileId,
         nativeLanguage: nativeLanguage,
@@ -191,15 +204,16 @@
           updatedAt: timestamp,
         });
       });
-      await transactionDone(tx);
+      await completed;
 
       if (snapshot.complete) {
         const prune = db.transaction("cards", "readwrite");
+        const pruneCompleted = transactionDone(prune);
         const store = prune.objectStore("cards");
         existing.forEach(function (entry) {
           if (!known.has(entry.inventory.cardId)) store.delete(entry.key);
         });
-        await transactionDone(prune);
+        await pruneCompleted;
       }
 
       localStorage.setItem(PROFILE_KEY, profileId);
@@ -222,8 +236,8 @@
       const tx = db.transaction(["profiles", "cards"], "readonly");
       const profileRequest = tx.objectStore("profiles").get(id);
       const cardsRequest = tx.objectStore("cards").index("profileId").getAll(id);
-      const values = await Promise.all([requestValue(profileRequest), requestValue(cardsRequest)]);
-      await transactionDone(tx);
+      const completed = transactionDone(tx);
+      const values = await Promise.all([requestValue(profileRequest), requestValue(cardsRequest), completed]);
       const snapshot = { profile: values[0] || null, cards: values[1] || [] };
       if (fallback && (!snapshot.profile || fallback.profile.updatedAt > snapshot.profile.updatedAt)) return fallback;
       return snapshot;
@@ -265,8 +279,9 @@
       const db = await openDatabase();
       try {
         const tx = db.transaction("notes", "readwrite");
+        const completed = transactionDone(tx);
         tx.objectStore("notes").put(record);
-        await transactionDone(tx);
+        await completed;
       } finally { db.close(); }
       try { writeFallbackRecords("notes", profileId, readFallbackRecords("notes", profileId).filter(function (item) { return item.note && item.note.id !== note.id; })); } catch {}
     } catch {
@@ -291,7 +306,13 @@
     let indexedDbError = null;
     try {
       const db = await openDatabase();
-      try { const tx = db.transaction("notes", "readwrite"); tx.objectStore("notes").delete(profileId + ":" + noteId); await transactionDone(tx); indexedDbDeleted = true; }
+      try {
+        const tx = db.transaction("notes", "readwrite");
+        const completed = transactionDone(tx);
+        tx.objectStore("notes").delete(profileId + ":" + noteId);
+        await completed;
+        indexedDbDeleted = true;
+      }
       finally { db.close(); }
     } catch (error) { indexedDbError = error; }
 
@@ -300,16 +321,68 @@
       throw indexedDbError || new Error("offline_note_delete_failed");
     }
   }
-  async function listDrafts(profileId) { return readProfileRecords("drafts", profileId || activeProfileId()); }
+  function readFallbackDraftRecords(profileId) {
+    try {
+      const records = JSON.parse(localStorage.getItem(fallbackStorageKey("drafts", profileId)) || "[]");
+      return Array.isArray(records) ? records : [];
+    } catch { return []; }
+  }
+  function writeFallbackDraftRecords(profileId, records) {
+    localStorage.setItem(fallbackStorageKey("drafts", profileId), JSON.stringify(records));
+  }
+  async function listDrafts(profileId) {
+    const id = profileId || activeProfileId();
+    let records = [];
+    try { records = await readProfileRecords("drafts", id); } catch {}
+    const byId = new Map(records.map(function (entry) { return [entry.draft && entry.draft.id, entry]; }));
+    readFallbackDraftRecords(id).forEach(function (entry) {
+      if (entry.draft && !byId.has(entry.draft.id)) byId.set(entry.draft.id, entry);
+    });
+    return Array.from(byId.values());
+  }
   async function putDraft(profileId, draft) {
-    const db = await openDatabase();
-    try { const tx = db.transaction("drafts", "readwrite"); tx.objectStore("drafts").put({ key: profileId + ":" + draft.id, profileId: profileId, draft: draft, createdAt: draft.createdAt }); await transactionDone(tx); }
-    finally { db.close(); }
+    const record = { key: profileId + ":" + draft.id, profileId: profileId, draft: draft, createdAt: draft.createdAt };
+    let db = null;
+    try {
+      db = await openDatabase();
+      const tx = db.transaction("drafts", "readwrite");
+      const completed = transactionDone(tx);
+      tx.objectStore("drafts").put(record);
+      await completed;
+      try { writeFallbackDraftRecords(profileId, readFallbackDraftRecords(profileId).filter(function (item) { return !item.draft || item.draft.id !== draft.id; })); } catch {}
+    } catch {
+      const records = readFallbackDraftRecords(profileId).filter(function (item) { return !item.draft || item.draft.id !== draft.id; });
+      records.push(record);
+      writeFallbackDraftRecords(profileId, records);
+    } finally {
+      if (db) db.close();
+    }
   }
   async function removeDraft(profileId, draftId) {
-    const db = await openDatabase();
-    try { const tx = db.transaction("drafts", "readwrite"); tx.objectStore("drafts").delete(profileId + ":" + draftId); await transactionDone(tx); }
-    finally { db.close(); }
+    const fallbackRecords = readFallbackDraftRecords(profileId);
+    const hasFallbackCopy = fallbackRecords.some(function (entry) { return entry.draft && entry.draft.id === draftId; });
+    let fallbackCleared = !hasFallbackCopy;
+    if (hasFallbackCopy) {
+      try {
+        writeFallbackDraftRecords(profileId, fallbackRecords.filter(function (entry) { return !entry.draft || entry.draft.id !== draftId; }));
+        fallbackCleared = true;
+      } catch {}
+    }
+    let indexedDbDeleted = false;
+    let indexedDbError = null;
+    try {
+      const db = await openDatabase();
+      try {
+        const tx = db.transaction("drafts", "readwrite");
+        const completed = transactionDone(tx);
+        tx.objectStore("drafts").delete(profileId + ":" + draftId);
+        await completed;
+        indexedDbDeleted = true;
+      } finally { db.close(); }
+    } catch (error) { indexedDbError = error; }
+    if (!fallbackCleared || (!indexedDbDeleted && !hasFallbackCopy)) {
+      throw indexedDbError || new Error("offline_draft_delete_failed");
+    }
   }
 
   const storageApi = { saveSnapshot: saveSnapshot, getSnapshot: getSnapshot, listNotes: listNotes, putNote: putNote, removeNote: removeNote, listDrafts: listDrafts, putDraft: putDraft, removeDraft: removeDraft };
@@ -618,6 +691,7 @@
       const selectedLanguage = localeCode(language);
       if (!selectedLanguage) return;
       state.learningLanguage = selectedLanguage;
+      try { localStorage.setItem(CARD_LANGUAGE_KEY, selectedLanguage); } catch {}
       document.body.dataset.offlineCardLanguage = selectedLanguage;
       element("note-input").dir = selectedLanguage === "ar" ? "rtl" : "auto";
       renderLanguagePicker();
