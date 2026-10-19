@@ -147,17 +147,15 @@ export async function generateLauncherIcons(projectDir = path.join(ROOT, "com.fo
   const baseDir = path.join(projectDir, "app", "src", "main", "res");
   for (const [dir, size] of Object.entries(LEGACY_SIZES)) {
     await fs.mkdir(path.join(baseDir, dir), { recursive: true });
-    await sharp(APP_LOGO_PATH)
+    const legacyIcon = await sharp(APP_LOGO_PATH)
       .flatten({ background: BRAND_ORANGE })
       .resize(size, size, { fit: "fill" })
       .png()
-      .toFile(path.join(baseDir, dir, "ic_launcher.png"));
-    await fs.writeFile(
-      path.join(baseDir, dir, "ic_maskable.png"),
-      // Maskable icons use the complete AppLogo2 artwork scaled into the safe
-      // zone. Keep the orange edge as background; do not create a cutout halo.
-      await createSafeZoneIcon(APP_LOGO_PATH, size),
-    );
+      .toBuffer();
+    // Maskable icons intentionally match the legacy launcher artwork exactly:
+    // no safe-zone shrink and no added orange outline or cutout halo.
+    await fs.writeFile(path.join(baseDir, dir, "ic_launcher.png"), legacyIcon);
+    await fs.writeFile(path.join(baseDir, dir, "ic_maskable.png"), legacyIcon);
     console.log(`Generated AppLogo2 legacy launcher resources in ${dir} (${size}x${size})`);
   }
 
