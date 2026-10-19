@@ -325,6 +325,58 @@ function MediaStatusHint({ errorCode, errorDetail, pendingMessage }: { errorCode
   </div>;
 }
 
+function ScheduleStatusHint({ output, ready, scheduled }: { output: AutomationOutput; ready: boolean; scheduled: boolean }) {
+  const status = output.schedule_status ?? (scheduled ? "scheduled" : ready ? "pending" : null);
+  if (!status || (!ready && !scheduled && !output.schedule_attempt_count)) return null;
+
+  const isFailure = status === "failed" || status === "partially_scheduled";
+  const isUnconfirmed = status === "processing" && output.schedule_error_code === UPLOAD_POST_REQUEST_UNCONFIRMED_CODE;
+  const label = status === "failed"
+    ? "Schedule hatası"
+    : status === "partially_scheduled"
+      ? "Kısmen schedule edildi"
+      : isUnconfirmed
+        ? "Yanıt doğrulanıyor"
+        : status === "processing"
+          ? "Schedule ediliyor"
+          : status === "scheduled"
+            ? "Schedule edildi"
+            : "Schedule edilmedi";
+  const detail = output.schedule_error_detail?.trim() || output.schedule_error_code?.trim() || (
+    isFailure
+      ? "Schedule başarısız oldu; sağlayıcı hata ayrıntısı kaydetmedi."
+      : isUnconfirmed
+        ? "Upload-Post isteğinin sonucu henüz doğrulanmadı."
+        : status === "processing"
+          ? "Schedule isteği işleniyor."
+          : status === "scheduled"
+            ? "İçerik belirlenen tarih ve saate schedule edildi."
+            : "Bu içerik henüz schedule edilmedi."
+  );
+  const toneClass = isFailure
+    ? "text-[#b42318]"
+    : isUnconfirmed || status === "processing"
+      ? "text-[#9a6700]"
+      : status === "scheduled"
+        ? "text-[#168b51]"
+        : "text-[#64748b]";
+  const icon = isFailure
+    ? <CircleAlert aria-hidden="true" className="size-3.5" />
+    : status === "processing"
+      ? <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin" />
+      : status === "scheduled"
+        ? <Check aria-hidden="true" className="size-3.5" />
+        : <CalendarClock aria-hidden="true" className="size-3.5" />;
+
+  return <span aria-describedby={`schedule-status-tooltip-${output.id}`} aria-label={`Schedule durumu: ${label}`} className={`group relative flex cursor-help items-center gap-1 text-[11px] font-semibold ${toneClass}`} role="status" tabIndex={0}>
+    {icon}{label}
+    <span className="pointer-events-none absolute right-0 top-full z-30 mt-2 w-64 rounded border border-[#d6d9e0] bg-white p-2 text-left text-[11px] leading-4 text-[#20242b] opacity-0 shadow-sm transition-opacity duration-150 delay-500 group-hover:opacity-100 group-focus:opacity-100 group-focus:delay-0" id={`schedule-status-tooltip-${output.id}`} role="tooltip">
+      <span className="block font-semibold">{label}</span>
+      <span className="mt-1 block break-words">{detail}</span>
+    </span>
+  </span>;
+}
+
 function bucketStatusLabel(output: Pick<AutomationOutput, "content_type" | "bucketStatus">) {
   if (output.content_type === "text") return { label: "Database'e kaydedildi", className: "text-[#2563eb]" };
   if (output.bucketStatus === "stored") return { label: "Storage'a kaydedildi", className: "text-[#168b51]" };
@@ -1087,7 +1139,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
         const canRetry = output.status === "failed" || isPendingVerification;
         const storageStatus = bucketStatusLabel(output);
         return <article className="overflow-hidden rounded-2xl border border-white/30 bg-white p-3 text-black" key={output.id}>
-          <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-semibold text-black">{output.group_name}</p><p className="mt-1 truncate text-[11px] text-black">{getOutputLabel(output)}</p></div>{scheduleFailed ? <div className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-[#b42318]"><CircleAlert aria-label="Schedule başarısız" className="size-4" />Schedule hatası</div> : ready || scheduled ? <div className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-black"><Check aria-label="İçerik başarılı" className="size-4" />Başarılı</div> : skipped ? <div className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-[#64748b]"><CircleAlert aria-label="İçerik atlandı" className="size-4" />Atlandı</div> : isPendingVerification ? <div className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-black"><CircleAlert aria-label="İçerik beklemede" className="size-4" />Beklemede</div> : <div className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-black"><CircleAlert aria-label="İçerik üretilemedi" className="size-4" />Üretim hatası</div>}</div>
+          <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-semibold text-black">{output.group_name}</p><p className="mt-1 truncate text-[11px] text-black">{getOutputLabel(output)}</p></div><div className="flex shrink-0 flex-col items-end gap-1">{ready || scheduled ? <div className="flex items-center gap-1 text-[11px] font-semibold text-black"><Check aria-label="İçerik başarılı" className="size-4" />Başarılı</div> : skipped ? <div className="flex items-center gap-1 text-[11px] font-semibold text-[#64748b]"><CircleAlert aria-label="İçerik atlandı" className="size-4" />Atlandı</div> : isPendingVerification ? <div className="flex items-center gap-1 text-[11px] font-semibold text-black"><CircleAlert aria-label="İçerik beklemede" className="size-4" />Beklemede</div> : <div className="flex items-center gap-1 text-[11px] font-semibold text-black"><CircleAlert aria-label="İçerik üretilemedi" className="size-4" />Üretim hatası</div>}<ScheduleStatusHint output={output} ready={ready} scheduled={scheduled} /></div></div>
           {providerProcessing ? <div className="mt-3 rounded-lg border border-[#f1d28a] bg-[#fff9e8] px-2.5 py-2 text-[11px] leading-4 text-[#795600]">Upload-Post yanıtı henüz doğrulanmadı. Olası çift paylaşımı önlemek için aynı medya yeniden gönderilmeden önce mevcut istek kontrol edilecek.</div> : null}
           <div className="mt-3 flex items-center gap-2 text-xs text-black"><CalendarClock className="size-3.5 shrink-0 text-black" /><span>{scheduled ? "Schedule edildi:" : "Schedule zamanı:"} {formatScheduledAt(output.scheduled_at)}</span></div>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold"><span className={storageStatus.className}>{storageStatus.label}</span><span className="font-mono text-[10px] text-black/55">#{output.id.slice(0, 8)}</span></div>

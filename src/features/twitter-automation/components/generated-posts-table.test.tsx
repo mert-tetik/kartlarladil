@@ -574,7 +574,10 @@ describe("GeneratedPostsTable", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     await act(async () => { await vi.advanceTimersByTimeAsync(500); });
 
-    expect(screen.getByText(/HTTP 400: Scheduled time is not available\./u)).toBeVisible();
+    expect(screen.getByText("Başarılı")).toBeVisible();
+    expect(screen.getByRole("status", { name: "Schedule durumu: Schedule hatası" })).toBeVisible();
+    expect(screen.getByRole("tooltip")).toHaveTextContent("HTTP 400: Scheduled time is not available.");
+    expect(screen.getByText(/Schedule başarısız oldu/u)).toBeVisible();
     expect(screen.getByRole("button", { name: /Schedule.*yeniden dene/u })).toBeEnabled();
     expect(screen.queryByRole("button", { name: "Yeniden \u00fcret" })).not.toBeInTheDocument();
 
