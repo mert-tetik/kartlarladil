@@ -18,6 +18,7 @@ import { canRenderDialogueDeterministically, renderDialogueVideo } from "@/featu
 import { canRenderMusicVideoDeterministically, closeAutomationMusicVideoAudioSession, createOfflineMusicVideoAudioContext, isAutomationMusicVideoAudioContext, prepareMusicVideoAudio, releaseMusicVideoAudioContext, renderMusicVideo } from "@/features/twitter-automation/music-video-renderer";
 import { canRenderOriginalMascotDeterministically, renderOriginalMascotLearningVideo } from "@/features/twitter-automation/original-mascot-learning-video-renderer";
 import { automationScopeSearchParams, type AutomationScope } from "@/features/twitter-automation/automation-scope";
+import { getAutomationScheduleFailureReason } from "@/features/twitter-automation/automation-schedule-errors";
 import { AUTOMATION_RETRY_DELAYS_MS } from "@/features/twitter-automation/automation-resilience";
 import { isFailedAutomationOutput, isSkippedAutomationOutput, isSuccessfulAutomationOutput } from "@/features/twitter-automation/automation-output-status";
 import { UPLOAD_POST_REQUEST_RECHECK_DELAY_MS, UPLOAD_POST_REQUEST_UNCONFIRMED_CODE } from "@/features/twitter-automation/upload-post-schedule-constants";
@@ -342,17 +343,17 @@ function ScheduleStatusHint({ output, ready, scheduled }: { output: AutomationOu
           : status === "scheduled"
             ? "Schedule edildi"
             : "Schedule edilmedi";
-  const detail = output.schedule_error_detail?.trim() || output.schedule_error_code?.trim() || (
-    isFailure
-      ? "Schedule başarısız oldu; sağlayıcı hata ayrıntısı kaydetmedi."
-      : isUnconfirmed
+  const detail = isFailure
+    ? getAutomationScheduleFailureReason(output.schedule_error_code, output.schedule_error_detail)
+    : output.schedule_error_detail?.trim() || output.schedule_error_code?.trim() || (
+      isUnconfirmed
         ? "Upload-Post isteğinin sonucu henüz doğrulanmadı."
         : status === "processing"
           ? "Schedule isteği işleniyor."
           : status === "scheduled"
             ? "İçerik belirlenen tarih ve saate schedule edildi."
             : "Bu içerik henüz schedule edilmedi."
-  );
+    );
   const toneClass = isFailure
     ? "text-[#b42318]"
     : isUnconfirmed || status === "processing"
@@ -410,6 +411,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   const [isRunFinishedLocally, setIsRunFinishedLocally] = useState(false);
   const [isRefreshingGeneratedMedia, setIsRefreshingGeneratedMedia] = useState(false);
   const [message, setMessage] = useState("");
+  const [scheduleErrorMessage, setScheduleErrorMessage] = useState("");
   const [now, setNow] = useState(() => Date.now());
   const [isInterruptedReview, setIsInterruptedReview] = useState(false);
   const [retryingOutputId, setRetryingOutputId] = useState<string | null>(null);
@@ -725,6 +727,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   const scheduleAll = useCallback(async () => {
     if (isTestAutomation || isRunFinished || !readyOutputs.length || isSchedulingAll || processingOutputId || retryingOutputId) return;
     setIsSchedulingAll(true);
+    setScheduleErrorMessage("");
     setMessage("");
     try {
       const response = await fetch("/api/twitter-automation/automation-runs/schedule", {
@@ -732,8 +735,10 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ runId, scope }),
       });
-      const payload = await response.json().catch(() => null) as { scheduled?: number; failed?: number; processing?: number; skipped?: number; errorCode?: string } | null;
-      if (!response.ok) throw new Error(payload?.errorCode ?? "automation_schedule_failed");
+      const payload = await response.json().catch(() => null) as { scheduled?: number; failed?: number; processing?: number; skipped?: number; errorCode?: string; errorDetail?: string } | null;
+      if (!response.ok) {
+        throw new Error(getAutomationScheduleFailureReason(payload?.errorCode, payload?.errorDetail));
+      }
       const scheduledCount = payload?.scheduled ?? 0;
       const skippedMessage = payload?.skipped ? ` ${payload.skipped} hazır olmayan içerik atlandı.` : "";
       const processingMessage = payload?.processing
@@ -744,8 +749,14 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
         : payload?.processing
           ? `${scheduledCount} içerik schedule edildi.${processingMessage}${skippedMessage}`
           : `${scheduledCount} içerik belirlenen tarih ve saatlere schedule edildi.${skippedMessage}`);
-    } catch {
-      setMessage("İçerikler schedule edilemedi. Review ekranındaki içerikler korunuyor; tekrar deneyebilirsin.");
+    } catch (error) {
+      const reason = error instanceof TypeError
+        ? "Schedule servisine ulaşılamadı. İnternet bağlantısını veya sunucu durumunu kontrol edip tekrar dene."
+        : error instanceof Error
+          ? error.message
+          : getAutomationScheduleFailureReason();
+      setScheduleErrorMessage(reason);
+      setMessage("Schedule işlemi tamamlanamadı. Hata nedeni içerik listesinin üstünde gösteriliyor.");
     } finally {
       await load();
       setIsSchedulingAll(false);
@@ -809,6 +820,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   const retryScheduleOutput = useCallback(async (output: AutomationOutput) => {
     if (isTestAutomation || processingOutputId || retryingOutputId || isSchedulingAll) return;
     setRetryingOutputId(output.id);
+    setScheduleErrorMessage("");
     setMessage("");
     try {
       const response = await fetch("/api/twitter-automation/automation-runs/schedule", {
@@ -816,15 +828,23 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ runId, outputId: output.id, scope }),
       });
-      const payload = await response.json().catch(() => null) as { scheduled?: number; failed?: number; processing?: number; errorCode?: string } | null;
-      if (!response.ok) throw new Error(payload?.errorCode ?? "automation_schedule_failed");
+      const payload = await response.json().catch(() => null) as { scheduled?: number; failed?: number; processing?: number; errorCode?: string; errorDetail?: string } | null;
+      if (!response.ok) {
+        throw new Error(getAutomationScheduleFailureReason(payload?.errorCode, payload?.errorDetail));
+      }
       setMessage(payload?.processing
         ? `${getOutputLabel(output)} Upload-Post'ta işleniyor; tekrar yükleme yapılmadı. Biraz sonra durumu yeniden kontrol et.`
         : payload?.failed
           ? `${getOutputLabel(output)} schedule edilemedi; oluşturulan içerik korunuyor. Tekrar deneyebilirsin.`
           : `${getOutputLabel(output)} schedule edildi.`);
-    } catch {
-      setMessage(`${getOutputLabel(output)} schedule edilemedi. Üretilen içerik korunuyor; schedule işlemini tekrar deneyebilirsin.`);
+    } catch (error) {
+      const reason = error instanceof TypeError
+        ? "Schedule servisine ulaşılamadı. İnternet bağlantısını veya sunucu durumunu kontrol edip tekrar dene."
+        : error instanceof Error
+          ? error.message
+          : getAutomationScheduleFailureReason();
+      setScheduleErrorMessage(`${getOutputLabel(output)}: ${reason}`);
+      setMessage("Schedule işlemi tamamlanamadı. Hata nedeni içerik listesinin üstünde gösteriliyor.");
     } finally {
       await load();
       setRetryingOutputId(null);
@@ -1128,6 +1148,10 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
         </div> : null}
       </div>
     </main> : <main className="min-h-0 flex-1 overflow-y-auto p-4">
+      {scheduleErrorMessage ? <div className="mb-4 rounded-xl border border-[#ffb9c1]/55 bg-[#351817] px-4 py-3 text-sm text-[#ffe1e4]" role="alert">
+        <p className="font-semibold">Schedule hatası</p>
+        <p className="mt-1 break-words text-xs leading-5">{scheduleErrorMessage}</p>
+      </div> : null}
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{outputs.map((output) => {
         const ready = isReadyForSchedule(output);
         const scheduled = output.status === "scheduled";
@@ -1147,7 +1171,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
             {output.mediaUrls?.length ? <div className="grid grid-cols-3 gap-1 overflow-hidden rounded-xl border border-black/10 bg-black p-1">{output.mediaUrls.map((mediaUrl, index) => <div className="relative aspect-[3/4] overflow-hidden rounded-lg" key={mediaUrl}><Image alt={`${output.group_name} görseli ${index + 1}`} className="object-cover" fill sizes="(min-width: 1280px) 7rem, (min-width: 768px) 9vw, 28vw" src={mediaUrl} unoptimized /></div>)}</div> : output.mediaUrl ? <div className="overflow-hidden rounded-xl border border-black/10 bg-black">{output.media_type === "video" ? <video className="aspect-video w-full object-contain" controls src={output.mediaUrl} /> : <div className="relative aspect-square"><Image alt={`${output.group_name} üretilen içerik`} className="object-contain" fill sizes="(min-width: 1280px) 22rem, (min-width: 768px) 30vw, 90vw" src={output.mediaUrl} unoptimized /></div>}</div> : output.content_type === "text" ? <div className="flex min-h-28 items-start gap-2 rounded-xl border border-black/10 bg-[#f5f7fb] p-3 text-xs leading-5 text-black"><MessageSquareText className="mt-0.5 size-4 shrink-0 text-black" /><p>{output.caption ?? "Metin içeriği hazırlanamadı."}</p></div> : <div className="grid aspect-square place-items-center rounded-xl border border-dashed border-black/10 bg-[#f5f7fb] text-black">{output.content_type === "video" ? <Video className="size-6" /> : <ImageIcon className="size-6" />}</div>}
             <MediaStatusHint errorCode={output.error_code} errorDetail={formatProviderFailureDetail(output)} pendingMessage={isPendingVerification ? pendingGenerationMessage(output, isInterruptedReview) : undefined} />
           </div>
-          {scheduleFailed ? <div className="mt-3 rounded-lg border border-[#f4b9b4] bg-[#fff0ef] px-2.5 py-2 text-[11px] leading-4 text-[#8e2118]">Schedule başarısız oldu; üretim dosyaları ve içerik korunuyor. Hata: {output.schedule_error_detail ?? output.schedule_error_code ?? "automation_schedule_failed"}</div> : null}
+          {scheduleFailed ? <div className="mt-3 rounded-lg border border-[#f4b9b4] bg-[#fff0ef] px-2.5 py-2 text-[11px] leading-4 text-[#8e2118]">Schedule başarısız oldu; üretim dosyaları ve içerik korunuyor. Neden: {getAutomationScheduleFailureReason(output.schedule_error_code, output.schedule_error_detail)}</div> : null}
           {providerProcessing ? <Button className="mt-3 h-8 w-full border border-[#f1c75b]/50 bg-[#312816] px-3 text-xs text-[#ffe7a0] hover:bg-[#40351e]" disabled={!providerRecheckReady || isTestAutomation || isRunFinished || Boolean(processingOutputId) || Boolean(retryingOutputId) || isSchedulingAll} onClick={() => void retryScheduleOutput(output)} type="button">{retryingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}{providerRecheckReady ? "Upload-Post durumunu kontrol et" : "Upload-Post işlemi sürüyor"}</Button> : null}
           {scheduleFailed && output.schedule_error_code !== "automation_scheduled_at_in_past" ? <Button className="mt-3 h-8 w-full border border-[#f1c75b]/50 bg-[#312816] px-3 text-xs text-[#ffe7a0] hover:bg-[#40351e]" disabled={isTestAutomation || isRunFinished || Boolean(processingOutputId) || Boolean(retryingOutputId) || isSchedulingAll} onClick={() => void retryScheduleOutput(output)} type="button">{retryingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}Schedule&apos;ı yeniden dene</Button> : canRetry && !hasStoppedGeneration && !isRunFinished ? <Button className={cn("mt-3 h-8 w-full px-3 text-xs", isPendingVerification ? "border border-[#f1c75b]/50 bg-[#312816] text-[#ffe7a0] hover:bg-[#40351e]" : "border border-[#ffb9c1]/45 bg-[#3b211e] text-[#ffd9de] hover:bg-[#4a2822]")} disabled={Boolean(processingOutputId) || Boolean(retryingOutputId)} onClick={() => void retryOutput(output)} type="button">{retryingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}{isPendingVerification ? "Yeniden dene" : "Yeniden üret"}</Button> : null}
           {!scheduled ? <Button aria-label="Generated postu ve Storage kaydını sil" className="mt-2 h-8 w-full border border-[#fecaca] bg-[#fff1f2] px-3 text-xs text-[#c0262d] hover:bg-[#fee2e2]" disabled={Boolean(processingOutputId) || Boolean(retryingOutputId) || Boolean(deletingOutputId)} onClick={() => void deleteOutput(output)} title="Generated postu ve Storage kaydını sil" type="button">{deletingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}İçeriği ve Storage kaydını sil</Button> : null}

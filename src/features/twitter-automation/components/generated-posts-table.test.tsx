@@ -537,6 +537,57 @@ describe("GeneratedPostsTable", () => {
     expect(scheduleCall).toBeDefined();
   });
 
+  it("shows the schedule failure reason when the server cannot claim any output", async () => {
+    vi.useFakeTimers();
+    const output = {
+      id: "ba13ccca-d537-4a5a-9a08-20df9c391007",
+      day_offset: 1,
+      group_name: "Schedule claim failure",
+      content_type: "text",
+      generator: "fun-post",
+      language: "en",
+      native_language: "tr",
+      tier: "A1",
+      scheduled_at: "2026-10-20T10:00:00+03:00",
+      status: "ready_to_schedule",
+      quality_status: "passed",
+      schedule_status: "pending",
+      schedule_error_code: null,
+      caption: "Ready content",
+      mediaUrl: null,
+      mediaUrls: [],
+      media_type: null,
+      error_code: null,
+    } as const;
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.startsWith("/api/twitter-automation/automation-runs?")) return { ok: true, json: async () => ({ outputs: [output] }) };
+      if (url === "/api/twitter-automation/automation-runs/schedule") {
+        return {
+          ok: false,
+          json: async () => ({
+            errorCode: "automation_schedule_lock_failed",
+            errorDetail: "Schedule edilecek kayıtlar veritabanında kilitlenemedi. Biraz sonra tekrar dene.",
+          }),
+        };
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId={output.id} scope="production" />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Schedule all (1)" }));
+      await Promise.resolve();
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Schedule edilecek kayıtlar veritabanında kilitlenemedi.");
+    expect(screen.getByText("Schedule işlemi tamamlanamadı. Hata nedeni içerik listesinin üstünde gösteriliyor.")).toBeVisible();
+  });
+
   it("retries a schedule failure without offering or invoking content generation retry", async () => {
     vi.useFakeTimers();
     const output = {

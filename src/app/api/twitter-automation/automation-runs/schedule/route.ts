@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { logAutomationRequestFailure, scheduleReadyAutomationRun } from "@/features/twitter-automation/automation-run-service";
+import { describeAutomationScheduleFailure, logAutomationRequestFailure, scheduleReadyAutomationRun } from "@/features/twitter-automation/automation-run-service";
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { automationOwnerKey, normalizeAutomationScope } from "@/features/twitter-automation/automation-scope";
@@ -45,6 +45,6 @@ export async function POST(request: NextRequest) {
       runId: parsed.data.runId,
       scope,
     });
-    return NextResponse.json({ errorCode: error instanceof Error ? error.message : "automation_schedule_failed" }, { status: 502 });
+    return NextResponse.json(describeAutomationScheduleFailure(error), { status: 502 });
   }
 }

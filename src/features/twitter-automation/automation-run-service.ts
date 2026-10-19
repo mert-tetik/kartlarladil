@@ -17,6 +17,7 @@ import { renderServerMusicVideo } from "@/features/twitter-automation/server-mus
 import { mergeDailyAutomationOutputMetadata, readDailyAutomationOutputMetadata, type DailyAutomationOutputMetadata } from "@/features/twitter-automation/daily-automation-output";
 import { AUTOMATION_SCHEDULE_MIN_LEAD_MS, isAutomationScheduleExpired, resolveAutomationScheduleAt, type AutomationScheduleReservation } from "@/features/twitter-automation/automation-schedule-policy";
 import { UPLOAD_POST_REQUEST_RECHECK_DELAY_MS, UPLOAD_POST_REQUEST_UNCONFIRMED_CODE } from "@/features/twitter-automation/upload-post-schedule-constants";
+import { getAutomationScheduleFailureReason, isScheduleErrorEligible, SCHEDULE_RETRY_ERROR_OR_FILTER } from "@/features/twitter-automation/automation-schedule-errors";
 
 const AUTOMATION_BUCKET = "social-studio-automation";
 const AUTOMATION_MEDIA_PREFIX = "automation/";
@@ -1233,7 +1234,13 @@ function scheduleFailureCode(error: unknown) {
 
 function scheduleFailureDetail(error: unknown) {
   if (error instanceof UploadPostRejectedError) return error.detail;
-  return scheduleFailureCode(error);
+  const code = scheduleFailureCode(error);
+  return getAutomationScheduleFailureReason(code, code);
+}
+
+export function describeAutomationScheduleFailure(error: unknown) {
+  const errorCode = scheduleFailureCode(error);
+  return { errorCode, errorDetail: scheduleFailureDetail(error) };
 }
 
 async function loadFutureScheduleReservations(ownerKey: string, omittedOutputIds: ReadonlySet<string>, after: string) {
@@ -1387,7 +1394,7 @@ export async function scheduleReadyAutomationRun(runId: string, options: { outpu
   const eligible = (allOutputs ?? []).filter((output) => output.status === "ready_to_schedule"
     && output.quality_status === "passed"
     && scheduleEligibleStatuses.includes(output.schedule_status)
-    && output.schedule_error_code !== "automation_scheduled_at_in_past");
+    && isScheduleErrorEligible(output.schedule_error_code));
   const skipped = (allOutputs ?? []).filter((output) => output.status !== "scheduled"
     && !eligible.some((candidate) => candidate.id === output.id)
     && !providerRecheckIds.has(output.id)).length;
@@ -1404,12 +1411,15 @@ export async function scheduleReadyAutomationRun(runId: string, options: { outpu
     .eq("status", "ready_to_schedule")
     .eq("quality_status", "passed")
     .in("schedule_status", scheduleEligibleStatuses)
-    .neq("schedule_error_code", "automation_scheduled_at_in_past");
+    .or(SCHEDULE_RETRY_ERROR_OR_FILTER);
   if (options.outputId) lockQuery = lockQuery.eq("id", options.outputId);
   const { data: lockedOutputs, error: lockError } = await lockQuery
     .select("id,run_id,day_offset,group_name,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,description,title,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,attempt_count,next_attempt_at,quality_status,quality_error,lease_renderer_id,lease_expires_at,render_plan,schedule_status,schedule_error_code,schedule_attempt_count,schedule_attempted_at")
     .returns<AutomationOutputRecord[]>();
   if (lockError) throw new Error("automation_schedule_lock_failed");
+  if (eligible.length && !lockedOutputs?.length) {
+    throw new Error("automation_schedule_claim_conflict");
+  }
 
   let scheduled = 0;
   let failed = 0;
