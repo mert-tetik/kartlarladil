@@ -1,5 +1,5 @@
 {
-  "version": "bdc685f64ca7815b4c811d06afe19ea70e7721345740fe7f13306e4041f85aae",
+  "version": "95d44955f6a72ae3f2dc3acf1c8487e0bbf79cd60987f801a39476e040877ad3",
   "assets": [
     {
       "url": "/AppLogdfo.png",
@@ -4612,6 +4612,26 @@
     {
       "url": "/serious-learner-offer-frames-v5/9.png",
       "revision": "39d09de91a26c59704d4f9d6f0feb279b83812dc3a14dac0bd0a51888da04091"
+    },
+    {
+      "url": "/social/self-image-backgrounds/self-daily-challenge-background.webp",
+      "revision": "6de757cd3b687e317029fbc94299870b53f9e6101640b504a8eccf1b9c2be260"
+    },
+    {
+      "url": "/social/self-image-backgrounds/self-example-sentences-background.webp",
+      "revision": "961c64b622cac829355774acfb3ffa8407a18efacea667d6a31794bff717f8b8"
+    },
+    {
+      "url": "/social/self-image-backgrounds/self-false-friends-background.webp",
+      "revision": "71a59615989f1121f241bbb4715e198dcca395a41b574cf9d3e821c684575446"
+    },
+    {
+      "url": "/social/self-image-backgrounds/self-mini-quiz-background.webp",
+      "revision": "d13ae136167c53283f1c3766be90728cb39f667859d0e82bc88726e9fb955731"
+    },
+    {
+      "url": "/social/self-image-backgrounds/self-vocabulary-progression-background.webp",
+      "revision": "9fcaa3473a30494695648e917c0465156adce49eb337ebd71bac53640f79a3ae"
     },
     {
       "url": "/splash.png",

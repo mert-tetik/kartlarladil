@@ -537,6 +537,235 @@ describe("GeneratedPostsTable", () => {
     expect(scheduleCall).toBeDefined();
   });
 
+  it("schedules posts in groups of 20 and waits 90 seconds before the next group", async () => {
+    vi.useFakeTimers();
+    const runId = "aa13ccca-d537-4a5a-9a08-20df9c391007";
+    const outputs = Array.from({ length: 21 }, (_, index) => ({
+      id: `${String(index + 1).padStart(8, "0")}-13cc-4a5a-9a08-${String(index + 1).padStart(12, "0")}`,
+      day_offset: 1,
+      group_name: `Test campaign ${index + 1}`,
+      content_type: "text",
+      generator: "fun-post",
+      language: "en",
+      native_language: "tr",
+      tier: "A1",
+      scheduled_at: "2026-10-20T10:00:00+03:00",
+      status: "ready_to_schedule",
+      schedule_status: "pending",
+      quality_status: "passed",
+      caption: `Ready post ${index + 1}`,
+      mediaUrl: null,
+      mediaUrls: [],
+      media_type: null,
+      error_code: null,
+    } as const));
+    const scheduleBodies: Array<{ outputIds: string[] }> = [];
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.startsWith("/api/twitter-automation/automation-runs?")) return { ok: true, json: async () => ({ outputs }) };
+      if (url === "/api/twitter-automation/automation-runs/schedule") {
+        scheduleBodies.push(JSON.parse(String(init?.body)) as { outputIds: string[] });
+        return { ok: true, json: async () => ({ scheduled: scheduleBodies.at(-1)?.outputIds.length ?? 0, failed: 0, processing: 0, skipped: 0 }) };
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId={runId} scope="production" />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Schedule all (21)" }));
+      await Promise.resolve();
+    });
+    expect(scheduleBodies).toHaveLength(1);
+    expect(scheduleBodies[0]?.outputIds).toHaveLength(20);
+    expect(screen.getByText(/Sonraki 20 içerik için 1 dakika 30 saniye bekleniyor/u)).toBeVisible();
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(89_999); });
+    expect(scheduleBodies).toHaveLength(1);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); await Promise.resolve(); });
+    expect(scheduleBodies).toHaveLength(2);
+    expect(scheduleBodies[1]?.outputIds).toHaveLength(1);
+    expect(new Set(scheduleBodies.flatMap((batch) => batch.outputIds)).size).toBe(21);
+  });
+
+  it("keeps automatic scheduling on the same bounded batch flow", async () => {
+    vi.useFakeTimers();
+    const output = {
+      id: "bb13ccca-d537-4a5a-9a08-20df9c391007",
+      day_offset: 1,
+      group_name: "Automatic schedule test",
+      content_type: "text",
+      generator: "fun-post",
+      language: "en",
+      native_language: "tr",
+      tier: "A1",
+      scheduled_at: "2026-10-20T10:00:00+03:00",
+      status: "ready_to_schedule",
+      schedule_status: "pending",
+      quality_status: "passed",
+      caption: "Ready post",
+      mediaUrl: null,
+      mediaUrls: [],
+      media_type: null,
+      error_code: null,
+      run: { auto_schedule_on_success: true, generation_stopped_at: null, finished_by_user_at: null },
+    } as const;
+    let scheduledOutputIds: string[] = [];
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.startsWith("/api/twitter-automation/automation-runs?")) return { ok: true, json: async () => ({ outputs: [output] }) };
+      if (url === "/api/twitter-automation/automation-runs/schedule") {
+        scheduledOutputIds = (JSON.parse(String(init?.body)) as { outputIds: string[] }).outputIds;
+        return { ok: true, json: async () => ({ scheduled: 1, failed: 0, processing: 0, skipped: 0 }) };
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId="bb13ccca-d537-4a5a-9a08-20df9c391007" scope="production" />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); await Promise.resolve(); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); await Promise.resolve(); });
+
+    expect(scheduledOutputIds).toEqual([output.id]);
+    expect(fetchMock.mock.calls.filter(([input]) => String(input) === "/api/twitter-automation/automation-runs/schedule")).toHaveLength(1);
+  });
+
+  it("stops future schedule retries without waiting for the next retry interval", async () => {
+    vi.useFakeTimers();
+    const output = {
+      id: "ee13ccca-d537-4a5a-9a08-20df9c391007",
+      day_offset: 1,
+      group_name: "Schedule cancellation test",
+      content_type: "image",
+      generator: "self-mini-quiz",
+      language: "en",
+      native_language: "tr",
+      tier: "A1",
+      scheduled_at: "2026-10-20T10:00:00+03:00",
+      status: "ready_to_schedule",
+      schedule_status: "pending",
+      schedule_attempt_count: 0,
+      quality_status: "passed",
+      caption: "Ready post",
+      mediaUrl: "https://example.test/post.png",
+      mediaUrls: ["https://example.test/post.png"],
+      media_type: "image",
+      error_code: null,
+      run: { generation_stopped_at: null, finished_by_user_at: null },
+    } as const;
+    let currentOutput: Record<string, unknown> = output;
+    let scheduleRequestCount = 0;
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.startsWith("/api/twitter-automation/automation-runs?")) {
+        return { ok: true, json: async () => ({ outputs: [currentOutput] }) };
+      }
+      if (url === "/api/twitter-automation/automation-runs/schedule") {
+        scheduleRequestCount += 1;
+        currentOutput = {
+          ...output,
+          schedule_status: "failed",
+          schedule_attempt_count: 1,
+          schedule_error_code: "upload_post_rate_limited",
+          schedule_error_detail: "Retry after 2026-10-20T12:00:00.000Z",
+        };
+        return { ok: true, json: async () => ({ scheduled: 0, failed: 1, processing: 0, skipped: 0 }) };
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId={output.id} scope="production" />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); await Promise.resolve(); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); await Promise.resolve(); });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Schedule all (1)" }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(scheduleRequestCount).toBe(1);
+    const stopButton = screen.getByRole("button", { name: "Schedule akışını durdur" });
+    expect(stopButton).toBeVisible();
+    await act(async () => {
+      fireEvent.click(stopButton);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByRole("button", { name: "Schedule akışını durdur" })).not.toBeInTheDocument();
+    expect(screen.getByText(/Schedule akışı durduruldu/u)).toBeVisible();
+    await act(async () => { await vi.advanceTimersByTimeAsync(60 * 60_000); });
+    expect(scheduleRequestCount).toBe(1);
+  });
+
+  it.each([3, 4])("automatically schedules ready content with %i failed media outputs only when the failure count is at most three", async (failedMediaCount) => {
+    vi.useFakeTimers();
+    const runId = `auto-schedule-${failedMediaCount}-media-failures`;
+    const readyOutput = {
+      id: "cc13ccca-d537-4a5a-9a08-20df9c391007",
+      day_offset: 1,
+      group_name: "Automatic schedule media failure test",
+      content_type: "image",
+      generator: "self-mini-quiz",
+      language: "en",
+      native_language: "tr",
+      tier: "A1",
+      scheduled_at: "2026-10-20T10:00:00+03:00",
+      status: "ready_to_schedule",
+      schedule_status: "pending",
+      quality_status: "passed",
+      caption: "Ready post",
+      mediaUrl: "https://example.test/ready.png",
+      mediaUrls: ["https://example.test/ready.png"],
+      media_type: "image",
+      error_code: null,
+      run: { auto_schedule_on_success: true, generation_stopped_at: null, finished_by_user_at: null },
+    } as const;
+    const failedOutputs = Array.from({ length: failedMediaCount }, (_, index) => ({
+      ...readyOutput,
+      id: `dd${String(index).padStart(2, "0")}3ccc-d537-4a5a-9a08-20df9c391007`,
+      status: "failed",
+      schedule_status: "pending",
+      caption: null,
+      mediaUrl: null,
+      mediaUrls: [],
+      media_type: null,
+      error_code: "automation_media_retention_expired",
+    } as const));
+    let scheduledOutputIds: string[] = [];
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.startsWith("/api/twitter-automation/automation-runs?")) {
+        return { ok: true, json: async () => ({ outputs: [readyOutput, ...failedOutputs] }) };
+      }
+      if (url === "/api/twitter-automation/automation-runs/schedule") {
+        scheduledOutputIds = (JSON.parse(String(init?.body)) as { outputIds: string[] }).outputIds;
+        return { ok: true, json: async () => ({ scheduled: 1, failed: 0, processing: 0, skipped: 0 }) };
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId={runId} scope="production" />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); await Promise.resolve(); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); await Promise.resolve(); });
+
+    const scheduleCalls = fetchMock.mock.calls.filter(([input]) => String(input) === "/api/twitter-automation/automation-runs/schedule");
+    if (failedMediaCount <= 3) {
+      expect(scheduledOutputIds).toEqual([readyOutput.id]);
+      expect(scheduleCalls).toHaveLength(1);
+    } else {
+      expect(scheduledOutputIds).toEqual([]);
+      expect(scheduleCalls).toHaveLength(0);
+      expect(screen.getByRole("button", { name: "Schedule all (1)" })).toBeEnabled();
+    }
+  });
+
   it("shows the schedule failure reason when the server cannot claim any output", async () => {
     vi.useFakeTimers();
     const output = {
@@ -585,7 +814,126 @@ describe("GeneratedPostsTable", () => {
     });
 
     expect(screen.getByRole("alert")).toHaveTextContent("Schedule edilecek kayıtlar veritabanında kilitlenemedi.");
-    expect(screen.getByText("Schedule işlemi tamamlanamadı. Hata nedeni içerik listesinin üstünde gösteriliyor.")).toBeVisible();
+    expect(screen.getByText(/Otomatik schedule akışı sürüyor/u)).toBeVisible();
+  });
+
+  it("rechecks Upload-Post automatically every five minutes and completes when the provider confirms", async () => {
+    vi.useFakeTimers();
+    const runId = "d113ccca-d537-4a5a-9a08-20df9c391007";
+    const outputId = "d213ccca-d537-4a5a-9a08-20df9c391007";
+    const baseOutput = {
+      id: outputId,
+      day_offset: 1,
+      group_name: "Upload-Post confirmation",
+      content_type: "text",
+      generator: "fun-post",
+      language: "en",
+      native_language: "tr",
+      tier: "A1",
+      scheduled_at: "2026-10-20T10:00:00+03:00",
+      status: "ready_to_schedule",
+      schedule_status: "pending",
+      schedule_attempted_at: null,
+      schedule_error_code: null,
+      quality_status: "passed",
+      caption: "Ready post",
+      mediaUrl: null,
+      mediaUrls: [],
+      media_type: null,
+      error_code: null,
+      run: { generation_stopped_at: null, finished_by_user_at: null },
+    };
+    let currentOutput: Record<string, unknown> = baseOutput;
+    let scheduleRequestCount = 0;
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.startsWith("/api/twitter-automation/automation-runs?")) return { ok: true, json: async () => ({ outputs: [currentOutput] }) };
+      if (url === "/api/twitter-automation/automation-runs/schedule") {
+        scheduleRequestCount += 1;
+        if (scheduleRequestCount === 1) {
+          currentOutput = {
+            ...baseOutput,
+            schedule_status: "processing",
+            schedule_attempted_at: new Date().toISOString(),
+            schedule_error_code: UPLOAD_POST_REQUEST_UNCONFIRMED_CODE,
+          };
+          return { ok: true, json: async () => ({ scheduled: 0, failed: 0, processing: 1, skipped: 0 }) };
+        }
+        currentOutput = { ...baseOutput, status: "scheduled", schedule_status: "scheduled", schedule_error_code: null };
+        return { ok: true, json: async () => ({ scheduled: 1, failed: 0, processing: 0, skipped: 0 }) };
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId={runId} scope="production" />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Schedule all (1)" }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(scheduleRequestCount).toBe(1);
+    expect(screen.getByText(/Upload-Post kontrolü: 5:00/u)).toBeVisible();
+    await act(async () => { await vi.advanceTimersByTimeAsync(299_999); });
+    expect(scheduleRequestCount).toBe(1);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); await Promise.resolve(); await Promise.resolve(); });
+    expect(scheduleRequestCount).toBe(2);
+    expect(screen.getByText("1/1 içerik schedule edildi. Tüm schedule işlemleri tamamlandı.")).toBeVisible();
+  });
+
+  it("automatically ends the schedule loop after one hour while preserving unresolved errors", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    const output = {
+      id: "d313ccca-d537-4a5a-9a08-20df9c391007",
+      day_offset: 1,
+      group_name: "Schedule timeout test",
+      content_type: "text",
+      generator: "fun-post",
+      language: "en",
+      native_language: "tr",
+      tier: "A1",
+      scheduled_at: "2026-10-20T10:00:00+03:00",
+      status: "ready_to_schedule",
+      schedule_status: "failed",
+      schedule_error_code: "automation_schedule_lock_failed",
+      schedule_error_detail: "Temporary database lock failure.",
+      quality_status: "passed",
+      caption: "Ready post",
+      mediaUrl: null,
+      mediaUrls: [],
+      media_type: null,
+      error_code: null,
+    } as const;
+    let scheduleRequestCount = 0;
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.startsWith("/api/twitter-automation/automation-runs?")) return { ok: true, json: async () => ({ outputs: [output] }) };
+      if (url === "/api/twitter-automation/automation-runs/schedule") {
+        scheduleRequestCount += 1;
+        return { ok: true, json: async () => ({ scheduled: 0, failed: 1, processing: 0, skipped: 0 }) };
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<GeneratedPostsTable onClose={vi.fn()} runId={output.id} scope="production" />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Schedule all (1)" }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(60 * 60_000); });
+
+    expect(scheduleRequestCount).toBe(12);
+    expect(screen.getByText(/1 saatlik otomatik schedule süresi doldu: 0\/1 içerik schedule edildi/u)).toBeVisible();
+    expect(screen.getByRole("button", { name: "Schedule all (1)" })).toBeEnabled();
   });
 
   it("retries a schedule failure without offering or invoking content generation retry", async () => {

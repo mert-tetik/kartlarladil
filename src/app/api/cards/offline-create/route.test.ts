@@ -95,6 +95,28 @@ describe("POST /api/cards/offline-create", () => {
     }));
   });
 
+  it("passes a validated retry key through for idempotent offline sync", async () => {
+    createCustomCardActionMock.mockResolvedValue({
+      status: "success",
+      message: "",
+      data: { card: { cardId: "custom-card" }, vocabularyCard: {} },
+    });
+
+    const response = await POST(makeRequest({ ...validGeneratedCard(), idempotencyKey: "offline-draft-123" }));
+
+    expect(response.status).toBe(200);
+    expect(createCustomCardActionMock).toHaveBeenCalledWith(expect.objectContaining({
+      idempotencyKey: "offline-draft-123",
+    }));
+  });
+
+  it("rejects malformed retry keys before creating a card", async () => {
+    const response = await POST(makeRequest({ ...validGeneratedCard(), idempotencyKey: "bad key" }));
+
+    expect(response.status).toBe(400);
+    expect(createCustomCardActionMock).not.toHaveBeenCalled();
+  });
+
   it("keeps subscription-limit failures as failures instead of reporting success", async () => {
     createCustomCardActionMock.mockResolvedValue({
       status: "error",

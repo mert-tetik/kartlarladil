@@ -37,6 +37,7 @@ const testCard = VOCABULARY_CARDS.find((card) => card.language === "en" && card.
 
 describe("inventory store analytics", () => {
   beforeEach(() => {
+    vi.unstubAllGlobals();
     vi.clearAllMocks();
     window.localStorage.clear();
     customCardRegistry.clear();
@@ -441,6 +442,66 @@ describe("inventory store analytics", () => {
     await expect(creation).rejects.toEqual(expect.any(InventoryActionError));
     await expect(creation).rejects.toMatchObject({ errorCode: "free_active_card_limit" });
     expect(useInventoryStore.getState().cards).toEqual([]);
+  });
+
+  it("registers an offline custom card in the local deck immediately", () => {
+    const optimisticCard: VocabularyCard = {
+      ...testCard,
+      id: "offline-pending:guest:draft-12345678",
+      sourceKey: "offline-pending:guest:draft-12345678",
+    };
+
+    useInventoryStore.getState().registerPendingCustomCard(optimisticCard);
+
+    expect(useInventoryStore.getState().cards).toEqual([
+      expect.objectContaining({ cardId: optimisticCard.sourceKey, status: "active" }),
+    ]);
+    expect(localCardRepository.findById(optimisticCard.sourceKey)).toEqual(optimisticCard);
+  });
+
+  it("keeps an optimistic offline card and clears loading after a network failure", async () => {
+    const optimisticCard: VocabularyCard = {
+      ...testCard,
+      id: "offline-pending:guest:draft-87654321",
+      sourceKey: "offline-pending:guest:draft-87654321",
+    };
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+
+    const creation = useInventoryStore.getState().createCustomCard({
+      language: testCard.language,
+      tier: testCard.tier,
+      termKind: testCard.termKind,
+      idempotencyKey: "draft-87654321",
+      optimisticCard,
+      draft: {
+        term: testCard.term,
+        partOfSpeech: testCard.partOfSpeech,
+        pronunciation: testCard.pronunciation,
+        translations: testCard.translations,
+        examples: testCard.examples.map((example) => ({
+          example: example.sentence,
+          translation: example.translation,
+        })),
+        definitions: Object.fromEntries(LOCALE_CODES.map((locale) => [
+          locale,
+          testCard.definitionsByLocale?.[locale] ?? "A test definition.",
+        ])),
+        grammar: testCard.grammar.rules,
+        termKind: testCard.termKind,
+      },
+    });
+
+    expect(useInventoryStore.getState().cards).toEqual([
+      expect.objectContaining({ cardId: optimisticCard.sourceKey, status: "active" }),
+    ]);
+    await expect(creation).rejects.toThrow("Failed to fetch");
+
+    expect(useInventoryStore.getState().cards).toEqual([
+      expect.objectContaining({ cardId: optimisticCard.sourceKey, status: "active" }),
+    ]);
+    expect(useInventoryStore.getState().pendingCardIds.has(optimisticCard.sourceKey)).toBe(false);
+    expect(useInventoryStore.getState().cloudLoading).toBe(false);
+    expect(localCardRepository.findById(optimisticCard.sourceKey)).toEqual(optimisticCard);
   });
 });
 

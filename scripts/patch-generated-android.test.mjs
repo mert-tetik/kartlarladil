@@ -76,6 +76,10 @@ describe("reproducible Android Firebase bootstrap", () => {
         path.join(projectDir, "app", "build.gradle"),
         `android {\n    namespace "com.example.app"\n    defaultConfig {\n        applicationId "com.example.app"\n        minSdkVersion 24\n        versionCode 7\n        versionName "1.2.3"\n    }\n}\n`,
       );
+      fs.writeFileSync(
+        path.join(projectDir, "build.gradle"),
+        "buildscript { dependencies { classpath 'com.android.tools.build:gradle:8.9.1' } }\n",
+      );
       fs.writeFileSync(path.join(projectDir, "app", "google-services.json"), validConfig);
 
       execFileSync(
@@ -118,6 +122,13 @@ describe("reproducible Android Firebase bootstrap", () => {
       expect(patchedManifest).toContain('android:name="androidx.core.content.FileProvider"');
       expect(patchedManifest).toContain('android:name="android.intent.action.TTS_SERVICE"');
       expect(fileProviderPaths).toContain('path="camera/"');
+
+      const offlineShellSource = path.join(PROJECT_ROOT, "public", "offline-shell");
+      const packagedOfflineShell = path.join(projectDir, "app", "src", "main", "assets", "foxiesdeck-offline");
+      for (const requiredFile of ["index.html", "offline-shell.js", "super-water.ttf"]) {
+        expect(fs.readFileSync(path.join(packagedOfflineShell, requiredFile)))
+          .toEqual(fs.readFileSync(path.join(offlineShellSource, requiredFile)));
+      }
     } finally {
       const resolvedProjectDir = path.resolve(projectDir);
       if (!resolvedProjectDir.startsWith(`${tempRoot}${path.sep}`)) {

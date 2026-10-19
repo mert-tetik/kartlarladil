@@ -20,6 +20,14 @@ export type SelfSocialImageMode =
   | "self-vocabulary-progression"
   | "self-example-sentences";
 
+const SELF_IMAGE_BACKGROUNDS: Record<SelfSocialImageMode, string> = {
+  "self-mini-quiz": "/social/self-image-backgrounds/self-mini-quiz-background.webp",
+  "self-false-friends": "/social/self-image-backgrounds/self-false-friends-background.webp",
+  "self-daily-challenge": "/social/self-image-backgrounds/self-daily-challenge-background.webp",
+  "self-vocabulary-progression": "/social/self-image-backgrounds/self-vocabulary-progression-background.webp",
+  "self-example-sentences": "/social/self-image-backgrounds/self-example-sentences-background.webp",
+};
+
 interface SelfSocialImageProps {
   mode: SelfSocialImageMode;
   cards: VocabularyCard[];
@@ -59,7 +67,25 @@ function overrideStyles() {
 }
 
 function SplashLogo({ className }: { className?: string }) {
-  return <img alt="FoxiesDeck" className={className} loading="eager" src="/splash.png" />;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img alt="FoxiesDeck" className={className} loading="eager" src="/splash.png" />
+  );
+}
+
+function SelfImageBackground({ mode }: { mode: SelfSocialImageMode }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      alt=""
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 size-full select-none object-cover"
+      draggable={false}
+      loading="eager"
+      src={SELF_IMAGE_BACKGROUNDS[mode]}
+      style={{ zIndex: -1 }}
+    />
+  );
 }
 
 function SelfImageHeader({
@@ -163,7 +189,8 @@ const DAILY_CHALLENGE_COPY: Record<LanguageCode, {
 export function SelfSocialImage({ mode, cards, falseFriends, exampleSentences, vocabularyProgression, learningLanguage, nativeLanguage }: SelfSocialImageProps) {
   if (mode === "self-false-friends" && falseFriends) {
     return (
-      <article className="relative overflow-hidden bg-[#11100f] px-16 pb-16 pt-[340px] text-center text-white" style={{ width: 1080, height: 1080 }}>
+      <article className="relative isolate overflow-hidden bg-[#11100f] px-16 pb-16 pt-[340px] text-center text-white" style={{ width: 1080, height: 1080 }}>
+        <SelfImageBackground mode={mode} />
         <SelfImageHeader enlarged label={getNativeCaptionHeading(nativeLanguage, "falseFriends")} topClassName="top-[94px]" />
         <div className="grid grid-cols-2 gap-8">
           <FalseFriendsPanel explanation={falseFriends.firstExplanation} term={falseFriends.firstTerm} tier={falseFriends.firstTier} />
@@ -181,7 +208,8 @@ export function SelfSocialImage({ mode, cards, falseFriends, exampleSentences, v
     ];
 
     return (
-      <article className="relative overflow-hidden bg-[#11100f] px-12 pb-16 pt-[348px] text-center text-white" style={{ width: 1080, height: 1080 }}>
+      <article className="relative isolate overflow-hidden bg-[#11100f] px-12 pb-16 pt-[348px] text-center text-white" style={{ width: 1080, height: 1080 }}>
+        <SelfImageBackground mode={mode} />
         <div aria-hidden="true" className="absolute inset-x-0 top-0 h-[220px] bg-[#f76808]" />
         <SelfImageHeader
           enlarged
@@ -208,7 +236,8 @@ export function SelfSocialImage({ mode, cards, falseFriends, exampleSentences, v
       : footer;
 
     return (
-      <article className="relative flex flex-col items-center justify-center overflow-hidden bg-[#11100f] px-16 py-10 text-center text-white" style={{ width: 1200, height: 900 }}>
+      <article className="relative isolate flex flex-col items-center justify-center overflow-hidden bg-[#11100f] px-16 py-10 text-center text-white" style={{ width: 1200, height: 900 }}>
+        <SelfImageBackground mode={mode} />
         <style>{overrideStyles()}</style>
         <SelfImageHeader label={getNativeCaptionHeading(nativeLanguage, "miniQuiz")} prominent />
         <h2 className="mx-auto mt-16 max-w-5xl font-display text-6xl font-semibold leading-tight">
@@ -243,7 +272,8 @@ export function SelfSocialImage({ mode, cards, falseFriends, exampleSentences, v
     const copy = DAILY_CHALLENGE_COPY[nativeLanguage];
     const learningLanguageName = getLanguageDisplayName(a.language, nativeLanguage);
     return (
-      <article className="relative flex flex-col items-center justify-center overflow-hidden bg-[#11100f] p-10 text-center text-white" style={{ width: 1080, height: 1080 }}>
+      <article className="relative isolate flex flex-col items-center justify-center overflow-hidden bg-[#11100f] p-10 text-center text-white" style={{ width: 1080, height: 1080 }}>
+        <SelfImageBackground mode={mode} />
         <style>{overrideStyles()}</style>
         <SelfImageHeader labelClassName="text-2xl" prominent label={getNativeCaptionHeading(nativeLanguage, "dailyChallenge")} topClassName="top-[64px]" />
         <h2 className="mx-auto mt-16 max-w-3xl font-display text-6xl font-semibold leading-tight">{copy.learnToday(learningLanguageName)}</h2>
@@ -266,7 +296,8 @@ export function SelfSocialImage({ mode, cards, falseFriends, exampleSentences, v
     const nativeLanguageIsRtl = nativeLanguage === "ar";
 
     return (
-      <article className="relative overflow-hidden bg-[#11100f] px-16 pb-10 pt-32 text-white" style={{ width: 1200, height: 900 }}>
+      <article className="relative isolate overflow-hidden bg-[#11100f] px-16 pb-10 pt-32 text-white" style={{ width: 1200, height: 900 }}>
+        <SelfImageBackground mode={mode} />
         <div className="absolute inset-x-0 top-9 z-10 flex justify-center">
           <div className="relative h-16 w-80 overflow-hidden">
             <SplashLogo className="h-full w-full object-cover object-[50%_48%]" />

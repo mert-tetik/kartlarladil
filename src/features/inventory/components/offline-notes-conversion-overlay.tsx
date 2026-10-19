@@ -164,6 +164,12 @@ async function isApplicationReachable() {
   }
 }
 
+function buildPendingOfflineVocabularyCard(entry: DraftEntry) {
+  const preview = buildPreviewVocabularyCard(entry.draft.generated);
+  const sourceKey = `offline-pending:${entry.profileId}:${entry.draft.id}`;
+  return { ...preview, id: sourceKey, sourceKey };
+}
+
 export function OfflineNotesConversionOverlay() {
   return (
     <Suspense fallback={null}>
@@ -198,6 +204,8 @@ function OfflineNotesConversionOverlayContent() {
   const [activeCardLimitDetails, setActiveCardLimitDetails] = useState<{ addedCount: number; skippedCount: number } | null>(null);
   const [feedback, setFeedback] = useState<"conversion" | null>(null);
   const [visualViewportHeight, setVisualViewportHeight] = useState(0);
+  const notesRef = useRef(notes);
+  const draftsRef = useRef(drafts);
   const activeConversionRef = useRef<Promise<void> | null>(null);
   const didAutoConvertRef = useRef(false);
   const dismissedRef = useRef(false);
@@ -214,6 +222,11 @@ function OfflineNotesConversionOverlayContent() {
   const showMessageRef = useRef(showMessage);
   const translateRef = useRef(t);
   const userId = user?.id ?? null;
+
+  useEffect(() => {
+    notesRef.current = notes;
+    draftsRef.current = drafts;
+  }, [drafts, notes]);
 
   useEffect(() => {
     showMessageRef.current = showMessage;
@@ -293,6 +306,7 @@ function OfflineNotesConversionOverlayContent() {
       for (const entry of nextDrafts) {
         if (!entry.draft.pendingAdd || draftAddQueueRef.current.has(entry.draft.id)) continue;
         draftAddQueueRef.current.set(entry.draft.id, entry);
+        useInventoryStore.getState().registerPendingCustomCard(buildPendingOfflineVocabularyCard(entry));
         setPendingDraftIds((current) => {
           const next = new Set(current);
           next.add(entry.draft.id);
@@ -548,11 +562,19 @@ function OfflineNotesConversionOverlayContent() {
         : (await Promise.all(profileIds.map((profileId) => listOfflineSavedNotes(profileId).catch(() => [])))).flat();
       const storedDrafts = (await Promise.all(profileIds.map((profileId) => listOfflineGeneratedDrafts(profileId).catch(() => [])))).flat();
       const queuedDraftIds = new Set(draftAddQueueRef.current.keys());
-      const draftsToDelete = storedDrafts.filter((entry) => !queuedDraftIds.has(entry.draft.id));
+      const notesToDelete = new Map<string, NoteEntry>();
+      for (const entry of [...storedNotes, ...(isVisualTestMode ? [] : notesRef.current)]) {
+        notesToDelete.set(`${entry.profileId}:${entry.note.id}`, entry);
+      }
+      const draftsToDelete = new Map<string, DraftEntry>();
+      for (const entry of [...storedDrafts, ...draftsRef.current]) {
+        if (queuedDraftIds.has(entry.draft.id)) continue;
+        draftsToDelete.set(`${entry.profileId}:${entry.draft.id}`, entry);
+      }
 
       await Promise.allSettled([
-        ...storedNotes.map((entry) => removeOfflineSavedNote(entry.profileId, entry.note.id)),
-        ...draftsToDelete.map((entry) => removeOfflineGeneratedDraft(entry.profileId, entry.draft.id)),
+        ...[...notesToDelete.values()].map((entry) => removeOfflineSavedNote(entry.profileId, entry.note.id)),
+        ...[...draftsToDelete.values()].map((entry) => removeOfflineGeneratedDraft(entry.profileId, entry.draft.id)),
       ]);
 
       if (isVisualTestMode) visualTestNotesRef.current = [];
@@ -613,7 +635,8 @@ function OfflineNotesConversionOverlayContent() {
           grammar: generated.grammar,
           termKind: generated.termKind,
         },
-        optimisticCard: buildPreviewVocabularyCard(generated),
+        optimisticCard: buildPendingOfflineVocabularyCard(entry),
+        idempotencyKey: entry.draft.id,
       });
       return "added";
     } catch (error) {
@@ -630,6 +653,7 @@ function OfflineNotesConversionOverlayContent() {
 
   function markDraftAsOptimisticallyAdded(entry: DraftEntry): Promise<void> {
     draftAddQueueRef.current.set(entry.draft.id, entry);
+    useInventoryStore.getState().registerPendingCustomCard(buildPendingOfflineVocabularyCard(entry));
     setPendingDraftIds((current) => {
       const next = new Set(current);
       next.add(entry.draft.id);
@@ -659,6 +683,8 @@ function OfflineNotesConversionOverlayContent() {
     let addedCount = 0;
 
     try {
+      if (!(await isApplicationReachable())) return;
+
       for (const [draftId, entry] of [...draftAddQueueRef.current.entries()]) {
         await draftPersistenceRef.current.get(draftId);
         const result = await addDraftToDeck(entry);

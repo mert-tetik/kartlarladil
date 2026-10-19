@@ -161,6 +161,11 @@ present in the production response.
   that closing the notes-conversion menu removes non-pending local notes and
   generated drafts while pending deck additions can still finish in the
   background.
+- Verify the no-network flow on the installed AAB, not only in a desktop
+  browser: the offline shell, its JavaScript and all 14 language flags are
+  packaged locally. Updating the website alone cannot update these local
+  assets; install a newly generated AAB to test shell changes. Do not build an
+  AAB until the release is explicitly requested.
 - Upload the AAB to Play Internal Testing before production.
 - From the Play-installed build, test Google OAuth, subscription purchase and
   restore, speech, deep links and a website-only update.
@@ -168,6 +173,10 @@ present in the production response.
 ## Notes
 
 - Media added or replaced in the website is included in the next AAB build.
+- The standalone offline UI is copied from `public/offline-shell/` into the
+  generated Android project, while its language flags are included in the UI
+  media asset pack. Changes to either source require a new AAB; an ordinary web
+  deployment cannot replace assets served by the installed app while offline.
 - A public media path whose filename stays the same is intentionally served
   from the installed package until the next AAB update; publish a new AAB when
   replacing such a file. Next.js imported media normally gets a new hashed URL

@@ -412,7 +412,7 @@ export function SlowConnectionMonitor() {
         role="alertdialog"
         style={{ color: panelForeground }}
       >
-        <Wifi aria-hidden="true" className="slow-connection-prompt-icon mx-auto size-10" strokeWidth={2.4} />
+        <Wifi aria-hidden="true" className="slow-connection-prompt-icon mx-auto size-10 text-white" strokeWidth={2.4} />
         <h2
           className={cn(
             "slow-connection-prompt-title mt-4 text-2xl font-bold leading-tight text-white sm:text-[1.75rem]",

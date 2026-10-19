@@ -32,6 +32,18 @@ const MEDIA_EXTENSIONS = new Set([
   ".woff2",
 ]);
 
+export const REQUIRED_OFFLINE_MEDIA_URLS = [
+  "ar", "de", "en", "es", "fr", "it", "ja", "ko", "nl", "pl", "pt", "ru", "tr", "zh-CN",
+].map((language) => `/flags/language/${language}.png`).concat("/missions/cikinti-v2.png");
+
+export function assertRequiredOfflineMedia(availableUrls) {
+  const available = new Set(availableUrls);
+  const missing = REQUIRED_OFFLINE_MEDIA_URLS.filter((url) => !available.has(url));
+  if (missing.length > 0) {
+    throw new Error(`Missing offline UI media required by the packaged offline screen: ${missing.join(", ")}`);
+  }
+}
+
 const MIME_TYPES = new Map([
   [".avif", "image/avif"],
   [".gif", "image/gif"],
@@ -123,6 +135,8 @@ export async function prepareHybridMedia(projectDir = process.env.TWA_PROJECT_DI
   for (const asset of await collectMediaFiles(nextMediaDir, "/_next/static/media/", "_next/static/media/")) {
     mediaByUrl.set(asset.url, asset);
   }
+
+  assertRequiredOfflineMedia(mediaByUrl.keys());
 
   const assets = [...mediaByUrl.values()].sort((a, b) => a.url.localeCompare(b.url));
   if (assets.length === 0) {

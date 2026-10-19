@@ -361,6 +361,14 @@ async function copyOfflineShellAssets(projectDir) {
   const destination = path.join(projectDir, "app", "src", "main", "assets", "foxiesdeck-offline");
   await fs.mkdir(destination, { recursive: true });
   await fs.cp(OFFLINE_SHELL_SOURCE, destination, { recursive: true, force: true });
+
+  for (const requiredFile of ["index.html", "offline-shell.js", "super-water.ttf"]) {
+    const source = await fs.readFile(path.join(OFFLINE_SHELL_SOURCE, requiredFile));
+    const packaged = await fs.readFile(path.join(destination, requiredFile));
+    if (!source.equals(packaged)) {
+      throw new Error(`The packaged offline shell is stale or incomplete: ${requiredFile}`);
+    }
+  }
 }
 
 async function patchLauncherColors(projectDir) {

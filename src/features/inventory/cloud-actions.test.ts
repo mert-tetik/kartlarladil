@@ -71,29 +71,12 @@ interface PracticeAttemptRecord {
 interface MockState {
   userCards: UserCardRecord[];
   practiceAttempts: PracticeAttemptRecord[];
+  customCards: Array<Record<string, unknown>>;
   nextAttemptId: number;
   customCardInsertError?: unknown;
 }
 
 function createSupabaseMock(state: MockState, userId = "user-1") {
-  class EmptyQueryBuilder {
-    select() {
-      return this;
-    }
-
-    eq() {
-      return this;
-    }
-
-    maybeSingle<T>() {
-      return Promise.resolve({ data: null as T | null, error: null });
-    }
-
-    returns<T>() {
-      return Promise.resolve({ data: [] as T, error: null });
-    }
-  }
-
   class QueryBuilder {
     private filters: Array<{ field: string; value: unknown }> = [];
     private orderBy: { field: string; ascending: boolean } | null = null;
@@ -285,9 +268,38 @@ function createSupabaseMock(state: MockState, userId = "user-1") {
     },
     from(table: "user_cards" | "practice_attempts" | "custom_cards") {
       if (table === "custom_cards") {
-        return Object.assign(new EmptyQueryBuilder(), {
-          insert: async () => ({ error: state.customCardInsertError ?? null }),
-        });
+        const filters: Array<{ field: string; value: unknown }> = [];
+        let deleteMode = false;
+        const builder = {
+          select() { return builder; },
+          eq(field: string, value: unknown) {
+            filters.push({ field, value });
+            return builder;
+          },
+          maybeSingle<T>() {
+            const row = state.customCards.find((candidate) => filters.every((filter) => candidate[filter.field] === filter.value));
+            return Promise.resolve({ data: (row ? clone(row) : null) as T | null, error: null });
+          },
+          async insert(value: Record<string, unknown>) {
+            if (state.customCardInsertError) return { error: state.customCardInsertError };
+            state.customCards.push({ ...clone(value), id: `custom-row-${state.customCards.length + 1}`, created_at: "2026-01-01T00:00:00.000Z" });
+            return { error: null };
+          },
+          delete() {
+            deleteMode = true;
+            return builder;
+          },
+          then<TResult1 = { data: null; error: null }, TResult2 = never>(
+            onfulfilled?: ((value: { data: null; error: null }) => TResult1 | PromiseLike<TResult1>) | null,
+            onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
+          ) {
+            if (deleteMode) {
+              state.customCards = state.customCards.filter((candidate) => !filters.every((filter) => candidate[filter.field] === filter.value));
+            }
+            return Promise.resolve({ data: null, error: null }).then(onfulfilled, onrejected);
+          },
+        };
+        return builder;
       }
 
       if (table === "user_cards") {
@@ -390,6 +402,7 @@ function createState(overrides?: Partial<MockState>): MockState {
   return {
     userCards: [],
     practiceAttempts: [],
+    customCards: [],
     nextAttemptId: 1,
     customCardInsertError: undefined,
     ...overrides,
@@ -722,5 +735,38 @@ describe("cloud-actions", () => {
     );
     expect(state.userCards).toHaveLength(1);
     expect(state.userCards[0]?.card_source_key).toBe(result.data?.card.cardId);
+  });
+
+  it("makes offline queued custom-card creation idempotent across retries", async () => {
+    const state = createState();
+    currentSupabase = createSupabaseMock(state);
+    const input = {
+      language: "de" as const,
+      tier: "A2" as const,
+      termKind: "word" as const,
+      idempotencyKey: "offline-draft-123",
+      draft: {
+        term: "Wanderlust",
+        partOfSpeech: "noun",
+        pronunciation: "vanderlust",
+        translations: createCardTestLocaleRecord(),
+        examples: [
+          { example: "Die Wanderlust packte sie.", translation: "The desire to travel seized her." },
+          { example: "Seine Wanderlust führte ihn nach Japan.", translation: "His wanderlust took him to Japan." },
+        ],
+        definitions: createCardTestLocaleRecord(),
+        grammar: ["Used as a noun."],
+        termKind: "word" as const,
+      },
+    };
+
+    const first = await createCustomCardAction(input);
+    const retry = await createCustomCardAction(input);
+
+    expect(first.status).toBe("success");
+    expect(retry.status).toBe("success");
+    expect(retry.data?.card.cardId).toBe("custom:user-1:offline:offline-draft-123");
+    expect(state.customCards).toHaveLength(1);
+    expect(state.userCards).toHaveLength(1);
   });
 });

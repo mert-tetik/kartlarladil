@@ -3,6 +3,7 @@
 
   const DB_NAME = "foxiesdeck-offline-v1";
   const DB_VERSION = 1;
+  const DATABASE_OPEN_TIMEOUT_MS = 1_500;
   const PROFILE_KEY = "foxiesdeck:offline-profile";
   const LOCALE_KEY = "foxiesdeck:locale";
   const CARD_LANGUAGE_KEY = "foxiesdeck:landing-card-language";
@@ -102,7 +103,24 @@
 
   function openDatabase() {
     return new Promise(function (resolve, reject) {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      let settled = false;
+      let request;
+      let timeout = 0;
+      function rejectOnce(error) {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeout);
+        reject(error);
+      }
+      try {
+        request = indexedDB.open(DB_NAME, DB_VERSION);
+      } catch (error) {
+        rejectOnce(error);
+        return;
+      }
+      timeout = window.setTimeout(function () {
+        rejectOnce(new Error("offline_storage_open_timeout"));
+      }, DATABASE_OPEN_TIMEOUT_MS);
       request.onupgradeneeded = function () {
         const db = request.result;
         if (!db.objectStoreNames.contains("profiles")) {
@@ -122,8 +140,16 @@
           drafts.createIndex("profileId", "profileId");
         }
       };
-      request.onsuccess = function () { resolve(request.result); };
-      request.onerror = function () { reject(request.error || new Error("offline_storage_unavailable")); };
+      request.onsuccess = function () {
+        if (settled) {
+          request.result.close();
+          return;
+        }
+        settled = true;
+        window.clearTimeout(timeout);
+        resolve(request.result);
+      };
+      request.onerror = function () { rejectOnce(request.error || new Error("offline_storage_unavailable")); };
     });
   }
 
@@ -157,7 +183,13 @@
   }
 
   function activeProfileId() {
-    return localStorage.getItem(PROFILE_KEY) || "guest";
+    try { return localStorage.getItem(PROFILE_KEY) || "guest"; }
+    catch { return "guest"; }
+  }
+
+  function safeLocalStorageGet(key) {
+    try { return localStorage.getItem(key); }
+    catch { return null; }
   }
 
   function readSnapshotFallback(profileId) {
@@ -234,9 +266,9 @@
       const db = await openDatabase();
       try {
       const tx = db.transaction(["profiles", "cards"], "readonly");
+      const completed = transactionDone(tx);
       const profileRequest = tx.objectStore("profiles").get(id);
       const cardsRequest = tx.objectStore("cards").index("profileId").getAll(id);
-      const completed = transactionDone(tx);
       const values = await Promise.all([requestValue(profileRequest), requestValue(cardsRequest), completed]);
       const snapshot = { profile: values[0] || null, cards: values[1] || [] };
       if (fallback && (!snapshot.profile || fallback.profile.updatedAt > snapshot.profile.updatedAt)) return fallback;
@@ -262,18 +294,80 @@
     localStorage.setItem(fallbackStorageKey(storeName, profileId), JSON.stringify(records));
   }
 
+  function dismissedStorageKey(storeName, profileId) {
+    return DB_NAME + ":dismissed:" + storeName + ":" + profileId;
+  }
+
+  function readDismissedIds(storeName, profileId) {
+    try {
+      const ids = JSON.parse(localStorage.getItem(dismissedStorageKey(storeName, profileId)) || "[]");
+      return new Set(Array.isArray(ids) ? ids.filter(function (id) { return typeof id === "string"; }) : []);
+    } catch { return new Set(); }
+  }
+
+  function markRecordDismissed(storeName, profileId, recordId) {
+    try {
+      const ids = readDismissedIds(storeName, profileId);
+      ids.add(recordId);
+      localStorage.setItem(dismissedStorageKey(storeName, profileId), JSON.stringify(Array.from(ids)));
+      return true;
+    } catch { return false; }
+  }
+
+  function clearDismissedIds(storeName, profileId, recordIds) {
+    try {
+      const ids = readDismissedIds(storeName, profileId);
+      recordIds.forEach(function (id) { ids.delete(id); });
+      const key = dismissedStorageKey(storeName, profileId);
+      if (ids.size === 0) localStorage.removeItem(key);
+      else localStorage.setItem(key, JSON.stringify(Array.from(ids)));
+      return true;
+    } catch { return false; }
+  }
+
+  function clearFallbackRecords(storeName, profileId, recordIds) {
+    try {
+      const records = storeName === "notes" ? readFallbackRecords("notes", profileId) : readFallbackDraftRecords(profileId);
+      const remaining = records.filter(function (entry) {
+        const record = storeName === "notes" ? entry.note : entry.draft;
+        return !record || !recordIds.has(record.id);
+      });
+      writeFallbackRecords(storeName, profileId, remaining);
+      return true;
+    } catch { return false; }
+  }
+
+  async function reapDismissedRecords(storeName, profileId, recordIds) {
+    if (recordIds.size === 0 || !clearFallbackRecords(storeName, profileId, recordIds)) return;
+    let db = null;
+    try {
+      db = await openDatabase();
+      const tx = db.transaction(storeName, "readwrite");
+      const completed = transactionDone(tx);
+      recordIds.forEach(function (id) { tx.objectStore(storeName).delete(profileId + ":" + id); });
+      await completed;
+      clearDismissedIds(storeName, profileId, recordIds);
+    } catch {
+      // Keep tombstones until IndexedDB and localStorage copies are both reaped.
+    } finally { if (db) db.close(); }
+  }
+
   async function listNotes(profileId) {
     const id = profileId || activeProfileId();
     let records = [];
-    try { records = await readProfileRecords("notes", id); } catch {}
-    const byId = new Map(records.map(function (entry) { return [entry.note && entry.note.id, entry]; }));
+    let indexedDbReadSucceeded = false;
+    try { records = await readProfileRecords("notes", id); indexedDbReadSucceeded = true; } catch {}
+    const dismissedIds = readDismissedIds("notes", id);
+    if (indexedDbReadSucceeded && dismissedIds.size > 0) void reapDismissedRecords("notes", id, dismissedIds);
+    const byId = new Map(records.filter(function (entry) { return entry.note && !dismissedIds.has(entry.note.id); }).map(function (entry) { return [entry.note.id, entry]; }));
     readFallbackRecords("notes", id).forEach(function (entry) {
-      if (entry.note && !byId.has(entry.note.id)) byId.set(entry.note.id, entry);
+      if (entry.note && !dismissedIds.has(entry.note.id) && !byId.has(entry.note.id)) byId.set(entry.note.id, entry);
     });
     return Array.from(byId.values());
   }
 
   async function putNote(profileId, note) {
+    clearDismissedIds("notes", profileId, new Set([note.id]));
     const record = { key: profileId + ":" + note.id, profileId: profileId, note: note, createdAt: note.createdAt };
     try {
       const db = await openDatabase();
@@ -292,15 +386,9 @@
   }
 
   async function removeNote(profileId, noteId) {
-    const fallbackRecords = readFallbackRecords("notes", profileId);
-    const hasFallbackCopy = fallbackRecords.some(function (entry) { return entry.note && entry.note.id === noteId; });
-    let fallbackCleared = !hasFallbackCopy;
-    if (hasFallbackCopy) {
-      try {
-        writeFallbackRecords("notes", profileId, fallbackRecords.filter(function (entry) { return !entry.note || entry.note.id !== noteId; }));
-        fallbackCleared = true;
-      } catch {}
-    }
+    const dismissedIds = new Set([noteId]);
+    const tombstoneStored = markRecordDismissed("notes", profileId, noteId);
+    const fallbackCleared = clearFallbackRecords("notes", profileId, dismissedIds);
 
     let indexedDbDeleted = false;
     let indexedDbError = null;
@@ -316,8 +404,8 @@
       finally { db.close(); }
     } catch (error) { indexedDbError = error; }
 
-    if (!fallbackCleared) throw new Error("offline_note_fallback_delete_failed");
-    if (!indexedDbDeleted && !hasFallbackCopy) {
+    if (indexedDbDeleted && fallbackCleared) clearDismissedIds("notes", profileId, dismissedIds);
+    if (!tombstoneStored && (!fallbackCleared || !indexedDbDeleted)) {
       throw indexedDbError || new Error("offline_note_delete_failed");
     }
   }
@@ -333,14 +421,18 @@
   async function listDrafts(profileId) {
     const id = profileId || activeProfileId();
     let records = [];
-    try { records = await readProfileRecords("drafts", id); } catch {}
-    const byId = new Map(records.map(function (entry) { return [entry.draft && entry.draft.id, entry]; }));
+    let indexedDbReadSucceeded = false;
+    try { records = await readProfileRecords("drafts", id); indexedDbReadSucceeded = true; } catch {}
+    const dismissedIds = readDismissedIds("drafts", id);
+    if (indexedDbReadSucceeded && dismissedIds.size > 0) void reapDismissedRecords("drafts", id, dismissedIds);
+    const byId = new Map(records.filter(function (entry) { return entry.draft && !dismissedIds.has(entry.draft.id); }).map(function (entry) { return [entry.draft.id, entry]; }));
     readFallbackDraftRecords(id).forEach(function (entry) {
-      if (entry.draft && !byId.has(entry.draft.id)) byId.set(entry.draft.id, entry);
+      if (entry.draft && !dismissedIds.has(entry.draft.id) && !byId.has(entry.draft.id)) byId.set(entry.draft.id, entry);
     });
     return Array.from(byId.values());
   }
   async function putDraft(profileId, draft) {
+    clearDismissedIds("drafts", profileId, new Set([draft.id]));
     const record = { key: profileId + ":" + draft.id, profileId: profileId, draft: draft, createdAt: draft.createdAt };
     let db = null;
     try {
@@ -359,15 +451,9 @@
     }
   }
   async function removeDraft(profileId, draftId) {
-    const fallbackRecords = readFallbackDraftRecords(profileId);
-    const hasFallbackCopy = fallbackRecords.some(function (entry) { return entry.draft && entry.draft.id === draftId; });
-    let fallbackCleared = !hasFallbackCopy;
-    if (hasFallbackCopy) {
-      try {
-        writeFallbackDraftRecords(profileId, fallbackRecords.filter(function (entry) { return !entry.draft || entry.draft.id !== draftId; }));
-        fallbackCleared = true;
-      } catch {}
-    }
+    const dismissedIds = new Set([draftId]);
+    const tombstoneStored = markRecordDismissed("drafts", profileId, draftId);
+    const fallbackCleared = clearFallbackRecords("drafts", profileId, dismissedIds);
     let indexedDbDeleted = false;
     let indexedDbError = null;
     try {
@@ -380,7 +466,8 @@
         indexedDbDeleted = true;
       } finally { db.close(); }
     } catch (error) { indexedDbError = error; }
-    if (!fallbackCleared || (!indexedDbDeleted && !hasFallbackCopy)) {
+    if (indexedDbDeleted && fallbackCleared) clearDismissedIds("drafts", profileId, dismissedIds);
+    if (!tombstoneStored && (!fallbackCleared || !indexedDbDeleted)) {
       throw indexedDbError || new Error("offline_draft_delete_failed");
     }
   }
@@ -536,36 +623,15 @@
     const profileId = testMode ? "visual-test" : activeProfileId();
     let state = { profile: null, cards: [], notes: [], drafts: [], locale: "en", learningLanguage: "en", cardFilter: "active", conversionState: "idle" };
 
-    const fallbackLocale = localeCode(localStorage.getItem(LOCALE_KEY)) || localeCode(navigator.language) || "en";
-    const cached = testMode ? null : await storageApi.getSnapshot(profileId).catch(function () { return null; });
-    const savedProfile = cached && cached.profile;
-    const userLocale = localeCode(savedProfile && (savedProfile.nativeLanguage || savedProfile.locale)) || fallbackLocale;
+    const fallbackLocale = localeCode(safeLocalStorageGet(LOCALE_KEY)) || localeCode(navigator.language) || "en";
+    const userLocale = fallbackLocale;
     const strings = copy[userLocale] || copy.en;
     const cardFilterButtons = Array.from(document.querySelectorAll("[data-card-filter]"));
     state.locale = userLocale;
-    state.learningLanguage = testMode ? "es" : localeCode(localStorage.getItem(CARD_LANGUAGE_KEY))
-      || localeCode(savedProfile && (savedProfile.cardLanguage || savedProfile.learningLanguage))
-      || "en";
-    state.cards = (cached && cached.cards) || [];
-    const offlineProfileIds = profileId === "guest" ? ["guest"] : [profileId, "guest"];
-    const storedDraftEntries = testMode ? [] : (await Promise.all(offlineProfileIds.map(function (storedProfileId) {
-      return storageApi.listDrafts(storedProfileId).catch(function () { return []; });
-    }))).flat();
-    state.drafts = testMode ? [] : storedDraftEntries.map(function (entry) {
-      const draft = entry.draft || {};
-      return Object.assign({}, draft, { storageProfileId: entry.profileId || profileId });
-    });
-    const storedNoteEntries = testMode ? [] : (await Promise.all(offlineProfileIds.map(function (storedProfileId) {
-      return storageApi.listNotes(storedProfileId).catch(function () { return []; });
-    }))).flat();
-    state.notes = testMode ? [] : storedNoteEntries.map(function (entry) {
-      const note = entry.note || {};
-      return Object.assign({}, note, {
-        storageProfileId: entry.profileId || profileId,
-        targetLanguage: localeCode(note.targetLanguage) || state.learningLanguage,
-        nativeLocale: localeCode(note.nativeLocale) || state.locale,
-      });
-    });
+    state.learningLanguage = testMode ? "es" : localeCode(safeLocalStorageGet(CARD_LANGUAGE_KEY)) || "en";
+    state.cards = [];
+    state.drafts = [];
+    state.notes = [];
     if (testMode && visualMode === "offline") {
       state.cards = [
         { inventory: { cardId: "demo-1", status: "active", correctCount: 2 }, card: { language: "es", term: "aprender", tier: "A2", termKind: "word", pronunciation: "a.pɾenˈdeɾ", translations: { en: "to learn", tr: "öğrenmek" }, translation: "to learn", example: "Quiero aprender español." } },
@@ -595,46 +661,51 @@
     let languageSheetCloseTimer = 0;
     let languageSheetDragStartY = null;
     let languageSheetDragOffsetY = 0;
-    const languageOptions = languagePickerOrder.map(function (language) {
-      return {
-        language: language,
-        count: state.cards.filter(function (entry) {
-          return entry.card && localeCode(entry.card.language) === language;
-        }).length,
-      };
-    }).sort(function (left, right) { return right.count - left.count; });
+    let cardLanguageChangedDuringHydration = false;
     heading(cardLanguageSelectLabel, cardLanguageLabelCopy[userLocale] || cardLanguageLabelCopy.en, userLocale);
     heading(cardLanguageSheetTitle, selectLanguageCopy[userLocale] || selectLanguageCopy.en, userLocale);
     cardLanguageSheetBackdrop.setAttribute("aria-label", strings.close);
     cardLanguageSheetClose.setAttribute("aria-label", strings.close);
-    languageOptions.forEach(function (languageOption) {
-      const language = languageOption.language;
-      const option = document.createElement("button");
-      option.type = "button";
-      option.className = "language-option";
-      option.setAttribute("role", "option");
-      option.dataset.language = language;
-      const leading = document.createElement("span");
-      leading.className = "language-option-leading";
-      const outline = document.createElement("span");
-      outline.className = "language-option-outline";
-      const outlineFlag = document.createElement("span");
-      outlineFlag.className = "language-option-flag";
-      outlineFlag.setAttribute("aria-hidden", "true");
-      renderLanguageFlag(outlineFlag, language);
-      outline.appendChild(outlineFlag);
-      const flag = document.createElement("span");
-      flag.className = "language-option-flag";
-      flag.setAttribute("aria-hidden", "true");
-      renderLanguageFlag(flag, language);
-      leading.append(outline, flag);
-      const name = document.createElement("span");
-      name.className = "language-option-name";
-      name.textContent = languageNativeName[language] || language;
-      option.append(leading, name);
-      option.addEventListener("click", function () { selectCardLanguage(language); });
-      cardLanguageOptions.appendChild(option);
-    });
+    function renderLanguageOptions() {
+      const languageOptions = languagePickerOrder.map(function (language) {
+        return {
+          language: language,
+          count: state.cards.filter(function (entry) {
+            return entry.card && localeCode(entry.card.language) === language;
+          }).length,
+        };
+      }).sort(function (left, right) { return right.count - left.count; });
+      cardLanguageOptions.replaceChildren();
+      languageOptions.forEach(function (languageOption) {
+        const language = languageOption.language;
+        const option = document.createElement("button");
+        option.type = "button";
+        option.className = "language-option";
+        option.setAttribute("role", "option");
+        option.dataset.language = language;
+        const leading = document.createElement("span");
+        leading.className = "language-option-leading";
+        const outline = document.createElement("span");
+        outline.className = "language-option-outline";
+        const outlineFlag = document.createElement("span");
+        outlineFlag.className = "language-option-flag";
+        outlineFlag.setAttribute("aria-hidden", "true");
+        renderLanguageFlag(outlineFlag, language);
+        outline.appendChild(outlineFlag);
+        const flag = document.createElement("span");
+        flag.className = "language-option-flag";
+        flag.setAttribute("aria-hidden", "true");
+        renderLanguageFlag(flag, language);
+        leading.append(outline, flag);
+        const name = document.createElement("span");
+        name.className = "language-option-name";
+        name.textContent = languageNativeName[language] || language;
+        option.append(leading, name);
+        option.addEventListener("click", function () { selectCardLanguage(language); });
+        cardLanguageOptions.appendChild(option);
+      });
+    }
+    renderLanguageOptions();
     renderLanguagePicker();
     element("note-input").dir = state.learningLanguage === "ar" ? "rtl" : "auto";
     text(element("status-label"), strings.status);
@@ -690,6 +761,7 @@
     function selectCardLanguage(language) {
       const selectedLanguage = localeCode(language);
       if (!selectedLanguage) return;
+      cardLanguageChangedDuringHydration = true;
       state.learningLanguage = selectedLanguage;
       try { localStorage.setItem(CARD_LANGUAGE_KEY, selectedLanguage); } catch {}
       document.body.dataset.offlineCardLanguage = selectedLanguage;
@@ -802,15 +874,11 @@
         root.appendChild(empty); return;
       }
       const tierStyles = {
-        A1: { accent: "#10b981", ink: "#047857", points: 10, requirement: 4 },
-        A2: { accent: "#0ea5e9", ink: "#0369a1", points: 20, requirement: 4 },
-        B1: { accent: "#8b5cf6", ink: "#6d28d9", points: 40, requirement: 6 },
-        B2: { accent: "#f59e0b", ink: "#b45309", points: 50, requirement: 6 },
-        C1: { accent: "#f43f5e", ink: "#be123c", points: 100, requirement: 8 },
-      };
-      const languageNames = {
-        en: "English", de: "Deutsch", fr: "Français", es: "Español", it: "Italiano", pt: "Português", nl: "Nederlands",
-        pl: "Polski", tr: "Türkçe", ru: "Русский", ar: "العربية", ja: "日本語", ko: "한국어", "zh-CN": "中文",
+        A1: { accent: "#10b981", requirement: 4 },
+        A2: { accent: "#0ea5e9", requirement: 4 },
+        B1: { accent: "#8b5cf6", requirement: 6 },
+        B2: { accent: "#f59e0b", requirement: 6 },
+        C1: { accent: "#f43f5e", requirement: 8 },
       };
       const termKinds = {
         en: { word: "Word", phrase: "Phrase" }, tr: { word: "Kelime", phrase: "Kalıp" }, de: { word: "Wort", phrase: "Ausdruck" },
@@ -836,29 +904,22 @@
         row.dataset.savedCardStatus = isLearned ? "learned" : "active";
         row.dataset.cardLanguage = card.language || "";
         row.style.setProperty("--tier-accent", tier.accent);
-        row.style.setProperty("--tier-ink", tier.ink);
         const header = makeNode("div", "card-header");
         header.append(makeNode("span", "card-tier", card.tier || "A1"));
         const body = makeNode("div", "card-body");
-        const meta = makeNode("div", "card-meta");
-        meta.append(makeNode("span", "card-language-code", languageNames[card.language] || card.language || ""));
-        const points = makeNode("span", "card-points");
-        points.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2.5 2.9 5.88 6.49.94-4.7 4.58 1.11 6.46L12 17.31l-5.8 3.05 1.1-6.46-4.69-4.58 6.49-.94L12 2.5Z"/></svg>';
-        points.appendChild(document.createTextNode(String(tier.points)));
-        meta.append(points);
         const pronunciation = makeNode("div", "card-pronunciation");
-        pronunciation.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
         const pronunciationText = document.createElement("span"); pronunciationText.textContent = card.pronunciation || "";
         pronunciation.append(pronunciationText);
         const termNode = makeNode("h3", "card-term", card.term || card.translation || "");
         const kinds = termKinds[userLocale] || termKinds.en;
-        const kindNode = makeNode("span", "card-kind", card.termKind === "fixed_phrase" ? kinds.phrase : kinds.word);
+        const kindNode = card.termKind === "fixed_phrase" ? makeNode("span", "card-kind", kinds.phrase) : null;
         const translationNode = makeNode("p", "card-translation");
         const translated = card.translations && (card.translations[userLocale] || card.translations.en);
         translationNode.textContent = translated || card.translation || "";
-        body.append(meta);
         if (card.pronunciation) body.append(pronunciation);
-        body.append(termNode, kindNode, translationNode);
+        body.append(termNode);
+        if (kindNode) body.append(kindNode);
+        body.append(translationNode);
         const footer = makeNode("div", "card-footer");
         const example = card.example || (Array.isArray(card.examples) && card.examples[0] && card.examples[0].sentence) || "";
         if (example) footer.append(makeNode("p", "card-example", example));
@@ -1047,6 +1108,71 @@
     });
 
     renderCards(); renderNotes();
+    document.body.dataset.offlineShellReady = "true";
+    document.body.dataset.offlineShellData = "loading";
+
+    async function hydrateLocalData() {
+      if (testMode) {
+        document.body.dataset.offlineShellData = "ready";
+        return;
+      }
+
+      const offlineProfileIds = profileId === "guest" ? ["guest"] : [profileId, "guest"];
+      const [cached, draftGroups, noteGroups] = await Promise.all([
+        storageApi.getSnapshot(profileId).catch(function () { return null; }),
+        Promise.all(offlineProfileIds.map(function (storedProfileId) {
+          return storageApi.listDrafts(storedProfileId).catch(function () { return []; });
+        })),
+        Promise.all(offlineProfileIds.map(function (storedProfileId) {
+          return storageApi.listNotes(storedProfileId).catch(function () { return []; });
+        })),
+      ]);
+
+      state.profile = cached && cached.profile || null;
+      state.cards = cached && cached.cards || [];
+
+      const savedCardLanguage = localeCode(state.profile && (state.profile.cardLanguage || state.profile.learningLanguage));
+      if (!cardLanguageChangedDuringHydration && !safeLocalStorageGet(CARD_LANGUAGE_KEY) && savedCardLanguage) {
+        state.learningLanguage = savedCardLanguage;
+      }
+      document.body.dataset.offlineCardLanguage = state.learningLanguage;
+      element("note-input").dir = state.learningLanguage === "ar" ? "rtl" : "auto";
+
+      const loadedDrafts = draftGroups.flat().map(function (entry) {
+        const draft = entry.draft || {};
+        return Object.assign({}, draft, { storageProfileId: entry.profileId || profileId });
+      });
+      const draftsById = new Map();
+      [...loadedDrafts, ...state.drafts].forEach(function (draft) {
+        if (draft.id) draftsById.set((draft.storageProfileId || profileId) + ":" + draft.id, draft);
+      });
+      state.drafts = Array.from(draftsById.values());
+
+      const loadedNotes = noteGroups.flat().map(function (entry) {
+        const note = entry.note || {};
+        return Object.assign({}, note, {
+          storageProfileId: entry.profileId || profileId,
+          targetLanguage: localeCode(note.targetLanguage) || state.learningLanguage,
+          nativeLocale: localeCode(note.nativeLocale) || state.locale,
+        });
+      });
+      const notesById = new Map();
+      [...loadedNotes, ...state.notes].forEach(function (note) {
+        if (note.id) notesById.set((note.storageProfileId || profileId) + ":" + note.id, note);
+      });
+      state.notes = Array.from(notesById.values());
+
+      renderLanguageOptions();
+      renderLanguagePicker();
+      renderCards();
+      renderNotes();
+      document.body.dataset.offlineShellData = "ready";
+    }
+
+    void hydrateLocalData().catch(function (error) {
+      document.body.dataset.offlineShellData = "error";
+      console.warn("[FoxiesDeck offline] Local data could not be hydrated; offline controls remain available.", error);
+    });
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { void boot(); }, { once: true });

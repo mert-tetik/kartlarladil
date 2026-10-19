@@ -6,8 +6,17 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const parsed = generatedCardSchema.safeParse(await request.json().catch(() => null));
+  const body = await request.json().catch(() => null) as unknown;
+  const parsed = generatedCardSchema.safeParse(body);
   if (!parsed.success) {
+    return Response.json({ status: "error", errorCode: "invalid_request" }, { status: 400 });
+  }
+
+  const idempotencyKey =
+    typeof body === "object" && body !== null && "idempotencyKey" in body
+      ? (body as { idempotencyKey?: unknown }).idempotencyKey
+      : undefined;
+  if (idempotencyKey !== undefined && (typeof idempotencyKey !== "string" || !/^[a-zA-Z0-9._-]{8,100}$/.test(idempotencyKey))) {
     return Response.json({ status: "error", errorCode: "invalid_request" }, { status: 400 });
   }
 
@@ -16,6 +25,7 @@ export async function POST(request: Request) {
     language: generated.language,
     tier: generated.tier,
     termKind: generated.termKind,
+    idempotencyKey,
     draft: {
       term: generated.term,
       partOfSpeech: generated.partOfSpeech,

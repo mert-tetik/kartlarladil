@@ -447,6 +447,7 @@ export async function createCustomCardAction(input: {
   tier: Tier;
   termKind: TermKind;
   draft: GeneratedCardDraft;
+  idempotencyKey?: string;
 }): Promise<CloudActionResult<CustomCardCreationPayload>> {
   try {
     const { supabase, user } = await getAuthedSupabase();
@@ -468,9 +469,57 @@ export async function createCustomCardAction(input: {
         message: t("createCard.error.invalid_request"),
       };
     }
+    if (input.idempotencyKey && !/^[a-zA-Z0-9._-]{8,100}$/.test(input.idempotencyKey)) {
+      return {
+        status: "error",
+        message: t("createCard.error.invalid_request"),
+      };
+    }
 
     const draft = parsedDraft.data;
     const entitlements = await getUserEntitlements(user.id);
+    const sourceKey = buildCustomCardSourceKey(user.id, input.idempotencyKey);
+
+    if (input.idempotencyKey) {
+      const { data: existingCustomCard, error: lookupError } = await supabase
+        .from("custom_cards")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("source_key", sourceKey)
+        .maybeSingle<DbCustomCard>();
+
+      if (lookupError) throw lookupError;
+      if (existingCustomCard) {
+        const { remainingCardIds } = await addUserCardsWithActiveLimit(
+          user.id,
+          [sourceKey],
+          getActiveCardLimit(entitlements),
+        );
+        if (remainingCardIds.length > 0) {
+          await supabase
+            .from("custom_cards")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("source_key", sourceKey);
+          return {
+            status: "error",
+            message: t("limit.activeCardLimitDescription"),
+            errorCode: "free_active_card_limit",
+          };
+        }
+
+        const card = await readUserCard(supabase, user, sourceKey);
+        revalidateProgressPaths();
+        return {
+          status: "success",
+          message: "",
+          data: {
+            card,
+            vocabularyCard: mapDbCustomCardToVocabularyCard(existingCustomCard),
+          },
+        };
+      }
+    }
 
     if (entitlements.effectivePlan === "free") {
       const activeCount = await countUserCardsByStatus(supabase, user.id, "active");
@@ -485,7 +534,6 @@ export async function createCustomCardAction(input: {
       }
     }
 
-    const sourceKey = buildCustomCardSourceKey(user.id);
     const now = new Date().toISOString();
     const dbCustomCard: DbCustomCard = {
       id: sourceKey,
@@ -740,8 +788,10 @@ async function fetchCustomCards(
   return (data ?? []).map(mapDbCustomCardToVocabularyCard);
 }
 
-function buildCustomCardSourceKey(userId: string): string {
-  return `custom:${userId}:${randomUUID()}`;
+function buildCustomCardSourceKey(userId: string, idempotencyKey?: string): string {
+  return idempotencyKey
+    ? `custom:${userId}:offline:${idempotencyKey}`
+    : `custom:${userId}:${randomUUID()}`;
 }
 
 function getActiveCardLimit(entitlements: Awaited<ReturnType<typeof getUserEntitlements>>) {

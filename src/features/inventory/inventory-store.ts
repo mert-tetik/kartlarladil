@@ -110,7 +110,9 @@ interface InventoryState {
     termKind: TermKind;
     draft: GeneratedCardDraft;
     optimisticCard?: VocabularyCard;
+    idempotencyKey?: string;
   }) => Promise<void>;
+  registerPendingCustomCard: (card: VocabularyCard) => void;
 }
 
 export const useInventoryStore = create<InventoryState>()(
@@ -850,10 +852,40 @@ export const useInventoryStore = create<InventoryState>()(
           set({ cloudLoading: true, cloudError: "" });
         }
 
-        const result = await createCustomCardAction(request);
+        let result: Awaited<ReturnType<typeof createCustomCardAction>>;
+        try {
+          result = input.idempotencyKey
+            ? await createCustomCardThroughOfflineRoute(input)
+            : await createCustomCardAction(request);
+        } catch (error) {
+          if (input.idempotencyKey && optimisticCardId) {
+            removePendingCardId(set, optimisticCardId);
+            set({ cloudLoading: get().pendingCardIds.size > 0, cloudError: "" });
+            throw error;
+          }
+
+          if (optimisticCardId) {
+            customCardRegistry.unregister(optimisticCardId);
+            removePendingCardId(set, optimisticCardId);
+            set({
+              cards: get().cards.filter((card) => card.cardId !== optimisticCardId),
+              cloudLoading: get().pendingCardIds.size > 0,
+              cloudError: "",
+            });
+          } else {
+            set({ cloudLoading: false, cloudError: "" });
+          }
+          throw error;
+        }
 
         if (result.status === "error" || !result.data) {
           const message = getCloudActionErrorMessage(result);
+          if (input.idempotencyKey && optimisticCardId && result.errorCode !== "free_active_card_limit") {
+            removePendingCardId(set, optimisticCardId);
+            set({ cloudLoading: get().pendingCardIds.size > 0, cloudError: "" });
+            throw new InventoryActionError(message, result.errorCode);
+          }
+
           if (optimisticCardId) {
             customCardRegistry.unregister(optimisticCardId);
             removePendingCardId(set, optimisticCardId);
@@ -896,6 +928,15 @@ export const useInventoryStore = create<InventoryState>()(
         });
 
         await syncMissionsFromClientState();
+      },
+
+      registerPendingCustomCard(card) {
+        customCardRegistry.register(card);
+        set((state) => ({
+          ...state,
+          cards: addCardToInventory(state.cards, card.sourceKey),
+          cloudError: "",
+        }));
       },
     }),
     {
@@ -980,6 +1021,53 @@ export function mergeCloudInventoryCards(
       (card) => !pendingIds.has(card.cardId) && !removedCardIds.has(card.cardId),
     ),
   ];
+}
+
+async function createCustomCardThroughOfflineRoute(input: {
+  language: LanguageCode;
+  tier: Tier;
+  termKind: TermKind;
+  draft: GeneratedCardDraft;
+  idempotencyKey?: string;
+}): Promise<Awaited<ReturnType<typeof createCustomCardAction>>> {
+  if (!input.idempotencyKey) throw new Error("offline_custom_card_idempotency_key_required");
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 12_000);
+  try {
+    const response = await fetch("/api/cards/offline-create", {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        idempotencyKey: input.idempotencyKey,
+        language: input.language,
+        tier: input.tier,
+        termKind: input.termKind,
+        term: input.draft.term,
+        partOfSpeech: input.draft.partOfSpeech,
+        pronunciation: input.draft.pronunciation,
+        translations: input.draft.translations,
+        examples: input.draft.examples.map((example) => ({
+          sentence: example.example,
+          translation: example.translation,
+        })),
+        definitions: input.draft.definitions,
+        grammar: input.draft.grammar,
+      }),
+      signal: controller.signal,
+    });
+    const result = await response.json().catch(() => null) as Awaited<ReturnType<typeof createCustomCardAction>> | null;
+    if (!result || (result.status !== "success" && result.status !== "error")) {
+      throw new Error("offline_custom_card_invalid_response");
+    }
+    if (!response.ok && result.status !== "error") {
+      throw new Error("offline_custom_card_request_failed");
+    }
+    return result;
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 export function reconcileSettledCardMutations(

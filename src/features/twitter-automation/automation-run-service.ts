@@ -18,6 +18,7 @@ import { mergeDailyAutomationOutputMetadata, readDailyAutomationOutputMetadata, 
 import { AUTOMATION_SCHEDULE_MIN_LEAD_MS, isAutomationScheduleExpired, resolveAutomationScheduleAt, type AutomationScheduleReservation } from "@/features/twitter-automation/automation-schedule-policy";
 import { UPLOAD_POST_REQUEST_RECHECK_DELAY_MS, UPLOAD_POST_REQUEST_UNCONFIRMED_CODE } from "@/features/twitter-automation/upload-post-schedule-constants";
 import { getAutomationScheduleFailureReason, isScheduleErrorEligible, SCHEDULE_RETRY_ERROR_OR_FILTER } from "@/features/twitter-automation/automation-schedule-errors";
+import { AUTOMATION_SCHEDULE_BATCH_SIZE } from "@/features/twitter-automation/automation-schedule-batches";
 
 const AUTOMATION_BUCKET = "social-studio-automation";
 const AUTOMATION_MEDIA_PREFIX = "automation/";
@@ -1346,7 +1347,15 @@ export async function refreshAutomationOutputMediaPreviews(runId: string) {
   return unavailable ? { checked, invalid, unavailable } : { checked, invalid };
 }
 
-export async function scheduleReadyAutomationRun(runId: string, options: { outputId?: string } = {}) {
+export async function scheduleReadyAutomationRun(runId: string, options: { outputId?: string; outputIds?: string[] }) {
+  const outputIds = options.outputIds ? [...new Set(options.outputIds)] : options.outputId ? [options.outputId] : [];
+  if (Boolean(options.outputId) === Boolean(options.outputIds?.length)
+    || outputIds.length === 0
+    || outputIds.length > AUTOMATION_SCHEDULE_BATCH_SIZE
+    || (options.outputIds && outputIds.length !== options.outputIds.length)) {
+    throw new Error("automation_schedule_batch_invalid");
+  }
+
   const supabase = createSupabaseAdminClient();
   const staleScheduleCutoff = new Date(Date.now() - 15 * 60_000).toISOString();
   const providerRecheckCutoff = new Date(Date.now() - UPLOAD_POST_REQUEST_RECHECK_DELAY_MS).toISOString();
@@ -1358,7 +1367,7 @@ export async function scheduleReadyAutomationRun(runId: string, options: { outpu
     .eq("schedule_status", "processing")
     .eq("schedule_error_code", UPLOAD_POST_REQUEST_UNCONFIRMED_CODE)
     .lt("schedule_attempted_at", providerRecheckCutoff);
-  if (options.outputId) providerRecheckQuery = providerRecheckQuery.eq("id", options.outputId);
+  providerRecheckQuery = providerRecheckQuery.in("id", outputIds);
   const { data: providerRecheckOutputs, error: providerRecheckError } = await providerRecheckQuery
     .select("*")
     .returns<AutomationOutputRecord[]>();
@@ -1370,7 +1379,7 @@ export async function scheduleReadyAutomationRun(runId: string, options: { outpu
     .eq("run_id", runId)
     .eq("schedule_status", "processing")
     .lt("schedule_attempted_at", staleScheduleCutoff);
-  if (options.outputId) staleScheduleQuery = staleScheduleQuery.eq("id", options.outputId);
+  staleScheduleQuery = staleScheduleQuery.in("id", outputIds);
   const { error: staleScheduleError } = await staleScheduleQuery;
   if (staleScheduleError) throw new Error("automation_schedule_recovery_failed");
 
@@ -1385,7 +1394,7 @@ export async function scheduleReadyAutomationRun(runId: string, options: { outpu
     .from("social_content_automation_outputs")
     .select("id,status,quality_status,schedule_status,schedule_error_code,schedule_attempt_count,scheduled_at")
     .eq("run_id", runId);
-  if (options.outputId) readinessQuery = readinessQuery.eq("id", options.outputId);
+  readinessQuery = readinessQuery.in("id", outputIds);
   const { data: allOutputs, error: readinessError } = await readinessQuery;
   if (readinessError) throw new Error("automation_schedule_readiness_failed");
   const providerRecheckIds = new Set((providerRecheckOutputs ?? []).map((output) => output.id));
@@ -1412,7 +1421,7 @@ export async function scheduleReadyAutomationRun(runId: string, options: { outpu
     .eq("quality_status", "passed")
     .in("schedule_status", scheduleEligibleStatuses)
     .or(SCHEDULE_RETRY_ERROR_OR_FILTER);
-  if (options.outputId) lockQuery = lockQuery.eq("id", options.outputId);
+  lockQuery = lockQuery.in("id", outputIds);
   const { data: lockedOutputs, error: lockError } = await lockQuery
     .select("id,run_id,day_offset,group_name,content_type,generator,language,native_language,tier,scheduled_at,target_account_ids,status,caption,description,title,media_path,media_paths,media_type,provider_task_id,upload_post_jobs,error_code,attempt_count,next_attempt_at,quality_status,quality_error,lease_renderer_id,lease_expires_at,render_plan,schedule_status,schedule_error_code,schedule_attempt_count,schedule_attempted_at")
     .returns<AutomationOutputRecord[]>();
@@ -1512,13 +1521,28 @@ export async function scheduleReadyAutomationRun(runId: string, options: { outpu
   };
   await Promise.all(Array.from({ length: Math.min(SCHEDULE_OUTPUT_CONCURRENCY, plannedOutputs.length) }, () => worker()));
 
-  if (failed) {
-    await supabase.from("social_content_automation_runs").update({ auto_schedule_error: "automation_schedule_partial_failure" }).eq("id", runId);
-  } else if (providerProcessing) {
-    await supabase.from("social_content_automation_runs").update({ auto_schedule_error: "automation_schedule_provider_processing" }).eq("id", runId);
-  } else {
-    await supabase.from("social_content_automation_runs").update({ auto_schedule_completed_at: new Date().toISOString(), auto_schedule_error: null }).eq("id", runId);
-  }
+  const { data: runOutputs, error: runOutputsError } = await supabase
+    .from("social_content_automation_outputs")
+    .select("status,schedule_status,schedule_error_code")
+    .eq("run_id", runId);
+  if (runOutputsError) throw new Error("automation_schedule_run_progress_failed");
+  const hasProviderProcessing = (runOutputs ?? []).some((output) => output.status === "ready_to_schedule"
+    && output.schedule_status === "processing"
+    && output.schedule_error_code === UPLOAD_POST_REQUEST_UNCONFIRMED_CODE);
+  const hasRetryableOutputs = (runOutputs ?? []).some((output) => output.status === "ready_to_schedule"
+    && output.schedule_status !== "scheduled"
+    && isScheduleErrorEligible(output.schedule_error_code));
+  const hasScheduleFailures = failed > 0 || (runOutputs ?? []).some((output) => output.status === "ready_to_schedule"
+    && (output.schedule_status === "failed" || output.schedule_status === "partially_scheduled"));
+  const runScheduleError = hasScheduleFailures
+    ? "automation_schedule_partial_failure"
+    : hasProviderProcessing
+      ? "automation_schedule_provider_processing"
+      : null;
+  await supabase.from("social_content_automation_runs").update({
+    auto_schedule_completed_at: hasRetryableOutputs ? null : new Date().toISOString(),
+    auto_schedule_error: runScheduleError,
+  }).eq("id", runId);
   await refreshAutomationRunStatus(runId, { autoSchedule: false });
   return { scheduled, failed, processing: providerProcessing + alreadyProcessing, blocked: false, pending: skipped, skipped };
 }
@@ -1577,11 +1601,12 @@ export async function processAutomationOutput(output: AutomationOutputRecord) {
   }
 }
 
-export async function refreshAutomationRunStatus(runId: string, options: { autoSchedule?: boolean } = {}) {
+export async function refreshAutomationRunStatus(runId: string, _options: { autoSchedule?: boolean } = {}) {
+  void _options;
   const supabase = createSupabaseAdminClient();
   const [{ data, error }, { data: run, error: runError }] = await Promise.all([
     supabase.from("social_content_automation_outputs").select("status").eq("run_id", runId),
-    supabase.from("social_content_automation_runs").select("owner_key,status,auto_schedule_on_success,generation_stopped_at,finished_by_user_at").eq("id", runId).maybeSingle<{ owner_key: string; status: string; auto_schedule_on_success: boolean; generation_stopped_at: string | null; finished_by_user_at: string | null }>(),
+    supabase.from("social_content_automation_runs").select("finished_by_user_at").eq("id", runId).maybeSingle<{ finished_by_user_at: string | null }>(),
   ]);
   if (error) throw new Error("automation_run_status_failed");
   if (runError) throw new Error("automation_run_status_failed");
@@ -1593,10 +1618,8 @@ export async function refreshAutomationRunStatus(runId: string, options: { autoS
   }
   if (statuses.some((status) => status === "ready_to_schedule")) {
     await supabase.from("social_content_automation_runs").update({ status: "ready_to_schedule", completed_at: null }).eq("id", runId).is("finished_by_user_at", null);
-    const allReady = statuses.every((status) => status === "ready_to_schedule" || status === "scheduled");
-    if (options.autoSchedule !== false && allReady && !run.generation_stopped_at && run.owner_key === "social-studio" && run.auto_schedule_on_success) {
-      await scheduleReadyAutomationRun(runId);
-    }
+    // Scheduling is run by the browser in explicit batches so we can enforce
+    // a 90-second cooldown without holding a Vercel request open.
     return;
   }
   // Generation reaching a reviewable state is not the same as the user

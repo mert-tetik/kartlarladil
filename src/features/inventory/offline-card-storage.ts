@@ -4,6 +4,7 @@ import type { GeneratedCardResponse } from "@/features/cards/create-card-schema"
 
 const DATABASE_NAME = "foxiesdeck-offline-v1";
 const DATABASE_VERSION = 1;
+const DATABASE_OPEN_TIMEOUT_MS = 1_500;
 const PROFILE_STORAGE_KEY = "foxiesdeck:offline-profile";
 const LOCALE_STORAGE_KEY = "foxiesdeck:locale";
 const CARD_LANGUAGE_STORAGE_KEY = "foxiesdeck:landing-card-language";
@@ -50,7 +51,24 @@ export interface OfflineGeneratedCardDraftEntry {
 
 function openDatabase() {
   return new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
+    let settled = false;
+    let timeout = 0;
+    const rejectOnce = (error: unknown) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      reject(error);
+    };
+    let request: IDBOpenDBRequest;
+    try {
+      request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
+    } catch (error) {
+      rejectOnce(error);
+      return;
+    }
+    timeout = window.setTimeout(() => {
+      rejectOnce(new Error("offline_database_open_timeout"));
+    }, DATABASE_OPEN_TIMEOUT_MS);
     request.onupgradeneeded = () => {
       const database = request.result;
       if (!database.objectStoreNames.contains("profiles")) {
@@ -70,8 +88,16 @@ function openDatabase() {
         drafts.createIndex("profileId", "profileId");
       }
     };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("offline_database_open_failed"));
+    request.onsuccess = () => {
+      if (settled) {
+        request.result.close();
+        return;
+      }
+      settled = true;
+      window.clearTimeout(timeout);
+      resolve(request.result);
+    };
+    request.onerror = () => rejectOnce(request.error ?? new Error("offline_database_open_failed"));
   });
 }
 
@@ -89,6 +115,86 @@ function snapshotFallbackKey(profileId: string) {
 
 function fallbackRecordsKey(storeName: "notes" | "drafts", profileId: string) {
   return `${DATABASE_NAME}:fallback:${storeName}:${profileId}`;
+}
+
+function dismissedRecordsKey(storeName: "notes" | "drafts", profileId: string) {
+  return `${DATABASE_NAME}:dismissed:${storeName}:${profileId}`;
+}
+
+function readDismissedRecordIds(storeName: "notes" | "drafts", profileId: string) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(dismissedRecordsKey(storeName, profileId)) ?? "[]") as unknown;
+    return new Set(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : []);
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function markRecordDismissed(storeName: "notes" | "drafts", profileId: string, recordId: string) {
+  try {
+    const dismissed = readDismissedRecordIds(storeName, profileId);
+    dismissed.add(recordId);
+    localStorage.setItem(dismissedRecordsKey(storeName, profileId), JSON.stringify([...dismissed]));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function clearDismissedRecordIds(storeName: "notes" | "drafts", profileId: string, recordIds: ReadonlySet<string>) {
+  try {
+    const dismissed = readDismissedRecordIds(storeName, profileId);
+    for (const id of recordIds) dismissed.delete(id);
+    const key = dismissedRecordsKey(storeName, profileId);
+    if (dismissed.size === 0) localStorage.removeItem(key);
+    else localStorage.setItem(key, JSON.stringify([...dismissed]));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function clearFallbackRecords(storeName: "notes" | "drafts", profileId: string, recordIds: ReadonlySet<string>) {
+  try {
+    const key = fallbackRecordsKey(storeName, profileId);
+    if (storeName === "notes") {
+      const remaining = readFallbackNoteEntries(profileId).filter((entry) => !recordIds.has(entry.note.id));
+      localStorage.setItem(key, JSON.stringify(remaining.map((entry) => ({
+        key: `${entry.profileId}:${entry.note.id}`,
+        profileId: entry.profileId,
+        note: entry.note,
+        createdAt: entry.note.createdAt,
+      }))));
+    } else {
+      const remaining = readFallbackDraftEntries(profileId).filter((entry) => !recordIds.has(entry.draft.id));
+      localStorage.setItem(key, JSON.stringify(remaining.map((entry) => ({
+        key: `${entry.profileId}:${entry.draft.id}`,
+        profileId: entry.profileId,
+        draft: entry.draft,
+        createdAt: entry.draft.createdAt,
+      }))));
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function reapDismissedRecords(storeName: "notes" | "drafts", profileId: string, recordIds: ReadonlySet<string>) {
+  if (recordIds.size === 0 || !clearFallbackRecords(storeName, profileId, recordIds)) return;
+  let database: IDBDatabase | null = null;
+  try {
+    database = await openDatabase();
+    const transaction = database.transaction(storeName, "readwrite");
+    const completed = waitForTransaction(transaction);
+    for (const recordId of recordIds) transaction.objectStore(storeName).delete(`${profileId}:${recordId}`);
+    await completed;
+    clearDismissedRecordIds(storeName, profileId, recordIds);
+  } catch {
+    // Tombstones remain in localStorage until both copies can be reaped safely.
+  } finally {
+    database?.close();
+  }
 }
 
 function readFallbackDraftEntries(profileId: string): OfflineGeneratedCardDraftEntry[] {
@@ -151,15 +257,21 @@ async function readOfflineProfileEntries<T>(storeName: "notes" | "drafts", profi
 
 export async function listOfflineSavedNotes(profileId: string): Promise<OfflineSavedNoteEntry[]> {
   let indexedDbEntries: Array<{ profileId?: string; note?: OfflineSavedNote }> = [];
+  let indexedDbReadSucceeded = false;
   try {
     indexedDbEntries = await readOfflineProfileEntries("notes", profileId);
+    indexedDbReadSucceeded = true;
   } catch {
     // A localStorage fallback is maintained by the offline shell when IndexedDB is unavailable.
   }
 
+  const dismissedIds = readDismissedRecordIds("notes", profileId);
+  if (indexedDbReadSucceeded && dismissedIds.size > 0) {
+    void reapDismissedRecords("notes", profileId, dismissedIds);
+  }
   const byId = new Map<string, OfflineSavedNoteEntry>();
   for (const entry of [...indexedDbEntries, ...readFallbackNoteEntries(profileId)]) {
-    if (entry.note?.id && !byId.has(entry.note.id)) {
+    if (entry.note?.id && !dismissedIds.has(entry.note.id) && !byId.has(entry.note.id)) {
       byId.set(entry.note.id, { profileId: entry.profileId ?? profileId, note: entry.note });
     }
   }
@@ -168,14 +280,20 @@ export async function listOfflineSavedNotes(profileId: string): Promise<OfflineS
 
 export async function listOfflineGeneratedDrafts(profileId: string): Promise<OfflineGeneratedCardDraftEntry[]> {
   let indexedDbEntries: Array<{ profileId?: string; draft?: OfflineGeneratedCardDraft }> = [];
+  let indexedDbReadSucceeded = false;
   try {
     indexedDbEntries = await readOfflineProfileEntries("drafts", profileId);
+    indexedDbReadSucceeded = true;
   } catch {
     // A localStorage fallback is used when IndexedDB is unavailable.
   }
+  const dismissedIds = readDismissedRecordIds("drafts", profileId);
+  if (indexedDbReadSucceeded && dismissedIds.size > 0) {
+    void reapDismissedRecords("drafts", profileId, dismissedIds);
+  }
   const byId = new Map<string, OfflineGeneratedCardDraftEntry>();
   for (const entry of [...indexedDbEntries, ...readFallbackDraftEntries(profileId)]) {
-    if (entry.draft?.id && !byId.has(entry.draft.id)) {
+    if (entry.draft?.id && !dismissedIds.has(entry.draft.id) && !byId.has(entry.draft.id)) {
       byId.set(entry.draft.id, { profileId: entry.profileId ?? profileId, draft: entry.draft });
     }
   }
@@ -185,18 +303,9 @@ export async function listOfflineGeneratedDrafts(profileId: string): Promise<Off
 }
 
 export async function removeOfflineSavedNote(profileId: string, noteId: string): Promise<void> {
-  const fallbackKey = fallbackRecordsKey("notes", profileId);
-  let fallbackCleared = true;
-  try {
-    const fallbackEntries = readFallbackNoteEntries(profileId);
-    if (fallbackEntries.some((entry) => entry.note.id === noteId)) {
-      localStorage.setItem(fallbackKey, JSON.stringify(fallbackEntries
-        .filter((entry) => entry.note.id !== noteId)
-        .map((entry) => ({ key: `${entry.profileId}:${entry.note.id}`, profileId: entry.profileId, note: entry.note, createdAt: entry.note.createdAt }))));
-    }
-  } catch {
-    fallbackCleared = false;
-  }
+  const dismissedIds = new Set([noteId]);
+  const tombstoneStored = markRecordDismissed("notes", profileId, noteId);
+  const fallbackCleared = clearFallbackRecords("notes", profileId, dismissedIds);
 
   let indexedDbDeleted = false;
   let indexedDbError: unknown;
@@ -215,12 +324,16 @@ export async function removeOfflineSavedNote(profileId: string, noteId: string):
     indexedDbError = error;
   }
 
-  if (!fallbackCleared || !indexedDbDeleted) {
+  if (indexedDbDeleted && fallbackCleared) {
+    clearDismissedRecordIds("notes", profileId, dismissedIds);
+  }
+  if (!tombstoneStored && (!fallbackCleared || !indexedDbDeleted)) {
     throw indexedDbError ?? new Error("offline_note_delete_failed");
   }
 }
 
 export async function saveOfflineGeneratedDraft(profileId: string, draft: OfflineGeneratedCardDraft): Promise<void> {
+  clearDismissedRecordIds("drafts", profileId, new Set([draft.id]));
   const record = {
     key: `${profileId}:${draft.id}`,
     profileId,
@@ -254,18 +367,9 @@ export async function saveOfflineGeneratedDraft(profileId: string, draft: Offlin
 }
 
 export async function removeOfflineGeneratedDraft(profileId: string, draftId: string): Promise<void> {
-  const fallbackKey = fallbackRecordsKey("drafts", profileId);
-  const fallbackEntries = readFallbackDraftEntries(profileId);
-  const hasFallbackCopy = fallbackEntries.some((entry) => entry.draft.id === draftId);
-  let fallbackCleared = !hasFallbackCopy;
-  if (hasFallbackCopy) {
-    try {
-      localStorage.setItem(fallbackKey, JSON.stringify(fallbackEntries.filter((entry) => entry.draft.id !== draftId)));
-      fallbackCleared = true;
-    } catch {
-      fallbackCleared = false;
-    }
-  }
+  const dismissedIds = new Set([draftId]);
+  const tombstoneStored = markRecordDismissed("drafts", profileId, draftId);
+  const fallbackCleared = clearFallbackRecords("drafts", profileId, dismissedIds);
 
   let indexedDbDeleted = false;
   let indexedDbError: unknown;
@@ -284,7 +388,10 @@ export async function removeOfflineGeneratedDraft(profileId: string, draftId: st
     indexedDbError = error;
   }
 
-  if (!fallbackCleared || (!indexedDbDeleted && !hasFallbackCopy)) {
+  if (indexedDbDeleted && fallbackCleared) {
+    clearDismissedRecordIds("drafts", profileId, dismissedIds);
+  }
+  if (!tombstoneStored && (!fallbackCleared || !indexedDbDeleted)) {
     throw indexedDbError ?? new Error("offline_draft_delete_failed");
   }
 }

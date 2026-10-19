@@ -58,6 +58,7 @@ it("shows a centered, outline-free brand dialog with stacked rounded actions", a
   expect(dialog).toHaveClass("rounded-[28px]", "bg-brand", "text-center");
   expect(dialog).toHaveStyle({ color: "#000000" });
   expect(dialog).not.toHaveClass("border", "outline");
+  expect(dialog.querySelector(".slow-connection-prompt-icon")).toHaveClass("text-white");
   expect(screen.getByRole("heading", { name: "Your internet connection is slow" })).toHaveClass("font-super-water");
   expect(screen.getByText(/Some parts of FoxiesDeck/)).toHaveClass("font-super-water", "text-center");
 
