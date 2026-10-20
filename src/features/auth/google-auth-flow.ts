@@ -13,6 +13,8 @@ export function markGoogleAuthPending() {
 export function clearGoogleAuthPending() {
   if (typeof window === "undefined") return;
 
+  if (window.sessionStorage.getItem(GOOGLE_AUTH_PENDING_STORAGE_KEY) === null) return;
+
   window.sessionStorage.removeItem(GOOGLE_AUTH_PENDING_STORAGE_KEY);
   window.dispatchEvent(new Event(GOOGLE_AUTH_PENDING_EVENT));
 }
@@ -21,6 +23,8 @@ export function getGoogleAuthPendingStartedAt() {
   if (typeof window === "undefined") return null;
 
   const rawValue = window.sessionStorage.getItem(GOOGLE_AUTH_PENDING_STORAGE_KEY);
+  if (rawValue === null) return null;
+
   const startedAt = rawValue ? Number(rawValue) : NaN;
 
   if (!Number.isFinite(startedAt)) {
