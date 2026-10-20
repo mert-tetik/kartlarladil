@@ -127,7 +127,10 @@ export default withPWA({
   customWorkerSrc: "worker",
   disable: process.env.NODE_ENV === "development",
   reloadOnOnline: false,
+  // The root document contains session-dependent auth/profile state. Disabling
+  // only cacheStartUrl still leaves next-pwa's dynamic NetworkFirst route on "/".
   cacheStartUrl: false,
+  dynamicStartUrl: false,
   workboxOptions: {
     // Keep service worker installation small. The rest of the visual catalog
     // is filled by the TWA image cache gate after the app becomes interactive.
