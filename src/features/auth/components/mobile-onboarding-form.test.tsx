@@ -129,4 +129,5 @@ describe("MobileOnboardingForm", () => {
     expect(container.querySelector('input[name="profilePictureIndex"]')).not.toBeInTheDocument();
     expect(container.querySelector('input[name="preferredTier"]')).not.toBeInTheDocument();
   });
+
 });

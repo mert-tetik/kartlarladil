@@ -53,8 +53,13 @@ export function LocaleProvider({
     () => ({
       locale,
       setLocale(nextLocale) {
-        setLocaleState(nextLocale);
         persistLocalePreference(nextLocale);
+
+        if (nextLocale === locale) {
+          return;
+        }
+
+        setLocaleState(nextLocale);
         router.refresh();
       },
       t(key, values) {

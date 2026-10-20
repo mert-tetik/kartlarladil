@@ -85,4 +85,20 @@ describe("LocaleProvider", () => {
     expect(document.cookie).toContain(`${LOCALE_COOKIE_NAME}=de`);
     expect(refreshMock).toHaveBeenCalledTimes(1);
   });
+
+  it("does not refresh the route when the locale is already selected", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <LocaleProvider initialLocale="de">
+        <LocaleProbe />
+      </LocaleProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Set German" }));
+
+    expect(screen.getByTestId("locale")).toHaveTextContent("de");
+    expect(document.cookie).toContain(`${LOCALE_COOKIE_NAME}=de`);
+    expect(refreshMock).not.toHaveBeenCalled();
+  });
 });

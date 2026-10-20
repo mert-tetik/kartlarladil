@@ -15,6 +15,8 @@ const mockCreateSupabaseAdminClient = vi.hoisted(() => vi.fn());
 const mockFrom = vi.hoisted(() => vi.fn());
 const mockUpdate = vi.hoisted(() => vi.fn());
 const mockEq = vi.hoisted(() => vi.fn());
+const mockSelect = vi.hoisted(() => vi.fn());
+const mockMaybeSingle = vi.hoisted(() => vi.fn());
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -206,7 +208,9 @@ describe("updateMobileLoginLanguagePreferencesAction", () => {
       data: { user: { id: "user-1", email: "test@example.com" } },
       error: null,
     });
-    mockEq.mockResolvedValue({ error: null });
+    mockEq.mockReturnValue({ select: mockSelect });
+    mockSelect.mockReturnValue({ maybeSingle: mockMaybeSingle });
+    mockMaybeSingle.mockResolvedValue({ data: { user_id: "user-1" }, error: null });
     mockUpdate.mockReturnValue({ eq: mockEq });
     mockFrom.mockReturnValue({ update: mockUpdate });
   });
@@ -235,6 +239,22 @@ describe("updateMobileLoginLanguagePreferencesAction", () => {
       preferred_ui_locale: "de",
     });
     expect(mockEq).toHaveBeenCalledWith("user_id", "user-1");
+    expect(mockSelect).toHaveBeenCalledWith("user_id");
+    expect(mockMaybeSingle).toHaveBeenCalledOnce();
+  });
+
+  it("does not report success when no profile row was updated", async () => {
+    mockMaybeSingle.mockResolvedValue({ data: null, error: null });
+    const formData = new FormData();
+    formData.set("preferredUiLocale", "de");
+    formData.set("preferredLanguageCode", "ja");
+
+    const result = await updateMobileLoginLanguagePreferencesAction(
+      { status: "idle", message: "" },
+      formData,
+    );
+
+    expect(result.status).toBe("error");
   });
 
   it("rejects matching native and learning languages before touching Supabase", async () => {

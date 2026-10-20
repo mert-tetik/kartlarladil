@@ -613,16 +613,18 @@ export async function updateMobileLoginLanguagePreferencesAction(
     };
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("user_profiles")
     .update({
       preferred_language_code: parsed.data.preferredLanguageCode,
       preferred_ui_locale: parsed.data.preferredUiLocale,
       updated_at: new Date().toISOString(),
     })
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .select("user_id")
+    .maybeSingle();
 
-  if (error) {
+  if (error || !data) {
     return {
       status: "error",
       message: t("auth.message.onboardingSaveFailed"),

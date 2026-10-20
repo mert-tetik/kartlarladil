@@ -123,7 +123,7 @@ export function MobileOnboardingForm({
 
     handledSuccessRef.current = true;
     writeLandingCardLanguage(preferredLanguageCode);
-    setLocale(preferredUiLocale);
+    // The locale was synchronized before submission; refreshing here races with onComplete navigation.
     if (isLoginLanguageRefresh) {
       updateProfileField({ preferredLanguageCode, preferredUiLocale });
     } else {
@@ -189,7 +189,13 @@ export function MobileOnboardingForm({
   }
 
   function advanceLanguageStep() {
-    setStep((current) => (current === "native" ? "learning" : "picture"));
+    if (step === "native") {
+      setLocale(preferredUiLocale);
+      setStep("learning");
+      return;
+    }
+
+    setStep("picture");
   }
 
   function goBack() {
@@ -337,6 +343,7 @@ export function MobileOnboardingForm({
                 <SubmitButton
                   className={cn("h-14 w-full text-base font-bold disabled:opacity-100", actionButtonClass)}
                   pendingLabel={t("auth.onboarding.pending")}
+                  pendingOverride={state.status === "success"}
                 >
                   {t("auth.onboarding.continue")}
                 </SubmitButton>
