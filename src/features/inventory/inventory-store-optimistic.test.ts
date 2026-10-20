@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   mergeCloudInventoryCards,
   reconcileSettledCardMutations,
+  sanitizePersistedInventoryCards,
   useInventoryStore,
 } from "./inventory-store";
 
@@ -13,6 +14,21 @@ describe("inventory optimistic card mutations", () => {
       pendingCardIds: new Set(),
       pendingCardMutations: new Map(),
     });
+  });
+
+  it("drops only temporary offline-preview references from persisted inventory", () => {
+    const durableCard = {
+      cardId: "custom:user-1:card-1",
+      status: "active" as const,
+      correctCount: 2,
+      addedAt: "2026-01-01T00:00:00.000Z",
+    };
+    const offlinePreview = {
+      ...durableCard,
+      cardId: "offline-pending:user-1:draft-12345678",
+    };
+
+    expect(sanitizePersistedInventoryCards([durableCard, offlinePreview, { cardId: 4 }])).toEqual([durableCard]);
   });
 
   it("updates removal immediately and restores the card and attempts on rollback", () => {

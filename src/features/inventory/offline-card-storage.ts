@@ -1,6 +1,6 @@
 import type { LanguageCode, LocaleCode } from "@/types/domain";
 import type { OfflineInventoryEntry } from "@/features/inventory/offline-inventory-snapshot";
-import type { GeneratedCardResponse } from "@/features/cards/create-card-schema";
+import { generatedCardSchema, type GeneratedCardResponse } from "@/features/cards/create-card-schema";
 
 const DATABASE_NAME = "foxiesdeck-offline-v1";
 const DATABASE_VERSION = 1;
@@ -205,18 +205,45 @@ function readFallbackDraftEntries(profileId: string): OfflineGeneratedCardDraftE
     return parsed.flatMap((record): OfflineGeneratedCardDraftEntry[] => {
       if (!record || typeof record !== "object") return [];
       const candidate = record as { profileId?: unknown; draft?: unknown };
-      if (!candidate.draft || typeof candidate.draft !== "object") return [];
-      const draft = candidate.draft as Partial<OfflineGeneratedCardDraft>;
-      if (typeof draft.id !== "string" || !draft.generated) return [];
-
-      return [{
-        profileId: typeof candidate.profileId === "string" ? candidate.profileId : profileId,
-        draft: draft as OfflineGeneratedCardDraft,
-      }];
+      if (candidate.profileId !== undefined && candidate.profileId !== profileId) return [];
+      const draft = parseOfflineGeneratedCardDraft(candidate.draft, profileId);
+      return draft ? [{ profileId, draft }] : [];
     });
   } catch {
     return [];
   }
+}
+
+function parseOfflineGeneratedCardDraft(
+  value: unknown,
+  profileId: string,
+): OfflineGeneratedCardDraft | null {
+  if (!value || typeof value !== "object") return null;
+  const draft = value as Partial<OfflineGeneratedCardDraft>;
+  if (
+    typeof draft.id !== "string" || !/^[a-zA-Z0-9._-]{8,100}$/.test(draft.id) ||
+    typeof draft.noteId !== "string" || draft.noteId.length === 0 || draft.noteId.length > 128 ||
+    typeof draft.sourceProfileId !== "string" || draft.sourceProfileId.length === 0 || draft.sourceProfileId.length > 128 ||
+    draft.storageProfileId !== profileId ||
+    typeof draft.createdAt !== "string" || draft.createdAt.length === 0 || draft.createdAt.length > 64 ||
+    (draft.pendingAdd !== undefined && typeof draft.pendingAdd !== "boolean")
+  ) {
+    return null;
+  }
+
+  const generated = generatedCardSchema.safeParse(draft.generated);
+  if (!generated.success || draft.targetLanguage !== generated.data.language) return null;
+
+  return {
+    id: draft.id,
+    noteId: draft.noteId,
+    sourceProfileId: draft.sourceProfileId,
+    storageProfileId: profileId,
+    targetLanguage: generated.data.language,
+    generated: generated.data,
+    createdAt: draft.createdAt,
+    pendingAdd: draft.pendingAdd === true,
+  };
 }
 
 function readFallbackNoteEntries(profileId: string): OfflineSavedNoteEntry[] {
@@ -279,7 +306,7 @@ export async function listOfflineSavedNotes(profileId: string): Promise<OfflineS
 }
 
 export async function listOfflineGeneratedDrafts(profileId: string): Promise<OfflineGeneratedCardDraftEntry[]> {
-  let indexedDbEntries: Array<{ profileId?: string; draft?: OfflineGeneratedCardDraft }> = [];
+  let indexedDbEntries: unknown[] = [];
   let indexedDbReadSucceeded = false;
   try {
     indexedDbEntries = await readOfflineProfileEntries("drafts", profileId);
@@ -292,14 +319,16 @@ export async function listOfflineGeneratedDrafts(profileId: string): Promise<Off
     void reapDismissedRecords("drafts", profileId, dismissedIds);
   }
   const byId = new Map<string, OfflineGeneratedCardDraftEntry>();
-  for (const entry of [...indexedDbEntries, ...readFallbackDraftEntries(profileId)]) {
-    if (entry.draft?.id && !dismissedIds.has(entry.draft.id) && !byId.has(entry.draft.id)) {
-      byId.set(entry.draft.id, { profileId: entry.profileId ?? profileId, draft: entry.draft });
+  for (const value of [...indexedDbEntries, ...readFallbackDraftEntries(profileId)]) {
+    if (!value || typeof value !== "object") continue;
+    const entry = value as { profileId?: unknown; draft?: unknown };
+    if (entry.profileId !== profileId) continue;
+    const draft = parseOfflineGeneratedCardDraft(entry.draft, profileId);
+    if (draft && !dismissedIds.has(draft.id) && !byId.has(draft.id)) {
+      byId.set(draft.id, { profileId, draft });
     }
   }
-  return [...byId.values()].flatMap((entry) => entry.draft?.id
-    ? [{ profileId: entry.profileId ?? profileId, draft: entry.draft }]
-    : []);
+  return [...byId.values()];
 }
 
 export async function removeOfflineSavedNote(profileId: string, noteId: string): Promise<void> {
@@ -333,12 +362,14 @@ export async function removeOfflineSavedNote(profileId: string, noteId: string):
 }
 
 export async function saveOfflineGeneratedDraft(profileId: string, draft: OfflineGeneratedCardDraft): Promise<void> {
-  clearDismissedRecordIds("drafts", profileId, new Set([draft.id]));
+  const validatedDraft = parseOfflineGeneratedCardDraft(draft, profileId);
+  if (!validatedDraft) throw new Error("offline_generated_card_draft_invalid");
+  clearDismissedRecordIds("drafts", profileId, new Set([validatedDraft.id]));
   const record = {
-    key: `${profileId}:${draft.id}`,
+    key: `${profileId}:${validatedDraft.id}`,
     profileId,
-    draft,
-    createdAt: draft.createdAt,
+    draft: validatedDraft,
+    createdAt: validatedDraft.createdAt,
   };
   let database: IDBDatabase | null = null;
   try {
@@ -349,14 +380,14 @@ export async function saveOfflineGeneratedDraft(profileId: string, draft: Offlin
     await completed;
     try {
       localStorage.setItem(fallbackRecordsKey("drafts", profileId), JSON.stringify(
-        readFallbackDraftEntries(profileId).filter((entry) => entry.draft.id !== draft.id),
+        readFallbackDraftEntries(profileId).filter((entry) => entry.draft.id !== validatedDraft.id),
       ));
     } catch {
       // IndexedDB is already committed; a stale fallback is harmless.
     }
   } catch (indexedDbError) {
     try {
-      const existing = readFallbackDraftEntries(profileId).filter((entry) => entry.draft.id !== draft.id);
+      const existing = readFallbackDraftEntries(profileId).filter((entry) => entry.draft.id !== validatedDraft.id);
       localStorage.setItem(fallbackRecordsKey("drafts", profileId), JSON.stringify([...existing, record]));
     } catch (fallbackError) {
       throw fallbackError instanceof Error ? fallbackError : indexedDbError;

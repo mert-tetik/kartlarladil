@@ -124,6 +124,32 @@ interface InventoryState {
   registerPendingCustomCard: (card: VocabularyCard) => void;
 }
 
+const OFFLINE_PENDING_CARD_PREFIX = "offline-pending:";
+
+/**
+ * Offline-note previews are reconstructible from their durable IndexedDB draft.
+ * Never let their temporary IDs become durable inventory references: a reload
+ * clears the in-memory custom-card registry, so those references cannot resolve
+ * until the offline queue has been rehydrated.
+ */
+export function sanitizePersistedInventoryCards(value: unknown): InventoryCard[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.filter((candidate): candidate is InventoryCard => {
+    if (!candidate || typeof candidate !== "object") return false;
+    const card = candidate as Partial<InventoryCard>;
+    return typeof card.cardId === "string" &&
+      card.cardId.length > 0 &&
+      card.cardId.length <= 512 &&
+      !card.cardId.startsWith(OFFLINE_PENDING_CARD_PREFIX) &&
+      (card.status === "active" || card.status === "learned") &&
+      Number.isSafeInteger(card.correctCount) &&
+      (card.correctCount ?? -1) >= 0 &&
+      typeof card.addedAt === "string" &&
+      (card.learnedAt === undefined || typeof card.learnedAt === "string");
+  });
+}
+
 export const useInventoryStore = create<InventoryState>()(
   persist(
     (set, get) => ({
@@ -888,12 +914,6 @@ export const useInventoryStore = create<InventoryState>()(
             ? await createCustomCardThroughOfflineRoute(input)
             : await createCustomCardAction(request);
         } catch (error) {
-          if (input.idempotencyKey && optimisticCardId) {
-            removePendingCardId(set, optimisticCardId);
-            set({ cloudLoading: get().pendingCardIds.size > 0, cloudError: "" });
-            throw error;
-          }
-
           if (optimisticCardId) {
             customCardRegistry.unregister(optimisticCardId);
             removePendingCardId(set, optimisticCardId);
@@ -910,19 +930,13 @@ export const useInventoryStore = create<InventoryState>()(
 
         if (result.status === "error" || !result.data) {
           const message = getCloudActionErrorMessage(result);
-          if (input.idempotencyKey && optimisticCardId && result.errorCode !== "free_active_card_limit") {
-            removePendingCardId(set, optimisticCardId);
-            set({ cloudLoading: get().pendingCardIds.size > 0, cloudError: "" });
-            throw new InventoryActionError(message, result.errorCode);
-          }
-
           if (optimisticCardId) {
             customCardRegistry.unregister(optimisticCardId);
             removePendingCardId(set, optimisticCardId);
             set({
               cards: get().cards.filter((card) => card.cardId !== optimisticCardId),
-              cloudLoading: false,
-              cloudError: message,
+              cloudLoading: get().pendingCardIds.size > 0,
+              cloudError: input.idempotencyKey ? "" : message,
             });
           } else {
             set({ cloudLoading: false, cloudError: message });
@@ -973,10 +987,21 @@ export const useInventoryStore = create<InventoryState>()(
       name: STORAGE_KEY,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        cards: state.cards,
+        cards: sanitizePersistedInventoryCards(state.cards),
         attempts: state.attempts,
         ownerUserId: state.ownerUserId,
       }),
+      merge: (persistedState, currentState) => {
+        if (!persistedState || typeof persistedState !== "object") return currentState;
+        const persisted = persistedState as Partial<InventoryState>;
+        return {
+          ...currentState,
+          ...persisted,
+          cards: Array.isArray(persisted.cards)
+            ? sanitizePersistedInventoryCards(persisted.cards)
+            : currentState.cards,
+        };
+      },
       onRehydrateStorage: () => (state) => {
         state?.setHydrated(true);
       },

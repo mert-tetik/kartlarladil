@@ -4,12 +4,13 @@ import {
   listOfflineSavedNotes,
   removeOfflineGeneratedDraft,
   removeOfflineSavedNote,
+  saveOfflineGeneratedDraft,
 } from "@/features/inventory/offline-card-storage";
 
 describe("offline note and generated-card removal", () => {
   beforeEach(() => {
     localStorage.clear();
-    vi.stubGlobal("indexedDB", { open: vi.fn(() => ({})) });
+    vi.stubGlobal("indexedDB", { open: vi.fn(() => { throw new Error("indexeddb_unavailable"); }) });
   });
 
   afterEach(() => {
@@ -39,5 +40,39 @@ describe("offline note and generated-card removal", () => {
 
     await expect(listOfflineSavedNotes("guest")).resolves.toEqual([]);
     expect(JSON.parse(localStorage.getItem("foxiesdeck-offline-v1:fallback:notes:guest") ?? "[]")).toEqual([]);
+  });
+
+  it("ignores a malformed stored draft without deleting the user's offline record", async () => {
+    const key = "foxiesdeck-offline-v1:fallback:drafts:guest";
+    const storedRecord = JSON.stringify([{
+      key: "guest:draft-12345678",
+      profileId: "guest",
+      draft: {
+        id: "draft-12345678",
+        noteId: "note-12345678",
+        sourceProfileId: "guest",
+        storageProfileId: "guest",
+        targetLanguage: "en",
+        generated: { term: "malformed offline card" },
+        createdAt: "2026-10-20T00:00:00.000Z",
+        pendingAdd: true,
+      },
+    }]);
+    localStorage.setItem(key, storedRecord);
+
+    await expect(listOfflineGeneratedDrafts("guest")).resolves.toEqual([]);
+    expect(localStorage.getItem(key)).toBe(storedRecord);
+  });
+
+  it("refuses to persist a draft that fails the generated-card schema", async () => {
+    await expect(saveOfflineGeneratedDraft("guest", {
+      id: "draft-12345678",
+      noteId: "note-12345678",
+      sourceProfileId: "guest",
+      storageProfileId: "guest",
+      targetLanguage: "en",
+      generated: { term: "malformed offline card" } as never,
+      createdAt: "2026-10-20T00:00:00.000Z",
+    })).rejects.toThrow("offline_generated_card_draft_invalid");
   });
 });

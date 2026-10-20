@@ -535,7 +535,7 @@ describe("inventory store analytics", () => {
     expect(localCardRepository.findById(optimisticCard.sourceKey)).toEqual(optimisticCard);
   });
 
-  it("keeps an optimistic offline card and clears loading after a network failure", async () => {
+  it("rolls back the temporary offline card after a network failure while retaining retry safety", async () => {
     const optimisticCard: VocabularyCard = {
       ...testCard,
       id: "offline-pending:guest:draft-87654321",
@@ -572,12 +572,51 @@ describe("inventory store analytics", () => {
     ]);
     await expect(creation).rejects.toThrow("Failed to fetch");
 
-    expect(useInventoryStore.getState().cards).toEqual([
-      expect.objectContaining({ cardId: optimisticCard.sourceKey, status: "active" }),
-    ]);
+    expect(useInventoryStore.getState().cards).toEqual([]);
     expect(useInventoryStore.getState().pendingCardIds.has(optimisticCard.sourceKey)).toBe(false);
     expect(useInventoryStore.getState().cloudLoading).toBe(false);
-    expect(localCardRepository.findById(optimisticCard.sourceKey)).toEqual(optimisticCard);
+    expect(localCardRepository.findById(optimisticCard.sourceKey)).toBeUndefined();
+  });
+
+  it("removes the temporary card when the offline-create API rejects the draft", async () => {
+    const optimisticCard: VocabularyCard = {
+      ...testCard,
+      id: "offline-pending:guest:draft-rejected-123",
+      sourceKey: "offline-pending:guest:draft-rejected-123",
+    };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ status: "error", message: "Invalid offline card" }),
+    }));
+
+    const creation = useInventoryStore.getState().createCustomCard({
+      language: testCard.language,
+      tier: testCard.tier,
+      termKind: testCard.termKind,
+      idempotencyKey: "draft-rejected-123",
+      optimisticCard,
+      draft: {
+        term: testCard.term,
+        partOfSpeech: testCard.partOfSpeech,
+        pronunciation: testCard.pronunciation,
+        translations: testCard.translations,
+        examples: testCard.examples.map((example) => ({
+          example: example.sentence,
+          translation: example.translation,
+        })),
+        definitions: Object.fromEntries(LOCALE_CODES.map((locale) => [
+          locale,
+          testCard.definitionsByLocale?.[locale] ?? "A test definition.",
+        ])),
+        grammar: testCard.grammar.rules,
+        termKind: testCard.termKind,
+      },
+    });
+
+    await expect(creation).rejects.toMatchObject({ name: "InventoryActionError" });
+    expect(useInventoryStore.getState().cards).toEqual([]);
+    expect(useInventoryStore.getState().cloudLoading).toBe(false);
+    expect(localCardRepository.findById(optimisticCard.sourceKey)).toBeUndefined();
   });
 });
 

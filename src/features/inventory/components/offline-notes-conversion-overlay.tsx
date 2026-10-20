@@ -170,6 +170,12 @@ function buildPendingOfflineVocabularyCard(entry: DraftEntry) {
   return { ...preview, id: sourceKey, sourceKey };
 }
 
+function isTransientCardAddFailure(error: unknown) {
+  if (error instanceof TypeError) return true;
+  if (!error || typeof error !== "object" || !("name" in error)) return false;
+  return ["AbortError", "NetworkError", "TimeoutError"].includes(String(error.name));
+}
+
 export function OfflineNotesConversionOverlay() {
   return (
     <Suspense fallback={null}>
@@ -598,10 +604,16 @@ function OfflineNotesConversionOverlayContent() {
   }, [discardLocalConversionData]);
 
   useEffect(() => {
-    if (!autoCloseAfterDeckAddRef.current || drafts.length > 0 || conversionBusy) return;
+    if (
+      !autoCloseAfterDeckAddRef.current ||
+      drafts.length > 0 ||
+      conversionBusy ||
+      draftAddInFlightRef.current ||
+      draftAddQueueRef.current.size > 0
+    ) return;
     autoCloseAfterDeckAddRef.current = false;
     closeOverlay();
-  }, [closeOverlay, conversionBusy, drafts.length]);
+  }, [closeOverlay, conversionBusy, drafts.length, pendingDraftIds.size]);
 
   useEffect(() => {
     if (!isAvailable || phase === "closed") return;
@@ -677,23 +689,87 @@ function OfflineNotesConversionOverlayContent() {
     return persistence;
   }
 
+  async function restoreDraftAfterRejectedAdd(entry: DraftEntry) {
+    const restoredEntry: DraftEntry = {
+      ...entry,
+      draft: { ...entry.draft, pendingAdd: false },
+    };
+    try {
+      await saveOfflineGeneratedDraft(entry.profileId, restoredEntry.draft);
+    } catch (error) {
+      console.warn("[FoxiesDeck offline] Could not persist the card-add recovery state.", {
+        errorCode: error instanceof Error ? error.message : "unknown_error",
+      });
+    }
+
+    draftAddQueueRef.current.delete(entry.draft.id);
+    setPendingDraftIds((current) => {
+      const next = new Set(current);
+      next.delete(entry.draft.id);
+      return next;
+    });
+    setDrafts((current) => current.some((candidate) => candidate.draft.id === entry.draft.id)
+      ? current
+      : [...current, restoredEntry]);
+    autoCloseAfterDeckAddRef.current = false;
+    if (!dismissedRef.current) {
+      setPhase((current) => current === "closed" ? "opening" : current);
+    }
+
+    const cardIds = useInventoryStore.getState().cards;
+    const restoredTermKeys = createDeckCardTermIndex(cardIds);
+    for (const queued of draftAddQueueRef.current.values()) {
+      restoredTermKeys.add(getGeneratedCardTermKey(queued.draft.generated));
+    }
+    setLocallyAddedCards({ ownerId: currentOwnerId, termKeys: restoredTermKeys });
+  }
+
   async function flushDraftAddQueue() {
     if (draftAddInFlightRef.current || blockedByCardLimitRef.current || !navigator.onLine || draftAddQueueRef.current.size === 0) return;
     draftAddInFlightRef.current = true;
     let addedCount = 0;
+    let restoredAfterFailure = false;
 
     try {
-      if (!(await isApplicationReachable())) return;
+      if (!(await isApplicationReachable())) {
+        if (autoCloseAfterDeckAddRef.current) {
+          autoCloseAfterDeckAddRef.current = false;
+          closeOverlay();
+        }
+        return;
+      }
 
       for (const [draftId, entry] of [...draftAddQueueRef.current.entries()]) {
-        await draftPersistenceRef.current.get(draftId);
-        const result = await addDraftToDeck(entry);
-        if (result === "limit") {
-          showActiveCardLimit(addedCount, draftAddQueueRef.current.size);
+        let result: "added" | "limit";
+        try {
+          await draftPersistenceRef.current.get(draftId);
+          result = await addDraftToDeck(entry);
+        } catch (error) {
+          if (!isTransientCardAddFailure(error)) {
+            await restoreDraftAfterRejectedAdd(entry);
+            restoredAfterFailure = true;
+          } else if (autoCloseAfterDeckAddRef.current) {
+            autoCloseAfterDeckAddRef.current = false;
+            closeOverlay();
+          }
           break;
         }
 
-        await removeOfflineGeneratedDraft(entry.profileId, draftId);
+        if (result === "limit") {
+          const skippedCount = draftAddQueueRef.current.size;
+          await restoreDraftAfterRejectedAdd(entry);
+          restoredAfterFailure = true;
+          showActiveCardLimit(addedCount, skippedCount);
+          break;
+        }
+
+        try {
+          await removeOfflineGeneratedDraft(entry.profileId, draftId);
+        } catch {
+          // The server may already have committed the idempotent add. Keep the
+          // durable queue record so a retry can safely confirm that result.
+          break;
+        }
         draftAddQueueRef.current.delete(draftId);
         setPendingDraftIds((current) => {
           const next = new Set(current);
@@ -704,7 +780,8 @@ function OfflineNotesConversionOverlayContent() {
         addedCount += 1;
       }
     } catch {
-      // Keep the draft in IndexedDB. The online/focus retry loop will try again.
+      // Network availability can change independently after the probe; keep
+      // the idempotent draft queued for the next online/focus retry.
     } finally {
       draftAddInFlightRef.current = false;
     }
@@ -715,7 +792,11 @@ function OfflineNotesConversionOverlayContent() {
         "success",
       );
     }
-    if (draftAddQueueRef.current.size === 0 && notes.length === 0) closeOverlay();
+    if (draftAddQueueRef.current.size > 0 && autoCloseAfterDeckAddRef.current) {
+      autoCloseAfterDeckAddRef.current = false;
+      closeOverlay();
+    }
+    if (!restoredAfterFailure && draftAddQueueRef.current.size === 0 && notes.length === 0) closeOverlay();
   }
 
   useEffect(() => {
