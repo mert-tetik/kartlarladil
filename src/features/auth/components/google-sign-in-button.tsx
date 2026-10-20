@@ -17,6 +17,13 @@ interface GoogleSignInButtonProps {
 
 const MOBILE_LOGIN_TUTORIAL_RESET_KEY = "foxiesdeck:mobile-login-tutorial-reset-requested";
 
+export function setNativeTwaFormField(form: HTMLFormElement, nativeBridge: unknown) {
+  const nativeTwaField = form.elements.namedItem("nativeTwa");
+  if (nativeTwaField instanceof HTMLInputElement) {
+    nativeTwaField.value = nativeBridge ? "1" : "0";
+  }
+}
+
 export function GoogleSignInButton({ nextPath, label, showConsent = true }: GoogleSignInButtonProps) {
   const [state, formAction, isPending] = useActionState(signInWithGoogleAction, AUTH_ACTION_IDLE_STATE);
   const t = useT();
@@ -31,7 +38,9 @@ export function GoogleSignInButton({ nextPath, label, showConsent = true }: Goog
     <form
       action={formAction}
       className="w-full"
-      onSubmit={() => {
+      onSubmit={(event) => {
+        setNativeTwaFormField(event.currentTarget, window.FoxiesDeckNativeBilling);
+
         if (typeof window !== "undefined" && window.innerWidth < 1024) {
           markGoogleAuthPending();
 
@@ -42,6 +51,7 @@ export function GoogleSignInButton({ nextPath, label, showConsent = true }: Goog
       }}
     >
       <input type="hidden" name="next" value={nextPath} />
+      <input type="hidden" name="nativeTwa" defaultValue="0" />
       <FormMessage state={state} />
       <Button
         type="submit"

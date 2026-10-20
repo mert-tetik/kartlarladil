@@ -1,5 +1,6 @@
 import {
   deleteAccountAction,
+  signInWithGoogleAction,
   updateLanguagePreferenceAction,
   updateMobileLoginLanguagePreferencesAction,
 } from "@/features/auth/actions";
@@ -9,6 +10,7 @@ import { vi } from "vitest";
 const mockGetUser = vi.hoisted(() => vi.fn());
 const mockDeleteUser = vi.hoisted(() => vi.fn());
 const mockGetUserEntitlements = vi.hoisted(() => vi.fn());
+const mockSignInWithOAuth = vi.hoisted(() => vi.fn());
 const mockCreateSupabaseAdminClient = vi.hoisted(() => vi.fn());
 const mockFrom = vi.hoisted(() => vi.fn());
 const mockUpdate = vi.hoisted(() => vi.fn());
@@ -37,6 +39,7 @@ vi.mock("@/lib/supabase/server", () => ({
     Promise.resolve({
       auth: {
         getUser: mockGetUser,
+        signInWithOAuth: mockSignInWithOAuth,
         signOut: vi.fn(),
       },
       from: mockFrom,
@@ -51,6 +54,52 @@ vi.mock("@/lib/supabase/admin", () => ({
 vi.mock("@/features/subscriptions/subscription-service", () => ({
   getUserEntitlements: mockGetUserEntitlements,
 }));
+
+vi.mock("@/features/auth/auth-session", () => ({
+  ensureUserProfile: vi.fn(),
+  getRequestOrigin: vi.fn(() => Promise.resolve("https://www.foxiesdeck.com")),
+}));
+
+describe("signInWithGoogleAction", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockSignInWithOAuth.mockResolvedValue({
+      data: { url: "https://accounts.google.com/o/oauth2/auth" },
+      error: null,
+    });
+  });
+
+  it("marks native app OAuth callbacks for a safe WebView PKCE handoff", async () => {
+    const formData = new FormData();
+    formData.set("next", "/?mobileLanguageRefresh=1&showOffer=1");
+    formData.set("nativeTwa", "1");
+
+    await expect(signInWithGoogleAction({ status: "idle", message: "" }, formData))
+      .rejects.toThrow("NEXT_REDIRECT:https://accounts.google.com/o/oauth2/auth");
+
+    expect(mockSignInWithOAuth).toHaveBeenCalledWith(expect.objectContaining({
+      provider: "google",
+      options: expect.objectContaining({
+        redirectTo: "https://www.foxiesdeck.com/auth/callback?next=%2F%3FmobileLanguageRefresh%3D1%26showOffer%3D1&native=1",
+      }),
+    }));
+  });
+
+  it("does not add the native callback marker for ordinary browser login", async () => {
+    const formData = new FormData();
+    formData.set("next", "/card-draw");
+    formData.set("nativeTwa", "0");
+
+    await expect(signInWithGoogleAction({ status: "idle", message: "" }, formData))
+      .rejects.toThrow("NEXT_REDIRECT:https://accounts.google.com/o/oauth2/auth");
+
+    expect(mockSignInWithOAuth).toHaveBeenCalledWith(expect.objectContaining({
+      options: expect.objectContaining({
+        redirectTo: "https://www.foxiesdeck.com/auth/callback?next=%2Fcard-draw",
+      }),
+    }));
+  });
+});
 
 function makeDeleteFormData() {
   const formData = new FormData();

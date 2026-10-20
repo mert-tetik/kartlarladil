@@ -18,6 +18,7 @@ import {
 } from "@/features/auth/auth-schemas";
 import { DEFAULT_AUTH_REDIRECT, getSafeNextPath } from "@/features/auth/auth-redirects";
 import { ensureUserProfile, getRequestOrigin } from "@/features/auth/auth-session";
+import { getGoogleOAuthRedirectTo } from "@/features/auth/google-oauth-redirects";
 import { recordAppLogin } from "@/features/auth/login-events";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
@@ -407,12 +408,13 @@ export async function signInWithGoogleAction(
   }
 
   const nextPath = getSafeNextPath(getFormString(formData, "next"), DEFAULT_AUTH_REDIRECT);
+  const nativeTwa = getFormString(formData, "nativeTwa") === "1";
   const origin = await getRequestOrigin();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+      redirectTo: getGoogleOAuthRedirectTo(origin, nextPath, nativeTwa),
       queryParams: {
         access_type: "offline",
         prompt: "consent",

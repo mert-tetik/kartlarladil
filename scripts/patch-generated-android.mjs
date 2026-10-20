@@ -222,6 +222,12 @@ const HYBRID_MANIFEST = ({ packageName }) => `<?xml version="1.0" encoding="utf-
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="@string/hostName" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="foxiesdeck" android:host="auth" android:path="/callback" />
+            </intent-filter>
         </activity>
 
         <activity

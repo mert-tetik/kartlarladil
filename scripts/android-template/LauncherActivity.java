@@ -347,7 +347,9 @@ public class LauncherActivity extends Activity {
 
     private void loadStartUrl(Intent intent) {
         Uri requested = intent == null ? null : intent.getData();
-        Uri base = requested != null && isAppUrl(requested)
+        Uri base = requested != null && isNativeAuthCallbackUrl(requested)
+                ? toWebAuthCallbackUrl(requested)
+                : requested != null && isAppUrl(requested)
                 ? requested
                 : Uri.parse(getString(R.string.launchUrl));
         Uri launch = base.buildUpon()
@@ -396,9 +398,37 @@ public class LauncherActivity extends Activity {
             pendingLaunchIntent = intent;
             return;
         }
-        if (intent != null && intent.getData() != null && isAppUrl(intent.getData())) {
+        if (intent != null
+                && intent.getData() != null
+                && (isAppUrl(intent.getData()) || isNativeAuthCallbackUrl(intent.getData()))) {
             loadStartUrl(intent);
         }
+    }
+
+    private static boolean isNativeAuthCallbackUrl(Uri uri) {
+        return uri != null
+                && "foxiesdeck".equalsIgnoreCase(uri.getScheme())
+                && "auth".equalsIgnoreCase(uri.getHost())
+                && "/callback".equals(uri.getPath());
+    }
+
+    private static Uri toWebAuthCallbackUrl(Uri nativeCallback) {
+        Uri.Builder webCallback = new Uri.Builder()
+                .scheme("https")
+                .authority("www.foxiesdeck.com")
+                .path("/auth/callback")
+                .appendQueryParameter("nativeHandoff", "1");
+        String[] allowedParameters = {
+                "code", "next", "error", "error_code", "error_description"
+        };
+
+        for (String parameter : allowedParameters) {
+            for (String value : nativeCallback.getQueryParameters(parameter)) {
+                webCallback.appendQueryParameter(parameter, value);
+            }
+        }
+
+        return webCallback.build();
     }
 
     @Override

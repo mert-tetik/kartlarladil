@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { DEFAULT_AUTH_REDIRECT, getSafeNextPath } from "@/features/auth/auth-redirects";
 import { ensureUserProfile } from "@/features/auth/auth-session";
+import {
+  getNativeGoogleAuthHandoffUrl,
+  isPkceCodeVerifierError,
+} from "@/features/auth/google-oauth-redirects";
 import { recordAppLogin } from "@/features/auth/login-events";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
@@ -14,6 +18,8 @@ export async function GET(request: NextRequest) {
   const origin = requestUrl.origin;
   const code = requestUrl.searchParams.get("code");
   const nextPath = getSafeNextPath(requestUrl.searchParams.get("next"), DEFAULT_AUTH_REDIRECT);
+  const isNativeGoogleAuth = requestUrl.searchParams.get("native") === "1";
+  const hasAttemptedNativeHandoff = requestUrl.searchParams.get("nativeHandoff") === "1";
   const t = createTranslator(await getServerLocale());
 
   if (!hasSupabaseBrowserConfig()) {
@@ -31,10 +37,17 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    const isPasswordRecoveryVerifierError =
-      error.code === "pkce_code_verifier_not_found" ||
-      error.message.toLowerCase().includes("code verifier");
-    const fallbackPath = isPasswordRecoveryVerifierError ? "/reset-password" : "/login";
+    if (isNativeGoogleAuth && code && isPkceCodeVerifierError(error)) {
+      if (!hasAttemptedNativeHandoff) {
+        return NextResponse.redirect(getNativeGoogleAuthHandoffUrl(code, nextPath));
+      }
+
+      return NextResponse.redirect(
+        `${origin}/login?message=${encodeURIComponent(error.message)}`,
+      );
+    }
+
+    const fallbackPath = isPkceCodeVerifierError(error) ? "/reset-password" : "/login";
     return NextResponse.redirect(`${origin}${fallbackPath}?message=${encodeURIComponent(error.message)}`);
   }
 
