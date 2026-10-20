@@ -13,6 +13,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 
 import { publishWithUploadPost } from "./upload-post-publishing";
+import { UPLOAD_POST_REQUEST_NOT_FOUND_GRACE_MS } from "./upload-post-schedule-constants";
 
 const account = {
   id: 12,
@@ -157,6 +158,86 @@ describe("Upload-Post asynchronous scheduling recovery", () => {
     expect(postedHeaders[0]?.get("Idempotency-Key")).not.toBe("automation-output-12");
     expect(postedHeaders[0]?.get("Idempotency-Key")).not.toBe(postedForms[0]?.get("request_id"));
     expect(fetchMock.mock.calls.some(([, init]) => init?.method === "POST")).toBe(true);
+  });
+
+  it("rotates the request and idempotency keys when all provider lookups confirm the request is missing", async () => {
+    const postedForms: FormData[] = [];
+    const postedHeaders: Headers[] = [];
+    const persistedRotations: Array<{ requestId: string; idempotencyKey: string }> = [];
+    const checkedRequestIds: string[] = [];
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith("/schedule")) return jsonResponse({ scheduled_posts: [], total: 0 });
+      if (url.pathname.endsWith("/history")) return jsonResponse({ history: [], in_progress: [], total: 0 });
+      if (url.pathname.endsWith("/status")) {
+        const requestId = url.searchParams.get("request_id") ?? "";
+        checkedRequestIds.push(requestId);
+        return jsonResponse({ request_id: requestId, status: "not_found" }, 404);
+      }
+
+      postedForms.push(init?.body as FormData);
+      postedHeaders.push(new Headers(init?.headers));
+      return jsonResponse({ success: true, request_id: "fresh-provider-request", job_id: "job-recovered" }, 202);
+    });
+
+    const result = await publishWithUploadPost(scheduledInput({
+      reconcileExistingSchedule: true,
+      reconcileRequestIds: ["automation-output-12", "provider-request-12"],
+      requestStartedAt: new Date(Date.now() - UPLOAD_POST_REQUEST_NOT_FOUND_GRACE_MS - 1_000).toISOString(),
+      onRequestRotation: async (request) => { persistedRotations.push(request); },
+    }));
+
+    expect(result).toMatchObject({ jobId: "job-recovered", pending: false });
+    expect(checkedRequestIds).toEqual(["automation-output-12", "provider-request-12"]);
+    expect(persistedRotations).toHaveLength(1);
+    expect(postedForms).toHaveLength(1);
+    expect(postedForms[0]?.get("request_id")).toBe(persistedRotations[0]?.requestId);
+    expect(postedHeaders[0]?.get("Idempotency-Key")).toBe(persistedRotations[0]?.idempotencyKey);
+    expect(postedForms[0]?.get("request_id")).not.toBe("automation-output-12");
+    expect(postedHeaders[0]?.get("Idempotency-Key")).not.toBe("automation-output-12");
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === "POST")).toBe(true);
+  });
+
+  it("keeps the same request during the provider not-found grace period", async () => {
+    const persistedRotations: Array<{ requestId: string; idempotencyKey: string }> = [];
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith("/schedule")) return jsonResponse({ scheduled_posts: [], total: 0 });
+      if (url.pathname.endsWith("/history")) return jsonResponse({ history: [], in_progress: [], total: 0 });
+      return jsonResponse({ request_id: "provider-request-12", status: "not_found" }, 404);
+    });
+
+    const result = await publishWithUploadPost(scheduledInput({
+      reconcileExistingSchedule: true,
+      reconcileRequestIds: ["automation-output-12", "provider-request-12"],
+      requestId: "provider-request-12",
+      requestStartedAt: new Date(Date.now() - 30_000).toISOString(),
+      onRequestRotation: async (request) => { persistedRotations.push(request); },
+    }));
+
+    expect(result).toMatchObject({ requestId: "provider-request-12", pending: true, jobId: null });
+    expect(persistedRotations).toHaveLength(0);
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
+  });
+
+  it("stops after one fresh request is still absent and marks it for manual review", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith("/schedule")) return jsonResponse({ scheduled_posts: [], total: 0 });
+      if (url.pathname.endsWith("/history")) return jsonResponse({ history: [], in_progress: [], total: 0 });
+      return jsonResponse({ request_id: "fresh-provider-request", status: "not_found" }, 404);
+    });
+
+    const result = await publishWithUploadPost(scheduledInput({
+      reconcileExistingSchedule: true,
+      reconcileRequestIds: ["fresh-provider-request"],
+      requestId: "fresh-provider-request",
+      requestStartedAt: new Date(Date.now() - UPLOAD_POST_REQUEST_NOT_FOUND_GRACE_MS - 1_000).toISOString(),
+      requestRecoveryAttemptCount: 1,
+    }));
+
+    expect(result).toMatchObject({ requestId: "fresh-provider-request", pending: true, manualReviewRequired: true, jobId: null });
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
   });
 
   it("does not resubmit a request while a platform reports retryable", async () => {

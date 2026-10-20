@@ -5,6 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { Wifi } from "lucide-react";
 import { useLocale } from "@/i18n/locale-provider";
+import { SlowConnectionMonitorErrorBoundary } from "@/components/slow-connection-monitor-error-boundary";
+import {
+  logSlowConnectionMonitorError,
+  logSlowConnectionMonitorWarning,
+} from "@/components/slow-connection-monitor-logger";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { useTheme } from "@/components/theme-provider";
 import { getAccessibleForeground } from "@/lib/color-contrast";
@@ -37,18 +42,88 @@ const RECENT_RESOURCE_WINDOW_MS = 60_000;
 const MAX_SEEN_RESOURCE_ENTRIES = 512;
 const PROMPT_DISMISSAL_KEY = "foxiesdeck:slow-connection-prompt-dismissed-until:v1";
 
-function getNetworkInformation() {
-  const browserNavigator = navigator as NavigatorWithNetworkInformation;
-  return browserNavigator.connection ?? browserNavigator.mozConnection ?? browserNavigator.webkitConnection;
+function getNetworkInformation(): NetworkInformationLike | null {
+  try {
+    const browserNavigator = navigator as NavigatorWithNetworkInformation;
+    return browserNavigator.connection ?? browserNavigator.mozConnection ?? browserNavigator.webkitConnection ?? null;
+  } catch (error) {
+    logSlowConnectionMonitorError("could not read the browser network estimate", error);
+    return null;
+  }
 }
 
-function isOfflineRoute(pathname: string) {
+function getOnlineStatus(): boolean | null {
+  try {
+    return typeof navigator.onLine === "boolean" ? navigator.onLine : null;
+  } catch (error) {
+    logSlowConnectionMonitorError("could not read navigator.onLine", error);
+    return null;
+  }
+}
+
+function getVisibilityState(): DocumentVisibilityState | null {
+  try {
+    return typeof document.visibilityState === "string" ? document.visibilityState : null;
+  } catch (error) {
+    logSlowConnectionMonitorError("could not read document.visibilityState", error);
+    return null;
+  }
+}
+
+function getMonotonicNow() {
+  try {
+    if (typeof performance !== "undefined" && typeof performance.now === "function") {
+      const value = performance.now();
+      if (Number.isFinite(value)) return value;
+    }
+  } catch (error) {
+    logSlowConnectionMonitorError("performance.now failed; using the wall clock", error);
+  }
+
+  return Date.now();
+}
+
+function getErrorKey(error: unknown) {
+  if (error instanceof Error) return `${error.name}:${error.message}`;
+  return String(error);
+}
+
+function addMonitorEventListener(
+  target: EventTarget,
+  type: string,
+  listener: EventListener,
+  context: string,
+) {
+  try {
+    target.addEventListener(type, listener);
+    return () => {
+      try {
+        target.removeEventListener(type, listener);
+      } catch (error) {
+        logSlowConnectionMonitorError(`could not remove ${context} listener`, error);
+      }
+    };
+  } catch (error) {
+    logSlowConnectionMonitorError(`could not add ${context} listener`, error);
+    return () => undefined;
+  }
+}
+
+function isOfflineRoute(pathname: string | null) {
   return pathname === "/offline"
     || pathname === "/~offline"
     || pathname === "/visual-test-offline";
 }
 
 export function SlowConnectionMonitor() {
+  return (
+    <SlowConnectionMonitorErrorBoundary>
+      <SlowConnectionMonitorContent />
+    </SlowConnectionMonitorErrorBoundary>
+  );
+}
+
+function SlowConnectionMonitorContent() {
   const pathname = usePathname();
   const router = useRouter();
   const { locale, t } = useLocale();
@@ -59,102 +134,205 @@ export function SlowConnectionMonitor() {
   const offlineButtonRef = useRef<HTMLButtonElement>(null);
   const continueButtonRef = useRef<HTMLButtonElement>(null);
   const seenResourceEntriesRef = useRef(new Set<string>());
+  const pathnameRef = useRef(pathname);
+  const previousPathnameRef = useRef(pathname);
+  const launchProbeRef = useRef<(() => void) | null>(null);
+  const cancelProbeRef = useRef<(() => void) | null>(null);
 
   const openPrompt = useCallback(() => {
-    if (isOpenRef.current) return;
+    try {
+      if (isOpenRef.current) return;
 
-    if (!isVisualTestRef.current) {
-      try {
-        const dismissedUntil = Number(window.sessionStorage.getItem(PROMPT_DISMISSAL_KEY));
-        if (Number.isFinite(dismissedUntil) && dismissedUntil > Date.now()) return;
-      } catch {
-        // Storage can be disabled; the in-memory guard still prevents prompt spam.
+      if (!isVisualTestRef.current) {
+        try {
+          const dismissedUntil = Number(window.sessionStorage.getItem(PROMPT_DISMISSAL_KEY));
+          if (Number.isFinite(dismissedUntil) && dismissedUntil > Date.now()) return;
+        } catch (error) {
+          logSlowConnectionMonitorWarning("could not read prompt dismissal state", error);
+        }
       }
-    }
 
-    isOpenRef.current = true;
-    setIsOpen(true);
+      isOpenRef.current = true;
+      setIsOpen(true);
+    } catch (error) {
+      isOpenRef.current = false;
+      logSlowConnectionMonitorError("could not open the low-connection prompt", error);
+    }
   }, []);
 
   const dismissPrompt = useCallback(() => {
-    if (!isVisualTestRef.current) {
-      try {
-        window.sessionStorage.setItem(
-          PROMPT_DISMISSAL_KEY,
-          String(Date.now() + PROMPT_COOLDOWN_MS),
-        );
-      } catch {
-        // The in-memory dismissal still lasts until this app shell is reloaded.
+    try {
+      if (!isVisualTestRef.current) {
+        try {
+          window.sessionStorage.setItem(
+            PROMPT_DISMISSAL_KEY,
+            String(Date.now() + PROMPT_COOLDOWN_MS),
+          );
+        } catch (error) {
+          logSlowConnectionMonitorWarning("could not persist prompt dismissal state", error);
+        }
       }
-    }
 
-    isOpenRef.current = false;
-    setIsOpen(false);
+      isOpenRef.current = false;
+      setIsOpen(false);
+    } catch (error) {
+      logSlowConnectionMonitorError("could not dismiss the low-connection prompt", error);
+    }
   }, []);
 
   useEffect(() => {
-    if (isOfflineRoute(pathname)) return;
+    const previousPathname = previousPathnameRef.current;
+    pathnameRef.current = pathname;
+    previousPathnameRef.current = pathname;
 
-    function handleCustomCardGenerationStalled() {
-      if (navigator.onLine) openPrompt();
-    }
-
-    window.addEventListener(CUSTOM_CARD_GENERATION_STALLED_EVENT, handleCustomCardGenerationStalled);
-    return () => window.removeEventListener(CUSTOM_CARD_GENERATION_STALLED_EVENT, handleCustomCardGenerationStalled);
-  }, [openPrompt, pathname]);
-
-  useEffect(() => {
-    if (isOfflineRoute(pathname)) return;
-
-    const currentUrl = new URL(window.location.href);
-    const visualTest = process.env.NODE_ENV !== "production"
-      && currentUrl.searchParams.get("visual") === "slow-connection";
-    isVisualTestRef.current = visualTest;
-
-    if (visualTest) {
-      openPrompt();
+    if (isOfflineRoute(pathname)) {
+      cancelProbeRef.current?.();
+      if (isOpenRef.current) dismissPrompt();
       return;
     }
 
+    if (isOfflineRoute(previousPathname)) launchProbeRef.current?.();
+  }, [dismissPrompt, pathname]);
+
+  useEffect(() => {
+    function handleCustomCardGenerationStalled() {
+      try {
+        if (getOnlineStatus() === true && !isOfflineRoute(pathnameRef.current)) openPrompt();
+      } catch (error) {
+        logSlowConnectionMonitorError("custom-card stall handler failed", error);
+      }
+    }
+
+    const removeListener = addMonitorEventListener(
+      window,
+      CUSTOM_CARD_GENERATION_STALLED_EVENT,
+      handleCustomCardGenerationStalled,
+      "custom-card stall",
+    );
+
+    return removeListener;
+  }, [openPrompt]);
+
+  useEffect(() => {
     let disposed = false;
     let requestInFlight = false;
     let warnedForCurrentDegradation = false;
     let consecutiveSlowSamples = 0;
     let consecutiveSlowResourceTransfers = 0;
     let confirmationTimer: number | undefined;
+    let probeInterval: number | undefined;
+    let activeProbe: {
+      controller: AbortController;
+      timedOut: boolean;
+      lifecycleCancelled: boolean;
+    } | undefined;
+    let resourceObserver: PerformanceObserver | undefined;
+    let lastProbeFailureKey: string | null = null;
+    const listenerCleanups: Array<() => void> = [];
 
-    function clearConfirmationTimer() {
-      if (confirmationTimer !== undefined) {
-        window.clearTimeout(confirmationTimer);
-        confirmationTimer = undefined;
+    function runSafely(context: string, callback: () => void) {
+      try {
+        callback();
+      } catch (error) {
+        logSlowConnectionMonitorError(context, error);
       }
     }
 
+    function clearTimer(timer: number | undefined, context: string) {
+      if (timer === undefined) return;
+      try {
+        window.clearTimeout(timer);
+      } catch (error) {
+        logSlowConnectionMonitorError(context, error);
+      }
+    }
+
+    function clearConfirmationTimer() {
+      clearTimer(confirmationTimer, "could not clear confirmation timer");
+      confirmationTimer = undefined;
+    }
+
+    function resetSlowEvidence() {
+      consecutiveSlowSamples = 0;
+      consecutiveSlowResourceTransfers = 0;
+      warnedForCurrentDegradation = false;
+      clearConfirmationTimer();
+    }
+
     function signalSlowConnection() {
-      if (disposed || warnedForCurrentDegradation) return;
+      if (
+        disposed
+        || warnedForCurrentDegradation
+        || isOfflineRoute(pathnameRef.current)
+        || getOnlineStatus() === false
+        || getVisibilityState() === "hidden"
+      ) return;
+
       warnedForCurrentDegradation = true;
       clearConfirmationTimer();
-      openPrompt();
+      runSafely("could not open low-connection prompt", openPrompt);
     }
 
     function scheduleConfirmationProbe() {
       if (confirmationTimer !== undefined || disposed) return;
-      confirmationTimer = window.setTimeout(() => {
-        confirmationTimer = undefined;
-        void probeReachability();
-      }, CONFIRMATION_DELAY_MS);
+
+      try {
+        confirmationTimer = window.setTimeout(() => {
+          confirmationTimer = undefined;
+          runSafely("confirmation probe callback failed", launchProbe);
+        }, CONFIRMATION_DELAY_MS);
+      } catch (error) {
+        logSlowConnectionMonitorError("could not schedule confirmation probe", error);
+      }
     }
 
     function handleEstimateChange() {
-      if (!navigator.onLine) return;
-      if (isSlowConnectionEstimate(getNetworkInformation())) {
-        signalSlowConnection();
+      try {
+        if (getOnlineStatus() === false || isOfflineRoute(pathnameRef.current)) return;
+
+        // Network Information API values are hints, not proof. They may be stale or
+        // inaccurate, so use them only to schedule a confirming reachability sample.
+        if (isSlowConnectionEstimate(getNetworkInformation())) scheduleConfirmationProbe();
+      } catch (error) {
+        logSlowConnectionMonitorError("network estimate handler failed", error);
       }
     }
 
     function handleOnline() {
-      handleEstimateChange();
-      void probeReachability();
+      runSafely("online event handler failed", () => {
+        resetSlowEvidence();
+        handleEstimateChange();
+        launchProbe();
+      });
+    }
+
+    function processReachabilitySample(latencyMs: number, outcome: "success" | "network-error" | "timeout") {
+      const isSlow = isSlowReachabilitySample(latencyMs, outcome);
+      if (!isSlow) {
+        resetSlowEvidence();
+        return;
+      }
+
+      if (shouldRecommendOfflineMode(latencyMs, outcome, consecutiveSlowSamples)) {
+        signalSlowConnection();
+        return;
+      }
+
+      consecutiveSlowSamples += 1;
+      scheduleConfirmationProbe();
+    }
+
+    function abortActiveProbe(reason: "lifecycle" | "timeout") {
+      const probe = activeProbe;
+      if (!probe) return;
+      if (reason === "timeout") probe.timedOut = true;
+      else probe.lifecycleCancelled = true;
+
+      try {
+        probe.controller.abort();
+      } catch (error) {
+        logSlowConnectionMonitorError(`could not abort ${reason} reachability probe`, error);
+      }
     }
 
     async function probeReachability() {
@@ -162,177 +340,342 @@ export function SlowConnectionMonitor() {
         disposed
         || requestInFlight
         || isOpenRef.current
-        || !navigator.onLine
-        || document.visibilityState !== "visible"
+        || isOfflineRoute(pathnameRef.current)
+        || getOnlineStatus() === false
+        || getVisibilityState() === "hidden"
       ) return;
 
       requestInFlight = true;
-      const startedAt = performance.now();
-      const controller = new AbortController();
-      const timeout = window.setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+      const startedAt = getMonotonicNow();
+      let timeout: number | undefined;
+      let probe: NonNullable<typeof activeProbe> | undefined;
 
       try {
-        const response = await fetch(`/api/offline/reachability?probe=${Date.now()}`, {
-          method: "GET",
-          cache: "no-store",
-          credentials: "same-origin",
-          headers: { "Cache-Control": "no-cache" },
-          signal: controller.signal,
+        if (typeof fetch !== "function") {
+          logSlowConnectionMonitorWarning("fetch is unavailable; reachability checks are disabled");
+          return;
+        }
+        if (typeof AbortController !== "function") {
+          logSlowConnectionMonitorWarning("AbortController is unavailable; reachability checks are disabled");
+          return;
+        }
+
+        const controller = new AbortController();
+        probe = { controller, timedOut: false, lifecycleCancelled: false };
+        activeProbe = probe;
+
+        const timeoutPromise = new Promise<never>((_resolve, reject) => {
+          timeout = window.setTimeout(() => {
+            if (!probe) return;
+            probe.timedOut = true;
+            abortActiveProbe("timeout");
+            const error = new Error("Reachability probe timed out");
+            error.name = "TimeoutError";
+            reject(error);
+          }, PROBE_TIMEOUT_MS);
         });
-        const latencyMs = performance.now() - startedAt;
+
+        let response: Response;
+        try {
+          response = await Promise.race([
+            fetch(`/api/offline/reachability?probe=${Date.now()}`, {
+              method: "GET",
+              cache: "no-store",
+              credentials: "same-origin",
+              headers: { "Cache-Control": "no-cache" },
+              signal: controller.signal,
+            }),
+            timeoutPromise,
+          ]);
+        } catch (error) {
+          if (disposed || probe.lifecycleCancelled) return;
+
+          const latencyMs = Math.max(0, getMonotonicNow() - startedAt);
+          const outcome = probe.timedOut ? "timeout" : "network-error";
+          const failureKey = `${outcome}:${getErrorKey(error)}`;
+          if (lastProbeFailureKey !== failureKey) {
+            lastProbeFailureKey = failureKey;
+            logSlowConnectionMonitorWarning("reachability probe failed", {
+              outcome,
+              latencyMs,
+              error,
+            });
+          }
+          processReachabilitySample(latencyMs, outcome);
+          return;
+        }
+
+        if (disposed || probe.lifecycleCancelled) return;
+        const latencyMs = Math.max(0, getMonotonicNow() - startedAt);
+        if (!response || typeof response.ok !== "boolean") {
+          throw new TypeError("Reachability endpoint returned an invalid response");
+        }
+
         if (!response.ok) {
-          consecutiveSlowSamples = 0;
-          warnedForCurrentDegradation = false;
-          clearConfirmationTimer();
+          resetSlowEvidence();
+          const failureKey = `http:${response.status}`;
+          if (lastProbeFailureKey !== failureKey) {
+            lastProbeFailureKey = failureKey;
+            logSlowConnectionMonitorWarning("reachability endpoint returned a non-success status", {
+              status: response.status,
+            });
+          }
           return;
         }
 
-        const isSlow = isSlowReachabilitySample(latencyMs, "success");
-
-        if (!isSlow) {
-          consecutiveSlowSamples = 0;
-          warnedForCurrentDegradation = false;
-          clearConfirmationTimer();
-          return;
-        }
-
-        if (shouldRecommendOfflineMode(latencyMs, "success", consecutiveSlowSamples)) {
-          signalSlowConnection();
-          return;
-        }
-
-        consecutiveSlowSamples += 1;
-        scheduleConfirmationProbe();
-      } catch {
-        const latencyMs = performance.now() - startedAt;
-        if (disposed || !navigator.onLine) return;
-
-        if (shouldRecommendOfflineMode(latencyMs, "network-error", consecutiveSlowSamples)) {
-          signalSlowConnection();
-          return;
-        }
-
-        consecutiveSlowSamples += 1;
-        scheduleConfirmationProbe();
+        lastProbeFailureKey = null;
+        processReachabilitySample(latencyMs, "success");
+      } catch (error) {
+        if (disposed || probe?.lifecycleCancelled) return;
+        lastProbeFailureKey = null;
+        resetSlowEvidence();
+        logSlowConnectionMonitorError("unexpected reachability-monitor error", error);
       } finally {
-        window.clearTimeout(timeout);
+        clearTimer(timeout, "could not clear reachability timeout");
+        if (activeProbe === probe) activeProbe = undefined;
         requestInFlight = false;
       }
     }
 
-    function inspectResourceEntries(entries: PerformanceEntry[]) {
-      if (disposed || !navigator.onLine || isOpenRef.current) return;
-
-      const now = performance.now();
-      for (const entry of entries) {
-        if (entry.entryType !== "resource" || now - entry.startTime > RECENT_RESOURCE_WINDOW_MS) continue;
-
-        const resource = entry as PerformanceResourceTiming;
-        const entryKey = `${resource.name}:${resource.startTime}:${resource.responseEnd}`;
-        if (seenResourceEntriesRef.current.has(entryKey)) continue;
-
-        let resourceUrl: URL;
-        try {
-          resourceUrl = new URL(resource.name, window.location.href);
-        } catch {
-          continue;
-        }
-
-        if (
-          resourceUrl.origin === window.location.origin
-          && resourceUrl.pathname === "/api/offline/reachability"
-        ) continue;
-
-        seenResourceEntriesRef.current.add(entryKey);
-        if (seenResourceEntriesRef.current.size > MAX_SEEN_RESOURCE_ENTRIES) {
-          const oldestEntry = seenResourceEntriesRef.current.values().next().value;
-          if (oldestEntry) seenResourceEntriesRef.current.delete(oldestEntry);
-        }
-
-        const transfer = estimateResourceTransfer({
-          transferSizeBytes: resource.transferSize,
-          encodedBodySizeBytes: resource.encodedBodySize,
-          responseStartMs: resource.responseStart,
-          responseEndMs: resource.responseEnd,
-        });
-        if (!transfer || transfer.durationMs <= 0 || transfer.bytesTransferred < MIN_RESOURCE_TRANSFER_BYTES) {
-          continue;
-        }
-
-        if (transfer.throughputMbps <= SLOW_RESOURCE_THROUGHPUT_MBPS) {
-          consecutiveSlowResourceTransfers += 1;
-          if (
-            transfer.durationMs >= VERY_SLOW_CONNECTION_LATENCY_MS
-            || consecutiveSlowResourceTransfers >= 2
-          ) {
-            signalSlowConnection();
-            return;
-          }
-        } else {
-          consecutiveSlowResourceTransfers = 0;
-          warnedForCurrentDegradation = false;
-        }
-      }
-    }
-
-    let resourceObserver: PerformanceObserver | undefined;
-    if (typeof PerformanceObserver !== "undefined") {
+    function launchProbe() {
       try {
-        resourceObserver = new PerformanceObserver((list) => {
-          inspectResourceEntries(list.getEntries());
+        void probeReachability().catch((error: unknown) => {
+          logSlowConnectionMonitorError("reachability probe escaped its internal handler", error);
         });
-        resourceObserver.observe({ type: "resource", buffered: true });
-      } catch {
-        resourceObserver = undefined;
+      } catch (error) {
+        logSlowConnectionMonitorError("could not start reachability probe", error);
       }
     }
-    inspectResourceEntries(performance.getEntriesByType("resource"));
 
-    const networkInformation = getNetworkInformation();
-    networkInformation?.addEventListener("change", handleEstimateChange);
-    window.addEventListener("online", handleOnline);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    function inspectResourceEntries(entries: PerformanceEntry[]) {
+      try {
+        if (
+          disposed
+          || isOfflineRoute(pathnameRef.current)
+          || getOnlineStatus() === false
+          || isOpenRef.current
+        ) return;
+
+        const now = getMonotonicNow();
+        for (const entry of entries) {
+          try {
+            if (entry.entryType !== "resource" || now - entry.startTime > RECENT_RESOURCE_WINDOW_MS) continue;
+
+            const resource = entry as PerformanceResourceTiming;
+            const entryKey = `${resource.name}:${resource.startTime}:${resource.responseEnd}`;
+            if (seenResourceEntriesRef.current.has(entryKey)) continue;
+
+            let resourceUrl: URL;
+            try {
+              resourceUrl = new URL(resource.name, window.location.href);
+            } catch {
+              continue;
+            }
+
+            if (
+              resourceUrl.origin === window.location.origin
+              && resourceUrl.pathname === "/api/offline/reachability"
+            ) continue;
+
+            seenResourceEntriesRef.current.add(entryKey);
+            if (seenResourceEntriesRef.current.size > MAX_SEEN_RESOURCE_ENTRIES) {
+              const oldestEntry = seenResourceEntriesRef.current.values().next().value;
+              if (oldestEntry) seenResourceEntriesRef.current.delete(oldestEntry);
+            }
+
+            const transfer = estimateResourceTransfer({
+              transferSizeBytes: resource.transferSize,
+              encodedBodySizeBytes: resource.encodedBodySize,
+              responseStartMs: resource.responseStart,
+              responseEndMs: resource.responseEnd,
+            });
+            if (!transfer || transfer.bytesTransferred < MIN_RESOURCE_TRANSFER_BYTES) continue;
+
+            if (transfer.throughputMbps <= SLOW_RESOURCE_THROUGHPUT_MBPS) {
+              consecutiveSlowResourceTransfers += 1;
+              if (
+                transfer.durationMs >= VERY_SLOW_CONNECTION_LATENCY_MS
+                || consecutiveSlowResourceTransfers >= 2
+              ) {
+                signalSlowConnection();
+                return;
+              }
+            } else {
+              consecutiveSlowResourceTransfers = 0;
+              warnedForCurrentDegradation = false;
+            }
+          } catch (error) {
+            logSlowConnectionMonitorError("ignored malformed resource timing entry", error);
+          }
+        }
+      } catch (error) {
+        logSlowConnectionMonitorError("resource timing inspection failed", error);
+      }
+    }
 
     function handleVisibilityChange() {
-      if (document.visibilityState !== "visible") return;
-      handleEstimateChange();
-      void probeReachability();
+      runSafely("visibility-change handler failed", () => {
+        if (getVisibilityState() !== "visible") {
+          clearConfirmationTimer();
+          abortActiveProbe("lifecycle");
+          return;
+        }
+
+        handleEstimateChange();
+        launchProbe();
+      });
     }
 
-    handleEstimateChange();
-    void probeReachability();
-    const probeInterval = window.setInterval(() => {
-      void probeReachability();
-    }, PROBE_INTERVAL_MS);
+    function handleOffline() {
+      runSafely("offline event handler failed", () => {
+        resetSlowEvidence();
+        abortActiveProbe("lifecycle");
+      });
+    }
 
-    return () => {
+    function cleanup() {
+      if (disposed) return;
       disposed = true;
       clearConfirmationTimer();
-      window.clearInterval(probeInterval);
-      networkInformation?.removeEventListener("change", handleEstimateChange);
-      window.removeEventListener("online", handleOnline);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      resourceObserver?.disconnect();
-    };
-  }, [openPrompt, pathname]);
+      abortActiveProbe("lifecycle");
+
+      if (probeInterval !== undefined) {
+        try {
+          window.clearInterval(probeInterval);
+        } catch (error) {
+          logSlowConnectionMonitorError("could not clear reachability interval", error);
+        }
+        probeInterval = undefined;
+      }
+
+      for (const removeListener of listenerCleanups.splice(0)) removeListener();
+
+      try {
+        resourceObserver?.disconnect();
+      } catch (error) {
+        logSlowConnectionMonitorError("could not disconnect resource timing observer", error);
+      }
+
+      if (launchProbeRef.current === launchProbe) launchProbeRef.current = null;
+      if (cancelProbeRef.current === cancelProbe) cancelProbeRef.current = null;
+    }
+
+    function cancelProbe() {
+      clearConfirmationTimer();
+      abortActiveProbe("lifecycle");
+      consecutiveSlowSamples = 0;
+      consecutiveSlowResourceTransfers = 0;
+    }
+
+    let visualTest = false;
+    try {
+      const currentUrl = new URL(window.location.href);
+      visualTest = process.env.NODE_ENV !== "production"
+        && currentUrl.searchParams.get("visual") === "slow-connection";
+    } catch (error) {
+      logSlowConnectionMonitorError("could not inspect visual-test URL", error);
+    }
+    isVisualTestRef.current = visualTest;
+
+    if (visualTest) {
+      runSafely("visual-test prompt failed", openPrompt);
+      return cleanup;
+    }
+
+    launchProbeRef.current = launchProbe;
+    cancelProbeRef.current = cancelProbe;
+
+    const networkInformation = getNetworkInformation();
+    if (networkInformation) {
+      listenerCleanups.push(addMonitorEventListener(
+        networkInformation,
+        "change",
+        handleEstimateChange,
+        "network estimate",
+      ));
+    }
+    listenerCleanups.push(addMonitorEventListener(window, "online", handleOnline, "online"));
+    listenerCleanups.push(addMonitorEventListener(window, "offline", handleOffline, "offline"));
+    listenerCleanups.push(addMonitorEventListener(document, "visibilitychange", handleVisibilityChange, "visibility"));
+
+    try {
+      if (typeof PerformanceObserver !== "undefined") {
+        resourceObserver = new PerformanceObserver((list) => {
+          runSafely("resource observer callback failed", () => inspectResourceEntries(list.getEntries()));
+        });
+        resourceObserver.observe({ type: "resource", buffered: true });
+      }
+    } catch (error) {
+      resourceObserver = undefined;
+      logSlowConnectionMonitorWarning("resource timing observer is unavailable", error);
+    }
+
+    try {
+      if (typeof performance.getEntriesByType === "function") {
+        inspectResourceEntries(performance.getEntriesByType("resource"));
+      }
+    } catch (error) {
+      logSlowConnectionMonitorError("could not read initial resource timings", error);
+    }
+
+    if (!isOfflineRoute(pathnameRef.current)) {
+      runSafely("initial network estimate failed", handleEstimateChange);
+      launchProbe();
+    }
+
+    try {
+      probeInterval = window.setInterval(() => {
+        runSafely("periodic reachability callback failed", launchProbe);
+      }, PROBE_INTERVAL_MS);
+    } catch (error) {
+      logSlowConnectionMonitorError("could not start reachability interval", error);
+    }
+
+    return cleanup;
+  }, [openPrompt]);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    const previouslyFocused = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-    const focusFirstAction = () => offlineButtonRef.current?.focus();
-    const focusFrame = typeof window.requestAnimationFrame === "function"
-      ? window.requestAnimationFrame(focusFirstAction)
-      : window.setTimeout(focusFirstAction, 0);
-    const cancelFocusFrame = typeof window.requestAnimationFrame === "function"
-      ? window.cancelAnimationFrame.bind(window)
-      : window.clearTimeout.bind(window);
+    let previouslyFocused: HTMLElement | null = null;
+    let focusFrame: number | undefined;
+    let cancelFocusFrame: ((handle: number) => void) | undefined;
+
+    try {
+      previouslyFocused = document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+      const focusFirstAction = () => {
+        try {
+          offlineButtonRef.current?.focus();
+        } catch (error) {
+          logSlowConnectionMonitorError("could not focus the offline action", error);
+        }
+      };
+
+      if (typeof window.requestAnimationFrame === "function") {
+        focusFrame = window.requestAnimationFrame(focusFirstAction);
+        cancelFocusFrame = (handle) => window.cancelAnimationFrame(handle);
+      } else {
+        focusFrame = window.setTimeout(focusFirstAction, 0);
+        cancelFocusFrame = (handle) => window.clearTimeout(handle);
+      }
+    } catch (error) {
+      logSlowConnectionMonitorError("could not initialize prompt focus handling", error);
+    }
 
     return () => {
-      cancelFocusFrame(focusFrame);
-      if (previouslyFocused?.isConnected) previouslyFocused.focus({ preventScroll: true });
+      try {
+        if (focusFrame !== undefined) cancelFocusFrame?.(focusFrame);
+      } catch (error) {
+        logSlowConnectionMonitorError("could not cancel prompt focus handling", error);
+      }
+
+      try {
+        if (previouslyFocused?.isConnected) previouslyFocused.focus({ preventScroll: true });
+      } catch (error) {
+        logSlowConnectionMonitorError("could not restore focus after closing prompt", error);
+      }
     };
   }, [isOpen]);
 
@@ -340,54 +683,66 @@ export function SlowConnectionMonitor() {
     if (!isOpen) return;
 
     function handleDialogKeyboard(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        dismissPrompt();
-        return;
-      }
+      try {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          dismissPrompt();
+          return;
+        }
 
-      if (event.key !== "Tab") return;
-      const firstButton = offlineButtonRef.current;
-      const lastButton = continueButtonRef.current;
-      if (!firstButton || !lastButton) return;
+        if (event.key !== "Tab") return;
+        const firstButton = offlineButtonRef.current;
+        const lastButton = continueButtonRef.current;
+        if (!firstButton || !lastButton) return;
 
-      if (event.shiftKey && document.activeElement === firstButton) {
-        event.preventDefault();
-        lastButton.focus();
-      } else if (!event.shiftKey && document.activeElement === lastButton) {
-        event.preventDefault();
-        firstButton.focus();
+        if (event.shiftKey && document.activeElement === firstButton) {
+          event.preventDefault();
+          lastButton.focus();
+        } else if (!event.shiftKey && document.activeElement === lastButton) {
+          event.preventDefault();
+          firstButton.focus();
+        }
+      } catch (error) {
+        logSlowConnectionMonitorError("prompt keyboard handler failed", error);
       }
     }
 
-    document.addEventListener("keydown", handleDialogKeyboard);
-    return () => document.removeEventListener("keydown", handleDialogKeyboard);
+    return addMonitorEventListener(
+      document,
+      "keydown",
+      handleDialogKeyboard as EventListener,
+      "prompt keyboard",
+    );
   }, [dismissPrompt, isOpen]);
 
   function enterOfflineMode() {
-    dismissPrompt();
+    try {
+      dismissPrompt();
 
-    const currentUrl = new URL(window.location.href);
-    const returnUrl = new URL(currentUrl.href);
-    if (
-      process.env.NODE_ENV !== "production"
-      && returnUrl.searchParams.get("visual") === "slow-connection"
-    ) {
-      returnUrl.searchParams.delete("visual");
+      const currentUrl = new URL(window.location.href);
+      const returnUrl = new URL(currentUrl.href);
+      if (
+        process.env.NODE_ENV !== "production"
+        && returnUrl.searchParams.get("visual") === "slow-connection"
+      ) {
+        returnUrl.searchParams.delete("visual");
+      }
+
+      const returnTo = `${returnUrl.pathname}${returnUrl.search}${returnUrl.hash}`;
+      const isNativeApp = currentUrl.searchParams.get("native") === "1"
+        || currentUrl.searchParams.get("twa") === "1";
+      const offlineUrl = new URL(isNativeApp ? "/~offline" : "/offline", currentUrl.origin);
+      offlineUrl.searchParams.set("returnTo", returnTo);
+
+      if (isNativeApp) {
+        window.location.assign(offlineUrl.toString());
+        return;
+      }
+
+      router.push(`${offlineUrl.pathname}${offlineUrl.search}`);
+    } catch (error) {
+      logSlowConnectionMonitorError("could not navigate to offline mode", error);
     }
-
-    const returnTo = `${returnUrl.pathname}${returnUrl.search}${returnUrl.hash}`;
-    const isNativeApp = currentUrl.searchParams.get("native") === "1"
-      || currentUrl.searchParams.get("twa") === "1";
-    const offlineUrl = new URL(isNativeApp ? "/~offline" : "/offline", currentUrl.origin);
-    offlineUrl.searchParams.set("returnTo", returnTo);
-
-    if (isNativeApp) {
-      window.location.assign(offlineUrl.toString());
-      return;
-    }
-
-    router.push(`${offlineUrl.pathname}${offlineUrl.search}`);
   }
 
   if (!isOpen) return null;

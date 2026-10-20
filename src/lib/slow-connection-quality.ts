@@ -4,7 +4,7 @@ export interface NetworkConnectionEstimate {
   rtt?: number;
 }
 
-export type ReachabilityProbeOutcome = "success" | "http-error" | "network-error";
+export type ReachabilityProbeOutcome = "success" | "http-error" | "network-error" | "timeout";
 
 export interface ResourceTransferSample {
   transferSizeBytes: number;
@@ -28,22 +28,29 @@ export const CUSTOM_CARD_GENERATION_STALLED_EVENT = "foxiesdeck:custom-card-gene
 export function isSlowConnectionEstimate(estimate?: NetworkConnectionEstimate | null) {
   if (!estimate) return false;
 
-  const effectiveType = estimate.effectiveType?.toLowerCase();
+  const effectiveType = typeof estimate.effectiveType === "string"
+    ? estimate.effectiveType.toLowerCase()
+    : undefined;
   if (effectiveType === "slow-2g") return true;
 
   const hasDownlink = typeof estimate.downlink === "number" && Number.isFinite(estimate.downlink);
   const hasRtt = typeof estimate.rtt === "number" && Number.isFinite(estimate.rtt);
+  const downlink = hasDownlink ? estimate.downlink : undefined;
+  const rtt = hasRtt ? estimate.rtt : undefined;
 
-  if (hasDownlink && estimate.downlink! <= 0.08) return true;
-  return hasDownlink && hasRtt && estimate.downlink! <= 0.2 && estimate.rtt! >= 2_500;
+  if (downlink !== undefined && downlink <= 0.08) return true;
+  return downlink !== undefined && rtt !== undefined && downlink <= 0.2 && rtt >= 2_500;
 }
 
 export function isSlowReachabilitySample(
   latencyMs: number,
   outcome: ReachabilityProbeOutcome,
 ) {
+  if (!Number.isFinite(latencyMs) || latencyMs < 0) return false;
   if (outcome === "http-error") return false;
-  return outcome === "network-error" || latencyMs >= SLOW_CONNECTION_LATENCY_MS;
+  if (outcome === "timeout") return latencyMs >= VERY_SLOW_CONNECTION_LATENCY_MS;
+  if (outcome === "network-error") return latencyMs >= SLOW_CONNECTION_LATENCY_MS;
+  return latencyMs >= SLOW_CONNECTION_LATENCY_MS;
 }
 
 export function shouldRecommendOfflineMode(
@@ -51,7 +58,10 @@ export function shouldRecommendOfflineMode(
   outcome: ReachabilityProbeOutcome,
   consecutiveSlowSamples: number,
 ) {
+  if (!Number.isFinite(latencyMs) || latencyMs < 0) return false;
+  if (!Number.isFinite(consecutiveSlowSamples) || consecutiveSlowSamples < 0) return false;
   if (outcome === "http-error") return false;
+  if (outcome === "timeout") return latencyMs >= VERY_SLOW_CONNECTION_LATENCY_MS;
   if (latencyMs >= VERY_SLOW_CONNECTION_LATENCY_MS) return true;
   return isSlowReachabilitySample(latencyMs, outcome) && consecutiveSlowSamples >= 1;
 }

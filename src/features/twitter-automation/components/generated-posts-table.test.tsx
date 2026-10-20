@@ -991,7 +991,7 @@ describe("GeneratedPostsTable", () => {
     expect(fetchMock.mock.calls.some(([input]) => String(input) === "/api/twitter-automation/automation-runs/retry")).toBe(false);
   });
 
-  it("keeps an unconfirmed Upload-Post request out of failed state and checks it without finishing the run", async () => {
+  it("lets the user finish during provider polling and keeps the unresolved request recoverable afterward", async () => {
     vi.useFakeTimers();
     const output = {
       id: "ed13ccca-d537-4a5a-9a08-20df9c391007",
@@ -1009,6 +1009,14 @@ describe("GeneratedPostsTable", () => {
       schedule_error_code: UPLOAD_POST_REQUEST_UNCONFIRMED_CODE,
       schedule_error_detail: "Provider response pending verification.",
       schedule_attempted_at: new Date(Date.now() - UPLOAD_POST_REQUEST_RECHECK_DELAY_MS - 1_000).toISOString(),
+      upload_post_jobs: [{
+        socialMediaId: 7,
+        jobId: null,
+        status: "processing",
+        requestId: "pinterest-request-pending",
+        requestStartedAt: new Date(Date.now() - 90 * 60_000).toISOString(),
+        lastProviderCheckedAt: new Date(Date.now() - UPLOAD_POST_REQUEST_RECHECK_DELAY_MS - 1_000).toISOString(),
+      }],
       caption: "Generated content remains intact.",
       mediaUrl: null,
       mediaUrls: [],
@@ -1016,11 +1024,16 @@ describe("GeneratedPostsTable", () => {
       error_code: null,
       run: { schedule_date: "2026-10-19", generation_stopped_at: null, finished_by_user_at: null },
     } as const;
+    let runFinished = false;
+    let resolveScheduleResponse: ((response: { ok: boolean; json: () => Promise<unknown> }) => void) | null = null;
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = String(input);
-      if (url.startsWith("/api/twitter-automation/automation-runs?")) return { ok: true, json: async () => ({ outputs: [output] }) };
-      if (url === "/api/twitter-automation/automation-runs/schedule") return { ok: true, json: async () => ({ scheduled: 0, failed: 0, processing: 1 }) };
-      if (url === "/api/twitter-automation/automation-runs/finish") throw new Error("pending provider work must not be finished");
+      if (url.startsWith("/api/twitter-automation/automation-runs?")) return { ok: true, json: async () => ({ outputs: [{ ...output, run: { ...output.run, finished_by_user_at: runFinished ? new Date().toISOString() : null } }] }) };
+      if (url === "/api/twitter-automation/automation-runs/schedule") return new Promise<{ ok: boolean; json: () => Promise<unknown> }>((resolve) => { resolveScheduleResponse = resolve; });
+      if (url === "/api/twitter-automation/automation-runs/finish") {
+        runFinished = true;
+        return { ok: true, json: async () => ({ ok: true, finished: true, status: "completed_with_errors" }) };
+      }
       if (url === "/api/twitter-automation/automation-runs/retry") throw new Error("pending provider work must not regenerate content");
       throw new Error(`Unexpected request: ${url} ${init?.method ?? "GET"}`);
     });
@@ -1031,21 +1044,37 @@ describe("GeneratedPostsTable", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     await act(async () => { await vi.advanceTimersByTimeAsync(500); });
 
-    expect(screen.getByText(/Upload-Post yanıtı henüz doğrulanmadı/u)).toBeVisible();
+    expect(screen.getByText(/Upload-Post yanıtı 1 saati geçti/u)).toBeVisible();
+    expect(screen.getByText("pinterest-request-pending")).toBeVisible();
     const checkStatus = screen.getByRole("button", { name: "Upload-Post durumunu kontrol et" });
     expect(checkStatus).toBeEnabled();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Run'ı bitir" }));
-      await Promise.resolve();
+      fireEvent.click(screen.getByRole("button", { name: "Schedule all (1)" }));
+      await vi.advanceTimersByTimeAsync(0);
     });
-    expect(fetchMock.mock.calls.some(([input]) => String(input) === "/api/twitter-automation/automation-runs/finish")).toBe(false);
+    expect(screen.getByRole("button", { name: "Schedule akışını durdur" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Run'ı bitir" })).toBeEnabled();
 
     await act(async () => {
-      fireEvent.click(checkStatus);
-      await Promise.resolve();
+      fireEvent.click(screen.getByRole("button", { name: "Run'ı bitir" }));
+      for (let index = 0; index < 12; index += 1) await Promise.resolve();
     });
     expect(fetchMock.mock.calls.some(([input]) => String(input) === "/api/twitter-automation/automation-runs/schedule")).toBe(true);
+    expect(fetchMock.mock.calls.some(([input]) => String(input) === "/api/twitter-automation/automation-runs/finish")).toBe(true);
+
+    await act(async () => {
+      resolveScheduleResponse?.({ ok: true, json: async () => ({ scheduled: 0, failed: 0, processing: 1 }) });
+      for (let index = 0; index < 12; index += 1) await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(screen.getByRole("button", { name: "Upload-Post durumunu kontrol et" })).toBeEnabled();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Upload-Post durumunu kontrol et" }));
+      await Promise.resolve();
+    });
+    expect(fetchMock.mock.calls.filter(([input]) => String(input) === "/api/twitter-automation/automation-runs/schedule")).toHaveLength(2);
     expect(fetchMock.mock.calls.some(([input]) => String(input) === "/api/twitter-automation/automation-runs/retry")).toBe(false);
   });
 

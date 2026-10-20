@@ -8,6 +8,7 @@ import { adaptSocialCaptionHashtags, getSocialPostHashtags, usesDorficVisualStyl
 import { normalizeUploadPostPlatform, UPLOAD_POST_CONTENT_PLATFORMS } from "@/features/twitter-automation/upload-post-capabilities";
 import { getUploadPostScheduleFields } from "@/features/twitter-automation/upload-post-schedule-fields";
 import { findAcceptedUploadPostSchedule, getUploadPostRequestStatus } from "@/features/twitter-automation/upload-post-schedule-recovery";
+import { UPLOAD_POST_REQUEST_NOT_FOUND_GRACE_MS, UPLOAD_POST_UNCONFIRMED_RECOVERY_LIMIT } from "@/features/twitter-automation/upload-post-schedule-constants";
 import { UploadPostRejectedError } from "@/features/twitter-automation/upload-post-provider-error";
 
 const UPLOAD_POST_BASE_URL = "https://api.upload-post.com/api";
@@ -310,7 +311,7 @@ async function submitUpload(endpoint: string, form: FormData, idempotencyKey: st
   };
 }
 
-export async function publishWithUploadPost({ socialMediaId, caption, title, nativeLanguage, learningLanguage, generator, renderPlan, applySocialHashtagPolicy = false, asset, assets, mediaType, mediaCount, loadMedia, scheduledFor, requestId, idempotencyKey, externalId, reconcileExistingSchedule, reconcileRequestIds, attemptedScheduledAt, onRequestRotation, options }: {
+export async function publishWithUploadPost({ socialMediaId, caption, title, nativeLanguage, learningLanguage, generator, renderPlan, applySocialHashtagPolicy = false, asset, assets, mediaType, mediaCount, loadMedia, scheduledFor, requestId, idempotencyKey, externalId, reconcileExistingSchedule, reconcileRequestIds, attemptedScheduledAt, requestStartedAt, requestRecoveryAttemptCount = 0, onRequestRotation, options }: {
   socialMediaId: number;
   caption: string;
   title?: string;
@@ -331,6 +332,8 @@ export async function publishWithUploadPost({ socialMediaId, caption, title, nat
   reconcileExistingSchedule?: boolean;
   reconcileRequestIds?: readonly string[];
   attemptedScheduledAt?: readonly string[];
+  requestStartedAt?: string | null;
+  requestRecoveryAttemptCount?: number;
   onRequestRotation?: (request: { requestId: string; idempotencyKey: string }) => Promise<void>;
   options?: UploadPostPublishOptions;
 }) {
@@ -450,6 +453,20 @@ export async function publishWithUploadPost({ socialMediaId, caption, title, nat
     if (status.kind === "processing") {
       return { requestId: status.requestId, jobId: null, postUrl: null, idempotencyKey: uploadIdempotencyKey, pending: true };
     }
+    if (status.kind === "not_found") {
+      const requestAgeMs = Date.now() - Date.parse(requestStartedAt ?? "");
+      if (!Number.isFinite(requestAgeMs) || requestAgeMs < UPLOAD_POST_REQUEST_NOT_FOUND_GRACE_MS) {
+        // Request status can briefly lag an accepted upload. Preserve the same
+        // identifiers for a grace window instead of creating duplicate work.
+        return { requestId: uploadRequestId, jobId: null, postUrl: null, idempotencyKey: uploadIdempotencyKey, pending: true };
+      }
+      if (requestRecoveryAttemptCount >= UPLOAD_POST_UNCONFIRMED_RECOVERY_LIMIT) {
+        // The first fresh request also never appeared in provider status,
+        // history, or schedule. Stop resubmitting and leave an explicit
+        // operator-review state rather than looping or risking a duplicate.
+        return { requestId: uploadRequestId, jobId: null, postUrl: null, idempotencyKey: uploadIdempotencyKey, pending: true, manualReviewRequired: true };
+      }
+    }
     if (status.kind === "completed") {
       const completedJobId = await findAcceptedUploadPostSchedule({
         apiKey,
@@ -461,9 +478,11 @@ export async function publishWithUploadPost({ socialMediaId, caption, title, nat
       if (completedJobId) return { requestId: uploadRequestId, jobId: completedJobId, postUrl: null, idempotencyKey: uploadIdempotencyKey, pending: false };
       throw new Error("upload_post_schedule_reconciliation_incomplete");
     }
-    if (status.kind === "failed") {
-      // A confirmed terminal failure is safe to retry with a fresh idempotency
-      // key. Reusing the old key could replay the provider's cached failure.
+    if (status.kind === "failed" || status.kind === "not_found") {
+      // Schedule/history reconciliation above found no accepted job, and the
+      // request-status endpoint confirmed a terminal failure or no request.
+      // Rotate before resubmitting so a provider-cached response for the old
+      // idempotency key cannot keep this output pending forever.
       uploadRequestId = crypto.randomUUID();
       uploadIdempotencyKey = crypto.randomUUID();
       // Persist the replacement before contacting the provider. If the POST

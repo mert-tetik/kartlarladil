@@ -168,6 +168,10 @@ type UploadJob = {
   scheduledAt: string | null;
   externalId?: string | null;
   attemptedScheduledAt?: string[];
+  requestStartedAt?: string | null;
+  lastProviderCheckedAt?: string | null;
+  requestRecoveryAttemptCount?: number;
+  manualReviewRequired?: boolean;
 };
 
 function pick<T>(items: readonly T[]) {
@@ -347,6 +351,12 @@ function asUploadJobs(value: unknown): UploadJob[] {
       attemptedScheduledAt: Array.isArray(job.attemptedScheduledAt)
         ? job.attemptedScheduledAt.filter((value): value is string => typeof value === "string")
         : [],
+      requestStartedAt: typeof job.requestStartedAt === "string" ? job.requestStartedAt : null,
+      lastProviderCheckedAt: typeof job.lastProviderCheckedAt === "string" ? job.lastProviderCheckedAt : null,
+      requestRecoveryAttemptCount: typeof job.requestRecoveryAttemptCount === "number" && Number.isSafeInteger(job.requestRecoveryAttemptCount) && job.requestRecoveryAttemptCount >= 0
+        ? job.requestRecoveryAttemptCount
+        : undefined,
+      manualReviewRequired: job.manualReviewRequired === true,
     }] : [];
   });
 }
@@ -1040,10 +1050,13 @@ async function scheduleOutput(output: AutomationOutputRecord): Promise<"schedule
         : existingJob?.idempotencyKey ?? `automation-${output.id}-${socialMediaId}`;
       const requestId = isRetryingRejectedRequest
         ? crypto.randomUUID()
-        : existingJob?.idempotencyKey ?? existingJob?.requestId ?? idempotencyKey;
+        : existingJob?.requestId ?? existingJob?.idempotencyKey ?? idempotencyKey;
       const externalId = existingJob?.externalId ?? `foxiesdeck-automation-${output.id}-${socialMediaId}`;
       const requestStartedAt = new Date().toISOString();
-      const intent: UploadJob = {
+      const requestRecoveryAttemptCount = existingJob?.requestRecoveryAttemptCount ?? (
+        existingJob?.requestId && existingJob.requestId !== `automation-${output.id}-${socialMediaId}` ? 1 : 0
+      );
+      let intent: UploadJob = {
         socialMediaId,
         jobId: null,
         status: "processing",
@@ -1052,6 +1065,10 @@ async function scheduleOutput(output: AutomationOutputRecord): Promise<"schedule
         externalId,
         postUrl: existingJob?.postUrl ?? null,
         scheduledAt: output.scheduled_at,
+        requestStartedAt: existingJob?.requestStartedAt ?? output.schedule_attempted_at ?? requestStartedAt,
+        lastProviderCheckedAt: existingJob ? requestStartedAt : null,
+        requestRecoveryAttemptCount,
+        manualReviewRequired: existingJob?.manualReviewRequired ?? false,
         attemptedScheduledAt: [...new Set([
           ...(existingJob?.attemptedScheduledAt ?? []),
           ...(existingJob?.scheduledAt ? [existingJob.scheduledAt] : []),
@@ -1091,16 +1108,27 @@ async function scheduleOutput(output: AutomationOutputRecord): Promise<"schedule
         reconcileExistingSchedule: Boolean(existingJob || (output.schedule_attempt_count ?? 0) > 0),
         reconcileRequestIds: [...new Set([requestId, existingJob?.requestId, existingJob?.idempotencyKey].filter((value): value is string => Boolean(value)))],
         attemptedScheduledAt: intent.attemptedScheduledAt,
+        requestStartedAt: intent.requestStartedAt,
+        requestRecoveryAttemptCount,
         onRequestRotation: async (rotatedRequest) => {
           const currentIndex = jobs.findIndex((job) => job.socialMediaId === socialMediaId);
           const currentJob = jobs[currentIndex] ?? intent;
+          const rotatedAt = new Date().toISOString();
           const rotatedJob: UploadJob = {
             ...currentJob,
             jobId: null,
             status: "processing",
             requestId: rotatedRequest.requestId,
             idempotencyKey: rotatedRequest.idempotencyKey,
+            requestStartedAt: rotatedAt,
+            lastProviderCheckedAt: rotatedAt,
+            requestRecoveryAttemptCount: requestRecoveryAttemptCount + 1,
+            manualReviewRequired: false,
           };
+          // Keep the in-memory intent aligned with the replacement persisted
+          // before the POST; the pending/confirmed result below must not write
+          // the stale request timestamp or recovery counter back over it.
+          intent = rotatedJob;
           if (currentIndex >= 0) jobs[currentIndex] = rotatedJob;
           else jobs.push(rotatedJob);
           await updateOutput(output.id, {
@@ -1114,20 +1142,25 @@ async function scheduleOutput(output: AutomationOutputRecord): Promise<"schedule
         },
       });
       if (result.pending) {
+        const manualReviewRequired = "manualReviewRequired" in result && result.manualReviewRequired === true;
         const pendingJob: UploadJob = {
           ...intent,
           jobId: null,
           status: "processing",
-          requestId: result.requestId,
+          requestId: result.requestId ?? requestId,
           idempotencyKey: result.idempotencyKey,
           postUrl: result.postUrl,
+          lastProviderCheckedAt: new Date().toISOString(),
+          manualReviewRequired,
         };
         jobs[existingIndex >= 0 ? existingIndex : jobs.length - 1] = pendingJob;
         await updateOutput(output.id, {
           upload_post_jobs: jobs,
           schedule_status: "processing",
           schedule_error_code: UPLOAD_POST_REQUEST_UNCONFIRMED_CODE,
-          schedule_error_detail: "Upload-Post accepted the request or its response is still propagating. The same request will be checked before any retry.",
+          schedule_error_detail: manualReviewRequired
+            ? "Upload-Post could not find the fresh request in status, history, or scheduled posts. Automatic resubmission stopped after one fresh request; review the provider account before deciding what to do next."
+            : "Upload-Post accepted the request or its response is still propagating. The same request will be checked before any retry.",
           schedule_attempt_count: attemptCount,
           schedule_attempted_at: new Date().toISOString(),
           schedule_completed_at: null,
@@ -1145,6 +1178,8 @@ async function scheduleOutput(output: AutomationOutputRecord): Promise<"schedule
         requestId: result.requestId,
         idempotencyKey: result.idempotencyKey,
         postUrl: result.postUrl,
+        lastProviderCheckedAt: new Date().toISOString(),
+        manualReviewRequired: false,
       };
       jobs[existingIndex >= 0 ? existingIndex : jobs.length - 1] = confirmedJob;
       await updateOutput(output.id, {
@@ -1158,11 +1193,14 @@ async function scheduleOutput(output: AutomationOutputRecord): Promise<"schedule
     const unresolvedTargetIds = accountIds.filter((socialMediaId) => !confirmedTargetIds.has(socialMediaId));
     const providerProcessing = jobs.some((job) => job.status === "processing" && !job.jobId && accountIds.includes(job.socialMediaId));
     if (providerProcessing) {
+      const manualReviewRequired = jobs.some((job) => job.status === "processing" && !job.jobId && job.manualReviewRequired);
       await updateOutput(output.id, {
         status: "ready_to_schedule",
         schedule_status: "processing",
         schedule_error_code: UPLOAD_POST_REQUEST_UNCONFIRMED_CODE,
-        schedule_error_detail: "Upload-Post accepted the request or its response is still propagating. The same request will be checked before any retry.",
+        schedule_error_detail: manualReviewRequired
+          ? "Upload-Post could not find the fresh request in status, history, or scheduled posts. Automatic resubmission stopped after one fresh request; review the provider account before deciding what to do next."
+          : "Upload-Post accepted the request or its response is still propagating. The same request will be checked before any retry.",
         schedule_attempt_count: attemptCount,
         schedule_attempted_at: new Date().toISOString(),
         schedule_completed_at: null,

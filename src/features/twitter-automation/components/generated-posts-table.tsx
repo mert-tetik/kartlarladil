@@ -28,6 +28,17 @@ import type { LanguageCode } from "@/types/domain";
 
 type AutomationOutputStatus = "queued" | "processing" | "generating_video" | "awaiting_browser_image" | "awaiting_browser_video" | "ready_to_schedule" | "scheduled" | "failed" | "skipped";
 
+type UploadPostJobSummary = {
+  socialMediaId: number;
+  jobId?: string | null;
+  status?: "processing" | "scheduled" | "failed";
+  requestId?: string | null;
+  requestStartedAt?: string | null;
+  lastProviderCheckedAt?: string | null;
+  requestRecoveryAttemptCount?: number;
+  manualReviewRequired?: boolean;
+};
+
 type AutomationOutput = {
   id: string;
   day_offset: number;
@@ -38,6 +49,7 @@ type AutomationOutput = {
   native_language: LanguageCode;
   tier: "A1" | "A2" | "B1" | "B2" | "C1" | "random";
   scheduled_at: string;
+  target_account_ids?: number[];
   status: AutomationOutputStatus;
   generation_key?: string | null;
   caption: string | null;
@@ -50,6 +62,7 @@ type AutomationOutput = {
   schedule_attempt_count?: number;
   schedule_attempted_at?: string | null;
   schedule_completed_at?: string | null;
+  upload_post_jobs?: UploadPostJobSummary[];
   bucketStatus?: "stored" | "missing" | "database" | "not_checked" | "unavailable";
   error_code: string | null;
   last_error_detail?: string | null;
@@ -80,6 +93,7 @@ const SCHEDULE_REQUEST_TIMEOUT_MS = 4 * 60_000;
 const MAX_AUTOMATIC_RENDER_RECOVERY_ATTEMPTS = AUTOMATION_RETRY_DELAYS_MS.length;
 const STALE_PROCESSING_MS = 3 * 60_000;
 const STALE_SCHEDULE_PROCESSING_MS = 15 * 60_000;
+const UPLOAD_POST_MANUAL_REVIEW_AFTER_MS = 60 * 60_000;
 // Creative-plan recovery is intentionally serial. Retrying several provider
 // failures in parallel tends to create another rate-limit/error wave.
 const RECOVERY_RETRY_CONCURRENCY = 1;
@@ -192,6 +206,58 @@ function areScheduleTargetsComplete(outputs: AutomationOutput[], targetIds: stri
 
 function needsGeneration(output: AutomationOutput) {
   return !isOutputSettled(output);
+}
+
+function getUnconfirmedUploadPostJobs(output: AutomationOutput) {
+  return (output.upload_post_jobs ?? []).filter((job) => job.status === "processing" && !job.jobId);
+}
+
+function getProviderCheckTimestamp(output: AutomationOutput, jobs: UploadPostJobSummary[]) {
+  const timestamps = jobs
+    .map((job) => job.lastProviderCheckedAt)
+    .filter((value): value is string => Boolean(value))
+    .map(Date.parse)
+    .filter(Number.isFinite);
+  return timestamps.length ? Math.max(...timestamps) : Date.parse(output.schedule_attempted_at ?? "");
+}
+
+function getUnconfirmedRequestStartTimestamp(output: AutomationOutput, job: UploadPostJobSummary) {
+  return Date.parse(job.requestStartedAt ?? output.schedule_attempted_at ?? "");
+}
+
+function formatElapsedProviderTime(milliseconds: number) {
+  const minutes = Math.max(1, Math.floor(milliseconds / 60_000));
+  if (minutes < 60) return `${minutes} dk`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes ? `${hours} sa ${remainingMinutes} dk` : `${hours} sa`;
+}
+
+function ProviderScheduleVerificationNotice({ output, now }: { output: AutomationOutput; now: number }) {
+  if (output.schedule_error_code !== UPLOAD_POST_REQUEST_UNCONFIRMED_CODE) return null;
+  const jobs = getUnconfirmedUploadPostJobs(output);
+  const manualReviewRequired = jobs.some((job) => job.manualReviewRequired === true);
+  const reviewRequired = manualReviewRequired || jobs.some((job) => {
+    const startedAt = getUnconfirmedRequestStartTimestamp(output, job);
+    return Number.isFinite(startedAt) && now - startedAt >= UPLOAD_POST_MANUAL_REVIEW_AFTER_MS;
+  });
+
+  return <div className="mt-3 rounded-lg border border-[#f1d28a] bg-[#fff9e8] px-2.5 py-2 text-[11px] leading-4 text-[#795600]">
+    <p>{manualReviewRequired
+      ? "Upload-Post yeni isteği de bulamadı. Güvenlik için yeni upload durduruldu; hesabı sağlayıcı panelinde kontrol et ve run'ı bitirebilirsin."
+      : reviewRequired
+        ? "Upload-Post yanıtı 1 saati geçti; manuel durum kontrolü gerekiyor. Run'ı bitirebilirsin."
+      : "Upload-Post yanıtı henüz doğrulanmadı. Yeniden yüklemeden önce aynı istek ve schedule geçmişi kontrol ediliyor."}</p>
+    {jobs.length ? <ul className="mt-1.5 space-y-1">
+      {jobs.map((job) => {
+        const startedAt = getUnconfirmedRequestStartTimestamp(output, job);
+        const age = Number.isFinite(startedAt) ? formatElapsedProviderTime(now - startedAt) : "bilinmiyor";
+        return <li className="break-words" key={job.socialMediaId}>
+          Hedef hesap #{job.socialMediaId} · {age} · request_id: <code>{job.requestId ?? "bilinmiyor"}</code>
+        </li>;
+      })}
+    </ul> : null}
+  </div>;
 }
 
 function formatRunDate(value: string | undefined) {
@@ -460,6 +526,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   const autoStartedBrowserVideoIds = useRef(new Set<string>());
   const automaticResumeInFlight = useRef(false);
   const scheduleLoopActive = useRef(false);
+  const scheduleLoopTask = useRef<Promise<void> | null>(null);
   const scheduleLoopCancelled = useRef(false);
   const scheduleLoopUnmounted = useRef(false);
   const scheduleWaitCancels = useRef(new Set<() => void>());
@@ -778,7 +845,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   }, [load, persistBrowserImagePlan, processingOutputId, scope]);
 
   const scheduleOutputsInBatches = useCallback(async (outputIds: string[], source: "manual" | "automatic", targetOutputIds = outputIds) => {
-    if (isTestAutomation || isRunFinished || !outputIds.length || scheduleLoopActive.current || processingOutputId || retryingOutputId) return;
+    if (isTestAutomation || isRunFinished || isFinishingRun || !outputIds.length || scheduleLoopActive.current || processingOutputId || retryingOutputId) return;
     const batches = createAutomationScheduleBatches(outputIds);
     if (!batches.length) return;
 
@@ -1004,7 +1071,16 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
         setIsSchedulingAll(false);
       }
     }
-  }, [isRunFinished, isTestAutomation, load, processingOutputId, retryingOutputId, runId, scope]);
+  }, [isFinishingRun, isRunFinished, isTestAutomation, load, processingOutputId, retryingOutputId, runId, scope]);
+
+  const startScheduleLoop = useCallback((outputIds: string[], source: "manual" | "automatic", targetOutputIds = outputIds) => {
+    const task = scheduleOutputsInBatches(outputIds, source, targetOutputIds);
+    scheduleLoopTask.current = task;
+    const clearTask = () => {
+      if (scheduleLoopTask.current === task) scheduleLoopTask.current = null;
+    };
+    void task.then(clearTask, clearTask);
+  }, [scheduleOutputsInBatches]);
 
   const stopSchedulingAll = useCallback(() => {
     if (!scheduleLoopActive.current || scheduleLoopCancelled.current) return;
@@ -1016,9 +1092,9 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   }, []);
 
   const scheduleAll = useCallback(() => {
-    if (isTestAutomation || isRunFinished || !scheduleEligibleOutputs.length || isSchedulingAll || processingOutputId || retryingOutputId) return;
-    void scheduleOutputsInBatches(scheduleEligibleOutputs.map((output) => output.id), "manual", readyOutputs.map((output) => output.id));
-  }, [isRunFinished, isSchedulingAll, isTestAutomation, processingOutputId, readyOutputs, retryingOutputId, scheduleEligibleOutputs, scheduleOutputsInBatches]);
+    if (isTestAutomation || isRunFinished || isFinishingRun || !scheduleEligibleOutputs.length || isSchedulingAll || processingOutputId || retryingOutputId) return;
+    startScheduleLoop(scheduleEligibleOutputs.map((output) => output.id), "manual", readyOutputs.map((output) => output.id));
+  }, [isFinishingRun, isRunFinished, isSchedulingAll, isTestAutomation, processingOutputId, readyOutputs, retryingOutputId, scheduleEligibleOutputs, startScheduleLoop]);
 
   const stopGeneration = useCallback(async () => {
     if (isStoppingGeneration || hasStoppedGeneration || !outputs.length || isRunFinished) return;
@@ -1049,14 +1125,14 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   }, [hasStoppedGeneration, isRunFinished, isStoppingGeneration, load, outputs.length, runId, scope]);
 
   const finishRun = useCallback(async () => {
-    if (isFinishingRun || isRunFinished || isSchedulingAll || processingOutputId || retryingOutputId || unresolvedOutputs.length) return;
-    if (providerProcessingOutputs.length) {
-      setMessage("Upload-Post tarafında işlenen medya var; run'ı bitirmeden önce yayın durumunun kesinleşmesini beklemeliyiz.");
-      return;
-    }
+    if (isFinishingRun || isRunFinished || processingOutputId || retryingOutputId || unresolvedOutputs.length) return;
     setIsFinishingRun(true);
     setMessage("");
     try {
+      // Stop future batches and polls, but don't make run completion wait for
+      // the provider's in-flight request. Its server-side result is durable
+      // and can settle independently after the run is closed.
+      if (scheduleLoopTask.current) stopSchedulingAll();
       const response = await fetch("/api/twitter-automation/automation-runs/finish", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -1066,16 +1142,18 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       if (!response.ok) throw new Error(payload?.errorCode ?? "automation_run_finish_failed");
       setIsRunFinishedLocally(true);
       await load();
-      setMessage("Bu toplu üretim run'ı tamamlandı.");
+      setMessage(providerProcessingOutputs.length
+        ? `Run tamamlandı. ${providerProcessingOutputs.length} içeriğin Upload-Post kontrolü kartlarda sürüyor; tek tek kontrol edip yeniden deneyebilirsin.`
+        : "Bu toplu üretim run'ı tamamlandı.");
     } catch {
       setMessage("Run tamamlanamadı. Devam eden işlemler bittiğinde tekrar deneyebilirsin.");
     } finally {
       setIsFinishingRun(false);
     }
-  }, [isFinishingRun, isRunFinished, isSchedulingAll, load, processingOutputId, providerProcessingOutputs.length, retryingOutputId, runId, scope, unresolvedOutputs.length]);
+  }, [isFinishingRun, isRunFinished, load, processingOutputId, providerProcessingOutputs.length, retryingOutputId, runId, scope, stopSchedulingAll, unresolvedOutputs.length]);
 
   const retryScheduleOutput = useCallback(async (output: AutomationOutput) => {
-    if (isTestAutomation || processingOutputId || retryingOutputId || isSchedulingAll) return;
+    if (isTestAutomation || isFinishingRun || processingOutputId || retryingOutputId || isSchedulingAll) return;
     setRetryingOutputId(output.id);
     setScheduleErrorMessage("");
     setMessage("");
@@ -1106,7 +1184,7 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
       await load();
       setRetryingOutputId(null);
     }
-  }, [isSchedulingAll, isTestAutomation, load, processingOutputId, retryingOutputId, runId, scope]);
+  }, [isFinishingRun, isSchedulingAll, isTestAutomation, load, processingOutputId, retryingOutputId, runId, scope]);
 
   const refreshGeneratedMedia = useCallback(async () => {
     if (isRefreshingGeneratedMedia || processingOutputId) return;
@@ -1264,17 +1342,17 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
   }, [load]);
 
   useEffect(() => {
-    if (isTestAutomation || isRunFinished || hasStoppedGeneration || state !== "ready" || !outputs.length || processingOutputId || retryingOutputId || scheduleLoopActive.current || autoScheduleStartedRuns.current.has(runId)) return;
+    if (isTestAutomation || isRunFinished || isFinishingRun || hasStoppedGeneration || state !== "ready" || !outputs.length || processingOutputId || retryingOutputId || scheduleLoopActive.current || autoScheduleStartedRuns.current.has(runId)) return;
     const autoScheduleEnabled = outputs.some((output) => output.run?.auto_schedule_on_success === true);
     if (!isReviewReady || failedMediaOutputs.length > 3 || !autoScheduleEnabled || !autoScheduleEligibleOutputs.length) return;
 
     const timer = window.setTimeout(() => {
       if (scheduleLoopActive.current || autoScheduleStartedRuns.current.has(runId)) return;
       autoScheduleStartedRuns.current.add(runId);
-      void scheduleOutputsInBatches(autoScheduleEligibleOutputs.map((output) => output.id), "automatic", readyOutputs.map((output) => output.id));
+      startScheduleLoop(autoScheduleEligibleOutputs.map((output) => output.id), "automatic", readyOutputs.map((output) => output.id));
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [autoScheduleEligibleOutputs, failedMediaOutputs.length, hasStoppedGeneration, isReviewReady, isRunFinished, isTestAutomation, outputs, processingOutputId, readyOutputs, retryingOutputId, runId, scheduleOutputsInBatches, state]);
+  }, [autoScheduleEligibleOutputs, failedMediaOutputs.length, hasStoppedGeneration, isFinishingRun, isReviewReady, isRunFinished, isTestAutomation, outputs, processingOutputId, readyOutputs, retryingOutputId, runId, startScheduleLoop, state]);
 
   useEffect(() => {
     if (!isResultScreen || state !== "ready" || resultMediaLoadedForRun.current === runId) return;
@@ -1432,13 +1510,15 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
         const skipped = output.status === "skipped";
         const providerProcessing = output.schedule_error_code === UPLOAD_POST_REQUEST_UNCONFIRMED_CODE;
         const scheduleFailed = !providerProcessing && (output.schedule_status === "failed" || output.schedule_status === "partially_scheduled");
-        const providerRecheckReady = providerProcessing && now - Date.parse(output.schedule_attempted_at ?? "") >= UPLOAD_POST_REQUEST_RECHECK_DELAY_MS;
+        const unconfirmedUploadJobs = getUnconfirmedUploadPostJobs(output);
+        const providerCheckTimestamp = getProviderCheckTimestamp(output, unconfirmedUploadJobs);
+        const providerRecheckReady = providerProcessing && Number.isFinite(providerCheckTimestamp) && now - providerCheckTimestamp >= UPLOAD_POST_REQUEST_RECHECK_DELAY_MS;
         const isPendingVerification = needsGeneration(output);
         const canRetry = output.status === "failed" || isPendingVerification;
         const storageStatus = bucketStatusLabel(output);
         return <article className="overflow-hidden rounded-2xl border border-white/30 bg-white p-3 text-black" key={output.id}>
           <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-semibold text-black">{output.group_name}</p><p className="mt-1 truncate text-[11px] text-black">{getOutputLabel(output)}</p></div><div className="flex shrink-0 flex-col items-end gap-1">{ready || scheduled ? <div className="flex items-center gap-1 text-[11px] font-semibold text-black"><Check aria-label="İçerik başarılı" className="size-4" />Başarılı</div> : skipped ? <div className="flex items-center gap-1 text-[11px] font-semibold text-[#64748b]"><CircleAlert aria-label="İçerik atlandı" className="size-4" />Atlandı</div> : isPendingVerification ? <div className="flex items-center gap-1 text-[11px] font-semibold text-black"><CircleAlert aria-label="İçerik beklemede" className="size-4" />Beklemede</div> : <div className="flex items-center gap-1 text-[11px] font-semibold text-black"><CircleAlert aria-label="İçerik üretilemedi" className="size-4" />Üretim hatası</div>}<ScheduleStatusHint output={output} ready={ready} scheduled={scheduled} /></div></div>
-          {providerProcessing ? <div className="mt-3 rounded-lg border border-[#f1d28a] bg-[#fff9e8] px-2.5 py-2 text-[11px] leading-4 text-[#795600]">Upload-Post yanıtı henüz doğrulanmadı. Olası çift paylaşımı önlemek için aynı medya yeniden gönderilmeden önce mevcut istek kontrol edilecek.</div> : null}
+          <ProviderScheduleVerificationNotice now={now} output={output} />
           <div className="mt-3 flex items-center gap-2 text-xs text-black"><CalendarClock className="size-3.5 shrink-0 text-black" /><span>{scheduled ? "Schedule edildi:" : "Schedule zamanı:"} {formatScheduledAt(output.scheduled_at)}</span></div>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold"><span className={storageStatus.className}>{storageStatus.label}</span><span className="font-mono text-[10px] text-black/55">#{output.id.slice(0, 8)}</span></div>
           <div className="relative mt-3">
@@ -1446,13 +1526,13 @@ export function GeneratedPostsTable({ runId, onClose, scope = "production" }: { 
             <MediaStatusHint errorCode={output.error_code} errorDetail={formatProviderFailureDetail(output)} pendingMessage={isPendingVerification ? pendingGenerationMessage(output, isInterruptedReview) : undefined} />
           </div>
           {scheduleFailed ? <div className="mt-3 rounded-lg border border-[#f4b9b4] bg-[#fff0ef] px-2.5 py-2 text-[11px] leading-4 text-[#8e2118]">Schedule başarısız oldu; üretim dosyaları ve içerik korunuyor. Neden: {getAutomationScheduleFailureReason(output.schedule_error_code, output.schedule_error_detail)}</div> : null}
-          {providerProcessing ? <Button className="mt-3 h-8 w-full border border-[#f1c75b]/50 bg-[#312816] px-3 text-xs text-[#ffe7a0] hover:bg-[#40351e]" disabled={!providerRecheckReady || isTestAutomation || isRunFinished || Boolean(processingOutputId) || Boolean(retryingOutputId) || isSchedulingAll} onClick={() => void retryScheduleOutput(output)} type="button">{retryingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}{providerRecheckReady ? "Upload-Post durumunu kontrol et" : "Upload-Post işlemi sürüyor"}</Button> : null}
-          {scheduleFailed && output.schedule_error_code !== "automation_scheduled_at_in_past" ? <Button className="mt-3 h-8 w-full border border-[#f1c75b]/50 bg-[#312816] px-3 text-xs text-[#ffe7a0] hover:bg-[#40351e]" disabled={isTestAutomation || isRunFinished || Boolean(processingOutputId) || Boolean(retryingOutputId) || isSchedulingAll} onClick={() => void retryScheduleOutput(output)} type="button">{retryingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}Schedule&apos;ı yeniden dene</Button> : canRetry && !hasStoppedGeneration && !isRunFinished ? <Button className={cn("mt-3 h-8 w-full px-3 text-xs", isPendingVerification ? "border border-[#f1c75b]/50 bg-[#312816] text-[#ffe7a0] hover:bg-[#40351e]" : "border border-[#ffb9c1]/45 bg-[#3b211e] text-[#ffd9de] hover:bg-[#4a2822]")} disabled={Boolean(processingOutputId) || Boolean(retryingOutputId)} onClick={() => void retryOutput(output)} type="button">{retryingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}{isPendingVerification ? "Yeniden dene" : "Yeniden üret"}</Button> : null}
+          {providerProcessing ? <Button className="mt-3 h-8 w-full border border-[#f1c75b]/50 bg-[#312816] px-3 text-xs text-[#ffe7a0] hover:bg-[#40351e]" disabled={!providerRecheckReady || isTestAutomation || isFinishingRun || Boolean(processingOutputId) || Boolean(retryingOutputId) || isSchedulingAll} onClick={() => void retryScheduleOutput(output)} type="button">{retryingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}{providerRecheckReady ? unconfirmedUploadJobs.some((job) => job.manualReviewRequired) ? "Upload-Post kaydını kontrol et" : "Upload-Post durumunu kontrol et" : "Upload-Post işlemi sürüyor"}</Button> : null}
+          {scheduleFailed && output.schedule_error_code !== "automation_scheduled_at_in_past" ? <Button className="mt-3 h-8 w-full border border-[#f1c75b]/50 bg-[#312816] px-3 text-xs text-[#ffe7a0] hover:bg-[#40351e]" disabled={isTestAutomation || isFinishingRun || Boolean(processingOutputId) || Boolean(retryingOutputId) || isSchedulingAll} onClick={() => void retryScheduleOutput(output)} type="button">{retryingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}Schedule&apos;ı yeniden dene</Button> : canRetry && !hasStoppedGeneration && !isRunFinished ? <Button className={cn("mt-3 h-8 w-full px-3 text-xs", isPendingVerification ? "border border-[#f1c75b]/50 bg-[#312816] text-[#ffe7a0] hover:bg-[#40351e]" : "border border-[#ffb9c1]/45 bg-[#3b211e] text-[#ffd9de] hover:bg-[#4a2822]")} disabled={Boolean(processingOutputId) || Boolean(retryingOutputId)} onClick={() => void retryOutput(output)} type="button">{retryingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}{isPendingVerification ? "Yeniden dene" : "Yeniden üret"}</Button> : null}
           {!scheduled ? <Button aria-label="Generated postu ve Storage kaydını sil" className="mt-2 h-8 w-full border border-[#fecaca] bg-[#fff1f2] px-3 text-xs text-[#c0262d] hover:bg-[#fee2e2]" disabled={Boolean(processingOutputId) || Boolean(retryingOutputId) || Boolean(deletingOutputId)} onClick={() => void deleteOutput(output)} title="Generated postu ve Storage kaydını sil" type="button">{deletingOutputId === output.id ? <LoaderCircle className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}İçeriği ve Storage kaydını sil</Button> : null}
         </article>;
       })}</div>
     </main>}
 
-    {isResultScreen ? <footer className="flex shrink-0 flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-white">{isRunFinished ? "Bu toplu üretim run'ı tamamlandı." : isInterruptedReview ? FLOW_REFRESH_ERROR_MESSAGE : isTestAutomation ? "TEST modu: üretilen içerikler production'a schedule edilemez." : scheduleProgressMessage || (scheduleEligibleOutputs.length ? `${scheduleEligibleOutputs.length} içerik schedule onayını bekliyor.` : "Schedule edilecek hazır içerik kalmadı.")}</p><div className="flex flex-wrap gap-2">{isInterruptedReview && !hasStoppedGeneration ? <ResumeAutomationControl cooldownSeconds={resumeCooldownSeconds} disabled={Boolean(processingOutputId) || Boolean(retryingOutputId)} onCancelCooldown={cancelResumeCooldown} onResume={() => void resumeAutomation()} /> : null}<div className="flex flex-col gap-2">{!hasStoppedGeneration && unresolvedOutputs.length > 0 ? <Button className="h-10 border border-white/20 bg-white/[0.08] px-4 text-sm text-white hover:bg-white/[0.14] disabled:opacity-45" disabled={isStoppingGeneration || isRunFinished} onClick={() => void stopGeneration()} type="button">{isStoppingGeneration ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />}Kalanları atla</Button> : null}{isSchedulingAll ? <Button className="h-10 border border-[#ffb9c1]/45 bg-[#3b211e] px-4 text-sm text-[#ffd9de] hover:bg-[#4a2822]" onClick={stopSchedulingAll} title="Devam eden istek doğrulanır; yeni batch ve yeniden denemeler durdurulur." type="button"><Square className="size-4" />Schedule akışını durdur</Button> : null}<Button className="h-10 bg-white px-4 text-sm text-[#2c63e1] hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-45" disabled={isRunFinished || isTestAutomation || !scheduleEligibleOutputs.length || isSchedulingAll || Boolean(processingOutputId) || Boolean(retryingOutputId) || isRefreshingGeneratedMedia} onClick={() => void scheduleAll()} title={isTestAutomation ? "TEST modunda production scheduling kapalıdır" : "Hazır içerikler 20'şer postluk gruplar halinde schedule edilir; gruplar arasında 90 saniye beklenir."} type="button">{isTestAutomation ? <CalendarClock className="size-4" /> : isSchedulingAll ? <LoaderCircle className="size-4 animate-spin" /> : <CalendarClock className="size-4" />}{isTestAutomation ? "Schedule all kilitli (TEST)" : `Schedule all (${scheduleEligibleOutputs.length})`}</Button><Button className="h-9 border border-white/15 bg-white/[0.06] px-4 text-xs text-white hover:bg-white/[0.12] disabled:cursor-not-allowed disabled:opacity-45" disabled={isRunFinished || Boolean(processingOutputId) || Boolean(retryingOutputId) || isSchedulingAll || isRefreshingGeneratedMedia} onClick={() => void refreshGeneratedMedia()} title="Önizlemeleri Storage’dan yeniden yükle ve medyayı doğrula" type="button">{isRefreshingGeneratedMedia ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}Önizlemeleri yenile</Button>{!isRunFinished ? <Button className="h-10 bg-[#c7f05d] px-4 text-sm font-semibold text-[#17240a] hover:bg-[#d6ff74] disabled:cursor-not-allowed disabled:opacity-45" disabled={isFinishingRun || isSchedulingAll || Boolean(processingOutputId) || Boolean(retryingOutputId) || unresolvedOutputs.length > 0 || isRefreshingGeneratedMedia} onClick={() => void finishRun()} title="Bu batch'i sonlandır; daha sonra bu run'a üretim eklenmez." type="button">{isFinishingRun ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />}{isFinishingRun ? "Run bitiriliyor…" : "Run'ı bitir"}</Button> : null}</div></div></footer> : <footer className="flex min-h-12 shrink-0 items-center justify-between gap-3 px-4 py-2 text-xs text-white"><span>{renderRecoveryStatus || message || progressStatus}</span><Button className="h-9 shrink-0 bg-white px-3 text-xs font-semibold text-[#2c63e1] hover:bg-white/90 disabled:opacity-50" disabled={!outputs.length || state === "loading" || isStoppingGeneration || hasStoppedGeneration || isRunFinished} onClick={() => void stopGeneration()} type="button">{isStoppingGeneration ? <LoaderCircle className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}{isStoppingGeneration ? "Durduruluyor…" : "Bu kadarı yeterli — sonuçlara geç"}</Button></footer>}
+    {isResultScreen ? <footer className="flex shrink-0 flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-white">{isRunFinished ? message || "Bu toplu üretim run'ı tamamlandı." : isInterruptedReview ? FLOW_REFRESH_ERROR_MESSAGE : isTestAutomation ? "TEST modu: üretilen içerikler production'a schedule edilemez." : scheduleProgressMessage || (scheduleEligibleOutputs.length ? `${scheduleEligibleOutputs.length} içerik schedule onayını bekliyor.` : "Schedule edilecek hazır içerik kalmadı.")}</p><div className="flex flex-wrap gap-2">{isInterruptedReview && !hasStoppedGeneration ? <ResumeAutomationControl cooldownSeconds={resumeCooldownSeconds} disabled={Boolean(processingOutputId) || Boolean(retryingOutputId)} onCancelCooldown={cancelResumeCooldown} onResume={() => void resumeAutomation()} /> : null}<div className="flex flex-col gap-2">{!hasStoppedGeneration && unresolvedOutputs.length > 0 ? <Button className="h-10 border border-white/20 bg-white/[0.08] px-4 text-sm text-white hover:bg-white/[0.14] disabled:opacity-45" disabled={isStoppingGeneration || isRunFinished} onClick={() => void stopGeneration()} type="button">{isStoppingGeneration ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />}Kalanları atla</Button> : null}{isSchedulingAll ? <Button className="h-10 border border-[#ffb9c1]/45 bg-[#3b211e] px-4 text-sm text-[#ffd9de] hover:bg-[#4a2822]" onClick={stopSchedulingAll} title="Devam eden istek doğrulanır; yeni batch ve yeniden denemeler durdurulur." type="button"><Square className="size-4" />Schedule akışını durdur</Button> : null}<Button className="h-10 bg-white px-4 text-sm text-[#2c63e1] hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-45" disabled={isRunFinished || isFinishingRun || isTestAutomation || !scheduleEligibleOutputs.length || isSchedulingAll || Boolean(processingOutputId) || Boolean(retryingOutputId) || isRefreshingGeneratedMedia} onClick={() => void scheduleAll()} title={isTestAutomation ? "TEST modunda production scheduling kapalıdır" : "Hazır içerikler 20'şer postluk gruplar halinde schedule edilir; gruplar arasında 90 saniye beklenir."} type="button">{isTestAutomation ? <CalendarClock className="size-4" /> : isSchedulingAll ? <LoaderCircle className="size-4 animate-spin" /> : <CalendarClock className="size-4" />}{isTestAutomation ? "Schedule all kilitli (TEST)" : `Schedule all (${scheduleEligibleOutputs.length})`}</Button><Button className="h-9 border border-white/15 bg-white/[0.06] px-4 text-xs text-white hover:bg-white/[0.12] disabled:cursor-not-allowed disabled:opacity-45" disabled={isRunFinished || Boolean(processingOutputId) || Boolean(retryingOutputId) || isSchedulingAll || isRefreshingGeneratedMedia} onClick={() => void refreshGeneratedMedia()} title="Önizlemeleri Storage’dan yeniden yükle ve medyayı doğrula" type="button">{isRefreshingGeneratedMedia ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}Önizlemeleri yenile</Button>{!isRunFinished ? <Button className="h-10 bg-[#c7f05d] px-4 text-sm font-semibold text-[#17240a] hover:bg-[#d6ff74] disabled:cursor-not-allowed disabled:opacity-45" disabled={isFinishingRun || Boolean(processingOutputId) || Boolean(retryingOutputId) || unresolvedOutputs.length > 0 || isRefreshingGeneratedMedia} onClick={() => void finishRun()} title="Run'ı bitirmek üretimi kapatır; bekleyen Upload-Post kontrolleri kartlardan sürdürülebilir." type="button">{isFinishingRun ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />}{isFinishingRun ? "Run bitiriliyor…" : "Run'ı bitir"}</Button> : null}</div></div></footer> : <footer className="flex min-h-12 shrink-0 items-center justify-between gap-3 px-4 py-2 text-xs text-white"><span>{renderRecoveryStatus || message || progressStatus}</span><Button className="h-9 shrink-0 bg-white px-3 text-xs font-semibold text-[#2c63e1] hover:bg-white/90 disabled:opacity-50" disabled={!outputs.length || state === "loading" || isStoppingGeneration || hasStoppedGeneration || isRunFinished} onClick={() => void stopGeneration()} type="button">{isStoppingGeneration ? <LoaderCircle className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}{isStoppingGeneration ? "Durduruluyor…" : "Bu kadarı yeterli — sonuçlara geç"}</Button></footer>}
   </section>;
 }

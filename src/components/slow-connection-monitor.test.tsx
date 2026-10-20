@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/locale-provider";
@@ -6,7 +6,7 @@ import { SlowConnectionMonitor } from "@/components/slow-connection-monitor";
 import { ThemeProvider } from "@/components/theme-provider";
 import { CUSTOM_CARD_GENERATION_STALLED_EVENT } from "@/lib/slow-connection-quality";
 
-const routerMocks = vi.hoisted(() => ({ push: vi.fn() }));
+const routerMocks = vi.hoisted(() => ({ push: vi.fn(), pathname: "/" }));
 
 class MockPerformanceObserver {
   static lastInstance: MockPerformanceObserver | undefined;
@@ -28,7 +28,7 @@ class MockPerformanceObserver {
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: routerMocks.push }),
-  usePathname: () => "/",
+  usePathname: () => routerMocks.pathname,
 }));
 
 function renderPrompt(locale: "en" | "tr" = "en") {
@@ -46,6 +46,7 @@ function renderPrompt(locale: "en" | "tr" = "en") {
 afterEach(() => {
   window.history.replaceState({}, "", "/");
   routerMocks.push.mockClear();
+  routerMocks.pathname = "/";
   MockPerformanceObserver.lastInstance = undefined;
 });
 
@@ -107,9 +108,11 @@ it("lets Escape dismiss the prompt without navigating", async () => {
   expect(routerMocks.push).not.toHaveBeenCalled();
 });
 
-it("opens globally when the browser reports a slow-2g connection", async () => {
+it("treats a slow-2g estimate as a hint and trusts a fast reachability check", async () => {
   window.history.replaceState({}, "", "/learn");
   const originalConnection = Object.getOwnPropertyDescriptor(navigator, "connection");
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+  vi.stubGlobal("fetch", fetchMock);
   const connection = new EventTarget();
   Object.defineProperty(connection, "effectiveType", { value: "slow-2g" });
   Object.defineProperty(navigator, "connection", {
@@ -126,14 +129,91 @@ it("opens globally when the browser reports a slow-2g connection", async () => {
   );
 
   try {
-    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   } finally {
     view.unmount();
+    vi.unstubAllGlobals();
     if (originalConnection) {
       Object.defineProperty(navigator, "connection", originalConnection);
     } else {
       Reflect.deleteProperty(navigator, "connection");
     }
+  }
+});
+
+it("does not show the prompt for a quick transient fetch rejection", async () => {
+  window.history.replaceState({}, "", "/learn");
+  const fetchMock = vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
+  vi.stubGlobal("fetch", fetchMock);
+
+  const view = render(
+    <LocaleProvider initialLocale="en">
+      <ThemeProvider initialTheme="default-dark">
+        <SlowConnectionMonitor />
+      </ThemeProvider>
+    </LocaleProvider>,
+  );
+
+  try {
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+  } finally {
+    view.unmount();
+    vi.unstubAllGlobals();
+  }
+});
+
+it("opens the prompt when the reachability probe times out at the unusable threshold", async () => {
+  window.history.replaceState({}, "", "/learn");
+  vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout", "setInterval", "clearInterval", "performance"] });
+  const fetchMock = vi.fn(() => new Promise<Response>(() => undefined));
+  vi.stubGlobal("fetch", fetchMock);
+
+  const view = render(
+    <LocaleProvider initialLocale="en">
+      <ThemeProvider initialTheme="default-dark">
+        <SlowConnectionMonitor />
+      </ThemeProvider>
+    </LocaleProvider>,
+  );
+
+  try {
+    expect(fetchMock).toHaveBeenCalledOnce();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(12_000);
+    });
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+  } finally {
+    view.unmount();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  }
+});
+
+it("does not restart reachability monitoring when the route changes", async () => {
+  window.history.replaceState({}, "", "/learn");
+  routerMocks.pathname = "/learn";
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+  vi.stubGlobal("fetch", fetchMock);
+
+  const renderMonitor = () => (
+    <LocaleProvider initialLocale="en">
+      <ThemeProvider initialTheme="default-dark">
+        <SlowConnectionMonitor />
+      </ThemeProvider>
+    </LocaleProvider>
+  );
+  const view = render(renderMonitor());
+
+  try {
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+    routerMocks.pathname = "/games";
+    view.rerender(renderMonitor());
+    expect(fetchMock).toHaveBeenCalledOnce();
+  } finally {
+    view.unmount();
+    vi.unstubAllGlobals();
   }
 });
 

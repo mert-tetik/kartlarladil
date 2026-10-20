@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { LOCALE_CODES } from "@/data/languages";
 import { getTierRequirement } from "@/features/quiz/quiz-engine";
@@ -10,6 +10,7 @@ import {
   addCloudInventoryCardAction,
   addCloudInventoryCardsAction,
   createCustomCardAction,
+  removeCloudInventoryCardAction,
 } from "@/features/inventory/cloud-actions";
 import type { VocabularyCard } from "@/types/domain";
 
@@ -36,6 +37,10 @@ vi.mock("@/features/inventory/cloud-actions", () => ({
 const testCard = VOCABULARY_CARDS.find((card) => card.language === "en" && card.tier === "A1")!;
 
 describe("inventory store analytics", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => {
     vi.unstubAllGlobals();
     vi.clearAllMocks();
@@ -66,6 +71,77 @@ describe("inventory store analytics", () => {
         term_kind: testCard.termKind,
       },
     });
+  });
+
+  it("rolls back an optimistic single-card add when the server action rejects", async () => {
+    const logger = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.mocked(addCloudInventoryCardAction).mockRejectedValueOnce(new Error("temporary transport failure"));
+    useInventoryStore.setState({ cloudEnabled: true, ownerUserId: "user-1" });
+
+    const result = await useInventoryStore.getState().addCard(testCard.id);
+    const state = useInventoryStore.getState();
+
+    expect(result).toEqual({ ok: false, firstCardAdded: false });
+    expect(state.cards).toEqual([]);
+    expect(state.pendingCardIds.size).toBe(0);
+    expect(state.cloudLoading).toBe(false);
+    expect(state.cloudError).toBe("The card action could not be completed right now. Please try again.");
+    expect(logger).toHaveBeenCalledWith(
+      "[FoxiesDeck inventory] Cloud action rejected unexpectedly.",
+      expect.objectContaining({ operation: "add card" }),
+    );
+  });
+
+  it("clears every optimistic batch-add marker when the server action rejects", async () => {
+    const secondCard = VOCABULARY_CARDS.find(
+      (card) => card.language === "en" && card.tier === "A2",
+    )!;
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.mocked(addCloudInventoryCardsAction).mockRejectedValueOnce(new Error("temporary transport failure"));
+    useInventoryStore.setState({ cloudEnabled: true, ownerUserId: "user-1" });
+
+    const result = await useInventoryStore.getState().addCards([testCard.id, secondCard.id]);
+    const state = useInventoryStore.getState();
+
+    expect(result).toMatchObject({
+      ok: false,
+      addedCardIds: [],
+      remainingCardIds: [testCard.id, secondCard.id],
+    });
+    expect(state.cards).toEqual([]);
+    expect(state.pendingCardIds.size).toBe(0);
+    expect(state.cloudLoading).toBe(false);
+    expect(state.cloudError).toBe("The card action could not be completed right now. Please try again.");
+  });
+
+  it("restores the previous card and attempts when a cloud removal action rejects", async () => {
+    const originalCard = { cardId: testCard.id, status: "active" as const, correctCount: 2, addedAt: "2026-01-01" };
+    const originalAttempt = {
+      id: "attempt-1",
+      cardId: testCard.id,
+      selectedAnswer: "a",
+      correctAnswer: "b",
+      isCorrect: false,
+      mode: "active" as const,
+      createdAt: "2026-01-02",
+    };
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.mocked(removeCloudInventoryCardAction).mockRejectedValueOnce(new Error("temporary transport failure"));
+    useInventoryStore.setState({
+      cloudEnabled: true,
+      ownerUserId: "user-1",
+      cards: [originalCard],
+      attempts: [originalAttempt],
+    });
+
+    await useInventoryStore.getState().removeCard(testCard.id);
+    const state = useInventoryStore.getState();
+
+    expect(state.cards).toEqual([originalCard]);
+    expect(state.attempts).toEqual([originalAttempt]);
+    expect(state.pendingCardIds.size).toBe(0);
+    expect(state.cloudLoading).toBe(false);
+    expect(state.cloudError).toBe("The card action could not be completed right now. Please try again.");
   });
 
   it("keeps later optimistic cloud additions while earlier queued additions resolve", async () => {

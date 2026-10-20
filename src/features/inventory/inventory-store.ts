@@ -8,6 +8,8 @@ import { FIRST_CARD_ADDED_EVENT } from "@/features/push/push-client";
 import { STORAGE_KEY } from "@/lib/constants";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { isFirstLearnedTransition } from "@/lib/twa-analytics-events";
+import { DEFAULT_LOCALE, LOCALE_STORAGE_KEY, normalizeLocale } from "@/i18n/config";
+import { translate } from "@/i18n/dictionaries";
 import type { InventoryCard, LanguageCode, LimitErrorCode, PracticeAttempt, PracticeMode, TermKind, Tier, VocabularyCard } from "@/types/domain";
 import type { GeneratedCardDraft } from "@/features/cards/custom-card-types";
 import {
@@ -43,6 +45,13 @@ interface AddCardResult {
 interface AddCardsResult extends AddCardResult {
   addedCardIds: string[];
   remainingCardIds: string[];
+}
+
+interface InventoryCloudActionResult<T> {
+  status: "success" | "error";
+  message: string;
+  errorCode?: LimitErrorCode;
+  data?: T;
 }
 
 export type OptimisticCardMutationKind = "remove" | "mark-learned";
@@ -174,8 +183,8 @@ export const useInventoryStore = create<InventoryState>()(
 
         try {
           const [inventoryResult, customCardsResult] = await Promise.all([
-            listCloudInventoryAction(),
-            loadCustomCardsAction(),
+            runInventoryCloudAction("load inventory", listCloudInventoryAction),
+            runInventoryCloudAction("load custom cards", loadCustomCardsAction),
           ]);
 
           if (customCardsResult.status === "success" && customCardsResult.data) {
@@ -332,7 +341,10 @@ export const useInventoryStore = create<InventoryState>()(
         }
 
         set({ cloudLoading: true, cloudLoadComplete: false, cloudError: "" });
-        const result = await migrateLocalInventoryToCloudAction(get().cards);
+        const result = await runInventoryCloudAction(
+          "migrate local inventory",
+          () => migrateLocalInventoryToCloudAction(get().cards),
+        );
 
         if (result.status === "error" || !result.data) {
           set({ cloudLoading: false, cloudLoadComplete: true, cloudError: result.message });
@@ -361,24 +373,27 @@ export const useInventoryStore = create<InventoryState>()(
             return { ok: false, firstCardAdded: false, limitReached: true };
           }
 
+          const cardWasAlreadyPresent = get().cards.some((card) => card.cardId === cardId);
           const optimisticCards = addCardToInventory(get().cards, cardId);
           set({ cards: optimisticCards });
           addPendingCardId(set, cardId);
 
           set({ cloudLoading: true, cloudError: "" });
-          const result = await enqueueCloudCardAddition(get().ownerUserId, () => addCloudInventoryCardAction(cardId));
+          const result = await runInventoryCloudAction(
+            "add card",
+            () => enqueueCloudCardAddition(get().ownerUserId, () => addCloudInventoryCardAction(cardId)),
+          );
           removePendingCardId(set, cardId);
 
           if (result.status === "error" || !result.data) {
-            if (get().cards.some((card) => card.cardId === cardId)) {
-              set({
-                cards: get().cards.filter((card) => card.cardId !== cardId),
-                cloudLoading: false,
-                cloudError: result.message,
-              });
-            } else {
-              set({ cloudLoading: false, cloudError: result.message });
-            }
+            const currentState = get();
+            set({
+              cards: cardWasAlreadyPresent
+                ? currentState.cards
+                : currentState.cards.filter((card) => card.cardId !== cardId),
+              cloudLoading: currentState.pendingCardIds.size > 0,
+              cloudError: result.message,
+            });
             return { ok: false, firstCardAdded: false };
           }
 
@@ -489,9 +504,12 @@ export const useInventoryStore = create<InventoryState>()(
             set({ cloudLoading: true, cloudError: "" });
           }
 
-          const result = await enqueueCloudCardAddition(
-            get().ownerUserId,
-            () => addCloudInventoryCardsAction(requestedCardIds),
+          const result = await runInventoryCloudAction(
+            "add cards",
+            () => enqueueCloudCardAddition(
+              get().ownerUserId,
+              () => addCloudInventoryCardsAction(requestedCardIds),
+            ),
           );
 
           if (result.status === "error" || !result.data) {
@@ -638,7 +656,10 @@ export const useInventoryStore = create<InventoryState>()(
             attempts: previousAttempts.filter((attempt) => attempt.cardId !== cardId),
           });
 
-          const result = await removeCloudInventoryCardAction(cardId);
+          const result = await runInventoryCloudAction(
+            "remove card",
+            () => removeCloudInventoryCardAction(cardId),
+          );
           removePendingCardId(set, cardId);
 
           if (result.status === "error" || !result.data) {
@@ -710,8 +731,17 @@ export const useInventoryStore = create<InventoryState>()(
             cloudError: "",
           });
 
-          const { forceLearned: _forceLearned, ...serverInput } = input;
-          const result = await recordCloudPracticeAttemptAction(serverInput);
+          const serverInput = {
+            cardId: input.cardId,
+            selectedAnswer: input.selectedAnswer,
+            correctAnswer: input.correctAnswer,
+            isCorrect: input.isCorrect,
+            mode: input.mode,
+          };
+          const result = await runInventoryCloudAction(
+            "record practice answer",
+            () => recordCloudPracticeAttemptAction(serverInput),
+          );
 
           if (result.status === "error" || !result.data) {
             set({
@@ -799,7 +829,7 @@ export const useInventoryStore = create<InventoryState>()(
       async reset() {
         if (get().cloudEnabled) {
           set({ cloudLoading: true, cloudError: "" });
-          const result = await resetCloudInventoryAction();
+          const result = await runInventoryCloudAction("reset inventory", resetCloudInventoryAction);
 
           if (result.status === "error" || !result.data) {
             set({ cloudLoading: false, cloudError: result.message });
@@ -959,6 +989,36 @@ function addPendingCardId(set: (fn: (state: InventoryState) => InventoryState) =
     ...state,
     pendingCardIds: new Set(state.pendingCardIds).add(cardId),
   }));
+}
+
+async function runInventoryCloudAction<T>(
+  operation: string,
+  action: () => Promise<InventoryCloudActionResult<T>>,
+): Promise<InventoryCloudActionResult<T>> {
+  try {
+    return await action();
+  } catch (error) {
+    try {
+      console.error("[FoxiesDeck inventory] Cloud action rejected unexpectedly.", {
+        operation,
+        error,
+      });
+    } catch {
+      // Logging must not prevent optimistic state from being rolled back.
+    }
+
+    let locale = DEFAULT_LOCALE;
+    try {
+      locale = normalizeLocale(window.localStorage.getItem(LOCALE_STORAGE_KEY));
+    } catch {
+      // The default locale keeps recovery available when browser storage is blocked.
+    }
+
+    return {
+      status: "error",
+      message: translate(locale, "inventory.error.operationFailed"),
+    };
+  }
 }
 
 function removePendingCardId(set: (fn: (state: InventoryState) => InventoryState) => void, cardId: string) {

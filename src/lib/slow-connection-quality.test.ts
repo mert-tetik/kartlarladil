@@ -37,9 +37,15 @@ describe("slow connection quality signals", () => {
 
   it("prompts immediately for a severely slow request or after repeated network failures", () => {
     expect(shouldRecommendOfflineMode(12_000, "success", 0)).toBe(true);
-    expect(shouldRecommendOfflineMode(400, "network-error", 1)).toBe(true);
+    expect(shouldRecommendOfflineMode(400, "network-error", 1)).toBe(false);
     expect(shouldRecommendOfflineMode(400, "network-error", 0)).toBe(false);
-    expect(isSlowReachabilitySample(400, "network-error")).toBe(true);
+    expect(isSlowReachabilitySample(400, "network-error")).toBe(false);
+    expect(isSlowReachabilitySample(8_100, "network-error")).toBe(true);
+    expect(shouldRecommendOfflineMode(8_100, "network-error", 0)).toBe(false);
+    expect(shouldRecommendOfflineMode(8_100, "network-error", 1)).toBe(true);
+    expect(shouldRecommendOfflineMode(12_000, "timeout", 0)).toBe(true);
+    expect(shouldRecommendOfflineMode(Number.NaN, "success", 2)).toBe(false);
+    expect(shouldRecommendOfflineMode(8_100, "success", Number.NaN)).toBe(false);
   });
 
   it("estimates transfer speed from real, sufficiently large resource downloads", () => {
