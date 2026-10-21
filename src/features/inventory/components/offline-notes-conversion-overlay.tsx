@@ -927,12 +927,6 @@ function OfflineNotesConversionOverlayContent() {
             </div>
           ) : null}
 
-          {conversionBusy ? (
-            <p className="flex items-center justify-center gap-2 py-2 text-sm text-foreground/70" role="status" aria-live="polite">
-              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-              {t("offline.notes.converting")}
-            </p>
-          ) : null}
         </div>
 
         {addableDrafts.length > 0 || !canCheckDeck && drafts.length > 0 || visibleNotes.length > 0 ? (

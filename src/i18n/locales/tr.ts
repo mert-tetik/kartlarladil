@@ -699,6 +699,8 @@ const dictionary = {
   "chest.collect": "Topla",
   "chest.opened": "Sandık açıldı",
   "chest.missed": "Sandık kaçırıldı",
+  "chest.missedNotEnoughCards": "Sandık kazanmak için yeterli aktif kartın yoktu.",
+  "chest.missedNeedMoreCards": "Sandık için en az {requiredCount} aktif kart gerekiyor. {remainingCount} kart daha ekleyip yeniden dene.",
   "chest.missedReason": "Sandık için en az {required}% başarı gerekiyordu.",
   "chest.missedProgress": "Sen {accuracy}% başarıya ulaştın.",
   "chest.missedMode": "Bu quiz türünde sandık kazanılamaz.",

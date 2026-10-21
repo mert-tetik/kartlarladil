@@ -111,3 +111,11 @@ export const COUNT_CHEST_PREVIEW_PAIRS: Record<number, [ChestTier, ChestTier]> =
 export function getChestPreviewPairForCount(count: number): [ChestTier, ChestTier] | undefined {
   return COUNT_CHEST_PREVIEW_PAIRS[count];
 }
+
+export function getChestCardShortageCount(selectedCount: number | null): number | null {
+  const minimumChestCardCount = QUIZ_COUNT_OPTIONS[0];
+
+  return selectedCount !== null && selectedCount < minimumChestCardCount
+    ? minimumChestCardCount - selectedCount
+    : null;
+}

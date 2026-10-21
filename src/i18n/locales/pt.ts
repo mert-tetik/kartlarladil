@@ -694,6 +694,8 @@ const dictionary = {
   "chest.collect": "Coletar",
   "chest.opened": "Baú aberto",
   "chest.missed": "Baú perdido",
+  "chest.missedNotEnoughCards": "Não tinhas cartas ativas suficientes para ganhar um baú.",
+  "chest.missedNeedMoreCards": "São necessárias pelo menos {requiredCount} cartas ativas para ganhar um baú. Adiciona mais {remainingCount} e tenta novamente.",
   "chest.missedReason": "Precisavas de pelo menos {required}% de precisão para ganhar um baú.",
   "chest.missedProgress": "Alcançaste {accuracy}%.",
   "chest.missedMode": "Este modo de quiz não oferece baús.",

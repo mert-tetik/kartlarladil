@@ -694,6 +694,8 @@ const dictionary = {
   "chest.collect": "受け取る",
   "chest.opened": "宝箱が開きました",
   "chest.missed": "宝箱を逃しました",
+  "chest.missedNotEnoughCards": "宝箱を獲得するには、有効なカードが足りませんでした。",
+  "chest.missedNeedMoreCards": "宝箱には有効なカードが最低{requiredCount}枚必要です。カードをあと{remainingCount}枚追加して、もう一度挑戦してください。",
   "chest.missedReason": "宝箱には少なくとも{required}%の正解率が必要でした。",
   "chest.missedProgress": "正解率は{accuracy}%でした。",
   "chest.missedMode": "このクイズモードでは宝箱を獲得できません。",

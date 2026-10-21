@@ -694,6 +694,8 @@ const dictionary = {
   "chest.collect": "Odbierz",
   "chest.opened": "Skrzynia otwarta",
   "chest.missed": "Skrzynia przepadła",
+  "chest.missedNotEnoughCards": "Masz za mało aktywnych kart, aby zdobyć skrzynię.",
+  "chest.missedNeedMoreCards": "Do zdobycia skrzyni potrzebujesz co najmniej {requiredCount} aktywnych kart. Dodaj jeszcze {remainingCount} i spróbuj ponownie.",
   "chest.missedReason": "Do zdobycia skrzyni potrzebna była dokładność co najmniej {required}%.",
   "chest.missedProgress": "Osiągnięto {accuracy}%.",
   "chest.missedMode": "Ten tryb quizu nie przyznaje skrzyń.",

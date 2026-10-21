@@ -20,3 +20,34 @@ export function getQuizResultRewardPoints(medals: number, cardCount: number): nu
 
   return normalizedMedals * 2 * (normalizedCardCount / 10);
 }
+
+export function getQuizSessionEarnedPoints({
+  currentTotalPoints,
+  startingTotalPoints,
+  confirmedBonusPoints,
+  currentQuizResultPoints,
+  startingQuizResultPoints,
+}: {
+  currentTotalPoints: number;
+  startingTotalPoints: number;
+  confirmedBonusPoints: number;
+  currentQuizResultPoints: number;
+  startingQuizResultPoints: number;
+}) {
+  const safePoints = (points: number) =>
+    Number.isFinite(points) ? Math.max(0, Math.floor(points)) : 0;
+  const totalPointsEarned = Math.max(
+    0,
+    safePoints(currentTotalPoints) - safePoints(startingTotalPoints),
+  );
+  const bonusPointsAlreadyInTotal = Math.max(
+    0,
+    safePoints(currentQuizResultPoints) - safePoints(startingQuizResultPoints),
+  );
+  const confirmedBonusPointsNotInTotal = Math.max(
+    0,
+    safePoints(confirmedBonusPoints) - bonusPointsAlreadyInTotal,
+  );
+
+  return totalPointsEarned + confirmedBonusPointsNotInTotal;
+}

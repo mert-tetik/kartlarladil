@@ -694,6 +694,8 @@ const dictionary = {
   "chest.collect": "استلام",
   "chest.opened": "تم فتح الصندوق",
   "chest.missed": "فاتك الصندوق",
+  "chest.missedNotEnoughCards": "لم يكن لديك ما يكفي من البطاقات النشطة للحصول على صندوق.",
+  "chest.missedNeedMoreCards": "تحتاج إلى {requiredCount} بطاقة نشطة على الأقل للحصول على صندوق. أضف {remainingCount} أخرى وحاول مجددًا.",
   "chest.missedReason": "تحتاج إلى دقة لا تقل عن {required}% للحصول على صندوق.",
   "chest.missedProgress": "حققت دقة {accuracy}%.",
   "chest.missedMode": "هذا الوضع لا يمنح صناديق.",

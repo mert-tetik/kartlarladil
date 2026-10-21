@@ -693,6 +693,8 @@ const dictionary = {
   "chest.collect": "Einsammeln",
   "chest.opened": "Truhe geöffnet",
   "chest.missed": "Truhe verpasst",
+  "chest.missedNotEnoughCards": "Du hattest nicht genügend aktive Karten für eine Truhe.",
+  "chest.missedNeedMoreCards": "Für eine Truhe brauchst du mindestens {requiredCount} aktive Karten. Füge noch {remainingCount} hinzu und versuche es erneut.",
   "chest.missedReason": "Du brauchtest mindestens {required}% Genauigkeit für eine Truhe.",
   "chest.missedProgress": "Du hast {accuracy}% erreicht.",
   "chest.missedMode": "In diesem Quizmodus gibt es keine Truhen.",

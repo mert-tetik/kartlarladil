@@ -694,6 +694,8 @@ const dictionary = {
   "chest.collect": "Забрать",
   "chest.opened": "Сундук открыт",
   "chest.missed": "Сундук упущен",
+  "chest.missedNotEnoughCards": "Тебе не хватило активных карточек, чтобы получить сундук.",
+  "chest.missedNeedMoreCards": "Для сундука нужно минимум {requiredCount} активных карточек. Добавь ещё {remainingCount} и попробуй снова.",
   "chest.missedReason": "Для сундука нужна точность не менее {required}%.",
   "chest.missedProgress": "Твоя точность — {accuracy}%.",
   "chest.missedMode": "В этом режиме сундуки не выдаются.",

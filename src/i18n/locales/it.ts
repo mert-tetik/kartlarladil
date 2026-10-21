@@ -694,6 +694,8 @@ const dictionary = {
   "chest.collect": "Raccogli",
   "chest.opened": "Forziere aperto",
   "chest.missed": "Forziere mancato",
+  "chest.missedNotEnoughCards": "Non avevi abbastanza carte attive per ottenere un forziere.",
+  "chest.missedNeedMoreCards": "Per ottenere un forziere servono almeno {requiredCount} carte attive. Aggiungine altre {remainingCount} e riprova.",
   "chest.missedReason": "Serviva almeno il {required}% di precisione per ottenere un forziere.",
   "chest.missedProgress": "Hai raggiunto il {accuracy}%.",
   "chest.missedMode": "Questa modalità non assegna forzieri.",

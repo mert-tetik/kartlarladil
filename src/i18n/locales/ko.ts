@@ -694,6 +694,8 @@ const dictionary = {
   "chest.collect": "수집",
   "chest.opened": "상자가 열렸습니다",
   "chest.missed": "상자를 놓쳤어요",
+  "chest.missedNotEnoughCards": "상자를 얻기에 활성 카드가 충분하지 않았어요.",
+  "chest.missedNeedMoreCards": "상자를 얻으려면 활성 카드가 최소 {requiredCount}장 필요해요. {remainingCount}장을 더 추가하고 다시 시도하세요.",
   "chest.missedReason": "상자를 얻으려면 최소 {required}%의 정답률이 필요했어요.",
   "chest.missedProgress": "정답률은 {accuracy}%였어요.",
   "chest.missedMode": "이 퀴즈 모드에서는 상자를 받을 수 없어요.",

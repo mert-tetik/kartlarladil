@@ -533,6 +533,7 @@ describe("ResultView medal stages", () => {
             }}
             selectedCount={10}
             chestOpened={false}
+            earnedPoints={85}
             onContinue={vi.fn()}
             onRestart={vi.fn()}
             onExit={vi.fn()}
@@ -543,6 +544,7 @@ describe("ResultView medal stages", () => {
 
     expect(document.querySelector('[data-quiz-result-stage="summary"]')).toBeInTheDocument();
     expect(document.querySelector("[data-result-summary-metrics]")).toBeInTheDocument();
+    expect(document.querySelector('[data-result-stat="points"]')).toHaveTextContent("85");
     expect(document.querySelector("[data-result-earned-medals]")).not.toBeInTheDocument();
     expect(document.querySelector("[data-main-medals-display]")).not.toBeInTheDocument();
 

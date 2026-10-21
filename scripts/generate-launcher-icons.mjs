@@ -21,119 +21,15 @@ const ADAPTIVE_SIZES = {
   "drawable-xxxhdpi": 432,
 };
 
-const BACKGROUND_DISTANCE = 78;
-const SAFE_ZONE_RATIO = 0.6;
+const CROP_SCALE = 1.15;
 
-function isBackgroundPixel(data, offset) {
-  const distance = Math.hypot(
-    data[offset] - BRAND_ORANGE.r,
-    data[offset + 1] - BRAND_ORANGE.g,
-    data[offset + 2] - BRAND_ORANGE.b,
-  );
-  return distance <= BACKGROUND_DISTANCE;
-}
-
-function findBackgroundMask(data, width, height) {
-  const visited = new Uint8Array(width * height);
-  const queue = new Int32Array(width * height);
-  let head = 0;
-  let tail = 0;
-
-  function enqueue(x, y) {
-    const index = y * width + x;
-    if (visited[index]) return;
-    const offset = index * 4;
-    if (!isBackgroundPixel(data, offset)) return;
-    visited[index] = 1;
-    queue[tail++] = index;
-  }
-
-  for (let x = 0; x < width; x++) {
-    enqueue(x, 0);
-    enqueue(x, height - 1);
-  }
-  for (let y = 1; y < height - 1; y++) {
-    enqueue(0, y);
-    enqueue(width - 1, y);
-  }
-
-  while (head < tail) {
-    const index = queue[head++];
-    const x = index % width;
-    const y = Math.floor(index / width);
-    if (x > 0) enqueue(x - 1, y);
-    if (x < width - 1) enqueue(x + 1, y);
-    if (y > 0) enqueue(x, y - 1);
-    if (y < height - 1) enqueue(x, y + 1);
-  }
-
-  return visited;
-}
-
-async function readMascotCutout() {
-  const { data, info } = await sharp(APP_LOGO_PATH)
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  const background = findBackgroundMask(data, info.width, info.height);
-  const output = Buffer.from(data);
-  let minX = info.width;
-  let minY = info.height;
-  let maxX = -1;
-  let maxY = -1;
-
-  for (let index = 0; index < background.length; index++) {
-    const offset = index * 4;
-    if (background[index]) {
-      output[offset + 3] = 0;
-      continue;
-    }
-    const x = index % info.width;
-    const y = Math.floor(index / info.width);
-    minX = Math.min(minX, x);
-    minY = Math.min(minY, y);
-    maxX = Math.max(maxX, x);
-    maxY = Math.max(maxY, y);
-  }
-
-  if (maxX < minX || maxY < minY) {
-    throw new Error("Could not isolate the AppLogo2 mascot from its background.");
-  }
-
-  return sharp(output, {
-    raw: { width: info.width, height: info.height, channels: 4 },
-  })
-    .extract({
-      left: minX,
-      top: minY,
-      width: maxX - minX + 1,
-      height: maxY - minY + 1,
-    })
-    .png()
-    .toBuffer();
-}
-
-async function createSafeZoneIcon(source, size, { transparent = false } = {}) {
-  const contentSize = Math.max(1, Math.round(size * SAFE_ZONE_RATIO));
-  const content = await (transparent ? sharp(source) : sharp(source).flatten({ background: BRAND_ORANGE }))
-    .resize(contentSize, contentSize, {
-      fit: "contain",
-      background: transparent ? { r: 0, g: 0, b: 0, alpha: 0 } : BRAND_ORANGE,
-    })
-    .png()
-    .toBuffer();
-  const background = transparent
-    ? { r: 0, g: 0, b: 0, alpha: 0 }
-    : BRAND_ORANGE;
-
-  return sharp({ create: { width: size, height: size, channels: 4, background } })
-    .composite([
-      {
-        input: content,
-        left: Math.round((size - contentSize) / 2),
-        top: Math.round((size - contentSize) / 2),
-      },
-    ])
+async function createCroppedIcon(source, size) {
+  const contentSize = Math.max(1, Math.round(size * CROP_SCALE));
+  const cropOffset = Math.max(0, Math.floor((contentSize - size) / 2));
+  return sharp(source)
+    .flatten({ background: BRAND_ORANGE })
+    .resize(contentSize, contentSize, { fit: "fill" })
+    .extract({ left: cropOffset, top: cropOffset, width: size, height: size })
     .png()
     .toBuffer();
 }
@@ -142,7 +38,6 @@ export async function generateLauncherIcons(projectDir = path.join(ROOT, "com.fo
   // AppLogo2.png is the only approved FoxiesDeck app logo. Never replace it
   // with a downloaded, generated, or legacy logo when preparing an AAB.
   await fs.access(APP_LOGO_PATH);
-  const mascot = await readMascotCutout();
 
   const baseDir = path.join(projectDir, "app", "src", "main", "res");
   for (const [dir, size] of Object.entries(LEGACY_SIZES)) {
@@ -152,10 +47,13 @@ export async function generateLauncherIcons(projectDir = path.join(ROOT, "com.fo
       .resize(size, size, { fit: "fill" })
       .png()
       .toBuffer();
-    // Maskable icons intentionally match the legacy launcher artwork exactly:
-    // no safe-zone shrink and no added orange outline or cutout halo.
+    // Maskable icons intentionally overflow the visible frame. There is no
+    // safe-zone shrink and no added orange outline.
     await fs.writeFile(path.join(baseDir, dir, "ic_launcher.png"), legacyIcon);
-    await fs.writeFile(path.join(baseDir, dir, "ic_maskable.png"), legacyIcon);
+    await fs.writeFile(
+      path.join(baseDir, dir, "ic_maskable.png"),
+      await createCroppedIcon(APP_LOGO_PATH, size),
+    );
     console.log(`Generated AppLogo2 legacy launcher resources in ${dir} (${size}x${size})`);
   }
 
@@ -163,7 +61,7 @@ export async function generateLauncherIcons(projectDir = path.join(ROOT, "com.fo
     await fs.mkdir(path.join(baseDir, dir), { recursive: true });
     await fs.writeFile(
       path.join(baseDir, dir, "ic_launcher_foreground.png"),
-      await createSafeZoneIcon(mascot, size, { transparent: true }),
+      await createCroppedIcon(APP_LOGO_PATH, size),
     );
     console.log(`Generated AppLogo2 adaptive foreground in ${dir} (${size}x${size})`);
   }

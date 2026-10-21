@@ -694,6 +694,8 @@ const dictionary = {
   "chest.collect": "领取",
   "chest.opened": "宝箱已打开",
   "chest.missed": "错过宝箱",
+  "chest.missedNotEnoughCards": "你的有效卡片数量不足，无法获得宝箱。",
+  "chest.missedNeedMoreCards": "获得宝箱至少需要 {requiredCount} 张有效卡片。再添加 {remainingCount} 张后重试。",
   "chest.missedReason": "需要至少{required}%的正确率才能获得宝箱。",
   "chest.missedProgress": "你的正确率是{accuracy}%。",
   "chest.missedMode": "此测验模式不会奖励宝箱。",

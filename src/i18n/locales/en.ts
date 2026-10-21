@@ -697,6 +697,8 @@ const dictionary = {
   "chest.collect": "Collect",
   "chest.opened": "Chest opened",
   "chest.missed": "Chest missed",
+  "chest.missedNotEnoughCards": "You didn't have enough active cards to earn a chest.",
+  "chest.missedNeedMoreCards": "You need at least {requiredCount} active cards to earn a chest. Add {remainingCount} more and try again.",
   "chest.missedReason": "You needed at least {required}% accuracy to earn a chest.",
   "chest.missedProgress": "You reached {accuracy}% accuracy.",
   "chest.missedMode": "This quiz mode does not award chests.",

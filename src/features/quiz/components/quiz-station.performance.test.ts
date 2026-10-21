@@ -2,6 +2,7 @@ import { Medal, Star, XCircle } from "lucide-react";
 import { describe, expect, it } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { getQuizPerformanceSummary } from "@/features/quiz/components/quiz-station";
+import { getChestCardShortageCount } from "@/features/quiz/chest-rewards";
 
 const SAMPLE_CARDS = VOCABULARY_CARDS.filter((card) => card.language === "en" && card.tier === "A1").slice(0, 12);
 
@@ -84,5 +85,16 @@ describe("getQuizPerformanceSummary", () => {
 
     expect(summary.accuracy).toBe(58);
     expect(summary.level).toBe("mediumLow");
+  });
+});
+
+describe("getChestCardShortageCount", () => {
+  it("returns how many cards are needed to meet the minimum chest count", () => {
+    expect(getChestCardShortageCount(7)).toBe(3);
+  });
+
+  it("returns no shortage when the quiz has enough cards or no count", () => {
+    expect(getChestCardShortageCount(10)).toBeNull();
+    expect(getChestCardShortageCount(null)).toBeNull();
   });
 });

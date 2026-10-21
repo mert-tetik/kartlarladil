@@ -694,6 +694,8 @@ const dictionary = {
   "chest.collect": "Récupérer",
   "chest.opened": "Coffre ouvert",
   "chest.missed": "Coffre manqué",
+  "chest.missedNotEnoughCards": "Tu n'avais pas assez de cartes actives pour gagner un coffre.",
+  "chest.missedNeedMoreCards": "Il te faut au moins {requiredCount} cartes actives. Ajoute-en encore {remainingCount} et réessaie.",
   "chest.missedReason": "Il fallait au moins {required}% de réussite pour gagner un coffre.",
   "chest.missedProgress": "Tu as obtenu {accuracy}%.",
   "chest.missedMode": "Ce mode de quiz ne donne pas de coffres.",

@@ -694,6 +694,8 @@ const dictionary = {
   "chest.collect": "Verzamelen",
   "chest.opened": "Kist geopend",
   "chest.missed": "Kist gemist",
+  "chest.missedNotEnoughCards": "Je had niet genoeg actieve kaarten om een kist te verdienen.",
+  "chest.missedNeedMoreCards": "Je hebt minstens {requiredCount} actieve kaarten nodig. Voeg er nog {remainingCount} toe en probeer het opnieuw.",
   "chest.missedReason": "Je had minstens {required}% nauwkeurigheid nodig voor een kist.",
   "chest.missedProgress": "Je behaalde {accuracy}%.",
   "chest.missedMode": "Deze quizmodus geeft geen kisten.",

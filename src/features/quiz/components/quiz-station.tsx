@@ -147,6 +147,7 @@ import {
   QUIZ_COUNT_OPTIONS,
   getChestPreviewPairForCount,
   getChestRewardPoints,
+  getChestCardShortageCount,
   type ChestTier,
   type ChestTierDefinition,
 } from "@/features/quiz/chest-rewards";
@@ -156,7 +157,7 @@ import {
   getCorrectAnswerPlaybackRate,
   QUIZ_BUTTON_FEEDBACK_DURATION_MS,
 } from "@/features/quiz/quiz-answer-feedback-timing";
-import { getQuizResultRewardPoints } from "@/features/quiz/result-rewards";
+import { getQuizSessionEarnedPoints } from "@/features/quiz/result-rewards";
 import { EmptyState } from "@/components/empty-state";
 import {
   ImageActionButton,
@@ -708,6 +709,7 @@ export function QuizStation({
   const [streakGemRewards, setStreakGemRewards] = useState<GemRewards>([]);
   const [streakGemBalances, setStreakGemBalances] = useState<GemBalances | null>(null);
   const [bonusPointsDisplayed, setBonusPointsDisplayed] = useState(0);
+  const [bonusPointsAwarded, setBonusPointsAwarded] = useState(0);
   const [bonusScorePulse, setBonusScorePulse] = useState(0);
   const [supportsViewTransition, setSupportsViewTransition] = useState(false);
   const useCssQuizTransitionRef = useRef(false);
@@ -723,6 +725,7 @@ export function QuizStation({
   const quizStartRankRef = useRef<RankDefinition | null>(null);
   const quizStartedAtRef = useRef<number | null>(null);
   const quizBasePointsRef = useRef(stats.totalPoints);
+  const quizResultPointsBaseRef = useRef(user?.profile.quizResultPoints ?? 0);
   const statsRef = useRef(stats);
   const pendingAnswerWritesRef = useRef(0);
   const pendingAdvanceRef = useRef<AdvanceQuizOptions | null>(null);
@@ -2142,6 +2145,8 @@ export function QuizStation({
       awardedStreakSessionRef.current = null;
       quizStartRankRef.current = stats.rank;
       quizBasePointsRef.current = stats.totalPoints;
+      quizResultPointsBaseRef.current = user?.profile.quizResultPoints ?? 0;
+      setBonusPointsAwarded(0);
       setBonusPointsDisplayed(0);
       setBonusScorePulse(0);
       setBonusFlightActive(false);
@@ -2187,6 +2192,7 @@ export function QuizStation({
       normalQuestionType,
       prepareQuizPool,
       quizWordRepetitionTest,
+      user?.profile.quizResultPoints,
       stats.rank,
       stats.totalPoints,
     ],
@@ -2851,6 +2857,10 @@ export function QuizStation({
           const awarded = result.success && result.awarded === true;
           const rewards = awarded ? result.gemRewards ?? [] : [];
           bonusRewardServerSettledRef.current = true;
+          const awardedPoints = result.points ?? 0;
+          if (awarded && awardedPoints > 0) {
+            setBonusPointsAwarded((current) => current + awardedPoints);
+          }
 
           if (result.balances) {
             bonusGemFinalBalancesRef.current = result.balances;
@@ -3313,6 +3323,7 @@ export function QuizStation({
     quizStartedAtRef.current = null;
     quizStartRankRef.current = statsRef.current.rank;
     quizBasePointsRef.current = statsRef.current.totalPoints;
+    quizResultPointsBaseRef.current = user?.profile.quizResultPoints ?? 0;
     bonusPointFlightDoneRef.current = true;
     bonusGemFlightDoneRef.current = true;
     bonusGemFinalBalancesRef.current = null;
@@ -3348,6 +3359,9 @@ export function QuizStation({
     setCorrectAnswerAnimationDurationMs(QUIZ_BUTTON_FEEDBACK_DURATION_MS);
     setQuizSessionId(null);
     setQuizDurationSeconds(null);
+    setBonusPointsAwarded(0);
+    setBonusPointsDisplayed(0);
+    setBonusScorePulse(0);
     setPendingAnswerWrites(0);
     setPendingChestAward(false);
     setRerollingQuestion(false);
@@ -3742,6 +3756,13 @@ export function QuizStation({
 
   if (phase === "result") {
     const achievementCards = getQuizAchievementCards(results);
+    const earnedPoints = getQuizSessionEarnedPoints({
+      currentTotalPoints: stats.totalPoints,
+      startingTotalPoints: quizBasePointsRef.current,
+      confirmedBonusPoints: bonusPointsAwarded,
+      currentQuizResultPoints: user?.profile.quizResultPoints ?? quizResultPointsBaseRef.current,
+      startingQuizResultPoints: quizResultPointsBaseRef.current,
+    });
     const quizFlowTestCards = VOCABULARY_CARDS.filter(
       (card) => card.language === (selectedLanguage ?? "en"),
     ).slice(0, 20);
@@ -3790,6 +3811,7 @@ export function QuizStation({
           <ResultFlowView
             mode={mode}
             results={results}
+            earnedPoints={earnedPoints}
             selectedCount={selectedCount}
             quizSessionId={quizSessionId}
             quizDurationSeconds={quizDurationSeconds ?? 0}
@@ -6889,6 +6911,7 @@ function QuizViewportOverlay({
 type ResultFlowViewProps = {
   mode: PracticeMode;
   results: QuizResult;
+  earnedPoints?: number;
   selectedCount: number | null;
   quizSessionId?: string | null;
   quizDurationSeconds?: number;
@@ -6937,6 +6960,7 @@ export function ResultFlowView({
   nextRankIcon = "medal",
   gainedGems = 0,
   quizFlowTest = false,
+  earnedPoints = 0,
   onResultMessageComplete,
   ...resultProps
 }: ResultFlowViewProps) {
@@ -6983,12 +7007,22 @@ export function ResultFlowView({
     resultProps.chestOpened,
   );
   const missedChestRequiredAccuracy = formatNumber(locale, 70);
-  const missedChestReason = resultProps.mode === "active"
-    ? t("chest.missedReason", { required: missedChestRequiredAccuracy })
-    : t("chest.missedMode");
-  const missedChestProgress = t("chest.missedProgress", {
-    accuracy: formatNumber(locale, resultPerformance.accuracy),
-  });
+  const chestCardShortage = resultProps.mode === "active"
+    ? getChestCardShortageCount(resultProps.selectedCount)
+    : null;
+  const missedChestReason = chestCardShortage !== null
+    ? t("chest.missedNotEnoughCards")
+    : resultProps.mode === "active"
+      ? t("chest.missedReason", { required: missedChestRequiredAccuracy })
+      : t("chest.missedMode");
+  const missedChestProgress = chestCardShortage !== null
+    ? t("chest.missedNeedMoreCards", {
+        requiredCount: formatNumber(locale, QUIZ_COUNT_OPTIONS[0]),
+        remainingCount: formatNumber(locale, chestCardShortage),
+      })
+    : t("chest.missedProgress", {
+        accuracy: formatNumber(locale, resultPerformance.accuracy),
+      });
   const chestWasMissed =
     showChestRewardGate && resultProps.mode === "active" && chestTier === null;
   const medalRating =
@@ -7014,7 +7048,7 @@ export function ResultFlowView({
       (resultProps.results.bonusCorrect ?? 0) +
       (resultProps.results.bonusIncorrect ?? 0),
     remainingActiveCards,
-    gainedXp: getQuizResultRewardPoints(medalRating, resultProps.selectedCount ?? 10) ?? 0,
+    gainedXp: earnedPoints,
     gainedGems: chestRewardGemCount,
     earnedMedals: medalRating,
     chestWasMissed,
@@ -7120,6 +7154,7 @@ export function ResultFlowView({
           >
             <ResultView
               {...resultProps}
+              earnedPoints={earnedPoints}
               onResultActionPress={playResultActionPress}
               onContinue={handleResultContinue}
               showMedalHud={!chestGateVisible && !continuationMotivationVisible}
@@ -7158,6 +7193,7 @@ export function ResultFlowView({
     <div className="relative h-full w-full overflow-hidden" data-quiz-result-flow>
       <ResultView
         {...resultProps}
+        earnedPoints={earnedPoints}
         onResultActionPress={playResultActionPress}
         onContinue={handleResultContinue}
         showMedalHud={!chestGateVisible && !continuationMotivationVisible}
@@ -7224,6 +7260,7 @@ export function ResultView({
   quizDurationSeconds = 0,
   chestOpened,
   quizFlowTest = false,
+  earnedPoints = 0,
   onResultActionPress,
   onContinue,
   showMedalHud = true,
@@ -7235,6 +7272,7 @@ export function ResultView({
   quizDurationSeconds?: number;
   chestOpened: boolean;
   quizFlowTest?: boolean;
+  earnedPoints?: number;
   onResultActionPress?: () => void;
   onContinue?: () => void;
   showMedalHud?: boolean;
@@ -7591,12 +7629,14 @@ export function ResultView({
       )
     : t(getQuizResultMessageKey(performance.messageKeys, results, selectedCount, chestOpened));
   const performanceMessageText = performanceMessage.replace(/^[^\p{L}\p{N}]+/u, "");
-  const totalXp = getQuizResultRewardPoints(medalRating, selectedCount ?? 10) ?? 0;
+  const totalPointsEarned = Number.isFinite(earnedPoints)
+    ? Math.max(0, Math.floor(earnedPoints))
+    : 0;
   const resultStats = [
     {
-      key: "xp",
+      key: "points",
       label: formatSuperWaterUppercaseText(locale, t("quiz.resultTotalXp")),
-      value: formatNumber(locale, totalXp),
+      value: formatNumber(locale, totalPointsEarned),
       icon: Star,
       className: "border-yellow-400 bg-transparent text-yellow-300",
       headerClassName: "bg-yellow-400",
@@ -7704,6 +7744,7 @@ export function ResultView({
                   {resultStats.map(({ key, label, value, icon: Icon, className, headerClassName }) => (
                     <div
                       key={key}
+                      data-result-stat={key}
                       className={cn(
                         "flex aspect-[778/700] w-[98px] shrink-0 flex-col items-center overflow-hidden rounded-2xl border-2 bg-transparent p-0 text-center",
                         className,
