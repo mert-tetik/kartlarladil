@@ -14,7 +14,7 @@ import {
 
 const POYO_RESPONSES_BASE_URL = "https://api.poyo.ai/v1";
 
-export const SOCIAL_CONTENT_TEXT_MODEL = "gpt-5-6-luna";
+export const SOCIAL_CONTENT_TEXT_MODEL = "gpt-5-6-terra";
 export const SOCIAL_CONTENT_CREATIVE_MODEL = "gpt-5-6-terra";
 const POYO_PRIMARY_RESPONSE_TIMEOUT_MS = 45_000;
 const OPENAI_FALLBACK_RESPONSE_TIMEOUT_MS = 150_000;
@@ -30,8 +30,8 @@ const LOCAL_OPENAI_CIRCUIT_MS = 90_000;
 const LOCAL_OPENAI_MAX_CONCURRENCY = 2;
 
 const OPENAI_MODEL_BY_POYO_MODEL: Record<string, string> = {
-  [SOCIAL_CONTENT_TEXT_MODEL]: "gpt-5.6-luna",
-  [SOCIAL_CONTENT_CREATIVE_MODEL]: "gpt-5.6-terra",
+  "gpt-5-6-luna": "gpt-5.6-luna",
+  "gpt-5-6-terra": "gpt-5.6-terra",
 };
 
 type SocialStudioResponsesProvider = "poyo" | "openai";

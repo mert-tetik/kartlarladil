@@ -1,10 +1,9 @@
 "use client";
 
-import { type ComponentProps } from "react";
 import { LanguageFlag } from "@/components/language-flag";
-import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { getLanguageDisplayName } from "@/i18n/labels";
+import { AutomationVocabularyCard } from "@/features/twitter-automation/components/automation-vocabulary-card";
 import { getNativeCaptionHeading } from "@/features/twitter-automation/social-video-titles";
 import type { SelfFalseFriendsContent } from "@/features/twitter-automation/self-false-friends";
 import type { SelfExampleSentencesContent } from "@/features/twitter-automation/self-example-sentences";
@@ -51,20 +50,6 @@ const EXAMPLE_SENTENCE_CARD_COLORS = [
   "border-[#d4d4d4] bg-white",
   "border-[#d9c09f] bg-[#FBE4C2]",
 ] as const;
-
-function cardViewProps(card: VocabularyCard, face: "front" | "back", translationLocale: LanguageCode): ComponentProps<typeof VocabularyCardView> {
-  return { card, face, flippable: false, frontFit: true, showActions: false, staticFace: false, translationLocale };
-}
-
-function overrideStyles() {
-  return `
-    .self-image-front [data-card-face] > div,
-    .self-image-back [data-card-face] > div,
-    .self-image-back [data-card-face] > div > div:nth-child(2) { transform: none !important; }
-    .self-image-front [data-card-face] > div > div:nth-child(2) { display: none !important; }
-    .self-image-back [data-card-face] > div > div:nth-child(1) { display: none !important; }
-  `;
-}
 
 function SplashLogo({ className }: { className?: string }) {
   return (
@@ -238,7 +223,6 @@ export function SelfSocialImage({ mode, cards, falseFriends, exampleSentences, v
     return (
       <article className="relative isolate flex flex-col items-center justify-center overflow-hidden bg-[#11100f] px-16 py-10 text-center text-white" style={{ width: 1200, height: 900 }}>
         <SelfImageBackground mode={mode} />
-        <style>{overrideStyles()}</style>
         <SelfImageHeader label={getNativeCaptionHeading(nativeLanguage, "miniQuiz")} prominent />
         <h2 className="mx-auto mt-16 max-w-5xl font-display text-6xl font-semibold leading-tight">
           {MINI_QUIZ_QUESTION[nativeLanguage](card.term)}
@@ -274,15 +258,12 @@ export function SelfSocialImage({ mode, cards, falseFriends, exampleSentences, v
     return (
       <article className="relative isolate flex flex-col items-center justify-center overflow-hidden bg-[#11100f] p-10 text-center text-white" style={{ width: 1080, height: 1080 }}>
         <SelfImageBackground mode={mode} />
-        <style>{overrideStyles()}</style>
         <SelfImageHeader labelClassName="text-2xl" prominent label={getNativeCaptionHeading(nativeLanguage, "dailyChallenge")} topClassName="top-[64px]" />
         <h2 className="mx-auto mt-16 max-w-3xl font-display text-6xl font-semibold leading-tight">{copy.learnToday(learningLanguageName)}</h2>
         <div className="mt-12 flex items-start gap-6">
           {[a, b, c].map((card, index) => (
             <div key={index} className="w-[320px]">
-              <div className="self-image-front">
-                <VocabularyCardView {...cardViewProps(card, "front", nativeLanguage)} frontContentScale={1.2} frontTranslationBelowTerm frontHideStudyMetadata frontFitCoreText />
-              </div>
+              <AutomationVocabularyCard card={card} contentScale={1.2} face="front" layout="daily-challenge" nativeLanguage={nativeLanguage} />
             </div>
           ))}
         </div>

@@ -29,6 +29,13 @@ describe("automation generation estimates", () => {
     expect(formatEstimatedDuration(63.1)).toBe("1 dk 4 sn");
   });
 
+  it("uses the short text-post estimate for Word of the Day text", () => {
+    expect(estimateRemainingGenerationSeconds({
+      activeOutputId: "word-of-the-day",
+      outputs: [{ id: "word-of-the-day", contentType: "text", generator: "word-of-the-day-text", status: "queued" }],
+    })).toBe(8);
+  });
+
   it("does not increase an estimate when the display clock is slightly behind the start clock", () => {
     expect(estimateRemainingGenerationSeconds({
       activeOutputId: "text",

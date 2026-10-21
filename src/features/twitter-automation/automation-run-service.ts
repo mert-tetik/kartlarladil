@@ -48,7 +48,7 @@ const IMAGE_GENERATORS = ["ai-word-of-the-day", "ai-mini-quiz", "ai-false-friend
 const NON_AI_IMAGE_GENERATORS = ["word-of-the-day", "word-of-the-day-poster"] as const;
 const SELF_IMAGE_GENERATORS = ["self-mini-quiz", "self-false-friends", "self-daily-challenge", "self-vocabulary-progression", "self-example-sentences"] as const;
 const CAROUSEL_GENERATORS = ["vocabulary-carousel", "tier-progression-carousel"] as const;
-const TEXT_GENERATORS = ["fun-post", "word-quiz", "language-tip", "false-friends", "daily-challenge", "relatable-learner", "tiered-vocabulary", "example-sentences"] as const;
+const TEXT_GENERATORS = ["word-of-the-day-text", "fun-post", "word-quiz", "language-tip", "false-friends", "daily-challenge", "relatable-learner", "tiered-vocabulary", "example-sentences"] as const;
 const VIDEO_GENERATORS = ["ai-word-of-the-day-video", "confused-words-video", "marketing-dialogue-video", "learning-dialogue-video", "tier-progression-video", "vocabulary-quiz-video", "sentence-check-video", "sentence-translation-video"] as const;
 const MUSIC_VIDEO_GENERATORS = [
   "music-word-of-the-day",

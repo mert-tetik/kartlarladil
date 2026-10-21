@@ -10,8 +10,8 @@ vi.mock("@/components/language-flag", () => ({
   LanguageFlag: () => <span data-testid="language-flag" />,
 }));
 
-vi.mock("@/features/cards/components/vocabulary-card-view", () => ({
-  VocabularyCardView: () => <div data-testid="vocabulary-card" />,
+vi.mock("@/features/twitter-automation/components/automation-vocabulary-card", () => ({
+  AutomationVocabularyCard: () => <div data-testid="automation-vocabulary-card" />,
 }));
 
 const testCard = {

@@ -26,6 +26,7 @@ export type RandomIncludes = Partial<{ [C in AutomationContentType]: RandomInclu
 export const AUTOMATION_GENERATOR_OPTIONS: Record<AutomationContentType, ReadonlyArray<AutomationGeneratorOption>> = {
   text: [
     { value: RANDOM_GENERATOR, label: "Random" },
+    { value: "word-of-the-day-text", label: "Word of the Day", source: "AI" },
     { value: "fun-post", label: "Fun FoxiesDeck Post", source: "AI" },
     { value: "word-quiz", label: "Word Quiz", source: "AI" },
     { value: "language-tip", label: "Language Tip", source: "AI" },
@@ -81,7 +82,7 @@ export const AUTOMATION_GENERATOR_OPTIONS: Record<AutomationContentType, Readonl
 
 const RANDOM_GENERATORS = {
   text: {
-    ai: ["fun-post", "word-quiz", "language-tip", "false-friends", "daily-challenge", "relatable-learner", "tiered-vocabulary", "example-sentences"],
+    ai: ["word-of-the-day-text", "fun-post", "word-quiz", "language-tip", "false-friends", "daily-challenge", "relatable-learner", "tiered-vocabulary", "example-sentences"],
   },
   image: {
     self: ["word-of-the-day", "word-of-the-day-poster", "vocabulary-carousel", "tier-progression-carousel", "self-mini-quiz", "self-false-friends", "self-daily-challenge", "self-vocabulary-progression", "self-example-sentences"],

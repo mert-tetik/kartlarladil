@@ -24,6 +24,7 @@ describe("automation generation priority", () => {
   it("recognizes direct, text, music-image, and unresolved random AI work", () => {
     expect(isAiAutomationGeneration("ai-word-of-the-day-video")).toBe(true);
     expect(isAiAutomationGeneration("fun-post")).toBe(true);
+    expect(isAiAutomationGeneration("word-of-the-day-text")).toBe(true);
     expect(isAiAutomationGeneration("music-ai-mini-quiz")).toBe(true);
     expect(isAiAutomationGeneration("random-content")).toBe(true);
     expect(isAiAutomationGeneration("self-example-sentences")).toBe(false);

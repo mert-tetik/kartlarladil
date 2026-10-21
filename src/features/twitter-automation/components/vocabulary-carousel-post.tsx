@@ -1,4 +1,4 @@
-import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
+import { AutomationVocabularyCard } from "@/features/twitter-automation/components/automation-vocabulary-card";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import type { LanguageCode, VocabularyCard } from "@/types/domain";
@@ -50,7 +50,7 @@ export function VocabularyCarouselPost({ card, nativeLanguage, presentation = "m
       </h2>
       <div className="absolute inset-x-0 bottom-0 z-10 grid place-items-center px-8 pb-9 sm:px-10 sm:pb-11">
         <div className={cn("w-full", presentation === "meaning" ? "max-w-[270px] sm:max-w-[306px]" : "max-w-[292px] sm:max-w-[328px]")} data-carousel-card-face="front">
-          <VocabularyCardView card={card} className="mx-auto" face="front" flippable={false} frontFit showActions={false} staticFace translationLocale={nativeLanguage} />
+          <AutomationVocabularyCard card={card} className="mx-auto" face="front" nativeLanguage={nativeLanguage} />
         </div>
       </div>
     </article>

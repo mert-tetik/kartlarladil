@@ -7,7 +7,7 @@ export type GenerationEstimateOutput = {
 
 export type LearnedGenerationDurations = Readonly<Record<string, number>>;
 
-const TEXT_GENERATORS = new Set(["fun-post", "word-quiz", "language-tip", "false-friends", "daily-challenge", "relatable-learner", "tiered-vocabulary", "example-sentences"]);
+const TEXT_GENERATORS = new Set(["word-of-the-day-text", "fun-post", "word-quiz", "language-tip", "false-friends", "daily-challenge", "relatable-learner", "tiered-vocabulary", "example-sentences"]);
 const AI_IMAGE_GENERATORS = new Set(["ai-word-of-the-day", "ai-mini-quiz", "ai-false-friends", "ai-daily-challenge", "ai-vocabulary-progression", "ai-example-sentences"]);
 const SELF_IMAGE_GENERATORS = new Set(["word-of-the-day", "word-of-the-day-poster", "vocabulary-carousel", "tier-progression-carousel", "self-mini-quiz", "self-false-friends", "self-daily-challenge", "self-vocabulary-progression", "self-example-sentences"]);
 const AI_IMAGE_VIDEO_GENERATORS = new Set(["music-ai-word-of-the-day", "music-ai-mini-quiz", "music-ai-false-friends", "music-ai-daily-challenge", "music-ai-vocabulary-progression", "music-ai-example-sentences"]);

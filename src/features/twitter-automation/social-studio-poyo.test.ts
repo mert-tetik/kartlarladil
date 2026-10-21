@@ -34,8 +34,8 @@ describe("Content Automation Responses fallback", () => {
     resetSocialStudioProviderFallbackGuardsForTests();
   });
 
-  it("uses Luna only for short social text and Terra for creative plans", () => {
-    expect(SOCIAL_CONTENT_TEXT_MODEL).toBe("gpt-5-6-luna");
+  it("uses Terra for social text and creative plans", () => {
+    expect(SOCIAL_CONTENT_TEXT_MODEL).toBe("gpt-5-6-terra");
     expect(SOCIAL_CONTENT_CREATIVE_MODEL).toBe("gpt-5-6-terra");
   });
 
@@ -51,8 +51,8 @@ describe("Content Automation Responses fallback", () => {
       () => "healthy",
     );
 
-    expect(calls).toEqual([{ provider: "poyo", model: "gpt-5-6-luna" }]);
-    expect(result).toMatchObject({ provider: "poyo", model: "gpt-5-6-luna", output: "healthy" });
+    expect(calls).toEqual([{ provider: "poyo", model: "gpt-5-6-terra" }]);
+    expect(result).toMatchObject({ provider: "poyo", model: "gpt-5-6-terra", output: "healthy" });
     expect(openAiConstructor).toHaveBeenCalledTimes(1);
   });
 
@@ -129,13 +129,13 @@ describe("Content Automation Responses fallback", () => {
     );
 
     expect(calls).toEqual([
-      { provider: "poyo", model: "gpt-5-6-luna" },
-      { provider: "openai", model: "gpt-5.6-luna" },
-      { provider: "openai", model: "gpt-5.6-luna" },
-      { provider: "openai", model: "gpt-5.6-luna" },
+      { provider: "poyo", model: "gpt-5-6-terra" },
+      { provider: "openai", model: "gpt-5.6-terra" },
+      { provider: "openai", model: "gpt-5.6-terra" },
+      { provider: "openai", model: "gpt-5.6-terra" },
     ]);
     expect(delays).toEqual([750, 2_000]);
-    expect(result).toMatchObject({ provider: "openai", model: "gpt-5.6-luna", output: "healthy" });
+    expect(result).toMatchObject({ provider: "openai", model: "gpt-5.6-terra", output: "healthy" });
   });
 
   it("uses a bounded Retry-After backoff for direct OpenAI rate limits", async () => {
@@ -369,7 +369,7 @@ describe("Content Automation Responses fallback", () => {
 
     expect(error).toBeInstanceOf(OpenAIResponsesProviderError);
     expect(getSocialStudioResponsesErrorCode(error)).toBe("openai_responses_provider_error");
-    expect(getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Luna")).toBe("OpenAI Responses / Luna");
+    expect(getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Terra")).toBe("OpenAI Responses / Terra");
   });
 
   it("reports a missing OpenAI key after a retryable PoYo failure", async () => {
@@ -386,7 +386,7 @@ describe("Content Automation Responses fallback", () => {
 
     expect(error).toBeInstanceOf(OpenAIResponsesError);
     expect(getSocialStudioResponsesErrorCode(error)).toBe("openai_not_configured");
-    expect(getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Luna")).toBe("OpenAI Responses");
+    expect(getSocialStudioResponsesProviderLabel(error, "PoYo Responses / Terra")).toBe("OpenAI Responses");
   });
 
   it("creates isolated OpenAI-compatible clients for PoYo and direct OpenAI", () => {

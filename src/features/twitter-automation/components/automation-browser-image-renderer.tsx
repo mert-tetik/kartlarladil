@@ -2,10 +2,10 @@
 
 import Image from "next/image";
 import { toPng } from "html-to-image";
-import { useEffect, useRef, useState, type ComponentProps } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LANGUAGE_BY_CODE } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
-import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
+import { AutomationVocabularyCard } from "@/features/twitter-automation/components/automation-vocabulary-card";
 import { SelfSocialImage, type SelfSocialImageMode } from "@/features/twitter-automation/components/self-social-image";
 import { VocabularyCarouselIntro } from "@/features/twitter-automation/components/vocabulary-carousel-intro";
 import { VocabularyCarouselPost } from "@/features/twitter-automation/components/vocabulary-carousel-post";
@@ -90,10 +90,6 @@ function isBrowserVisualContent(value: unknown): value is BrowserVisualContent {
   return (content.kind === "self" || content.kind === "carousel") && Array.isArray(content.cards);
 }
 
-function cardViewProps(card: VocabularyCard, face: "front" | "back", translationLocale: LanguageCode): ComponentProps<typeof VocabularyCardView> {
-  return { card, face, flippable: false, frontFit: true, showActions: false, staticFace: false, translationLocale };
-}
-
 function randomCarouselTiers() {
   const shuffled = [...TIERS].sort(() => Math.random() - 0.5);
   return [...shuffled, TIERS[Math.floor(Math.random() * TIERS.length)]!];
@@ -154,16 +150,9 @@ function captionForSelfImage(mode: SelfSocialImageMode, learningLanguage: Langua
 function MusicWordOfTheDaySource({ card, nativeLanguage, mode }: { card: VocabularyCard; nativeLanguage: LanguageCode; mode: "card" | "poster" }) {
   if (mode === "card") {
     return <div className="social-card-export w-[1080px] bg-black px-12 py-20">
-      <style>{`
-        .social-card-export .social-card-front [data-card-face] > div,
-        .social-card-export .social-card-back [data-card-face] > div,
-        .social-card-export .social-card-back [data-card-face] > div > div:nth-child(2) { transform: none !important; }
-        .social-card-export .social-card-front [data-card-face] > div > div:nth-child(2) { display: none !important; }
-        .social-card-export .social-card-back [data-card-face] > div > div:nth-child(1) { display: none !important; }
-      `}</style>
       <div className="mx-auto flex max-w-4xl items-center justify-center gap-20">
-        <div className="social-card-front w-[420px]"><VocabularyCardView {...cardViewProps(card, "front", nativeLanguage)} /></div>
-        <div className="social-card-back w-[420px]"><VocabularyCardView {...cardViewProps(card, "back", nativeLanguage)} /></div>
+        <div className="w-[420px]"><AutomationVocabularyCard card={card} face="front" nativeLanguage={nativeLanguage} /></div>
+        <div className="w-[420px]"><AutomationVocabularyCard card={card} face="back" nativeLanguage={nativeLanguage} /></div>
       </div>
     </div>;
   }
@@ -174,21 +163,14 @@ function MusicWordOfTheDaySource({ card, nativeLanguage, mode }: { card: Vocabul
     <div className="absolute inset-x-0 bottom-0 h-[30%]" style={{ backgroundColor: palette.deep }} />
     <div className="absolute inset-10 border" style={{ borderColor: `${palette.accent}a6` }} />
     <div className="absolute left-16 right-16 top-[34%] h-px" style={{ backgroundColor: `${palette.accent}8c` }} />
-    <style>{`
-      .social-video-poster-front [data-card-face] > div,
-      .social-video-poster-back [data-card-face] > div,
-      .social-video-poster-back [data-card-face] > div > div:nth-child(2) { transform: none !important; }
-      .social-video-poster-front [data-card-face] > div > div:nth-child(2) { display: none !important; }
-      .social-video-poster-back [data-card-face] > div > div:nth-child(1) { display: none !important; }
-    `}</style>
     <div className="relative z-10">
       <div className="relative h-12 w-56 overflow-hidden"><Image alt="" className="object-cover object-[50%_48%]" fill sizes="14rem" src="/splash.png" unoptimized /></div>
       <h2 className="mt-2 max-w-md font-display text-5xl font-semibold leading-[0.92]">{LANGUAGE_BY_CODE[card.language].nativeName.toUpperCase()} {getWordOfTheDayTitle(card.language).toUpperCase()}</h2>
     </div>
     <div className="pointer-events-none absolute bottom-10 right-14 z-0 w-40 rotate-6"><Image alt="" className="h-auto w-full object-contain" height={512} src="/mascots/mascot16.webp" unoptimized width={512} /></div>
     <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex w-max -translate-x-1/2 -translate-y-1/2 items-center gap-20">
-      <div className="social-video-poster-front w-[300px]"><VocabularyCardView {...cardViewProps(card, "front", nativeLanguage)} /></div>
-      <div className="social-video-poster-back w-[300px]"><VocabularyCardView {...cardViewProps(card, "back", nativeLanguage)} /></div>
+      <div className="w-[300px]"><AutomationVocabularyCard card={card} face="front" nativeLanguage={nativeLanguage} /></div>
+      <div className="w-[300px]"><AutomationVocabularyCard card={card} face="back" nativeLanguage={nativeLanguage} /></div>
     </div>
     <p className="absolute bottom-14 left-16 z-10 max-w-[66%] text-xl font-semibold leading-8">{card.examples[0]?.sentence ?? card.example}</p>
   </div>;

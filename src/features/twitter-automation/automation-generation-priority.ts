@@ -1,4 +1,5 @@
 const AI_TEXT_GENERATORS = new Set([
+  "word-of-the-day-text",
   "fun-post",
   "word-quiz",
   "language-tip",

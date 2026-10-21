@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ComponentProps } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CalendarClock, Copy, Download, ImageIcon, ListChecks, LockKeyhole, MessageSquareText, RefreshCw, Star, Video } from "lucide-react";
@@ -44,12 +44,12 @@ import {
   getWordOfTheDayTitle,
 } from "@/features/twitter-automation/social-video-titles";
 import { WordOfTheDayImage } from "@/features/twitter-automation/components/word-of-the-day-image";
-import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
+import { AutomationVocabularyCard } from "@/features/twitter-automation/components/automation-vocabulary-card";
 import { cn } from "@/lib/utils";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
 type StudioMode = "text" | "image" | "video";
-type TextGeneratorMode = "word-quiz" | "language-tip" | "false-friends" | "daily-challenge" | "relatable-learner" | "tiered-vocabulary" | "example-sentences";
+type TextGeneratorMode = "word-of-the-day-text" | "word-quiz" | "language-tip" | "false-friends" | "daily-challenge" | "relatable-learner" | "tiered-vocabulary" | "example-sentences";
 type AiImageGeneratorMode = "ai-word-of-the-day" | "ai-mini-quiz" | "ai-false-friends" | "ai-daily-challenge" | "ai-vocabulary-progression" | "ai-example-sentences";
 type SelfImageGeneratorMode = "self-mini-quiz" | "self-false-friends" | "self-daily-challenge" | "self-vocabulary-progression" | "self-example-sentences";
 type VocabularyCarouselGeneratorMode = "vocabulary-carousel";
@@ -71,6 +71,7 @@ type DialogueVoiceCast = Array<{ mascot: string; voice: string }>;
 type GeneratorOption = { value: GeneratorMode; label: string; description: string };
 type StudioModeColor = {
   solid: string;
+  actionText: string;
   text: string;
   mutedText: string;
   border: string;
@@ -86,6 +87,7 @@ const STUDIO_MODES: Array<{ value: StudioMode; label: string; description: strin
 const STUDIO_MODE_COLORS: Record<StudioMode, StudioModeColor> = {
   text: {
     solid: "bg-[#16a34a]",
+    actionText: "text-[#052e16]",
     text: "text-[#15803d]",
     mutedText: "text-[#166534]/80",
     border: "border-[#86efac]",
@@ -93,6 +95,7 @@ const STUDIO_MODE_COLORS: Record<StudioMode, StudioModeColor> = {
   },
   image: {
     solid: "bg-[#2563eb]",
+    actionText: "text-white",
     text: "text-[#1d4ed8]",
     mutedText: "text-[#1e40af]/80",
     border: "border-[#93c5fd]",
@@ -100,6 +103,7 @@ const STUDIO_MODE_COLORS: Record<StudioMode, StudioModeColor> = {
   },
   video: {
     solid: "bg-[#d946ef]",
+    actionText: "text-[#2e0646]",
     text: "text-[#c026d3]",
     mutedText: "text-[#a21caf]/80",
     border: "border-[#f0abfc]",
@@ -108,6 +112,7 @@ const STUDIO_MODE_COLORS: Record<StudioMode, StudioModeColor> = {
 };
 
 const TEXT_GENERATOR_OPTIONS: Array<{ value: TextGeneratorMode; label: string; description: string }> = [
+  { value: "word-of-the-day-text", label: "Word of the Day", description: "One useful learning-language word with a clear native-language meaning" },
   { value: "word-quiz", label: "Word Quiz", description: "A quick multiple-choice vocabulary challenge" },
   { value: "language-tip", label: "Language Tip", description: "A concise grammar, usage, or pronunciation tip" },
   { value: "false-friends", label: "False Friends", description: "Two easy-to-confuse words, clearly explained" },
@@ -353,7 +358,6 @@ function GeneratorModeOption({
     </div>
   );
 }
-
 export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" | "automations" | "test-automations" | "social-medias" | "scheduled-posts" }) {
   const router = useRouter();
   const { showMessage } = useAppMessage();
@@ -1713,7 +1717,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
       {confusedWordsCards ? <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 flex gap-8">
         {confusedWordsCards.flatMap((pair) => [pair.first, pair.second]).map((confusedCard, index) => (
           <div className="w-[430px] [&_[data-card-example-preview]]:origin-center [&_[data-card-example-preview]]:scale-[1.42]" key={confusedCard.sourceKey} ref={(element) => { confusedWordsCardRefs.current[index] = element; }}>
-            <VocabularyCardView card={confusedCard} frontFit frontContentScale={1.7} showActions={false} staticFace translationLocale={nativeLanguage} />
+            <AutomationVocabularyCard card={confusedCard} contentScale={1.7} face="front" nativeLanguage={nativeLanguage} />
           </div>
         ))}
       </div> : null}
@@ -1833,37 +1837,23 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                   vocabularyProgression={selfVocabularyProgression}
                 />
               </div> : null : card ? getMusicVideoImageMode(generatorMode) === "word-of-the-day" ? <div ref={musicCardExportRef} className="social-card-export w-[1080px] bg-black px-12 py-20">
-                <style>{`
-                  .social-card-export .social-card-front [data-card-face] > div,
-                  .social-card-export .social-card-back [data-card-face] > div,
-                  .social-card-export .social-card-back [data-card-face] > div > div:nth-child(2) { transform: none !important; }
-                  .social-card-export .social-card-front [data-card-face] > div > div:nth-child(2) { display: none !important; }
-                  .social-card-export .social-card-back [data-card-face] > div > div:nth-child(1) { display: none !important; }
-                `}</style>
                 <div className="mx-auto flex max-w-4xl items-center justify-center gap-20">
-                  <div className="social-card-front w-[420px]"><VocabularyCardView {...cardViewProps(card, "front", nativeLanguage)} /></div>
-                  <div className="social-card-back w-[420px]"><VocabularyCardView {...cardViewProps(card, "back", nativeLanguage)} /></div>
+                  <div className="w-[420px]"><AutomationVocabularyCard card={card} face="front" nativeLanguage={nativeLanguage} /></div>
+                  <div className="w-[420px]"><AutomationVocabularyCard card={card} face="back" nativeLanguage={nativeLanguage} /></div>
                 </div>
               </div> : <div ref={musicPosterExportRef} className="relative h-[810px] w-[1080px] overflow-hidden px-16 py-14 text-white" style={{ backgroundColor: POSTER_TIER_PALETTES[card.tier].base }}>
                 <div className="absolute inset-0" style={{ background: `linear-gradient(142deg, ${POSTER_TIER_PALETTES[card.tier].base} 0%, ${POSTER_TIER_PALETTES[card.tier].deep} 100%)` }} />
                 <div className="absolute inset-x-0 bottom-0 h-[30%]" style={{ backgroundColor: POSTER_TIER_PALETTES[card.tier].deep }} />
                 <div className="absolute inset-10 border" style={{ borderColor: `${POSTER_TIER_PALETTES[card.tier].accent}a6` }} />
                 <div className="absolute left-16 right-16 top-[34%] h-px" style={{ backgroundColor: `${POSTER_TIER_PALETTES[card.tier].accent}8c` }} />
-                <style>{`
-                  .social-video-poster-front [data-card-face] > div,
-                  .social-video-poster-back [data-card-face] > div,
-                  .social-video-poster-back [data-card-face] > div > div:nth-child(2) { transform: none !important; }
-                  .social-video-poster-front [data-card-face] > div > div:nth-child(2) { display: none !important; }
-                  .social-video-poster-back [data-card-face] > div > div:nth-child(1) { display: none !important; }
-                `}</style>
                 <div className="relative z-10">
                   <div className="relative h-12 w-56 overflow-hidden"><Image alt="" className="object-[50%_48%] object-cover" fill sizes="14rem" src="/splash.png" unoptimized /></div>
                   <h2 className="mt-2 max-w-md font-display text-5xl font-semibold leading-[0.92]">{LANGUAGE_BY_CODE[card.language].nativeName.toUpperCase()} {getWordOfTheDayTitle(card.language).toUpperCase()}</h2>
                 </div>
                 <div className="pointer-events-none absolute bottom-10 right-14 z-0 w-40 rotate-6"><Image alt="" className="h-auto w-full object-contain" height={512} src="/mascots/mascot16.webp" unoptimized width={512} /></div>
                 <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex w-max -translate-x-1/2 -translate-y-1/2 items-center gap-20">
-                  <div className="social-video-poster-front w-[300px]"><VocabularyCardView {...cardViewProps(card, "front", nativeLanguage)} /></div>
-                  <div className="social-video-poster-back w-[300px]"><VocabularyCardView {...cardViewProps(card, "back", nativeLanguage)} /></div>
+                  <div className="w-[300px]"><AutomationVocabularyCard card={card} face="front" nativeLanguage={nativeLanguage} /></div>
+                  <div className="w-[300px]"><AutomationVocabularyCard card={card} face="back" nativeLanguage={nativeLanguage} /></div>
                 </div>
                 <p className="absolute bottom-14 left-16 z-10 max-w-[66%] text-xl font-semibold leading-8">{card.examples[0]?.sentence ?? card.example}</p>
               </div> : null}
@@ -1918,7 +1908,7 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
                 {isAiImageGenerator(generatorMode) ? <p className="mt-4 text-xs leading-5 text-[#cdbfb3]">GPT picks the art direction and writes a detailed square-image prompt from the selected content type and real card data.</p> : isSelfImageGenerator(generatorMode) ? <p className="mt-4 text-xs leading-5 text-[#cdbfb3]">{generatorMode === "self-false-friends" ? "GPT writes the words and native-language nuance explanations. The browser renders them as original comparison cards." : "Real FoxiesDeck cards are composed into a square social visual in the browser."}</p> : null}
               </>
 
-              <Button className="mt-6 h-11 w-full bg-[#f5ac27] text-[#251106] hover:bg-[#ffbf40]" disabled={isLoading || (isAiImageGenerator(generatorMode) && aiImagePending)} onClick={generateContent} type="button">
+              <Button className={cn("mt-6 h-11 w-full transition-colors hover:brightness-95", STUDIO_MODE_COLORS[studioMode].solid, STUDIO_MODE_COLORS[studioMode].actionText)} disabled={isLoading || (isAiImageGenerator(generatorMode) && aiImagePending)} onClick={generateContent} type="button">
                 <RefreshCw className={cn("size-4", (isLoading || aiImagePending) && "animate-spin")} aria-hidden="true" />
                 {isAiImageGenerator(generatorMode) ? aiImagePending ? `Generating image, ${aiImageProgress}%` : "Generate AI image" : isSelfImageGenerator(generatorMode) ? isLoading ? "Composing self image..." : "Generate self image" : isCarouselImageGenerator(generatorMode) ? isLoading ? `Creating ${carouselSlideCount} carousel images...` : `Generate ${carouselSlideCount}-image carousel` : isTextGenerator(generatorMode) ? "Generate post" : "Create another Word of the Day"}
               </Button>
@@ -2084,8 +2074,4 @@ export function SocialContentStudioPage({ view = "studio" }: { view?: "studio" |
 
     </section>
   );
-}
-
-function cardViewProps(card: VocabularyCard, face: "front" | "back", translationLocale: LanguageCode = "en"): ComponentProps<typeof VocabularyCardView> {
-  return { card, face, flippable: false, frontFit: true, showActions: false, translationLocale };
 }

@@ -1,8 +1,7 @@
 "use client";
 
-import type { ComponentProps } from "react";
-import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
+import { AutomationVocabularyCard } from "@/features/twitter-automation/components/automation-vocabulary-card";
 import { getWordOfTheDayTitle } from "@/features/twitter-automation/social-video-titles";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import type { LanguageCode, VocabularyCard } from "@/types/domain";
@@ -22,18 +21,6 @@ interface WordOfTheDayImageProps {
   nativeLanguage: LanguageCode;
   mode: WordOfTheDayImageMode;
 }
-
-function cardViewProps(card: VocabularyCard, face: "front" | "back", translationLocale: LanguageCode): ComponentProps<typeof VocabularyCardView> {
-  return { card, face, flippable: false, frontFit: true, showActions: false, staticFace: false, translationLocale };
-}
-
-const overrideStyles = `
-  .social-word-front [data-card-face] > div,
-  .social-word-back [data-card-face] > div,
-  .social-word-back [data-card-face] > div > div:nth-child(2) { transform: none !important; }
-  .social-word-front [data-card-face] > div > div:nth-child(2) { display: none !important; }
-  .social-word-back [data-card-face] > div > div:nth-child(1) { display: none !important; }
-`;
 
 export function WordOfTheDayImage({ card, nativeLanguage, mode }: WordOfTheDayImageProps) {
   const palette = POSTER_TIER_PALETTES[card.tier];
@@ -109,8 +96,6 @@ export function WordOfTheDayImage({ card, nativeLanguage, mode }: WordOfTheDayIm
       style={{ width: 1024, height: 768, backgroundColor: "#f76808" }}
       data-social-word-card
     >
-      <style>{overrideStyles}</style>
-
       <svg aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 h-full w-full" viewBox="0 0 1024 768">
         <path d="M0 0H310C420 150 342 315 225 468C153 562 146 674 205 768H0Z" fill="#FBE4C2" />
       </svg>
@@ -127,11 +112,11 @@ export function WordOfTheDayImage({ card, nativeLanguage, mode }: WordOfTheDayIm
         </h1>
 
         <div className="mt-5 flex items-center justify-center gap-6">
-          <div className="social-word-front" style={{ width: 390 }}>
-            <VocabularyCardView {...cardViewProps(card, "front", nativeLanguage)} frontContentScale={1.25} />
+          <div style={{ width: 390 }}>
+            <AutomationVocabularyCard card={card} contentScale={1.25} face="front" nativeLanguage={nativeLanguage} />
           </div>
-          <div className="social-word-back" style={{ width: 390 }}>
-            <VocabularyCardView {...cardViewProps(card, "back", nativeLanguage)} />
+          <div style={{ width: 390 }}>
+            <AutomationVocabularyCard card={card} face="back" nativeLanguage={nativeLanguage} />
           </div>
         </div>
       </div>

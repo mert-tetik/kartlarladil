@@ -34,6 +34,15 @@ describe("automation cost estimates", () => {
     expect(estimate.totalUsd).toBeCloseTo(0.01315, 8);
   });
 
+  it("uses the normal text-post cost for Word of the Day text", () => {
+    const estimate = estimateAutomationGroupCost([{
+      contentType: "text",
+      generator: "word-of-the-day-text",
+    }]);
+
+    expect(estimate.poyoUsd).toBeCloseTo(0.000378, 8);
+  });
+
   it("prices AI Example Sentences music videos as AI image source generation", () => {
     const estimate = estimateAutomationGroupCost([{
       contentType: "video",

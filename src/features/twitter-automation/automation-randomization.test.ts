@@ -4,6 +4,7 @@ import { AUTOMATION_GENERATOR_OPTIONS, RANDOM_GENERATOR, normalizeGeneratorMode,
 describe("automation randomization", () => {
   it("includes every text generator through its single AI source", () => {
     expect(randomGeneratorsFor("text", ["ai"])).toEqual([
+      "word-of-the-day-text",
       "fun-post",
       "word-quiz",
       "language-tip",
@@ -79,6 +80,7 @@ describe("automation randomization", () => {
 
     expect(options.every((option) => option.source === "AI" || option.source === "SELF" || option.source === "IMG")).toBe(true);
     expect(AUTOMATION_GENERATOR_OPTIONS.text.find((option) => option.value === "fun-post")?.source).toBe("AI");
+    expect(AUTOMATION_GENERATOR_OPTIONS.text.find((option) => option.value === "word-of-the-day-text")?.source).toBe("AI");
     expect(AUTOMATION_GENERATOR_OPTIONS.image.find((option) => option.value === "self-mini-quiz")?.source).toBe("SELF");
     expect(AUTOMATION_GENERATOR_OPTIONS.video.find((option) => option.value === "music-ai-mini-quiz")?.source).toBe("IMG");
   });

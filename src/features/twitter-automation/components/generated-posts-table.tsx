@@ -111,6 +111,7 @@ const BROWSER_IMAGE_GENERATORS = new Set([
 ]);
 
 const GENERATOR_LABELS: Record<string, string> = {
+  "word-of-the-day-text": "Word of the Day metni",
   "ai-word-of-the-day": "AI Word of the Day görseli",
   "ai-mini-quiz": "AI Mini Quiz görseli",
   "ai-false-friends": "AI False Friends görseli",

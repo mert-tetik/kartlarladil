@@ -82,6 +82,7 @@ const NON_AI_IMAGE_GENERATORS = new Set([
 ]);
 
 const TEXT_GENERATORS = new Set([
+  "word-of-the-day-text",
   "fun-post",
   "word-quiz",
   "language-tip",
