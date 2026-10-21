@@ -8,10 +8,6 @@ vi.mock("@/i18n/locale-provider", () => ({
   useT: () => (key: string) => key === "cards.flip" ? "Click to flip" : key,
 }));
 
-vi.mock("@/components/score-icon", () => ({
-  ScoreIcon: () => <span data-testid="score-icon" />,
-}));
-
 const card = {
   id: "automation-card-test",
   sourceKey: "automation-card-test",
@@ -41,11 +37,13 @@ describe("AutomationVocabularyCard", () => {
     const face = screen.getByRole("article", { name: "木漏れ日, A2" });
     expect(face).toHaveAttribute("data-automation-card-face", "front");
     expect(face).toHaveAttribute("data-automation-card-layout", "standard");
+    expect(within(face).getByText("Japanese A2").closest("header")).toHaveClass("font-super-water", "text-lg", "sm:text-xl");
     expect(within(face).getByText("木漏れ日")).toBeInTheDocument();
     expect(within(face).getByText("sunlight filtering through trees")).toBeInTheDocument();
     expect(within(face).getByText("komorebi")).toBeInTheDocument();
     expect(within(face).getByText("木漏れ日がきれいです。")).toBeInTheDocument();
-    expect(within(face).getByTestId("score-icon")).toBeInTheDocument();
+    expect(within(face).queryByText("noun")).not.toBeInTheDocument();
+    expect(within(face).queryByTestId("score-icon")).not.toBeInTheDocument();
   });
 
   it("renders only the requested back face", () => {
@@ -65,6 +63,5 @@ describe("AutomationVocabularyCard", () => {
     expect(face).toHaveAttribute("data-automation-card-layout", "daily-challenge");
     expect(within(face).getByText("sunlight filtering through trees")).toBeInTheDocument();
     expect(within(face).queryByText("komorebi")).not.toBeInTheDocument();
-    expect(within(face).queryByTestId("score-icon")).not.toBeInTheDocument();
   });
 });

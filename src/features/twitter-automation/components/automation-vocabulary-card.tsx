@@ -1,11 +1,10 @@
 "use client";
 
 import { Volume2 } from "lucide-react";
-import { ScoreIcon } from "@/components/score-icon";
 import { getCardTranslationMeanings } from "@/features/cards/card-localization";
-import { getPointsForTier } from "@/features/progress/progress-stats";
-import { getLanguageDisplayName, getPartOfSpeechLabel, getTierLabel } from "@/i18n/labels";
+import { getLanguageDisplayName, getTierLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
 
@@ -24,7 +23,6 @@ type AutomationVocabularyCardProps = {
 const CARD_SKINS: Record<Tier, {
   accent: string;
   border: string;
-  accentText: string;
   backGradient: string;
   backBorder: string;
   backText: string;
@@ -32,7 +30,6 @@ const CARD_SKINS: Record<Tier, {
   A1: {
     accent: "#10b981",
     border: "rgba(16, 185, 129, 0.7)",
-    accentText: "#065f46",
     backGradient: "linear-gradient(135deg, #059669 0%, #10b981 52%, #047857 100%)",
     backBorder: "rgba(4, 120, 87, 0.5)",
     backText: "#047857",
@@ -40,7 +37,6 @@ const CARD_SKINS: Record<Tier, {
   A2: {
     accent: "#0ea5e9",
     border: "rgba(14, 165, 233, 0.7)",
-    accentText: "#075985",
     backGradient: "linear-gradient(135deg, #0284c7 0%, #0ea5e9 52%, #1d4ed8 100%)",
     backBorder: "rgba(3, 105, 161, 0.5)",
     backText: "#0369a1",
@@ -48,7 +44,6 @@ const CARD_SKINS: Record<Tier, {
   B1: {
     accent: "#8b5cf6",
     border: "rgba(139, 92, 246, 0.7)",
-    accentText: "#5b21b6",
     backGradient: "linear-gradient(135deg, #7c3aed 0%, #8b5cf6 52%, #a21caf 100%)",
     backBorder: "rgba(109, 40, 217, 0.5)",
     backText: "#6d28d9",
@@ -56,7 +51,6 @@ const CARD_SKINS: Record<Tier, {
   B2: {
     accent: "#f59e0b",
     border: "rgba(245, 158, 11, 0.7)",
-    accentText: "#92400e",
     backGradient: "linear-gradient(135deg, #f59e0b 0%, #eab308 52%, #b45309 100%)",
     backBorder: "rgba(180, 83, 9, 0.5)",
     backText: "#b45309",
@@ -64,7 +58,6 @@ const CARD_SKINS: Record<Tier, {
   C1: {
     accent: "#f43f5e",
     border: "rgba(244, 63, 94, 0.7)",
-    accentText: "#9f1239",
     backGradient: "linear-gradient(135deg, #e11d48 0%, #f43f5e 52%, #b91c1c 100%)",
     backBorder: "rgba(190, 18, 60, 0.5)",
     backText: "#be123c",
@@ -96,7 +89,6 @@ export function AutomationVocabularyCard({
         <CardFront
           card={card}
           layout={layout}
-          locale={locale}
           nativeLanguage={nativeLanguage}
           skin={skin}
           contentScale={contentScale}
@@ -111,22 +103,23 @@ export function AutomationVocabularyCard({
 function CardFront({
   card,
   layout,
-  locale,
   nativeLanguage,
   skin,
   contentScale,
 }: {
   card: VocabularyCard;
   layout: AutomationCardLayout;
-  locale: LanguageCode;
   nativeLanguage: LanguageCode;
   skin: (typeof CARD_SKINS)[Tier];
   contentScale: number;
 }) {
   const translations = getCardTranslationMeanings(card, nativeLanguage).slice(0, 3).join(", ");
   const example = card.examples[0]?.sentence ?? card.example;
-  const points = getPointsForTier(card.tier);
   const isDailyChallenge = layout === "daily-challenge";
+  const headerText = `${getLanguageDisplayName(card.language, nativeLanguage)} ${card.tier}`;
+  const headerDisplay = canUseSuperWater(nativeLanguage)
+    ? formatSuperWaterText(nativeLanguage, headerText)
+    : headerText;
 
   return (
     <div
@@ -135,12 +128,13 @@ function CardFront({
       style={{ borderColor: skin.border }}
     >
       <header
-        className="-mx-2.5 -mt-2.5 flex items-center justify-between gap-2 px-3 py-2 text-white sm:-mx-4 sm:-mt-4 sm:px-4 sm:py-3"
+        className={cn(
+          "-mx-2.5 -mt-2.5 flex items-center justify-center px-3 py-2 text-center text-lg font-bold leading-tight text-white sm:-mx-4 sm:-mt-4 sm:px-4 sm:py-3 sm:text-xl",
+          canUseSuperWater(nativeLanguage) && "font-super-water",
+        )}
         style={{ backgroundColor: skin.accent }}
       >
-        <span className="text-sm font-bold sm:text-base">
-          {card.tier} · {getTierLabel(card.tier, locale)}
-        </span>
+        <span>{headerDisplay}</span>
       </header>
 
       <div
@@ -151,41 +145,27 @@ function CardFront({
         style={contentScale === 1 ? undefined : { transform: `scale(${contentScale})` }}
       >
         {!isDailyChallenge ? (
-          <>
-            <div className="mb-2 flex items-center justify-center gap-2 text-xs font-semibold text-slate-500 max-sm:text-[10px]">
-              <span>{getLanguageDisplayName(card.language, locale)}</span>
-              <span className="inline-flex items-center gap-1" style={{ color: skin.accentText }}>
-                <ScoreIcon size={14} className="size-3.5" />
-                <span>{points}</span>
-              </span>
-            </div>
-            <div className="flex items-center justify-center gap-1 text-slate-500">
-              <Volume2 className="size-4 max-sm:size-3" aria-hidden="true" />
-              <span className="text-sm max-sm:text-xs">{card.pronunciation}</span>
-            </div>
-          </>
+          <div className="flex items-center justify-center gap-2 text-base text-slate-500 max-sm:text-sm">
+            <Volume2 className="size-5 shrink-0" aria-hidden="true" />
+            <span>{card.pronunciation}</span>
+          </div>
         ) : null}
 
         <h2 className={cn(
           "min-w-0 max-w-full break-words text-center font-display font-semibold leading-tight text-slate-950",
-          isDailyChallenge ? "mt-3 text-3xl sm:text-5xl" : "mt-3 text-2xl sm:text-4xl",
+          isDailyChallenge ? "mt-3 text-4xl sm:text-5xl" : "mt-3 text-3xl sm:text-5xl",
         )}>
           {card.term}
         </h2>
 
         {isDailyChallenge ? (
-          <p className="mt-2 break-words text-xl font-semibold leading-tight text-slate-950/70 sm:text-4xl">
+          <p className="mt-2 break-words text-2xl font-semibold leading-tight text-slate-950/70 max-sm:text-xl sm:text-4xl">
             {translations}
           </p>
         ) : (
-          <>
-            <p className="mt-3 text-sm font-semibold text-slate-500 max-sm:text-[10px]">
-              {getPartOfSpeechLabel(card.termKind, locale)}
-            </p>
-            <p className="mt-5 min-h-0 line-clamp-3 break-words text-lg font-semibold leading-6 text-slate-950 max-sm:mt-1 max-sm:text-xs max-sm:leading-tight">
-              {translations}
-            </p>
-          </>
+          <p className="mt-4 min-h-0 line-clamp-3 break-words text-2xl font-semibold leading-tight text-slate-950 max-sm:mt-3 max-sm:text-xl">
+            {translations}
+          </p>
         )}
       </div>
 
@@ -195,7 +175,7 @@ function CardFront({
       >
         <div className="flex min-h-10 w-full items-center justify-center text-center" data-card-example-row>
           <p
-            className="line-clamp-2 w-full text-sm font-medium leading-5 max-sm:text-xs"
+            className="line-clamp-2 w-full text-lg font-medium leading-6 max-sm:text-base max-sm:leading-5"
             data-card-example-preview
             title={example}
           >
