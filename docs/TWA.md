@@ -87,13 +87,17 @@ The generated Android project is kept locally in `com.foxiesdeck/`. The
 repository-owned patcher then applies API 36, Billing 8, the hybrid WebView,
 and the `ui_media` asset pack configuration.
 
+All Android AAB builds must use `minSdkVersion 24` or higher. This is required
+by Google Play automatic protection; a bundle with minimum SDK 21 must not be
+uploaded. The build patcher enforces `minSdk 24` on every generated project.
+
 The current release defaults are `com.LigidTools.Glidecore`, version name
-`4.3.44`, and version code `158`. They can be overridden for a release with:
+`4.3.45`, and version code `159`. They can be overridden for a release with:
 
 ```bash
 TWA_PACKAGE_ID=com.LigidTools.Glidecore
-TWA_VERSION_CODE=158
-TWA_VERSION_NAME=4.3.44
+TWA_VERSION_CODE=159
+TWA_VERSION_NAME=4.3.45
 ```
 
 Keep the signing keystore and its passwords safe. Losing the original signing
@@ -114,7 +118,9 @@ The command performs all of the following:
   install-time media pack for direct installation.
 5. Verifies that the manifest and Gradle version metadata match.
 6. Validates the AAB with bundletool, verifies the universal APK signature, and
-   checks that every indexed media asset is present in the AAB asset pack.
+  checks that every indexed media asset is present in the AAB asset pack.
+
+The release manifest must report `minSdkVersion 24` or higher before upload.
 
 The build needs `bundletool-all-1.18.3.jar`. Set `BUNDLETOOL_JAR` to its path,
 or place that file in the system temporary directory.

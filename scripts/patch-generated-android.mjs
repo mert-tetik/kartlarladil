@@ -18,6 +18,7 @@ const ROOT = path.resolve(__dirname, "..");
 const TEMPLATE_DIR = path.join(__dirname, "android-template");
 
 export const ANDROID_TARGET_SDK = 36;
+export const ANDROID_MIN_SDK = 24;
 export const PLAY_BILLING_VERSION = "8.0.0";
 export const PLAY_APP_UPDATE_VERSION = "2.1.0";
 export const ASSET_DELIVERY_VERSION = "2.3.0";
@@ -415,7 +416,9 @@ export async function patchGeneratedAndroidProject(
   );
   const versionCode = matchValue(existingGradle, /versionCode\s+(\d+)/, "1");
   const versionName = matchValue(existingGradle, /versionName\s+["']([^"']+)["']/, "1.0.0");
-  const minSdkVersion = matchValue(existingGradle, /minSdk(?:Version)?\s+(\d+)/, "24");
+  // Google Play automatic protection requires minSdkVersion 24 or higher.
+  // Never preserve a lower value from Bubblewrap's generated project.
+  const minSdkVersion = ANDROID_MIN_SDK;
   const rootGradlePath = path.join(projectDir, "build.gradle");
   const existingRootGradle = await readText(rootGradlePath);
 
@@ -478,6 +481,7 @@ export async function patchGeneratedAndroidProject(
     host,
     versionCode: Number.parseInt(versionCode, 10),
     versionName,
+    minSdkVersion,
     targetSdkVersion: ANDROID_TARGET_SDK,
     playBillingVersion: PLAY_BILLING_VERSION,
     playAppUpdateVersion: PLAY_APP_UPDATE_VERSION,
