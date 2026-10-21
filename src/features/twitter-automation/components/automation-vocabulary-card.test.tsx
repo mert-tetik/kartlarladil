@@ -3,11 +3,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AutomationVocabularyCard } from "./automation-vocabulary-card";
 import type { VocabularyCard } from "@/types/domain";
 
-vi.mock("@/i18n/locale-provider", () => ({
-  useLocale: () => ({ locale: "en" }),
-  useT: () => (key: string) => key === "cards.flip" ? "Click to flip" : key,
-}));
-
 const card = {
   id: "automation-card-test",
   sourceKey: "automation-card-test",
@@ -52,7 +47,8 @@ describe("AutomationVocabularyCard", () => {
     const face = screen.getByRole("article", { name: "木漏れ日, A2" });
     expect(face).toHaveAttribute("data-automation-card-face", "back");
     expect(face.querySelector("[data-card-back-tier]")).toHaveAttribute("data-card-back-tier", "A2");
-    expect(within(face).getByText("Click to flip")).toBeInTheDocument();
+    expect(within(face).getByText("A2")).toBeInTheDocument();
+    expect(within(face).queryByText("Click to flip")).not.toBeInTheDocument();
     expect(within(face).queryByText("木漏れ日")).not.toBeInTheDocument();
   });
 

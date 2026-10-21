@@ -123,7 +123,7 @@ export function WordOfTheDayImage({ card, nativeLanguage, mode }: WordOfTheDayIm
 
       <img
         alt=""
-        className="pointer-events-none absolute -bottom-32 -right-32 z-20 h-[560px] w-[560px] object-contain opacity-100"
+        className="pointer-events-none absolute -bottom-32 -right-36 z-20 h-[560px] w-[560px] object-contain opacity-100"
         loading="eager"
         src="/mascots/mascot1.webp"
       />
