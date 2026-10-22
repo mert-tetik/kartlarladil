@@ -35,6 +35,17 @@ describe("VocabularyCardView", () => {
     expect(screen.queryByRole("button", { name: `${testCard.term}: Çevirmek için tıkla` })).not.toBeInTheDocument();
   });
 
+  it("keeps the mobile card frame sized when callers use auto height", () => {
+    const { container } = renderCard(
+      <VocabularyCardView
+        card={testCard}
+        className="h-auto w-full max-w-[230px] max-sm:min-h-[300px]"
+      />,
+    );
+
+    expect(container.firstElementChild).toHaveClass("h-auto", "aspect-[3/4]", "max-sm:aspect-[3/4]");
+  });
+
   it("can start on the card back and reveal the front on click", async () => {
     const user = userEvent.setup();
 
