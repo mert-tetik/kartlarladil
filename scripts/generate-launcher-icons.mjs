@@ -21,15 +21,10 @@ const ADAPTIVE_SIZES = {
   "drawable-xxxhdpi": 432,
 };
 
-const CROP_SCALE = 1.15;
-
-async function createCroppedIcon(source, size) {
-  const contentSize = Math.max(1, Math.round(size * CROP_SCALE));
-  const cropOffset = Math.max(0, Math.floor((contentSize - size) / 2));
+async function createLauncherIcon(source, size) {
   return sharp(source)
     .flatten({ background: BRAND_ORANGE })
-    .resize(contentSize, contentSize, { fit: "fill" })
-    .extract({ left: cropOffset, top: cropOffset, width: size, height: size })
+    .resize(size, size, { fit: "fill" })
     .png()
     .toBuffer();
 }
@@ -42,26 +37,20 @@ export async function generateLauncherIcons(projectDir = path.join(ROOT, "com.fo
   const baseDir = path.join(projectDir, "app", "src", "main", "res");
   for (const [dir, size] of Object.entries(LEGACY_SIZES)) {
     await fs.mkdir(path.join(baseDir, dir), { recursive: true });
-    const legacyIcon = await sharp(APP_LOGO_PATH)
-      .flatten({ background: BRAND_ORANGE })
-      .resize(size, size, { fit: "fill" })
-      .png()
-      .toBuffer();
-    // Maskable icons intentionally overflow the visible frame. There is no
-    // safe-zone shrink and no added orange outline.
-    await fs.writeFile(path.join(baseDir, dir, "ic_launcher.png"), legacyIcon);
+    const launcherIcon = await createLauncherIcon(APP_LOGO_PATH, size);
+    await fs.writeFile(path.join(baseDir, dir, "ic_launcher.png"), launcherIcon);
     await fs.writeFile(
       path.join(baseDir, dir, "ic_maskable.png"),
-      await createCroppedIcon(APP_LOGO_PATH, size),
+      launcherIcon,
     );
-    console.log(`Generated AppLogo2 legacy launcher resources in ${dir} (${size}x${size})`);
+    console.log(`Generated matching AppLogo2 launcher/maskable resources in ${dir} (${size}x${size})`);
   }
 
   for (const [dir, size] of Object.entries(ADAPTIVE_SIZES)) {
     await fs.mkdir(path.join(baseDir, dir), { recursive: true });
     await fs.writeFile(
       path.join(baseDir, dir, "ic_launcher_foreground.png"),
-      await createCroppedIcon(APP_LOGO_PATH, size),
+      await createLauncherIcon(APP_LOGO_PATH, size),
     );
     console.log(`Generated AppLogo2 adaptive foreground in ${dir} (${size}x${size})`);
   }
