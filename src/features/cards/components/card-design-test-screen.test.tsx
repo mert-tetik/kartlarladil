@@ -33,7 +33,7 @@ describe("CardDesignTestScreen", () => {
       "#fff8e9",
     ]);
     expect(screen.getByTestId("card-tier-badge")).toHaveTextContent("B1");
-    expect(screen.getByTestId("card-tier-badge")).toHaveClass("h-[68px]", "w-[68px]", "font-super-water");
+    expect(screen.getByTestId("card-tier-badge")).toHaveClass("fd-card-design__tier-badge", "font-super-water");
     expect(screen.getByTestId("card-front-glass-outline")).toHaveAttribute("stroke", "#b163ff");
     expect(screen.getByTestId("card-preview-canvas")).toHaveStyle({ backgroundColor: "rgb(0, 0, 0)" });
     expect(screen.getByTestId("card-preview-frame")).toHaveStyle({ width: "320px", height: "456px" });
@@ -70,7 +70,7 @@ describe("CardDesignTestScreen", () => {
       frontShellStops.map((stop) => stop.getAttribute("stop-color")),
     );
     expect(screen.getByTestId("card-back-tier-circle")).toHaveTextContent("B1");
-    expect(screen.getByTestId("card-back-tier-text")).toHaveClass("font-super-water", "top-[7px]");
+    expect(screen.getByTestId("card-back-tier-text")).toHaveClass("font-super-water", "fd-card-design__back-tier-text");
     expect(screen.queryByTestId("card-back-tier-label")).not.toBeInTheDocument();
     expect(screen.queryByTestId("card-back-learning-language")).not.toBeInTheDocument();
     expect(screen.queryByTestId("card-back-native-language")).not.toBeInTheDocument();

@@ -142,7 +142,7 @@ export function VocabularyCardDesign({
 
           <div
             aria-label={sample.tier}
-            className="fd-card-design__tier-badge h-[68px] w-[68px] font-super-water"
+            className="fd-card-design__tier-badge font-super-water"
             data-testid="card-tier-badge"
             role="img"
             style={{ backgroundColor: palette.badge }}
@@ -227,7 +227,7 @@ export function VocabularyCardDesign({
           </svg>
           <div className="fd-card-design__back-content" data-testid="card-back-content">
             <div className="fd-card-design__back-tier-circle" data-testid="card-back-tier-circle">
-              <span className="fd-card-design__back-tier-text top-[7px] font-super-water" data-testid="card-back-tier-text">{backTier}</span>
+              <span className="fd-card-design__back-tier-text font-super-water" data-testid="card-back-tier-text">{backTier}</span>
             </div>
           </div>
           <CarvedFoxMark className="fd-card-design__back-fox" filled testId="card-back-fox-mark" />
