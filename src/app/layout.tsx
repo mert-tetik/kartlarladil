@@ -58,6 +58,9 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} dir={direction} className={`${manrope.variable} ${fraunces.variable} h-full antialiased`}>
+      <head>
+        <link rel="stylesheet" href="/offline-shell/card-design.css" />
+      </head>
       <body className="min-h-full" data-theme={themeId}>
         <style id="theme-palette-vars" dangerouslySetInnerHTML={{ __html: getThemeCssText() }} />
         <AppShell locale={locale} user={user} onboardingCountryCode={onboardingCountryCode}>

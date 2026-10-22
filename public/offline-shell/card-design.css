@@ -1,0 +1,295 @@
+.fd-card-design {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  overflow: visible;
+  container-type: inline-size;
+  perspective: 1200px;
+  isolation: isolate;
+}
+
+.fd-card-design__flipper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fd-card-design__face {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  color: #fff;
+  backface-visibility: hidden;
+}
+
+.fd-card-design__front {
+  user-select: none;
+}
+
+.fd-card-design .font-super-water {
+  font-family: "Super Water", "Segoe UI", sans-serif;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.fd-card-design__back {
+  overflow: hidden;
+  transform: rotateY(180deg);
+}
+
+.fd-card-design__artwork {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.fd-card-design__tier-badge {
+  position: absolute;
+  z-index: 2;
+  top: 4%;
+  left: 6%;
+  display: grid;
+  width: 68px;
+  height: 68px;
+  place-items: center;
+  border: 3px solid #e7ffff;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 28px;
+  line-height: 1;
+  box-shadow: 0 2px 5px rgb(16 89 104 / 35%);
+}
+
+.fd-card-design__copy-scale {
+  position: absolute;
+  inset: 0;
+  transform: scale(var(--fd-card-content-scale, 1));
+  transform-origin: 50% 50%;
+}
+
+.fd-card-design__term,
+.fd-card-design__translation {
+  position: absolute;
+  right: 16%;
+  left: 16%;
+  overflow: hidden;
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-manrope, Manrope, "Segoe UI", sans-serif);
+}
+
+.fd-card-design__term {
+  top: calc(30% - 45px);
+  color: #102d49;
+  font-size: clamp(34px, 15cqw, 68px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+}
+
+.fd-card-design__translation {
+  top: calc(42.5% - 45px);
+  color: #173653;
+  font-size: clamp(24px, 9.1cqw, 40px);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.fd-card-design [data-single-line-fit-container] {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+}
+
+.fd-card-design [data-single-line-fit-content] {
+  display: inline-block;
+  transform-origin: center;
+  white-space: nowrap;
+}
+
+.fd-card-design__pronunciation {
+  position: absolute;
+  top: 49%;
+  left: 50%;
+  display: flex;
+  width: fit-content;
+  max-width: 68%;
+  height: 7.5%;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  overflow: hidden;
+  padding: 0 8px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  color: #fff;
+  font-size: clamp(12px, 5.2cqw, 20px);
+  font-weight: 600;
+  line-height: 1;
+  box-shadow: inset 0 1px 1px rgb(255 255 255 / 30%);
+}
+
+.fd-card-design__speak {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: rgb(255 255 255 / 90%);
+  background: transparent;
+  cursor: pointer;
+}
+
+.fd-card-design__speak:hover { color: #fff; }
+.fd-card-design__speak:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.fd-card-design__speaker-icon {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.fd-card-design__speaker-icon path:not(:first-child) { fill: none; }
+
+.fd-card-design__pronunciation-text {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.fd-card-design__divider {
+  position: absolute;
+  top: 60%;
+  left: 16%;
+  width: 68%;
+  height: 1px;
+  background: #b6a984;
+}
+
+.fd-card-design__front-fox {
+  position: absolute;
+  z-index: 0;
+  top: 80%;
+  left: 50%;
+  width: 20%;
+  height: 11%;
+  transform: translate(-50%, -9px);
+}
+
+.fd-card-design__example {
+  position: absolute;
+  z-index: 1;
+  top: 64.5%;
+  right: 16%;
+  left: 16%;
+  margin: 0;
+  color: #173653;
+  font-family: var(--font-manrope, Manrope, "Segoe UI", sans-serif);
+  font-size: clamp(14px, 6.8cqw, 28px);
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.fd-card-design__back-content {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5%;
+  font-family: var(--font-manrope, Manrope, "Segoe UI", sans-serif);
+}
+
+.fd-card-design__back-tier-circle {
+  position: relative;
+  display: grid;
+  width: 34%;
+  min-width: 56px;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 3px solid rgb(255 255 255 / 95%);
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: 0 2px 5px rgb(15 45 57 / 22%), inset 0 1px 2px rgb(255 255 255 / 22%);
+}
+
+.fd-card-design__back-tier-text {
+  position: relative;
+  top: 5px;
+  color: #fff;
+  font-size: clamp(30px, 13cqw, 56px);
+  font-weight: 700;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgb(31 61 77 / 25%));
+}
+
+.fd-card-design__back-fox {
+  position: absolute;
+  z-index: 1;
+  bottom: 6%;
+  left: 50%;
+  width: 28%;
+  height: 15.5%;
+  transform: translate(-50%, -14px);
+}
+
+@container (max-width: 260px) {
+  .fd-card-design__term {
+    top: 36%;
+    font-size: clamp(18px, 12cqw, 30px);
+  }
+
+  .fd-card-design__translation {
+    top: 48%;
+    font-size: clamp(15px, 7.8cqw, 21px);
+  }
+
+  .fd-card-design__pronunciation {
+    top: 60%;
+    height: 8.5%;
+    min-height: 18px;
+    gap: 4px;
+    padding-inline: 6px;
+    font-size: clamp(10px, 5.5cqw, 14px);
+  }
+
+  .fd-card-design__speak {
+    width: 18px;
+    height: 18px;
+  }
+
+  .fd-card-design__speaker-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .fd-card-design__divider { top: 72%; }
+
+  .fd-card-design__example {
+    top: 75%;
+    font-size: clamp(11px, 5.8cqw, 15px);
+    line-height: 1.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fd-card-design__flipper { transition: none; }
+}

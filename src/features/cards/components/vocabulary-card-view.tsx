@@ -1,21 +1,19 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
-import { Check, LoaderCircle, MessageCircleQuestion, Plus, Volume2, X } from "lucide-react";
-import { ScoreIcon } from "@/components/score-icon";
-import { TIER_REQUIREMENTS } from "@/data/tiers";
+import { useState, type KeyboardEvent, type MouseEvent } from "react";
+import { Check, LoaderCircle, MessageCircleQuestion, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
-import { vibrate } from "@/lib/vibration";
+import { TIER_REQUIREMENTS } from "@/data/tiers";
 import { getCardTranslation, getCardTranslationMeanings, getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { speakCardTerm } from "@/features/cards/card-speech";
+import { VocabularyCardDesign } from "@/features/cards/components/card-design-reference-preview";
+import { useCardPronunciation } from "@/features/cards/card-pronunciation-client";
 import { useAskOverlay } from "@/features/ask/components/ask-overlay-provider";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
-import { getPointsForTier } from "@/features/progress/progress-stats";
-import { getLanguageDisplayName, getPartOfSpeechLabel, getTierLabel } from "@/i18n/labels";
+import { getCardDesignTierPalette } from "@/features/cards/card-design-tier-palette";
 import { useLocale, useT } from "@/i18n/locale-provider";
-import { useCardPronunciation } from "@/features/cards/card-pronunciation-client";
+import { vibrate } from "@/lib/vibration";
+import { cn } from "@/lib/utils";
 import type { InventoryCard, LocaleCode, Tier, VocabularyCard } from "@/types/domain";
 
 type CardFace = "front" | "back";
@@ -48,7 +46,6 @@ interface VocabularyCardViewProps {
   compact?: boolean;
   translationLocale?: LocaleCode;
   primaryTranslationOnly?: boolean;
-  memoryGame?: boolean;
   continuousFlip?: boolean;
   footerMode?: CardFooterMode;
   footerProgressCount?: number;
@@ -63,133 +60,6 @@ interface CardFaceState {
   cardId: string;
   initialFace: CardFace;
   isFaceUp: boolean;
-}
-
-const CARD_TIER_STYLES: Record<
-  Tier,
-  {
-    border: string;
-    accent: string;
-    text: string;
-    backPanel: string;
-    backBorder: string;
-    backText: string;
-  }
-> = {
-  A1: {
-    border: "border-emerald-500/70",
-    accent: "bg-emerald-500",
-    text: "text-emerald-800",
-    backPanel: "from-emerald-600 via-emerald-500 to-emerald-700",
-    backBorder: "border-emerald-700/50",
-    backText: "text-emerald-700",
-  },
-  A2: {
-    border: "border-sky-500/70",
-    accent: "bg-sky-500",
-    text: "text-sky-800",
-    backPanel: "from-sky-600 via-sky-500 to-blue-700",
-    backBorder: "border-sky-700/50",
-    backText: "text-sky-700",
-  },
-  B1: {
-    border: "border-violet-500/70",
-    accent: "bg-violet-500",
-    text: "text-violet-800",
-    backPanel: "from-violet-600 via-violet-500 to-fuchsia-700",
-    backBorder: "border-violet-700/50",
-    backText: "text-violet-700",
-  },
-  B2: {
-    border: "border-amber-500/70",
-    accent: "bg-amber-500",
-    text: "text-amber-800",
-    backPanel: "from-amber-500 via-yellow-500 to-amber-700",
-    backBorder: "border-amber-700/50",
-    backText: "text-amber-700",
-  },
-  C1: {
-    border: "border-rose-500/70",
-    accent: "bg-rose-500",
-    text: "text-rose-800",
-    backPanel: "from-rose-600 via-rose-500 to-red-700",
-    backBorder: "border-rose-700/50",
-    backText: "text-rose-700",
-  },
-};
-
-const ADD_BUTTON_TEXT_BY_TIER: Record<Tier, string> = {
-  A1: "text-emerald-800",
-  A2: "text-sky-800",
-  B1: "text-violet-800",
-  B2: "text-amber-800",
-  C1: "text-rose-800",
-};
-
-const MEMORY_TIER_ACCENTS: Record<Tier, string> = {
-  A1: "bg-emerald-500",
-  A2: "bg-sky-500",
-  B1: "bg-violet-500",
-  B2: "bg-amber-400",
-  C1: "bg-rose-500",
-};
-
-const MEMORY_TIER_BORDERS: Record<Tier, string> = {
-  A1: "border-emerald-500",
-  A2: "border-sky-500",
-  B1: "border-violet-500",
-  B2: "border-amber-400",
-  C1: "border-rose-500",
-};
-
-const MEMORY_CARD_BACKGROUNDS: Record<Tier, string> = {
-  A1: "/game-backgrounds/memory-cards/A1.png",
-  A2: "/game-backgrounds/memory-cards/A2.png",
-  B1: "/game-backgrounds/memory-cards/B1.png",
-  B2: "/game-backgrounds/memory-cards/B2.png",
-  C1: "/game-backgrounds/memory-cards/C1.png",
-};
-
-function FittedSingleLineText({ children }: { children: string }) {
-  const containerRef = useRef<HTMLSpanElement>(null);
-  const textRef = useRef<HTMLSpanElement>(null);
-  const [scale, setScale] = useState(1);
-
-  useLayoutEffect(() => {
-    const container = containerRef.current;
-    const text = textRef.current;
-
-    if (!container || !text) {
-      return;
-    }
-
-    const fitText = () => {
-      const availableWidth = container.clientWidth;
-      const textWidth = text.scrollWidth;
-
-      setScale(availableWidth > 0 && textWidth > availableWidth ? availableWidth / textWidth : 1);
-    };
-
-    fitText();
-    void document.fonts?.ready.then(fitText);
-
-    if (typeof ResizeObserver === "undefined") {
-      return;
-    }
-
-    const observer = new ResizeObserver(fitText);
-    observer.observe(container);
-
-    return () => observer.disconnect();
-  }, [children]);
-
-  return (
-    <span ref={containerRef} className="block w-full overflow-hidden">
-      <span ref={textRef} className="inline-block origin-center whitespace-nowrap" style={{ transform: `scale(${scale})` }}>
-        {children}
-      </span>
-    </span>
-  );
 }
 
 export function VocabularyCardView({
@@ -210,44 +80,71 @@ export function VocabularyCardView({
   addDisabled = false,
   onSkip,
   showActions = true,
-  frontFit = false,
   frontMinimal = false,
   frontContentScale = 1,
-  frontTranslationBelowTerm = false,
   frontHideStudyMetadata = false,
-  frontFitCoreText = false,
   compact = false,
   translationLocale,
   primaryTranslationOnly = false,
-  memoryGame = false,
   continuousFlip = false,
   footerMode = "auto",
   footerProgressCount,
   progressAnimationActive = false,
   onClick,
   staticFace = false,
-  summaryCard = false,
   summaryProgressCount,
 }: VocabularyCardViewProps) {
+  const { locale } = useLocale();
+  const t = useT();
+  const { openAsk } = useAskOverlay();
+  const requireAuth = useRequireAuthAction();
   const { pronunciation: resolvedPronunciation } = useCardPronunciation(card);
-  const displayCard =
-    resolvedPronunciation && resolvedPronunciation !== card.pronunciation
-      ? { ...card, pronunciation: resolvedPronunciation }
-      : card;
+  const displayCard = resolvedPronunciation ? { ...card, pronunciation: resolvedPronunciation } : card;
   const [faceState, setFaceState] = useState<CardFaceState>(() => ({
     cardId: card.id,
     initialFace,
     isFaceUp: initialFace === "front",
   }));
 
-  const t = useT();
-
-  const isControlled = face !== undefined;
-  const isFaceUp = isControlled
-    ? face === "front"
-    : faceState.cardId === card.id && faceState.initialFace === initialFace
-      ? faceState.isFaceUp
-      : initialFace === "front";
+  const isControlled = face !== undefined || staticFace;
+  const isFaceUp = staticFace
+    ? true
+    : face !== undefined
+      ? face === "front"
+      : faceState.cardId === card.id && faceState.initialFace === initialFace
+        ? faceState.isFaceUp
+        : initialFace === "front";
+  const translationLanguage = translationLocale ?? locale;
+  const meanings = primaryTranslationOnly
+    ? [getPrimaryCardTranslation(displayCard, translationLanguage)]
+    : translationLocale
+      ? getCardTranslationMeanings(displayCard, translationLanguage).slice(0, 3)
+      : getCardTranslation(displayCard, translationLanguage).split(", ");
+  const sample = {
+    cardId: card.id,
+    learningLanguage: card.language,
+    nativeLanguage: translationLanguage,
+    tier: card.tier,
+    term: card.term,
+    translation: meanings.filter(Boolean).join(", "),
+    partOfSpeech: card.partOfSpeech,
+    pronunciation: frontHideStudyMetadata || compact && summaryProgressCount !== undefined
+      ? ""
+      : displayCard.pronunciation,
+    example: frontHideStudyMetadata || footerMode === "empty"
+      ? ""
+      : card.examples[0]?.sentence ?? card.example,
+  };
+  const requirement = TIER_REQUIREMENTS[card.tier];
+  const progressCount = footerProgressCount ?? summaryProgressCount ?? inventory?.correctCount ?? 0;
+  const progress = inventory?.status === "learned"
+    ? requirement
+    : Math.min(requirement, Math.max(0, progressCount));
+  const showProgress = (inventory !== undefined && footerMode !== "empty")
+    || footerProgressCount !== undefined
+    || summaryProgressCount !== undefined;
+  const showOwnedState = owned === true && !allowOwnedAdd;
+  const palette = getCardDesignTierPalette(card.tier);
 
   function revealFront() {
     if (!isControlled && flippable && !isFaceUp) {
@@ -261,49 +158,45 @@ export function VocabularyCardView({
       onClick?.();
       return;
     }
-
-    if (!flippable) {
-      return;
-    }
-
-    if (!isFaceUp) {
-      revealFront();
-    }
+    if (!flippable) return;
+    if (!isFaceUp) revealFront();
   }
 
   function handleCardKeyDown(event: KeyboardEvent<HTMLElement>) {
-    if (!flippable || (event.key !== "Enter" && event.key !== " ")) {
-      return;
-    }
-
+    if (!flippable || isControlled || (event.key !== "Enter" && event.key !== " ")) return;
     event.preventDefault();
-
-    if (!isFaceUp) {
-      revealFront();
-    }
+    if (!isFaceUp) revealFront();
   }
 
-  const flipRoleProps =
-    !isControlled && flippable && !isFaceUp
-      ? {
-          role: "button",
-          tabIndex: 0,
-          "aria-label": `${card.term}: ${t("cards.flip")}`,
-          "aria-pressed": false,
-          onKeyDown: handleCardKeyDown,
-        }
-      : {};
-
-  if (staticFace) {
-    return (
-      <article data-card-face="front" data-theme="default" className={cn("group relative aspect-[3/4] min-w-0 rounded-lg", "min-h-[320px] max-sm:aspect-auto max-sm:min-h-[280px]", className, compact && "min-h-0 max-sm:min-h-0")}>
-        <CardFront card={displayCard} inventory={inventory} owned={owned} ownedLabel={ownedLabel} allowOwnedAdd={allowOwnedAdd} isFaceUp onAdd={onAdd} addLabel={addLabel} addLoading={addLoading} addLoadingLabel={addLoadingLabel} addDisabled={addDisabled} onSkip={onSkip} showActions={showActions} frontFit={frontFit} frontMinimal={frontMinimal} frontContentScale={frontContentScale} frontTranslationBelowTerm={frontTranslationBelowTerm} frontHideStudyMetadata={frontHideStudyMetadata} frontFitCoreText={frontFitCoreText} isControlled compact={compact} translationLocale={translationLocale} primaryTranslationOnly={primaryTranslationOnly} memoryGame={memoryGame} footerMode={footerMode} footerProgressCount={footerProgressCount} progressAnimationActive={progressAnimationActive} summaryCard={summaryCard} summaryProgressCount={summaryProgressCount} />
-      </article>
-    );
+  function handleAskClick(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    const askPath = `/ask/${card.language}?term=${encodeURIComponent(card.term)}`;
+    requireAuth(() => openAsk({ contextLanguage: card.language, initialTerm: card.term }), { nextPath: askPath });
   }
+
+  function handleAddClick(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    onAdd?.();
+  }
+
+  function handleSkipClick(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    onSkip?.();
+  }
+
+  const flipRoleProps = !isControlled && flippable && !isFaceUp
+    ? {
+        role: "button" as const,
+        tabIndex: 0,
+        "aria-label": `${card.term}: ${t("cards.flip")}`,
+        "aria-pressed": false,
+        onKeyDown: handleCardKeyDown,
+      }
+    : {};
 
   return (
     <article
+      aria-label={card.term}
       data-card-face={isFaceUp ? "front" : "back"}
       data-theme="default"
       {...flipRoleProps}
@@ -312,596 +205,103 @@ export function VocabularyCardView({
         "group relative aspect-[3/4] min-w-0 rounded-lg [perspective:1200px]",
         "min-h-[320px] max-sm:aspect-auto max-sm:min-h-[280px]",
         flippable && !isFaceUp && "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
-        className,
         compact && "min-h-0 max-sm:min-h-0",
+        className,
       )}
     >
-      <div
-        className={cn(
-          "relative h-full min-h-[inherit] w-full transition-transform duration-250 ease-out [transform-style:preserve-3d] motion-reduce:transition-none",
-          continuousFlip
-            ? "animate-quiz-card-continuous-two-turn"
-            : isFaceUp
-              ? "[transform:rotateY(0deg)]"
-              : "[transform:rotateY(180deg)]",
-        )}
-      >
-        <CardFront
-          card={displayCard}
-          inventory={inventory}
-          owned={owned}
-          ownedLabel={ownedLabel}
-          allowOwnedAdd={allowOwnedAdd}
-          isFaceUp={isFaceUp}
-          onAdd={onAdd}
-          addLabel={addLabel}
-          addLoading={addLoading}
-          addLoadingLabel={addLoadingLabel}
-          addDisabled={addDisabled}
-          onSkip={onSkip}
-          showActions={showActions}
-          frontFit={frontFit}
-          frontMinimal={frontMinimal}
-          frontContentScale={frontContentScale}
-          frontTranslationBelowTerm={frontTranslationBelowTerm}
-          frontHideStudyMetadata={frontHideStudyMetadata}
-          frontFitCoreText={frontFitCoreText}
-          isControlled={isControlled}
-          compact={compact}
-          translationLocale={translationLocale}
-          primaryTranslationOnly={primaryTranslationOnly}
-          memoryGame={memoryGame}
-          footerMode={footerMode}
-          footerProgressCount={footerProgressCount}
-          progressAnimationActive={progressAnimationActive}
-          summaryCard={summaryCard}
-          summaryProgressCount={summaryProgressCount}
-        />
-        <CardBack
-          card={displayCard}
-          isFaceUp={isFaceUp}
-          backDisplayTier={backDisplayTier}
-          isControlled={isControlled}
-          compact={compact}
-          memoryGame={memoryGame}
-        />
-      </div>
+      <VocabularyCardDesign
+        backDisplayTier={backDisplayTier}
+        className="h-full w-full"
+        continuousFlip={continuousFlip}
+        contentScale={frontContentScale}
+        onSpeak={() => speakCardTerm(card.term, card.language)}
+        sample={sample}
+        showExample={!frontMinimal && !frontHideStudyMetadata && footerMode !== "empty"}
+        showBack={!isFaceUp}
+        showPronunciation={!frontMinimal && !frontHideStudyMetadata}
+      />
 
-    </article>
-  );
-}
-
-function CardFront({
-  card,
-  inventory,
-  owned,
-  ownedLabel,
-  allowOwnedAdd = false,
-  isFaceUp,
-  onAdd,
-  addLabel,
-  addLoading = false,
-  addLoadingLabel,
-  addDisabled = false,
-  onSkip,
-  showActions = true,
-  frontFit = false,
-  frontMinimal = false,
-  frontContentScale = 1,
-  frontTranslationBelowTerm = false,
-  frontHideStudyMetadata = false,
-  frontFitCoreText = false,
-  compact = false,
-  translationLocale,
-  primaryTranslationOnly = false,
-  memoryGame = false,
-  footerMode = "auto",
-  footerProgressCount,
-  progressAnimationActive = false,
-  summaryCard = false,
-  summaryProgressCount,
-}: {
-  card: VocabularyCard;
-  inventory?: InventoryCard;
-  owned?: boolean;
-  ownedLabel?: string;
-  allowOwnedAdd?: boolean;
-  isFaceUp: boolean;
-  onAdd?: () => void;
-  addLabel?: string;
-  addLoading?: boolean;
-  addLoadingLabel?: string;
-  addDisabled?: boolean;
-  onSkip?: () => void;
-  showActions?: boolean;
-  frontFit?: boolean;
-  frontMinimal?: boolean;
-  frontContentScale?: number;
-  frontTranslationBelowTerm?: boolean;
-  frontHideStudyMetadata?: boolean;
-  frontFitCoreText?: boolean;
-  isControlled?: boolean;
-  compact?: boolean;
-  translationLocale?: LocaleCode;
-  primaryTranslationOnly?: boolean;
-  memoryGame?: boolean;
-  footerMode?: CardFooterMode;
-  footerProgressCount?: number;
-  progressAnimationActive?: boolean;
-  summaryCard?: boolean;
-  summaryProgressCount?: number;
-}) {
-  const { locale } = useLocale();
-  const t = useT();
-  const { openAsk } = useAskOverlay();
-  const requireAuth = useRequireAuthAction();
-  const style = CARD_TIER_STYLES[card.tier];
-  const { pronunciation, isLoading: isPronunciationLoading } = useCardPronunciation(card);
-  const accentClass = memoryGame ? MEMORY_TIER_ACCENTS[card.tier] : style.accent;
-  const requirement = TIER_REQUIREMENTS[card.tier];
-  const tierPoints = getPointsForTier(card.tier);
-  const visibleProgressCount = footerProgressCount ?? summaryProgressCount ?? inventory?.correctCount ?? 0;
-  const progress = Math.min(100, (visibleProgressCount / requirement) * 100);
-  const learned = inventory?.status === "learned";
-  const showOwnedState = owned && !allowOwnedAdd;
-  const examplePreview = card.examples[0]?.sentence ?? card.example;
-  const cardTranslation = primaryTranslationOnly
-    ? getPrimaryCardTranslation(card, translationLocale ?? locale)
-    : translationLocale
-      ? getCardTranslationMeanings(card, translationLocale).slice(0, 3).join(", ")
-      : getCardTranslation(card, locale);
-
-  function handleSkipClick(event: MouseEvent<HTMLButtonElement>) {
-    event.stopPropagation();
-    onSkip?.();
-  }
-
-  function handleAddClick(event: MouseEvent<HTMLButtonElement>) {
-    event.stopPropagation();
-    onAdd?.();
-  }
-
-  function handleAskClick(event: MouseEvent<HTMLButtonElement>) {
-    event.stopPropagation();
-    const askPath = `/ask/${card.language}?term=${encodeURIComponent(card.term)}`;
-    requireAuth(() => {
-      openAsk({ contextLanguage: card.language, initialTerm: card.term });
-    }, { nextPath: askPath });
-  }
-
-  function handleSpeakClick(event: MouseEvent<HTMLButtonElement>) {
-    event.stopPropagation();
-    speakCardTerm(card.term, card.language);
-  }
-
-  return (
-    <div
-      aria-hidden={!isFaceUp}
-      inert={!isFaceUp}
-      className={cn(
-        "absolute inset-0 flex flex-col overflow-hidden rounded-lg border bg-white text-slate-950 [backface-visibility:hidden]",
-        compact
-          ? summaryCard
-            ? "p-2.5 sm:p-3"
-            : "p-1.5 sm:p-2"
-          : "p-2.5 sm:p-4",
-        frontFit ? "justify-between" : "max-sm:justify-between",
-        summaryCard
-          ? "border-0 bg-white text-slate-950"
-          : memoryGame
-            ? "border-0"
-            : style.border,
-      )}
-    >
-      {summaryCard ? (
-        <div className={cn("pointer-events-none absolute inset-1 z-10 rounded-md border-4", MEMORY_TIER_BORDERS[card.tier])}>
-          <span className={cn("absolute inset-x-0 top-0 h-2", accentClass)} />
-          <span className={cn("absolute inset-x-0 bottom-0 h-2", accentClass)} />
-        </div>
-      ) : null}
-      <div
-        className={cn(
-          "flex items-center justify-between gap-2 text-white",
-          compact
-            ? "-mx-1.5 -mt-1.5 px-2 py-1 sm:-mx-2 sm:-mt-2 sm:px-2.5 sm:py-1.5"
-            : "-mx-2.5 -mt-2.5 px-3 py-2 sm:-mx-4 sm:-mt-4 sm:px-4 sm:py-3",
-          summaryCard ? "bg-white text-slate-950" : accentClass,
-        )}
-      >
-        {!frontMinimal ? (
-          <span className="text-sm font-bold sm:text-base">
-            {card.tier} · {getTierLabel(card.tier, locale)}
-          </span>
-        ) : null}
-        {showActions && !frontMinimal ? (
-          <div className="flex items-center gap-1">
-            <Button
-              type="button"
-              variant="secondary"
-              size="icon"
-              aria-label={`${card.term} ${t("cards.ask")}`}
-              title={t("cards.ask")}
-              onClick={handleAskClick}
-              className="size-7 border-0 bg-white/20 text-white hover:bg-white/30 sm:size-8"
-            >
-              <MessageCircleQuestion className="size-4" aria-hidden="true" />
-            </Button>
-          </div>
-        ) : null}
-      </div>
-
-      <div className={cn("flex flex-1 flex-col justify-center text-center", compact ? "py-1 max-sm:py-0.5" : "py-4 max-sm:py-2", frontMinimal && "gap-1")} style={frontContentScale === 1 ? undefined : { transform: `scale(${frontContentScale})` }}>
-        {!frontMinimal && !frontHideStudyMetadata ? (
-          <>
-            <div className="mb-2 flex items-center justify-center gap-2 text-xs font-semibold text-slate-500 max-sm:text-[10px]">
-              <span>{getLanguageDisplayName(card.language, locale)}</span>
-              <span
-                aria-label={`${tierPoints} ${t("common.points")}`}
-                className={cn("inline-flex items-center gap-1", style.text)}
-                title={`${tierPoints} ${t("common.points")}`}
-              >
-                <ScoreIcon size={14} className="size-3.5" />
-                <span>{tierPoints}</span>
-              </span>
-            </div>
-
-            <div className="flex items-center justify-center gap-2 text-slate-500">
-              <button
-                type="button"
-                aria-label={`${card.term} ${t("cards.speak")}`}
-                title={t("cards.speak")}
-                onClick={handleSpeakClick}
-                className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950 max-sm:size-6"
-              >
-                <Volume2 className="size-4 max-sm:size-3" aria-hidden="true" />
-              </button>
-              <span className="inline-flex items-center gap-1 text-sm text-slate-500 max-sm:text-xs">
-                <span>{pronunciation}</span>
-                {isPronunciationLoading ? (
-                  <LoaderCircle className="size-3 animate-spin" aria-hidden="true" />
-                ) : null}
-              </span>
-            </div>
-          </>
-        ) : null}
-        <h3
-          className={cn(
-            "min-w-0 max-w-full break-words text-center font-display font-semibold leading-tight",
-            "text-slate-950",
-            frontMinimal
-              ? compact
-                ? summaryCard
-                  ? "text-base max-sm:text-sm"
-                  : "text-lg max-sm:text-base"
-                : "text-xl max-sm:text-lg"
-              : frontFitCoreText
-                ? "mt-3 text-3xl max-sm:mt-1 sm:text-5xl"
-                : "mt-3 text-2xl max-sm:mt-1 sm:text-4xl",
-          )}
+      {isFaceUp && showActions && !frontMinimal ? (
+        <Button
+          aria-label={`${card.term} ${t("cards.ask")}`}
+          className="absolute right-[7%] top-[5%] z-10 size-8 rounded-full border border-white/70 bg-black/15 p-0 text-white backdrop-blur-sm hover:bg-black/25"
+          onClick={handleAskClick}
+          title={t("cards.ask")}
+          type="button"
+          variant="secondary"
+          size="icon"
         >
-          {frontFitCoreText ? <FittedSingleLineText>{card.term}</FittedSingleLineText> : card.term}
-        </h3>
-        {frontTranslationBelowTerm ? (
-          <>
-            <p className={cn("mt-2 font-semibold leading-tight text-slate-950/70 max-sm:mt-1", frontFitCoreText ? "text-2xl max-sm:text-lg sm:text-4xl" : "text-xl max-sm:text-base sm:text-3xl")}>
-              {frontFitCoreText ? <FittedSingleLineText>{cardTranslation}</FittedSingleLineText> : cardTranslation}
-            </p>
-            {!frontMinimal && !frontHideStudyMetadata ? (
-              <p className="mt-3 text-sm font-semibold text-slate-500 max-sm:mt-1 max-sm:text-[10px]">
-                {getPartOfSpeechLabel(card.termKind, locale)}
-              </p>
-            ) : null}
-          </>
-        ) : !frontMinimal ? (
-          <>
-          <p className="mt-3 text-sm font-semibold text-slate-500 max-sm:mt-1 max-sm:text-[10px]">
-            {getPartOfSpeechLabel(card.termKind, locale)}
-          </p>
+          <MessageCircleQuestion className="size-4" aria-hidden="true" />
+        </Button>
+      ) : null}
+
+      {isFaceUp && showProgress ? (
+        <div
+          className={cn(
+            "absolute inset-x-[18%] bottom-[1.5%] z-10 rounded-sm px-1 py-0.5 text-white",
+            compact ? "text-[8px]" : "text-[10px]",
+          )}
+          data-card-progress
+          data-card-footer-mode={footerMode}
+        >
+          <div className="flex items-center justify-between gap-1 font-semibold leading-none">
+            <span>{inventory?.status === "learned" ? t("cards.learned") : t("cards.progress")}</span>
+            <span>{progress}/{requirement}</span>
+          </div>
+          <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/35">
             <div
               className={cn(
-                "flex items-start justify-center",
-                "mt-5 max-sm:mt-1",
-                frontFit ? "min-h-0" : "h-12 max-sm:h-8",
+                "h-full rounded-full bg-white transition-[width,background-color] duration-300",
+                progressAnimationActive && "duration-[900ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
               )}
-            >
-              <p
-                className={cn(
-                  "max-w-full break-words text-lg font-semibold leading-6 text-slate-950 max-sm:text-xs max-sm:leading-tight",
-                  frontFit ? "line-clamp-3" : "line-clamp-2",
-                )}
-              >
-                {cardTranslation}
-              </p>
-            </div>
-          </>
-        ) : (
-          <div
-            className={cn(
-              "flex items-start justify-center",
-              "min-h-0",
-              frontFit ? "min-h-0" : "h-12 max-sm:h-8",
-            )}
-          >
-            <p
-              className={cn(
-                "max-w-full break-words text-center text-lg font-semibold leading-6 max-sm:text-xs max-sm:leading-tight",
-                frontFit ? "line-clamp-3" : "line-clamp-2",
-                "text-base text-slate-950 max-sm:text-sm",
-              )}
-            >
-              {cardTranslation}
-            </p>
+              style={{ width: `${Math.round((progress / requirement) * 100)}%`, backgroundColor: progressAnimationActive ? palette.shellEnd : undefined }}
+            />
           </div>
-        )}
-      </div>
-
-      {summaryProgressCount !== undefined ? (
-        <div className="flex w-full -translate-y-[10px] flex-col items-center gap-0.5 px-1 pb-1" data-card-progress>
-          <span className="text-[8px] font-semibold leading-none text-black">
-            {visibleProgressCount}/{requirement}
-          </span>
-          <Progress
-            value={progress}
-            className="h-1.5 w-4/5 bg-slate-400"
-            indicatorClassName={accentClass}
-          />
         </div>
       ) : null}
 
-      <div
-        className={cn(
-          "text-white",
-          compact
-            ? "-mx-1.5 -mb-1.5 px-2 py-1 sm:-mx-2 sm:-mb-2 sm:px-2.5 sm:py-1.5"
-            : "-mx-2.5 -mb-2.5 px-3 py-2 sm:-mx-4 sm:-mb-4 sm:px-4 sm:py-3",
-          summaryCard ? "bg-white text-slate-950" : accentClass,
-          footerMode === "auto"
-            ? "space-y-2"
-            : memoryGame
-              ? "flex min-h-0 items-center"
-              : "flex min-h-12 items-center",
-        )}
-        data-card-footer-mode={footerMode}
-      >
-        {!frontMinimal && footerMode === "auto" ? (
-          <div
-            className={cn(
-              "flex w-full items-center justify-center text-center",
-              frontFit ? "min-h-10" : "min-h-5 max-sm:min-h-[18px]",
-            )}
-            data-card-example-row
-          >
-            <p
-              className={cn(
-                "w-full text-sm font-medium max-sm:text-xs",
-                frontFit ? "line-clamp-2 leading-5" : "truncate leading-none max-sm:leading-none",
-              )}
-              title={examplePreview}
-              data-card-example-preview
+      {isFaceUp && !compact && !frontMinimal && !frontHideStudyMetadata && (onAdd || onSkip) ? (
+        <div
+          className={cn("absolute inset-x-[11%] bottom-[2%] z-20 grid gap-1.5", onAdd && onSkip ? "grid-cols-2" : "grid-cols-1")}
+          data-card-footer-mode={footerMode}
+        >
+          {onSkip ? (
+            <Button
+              onClick={handleSkipClick}
+              className="h-7 min-w-0 border border-white/80 bg-rose-500/95 px-1.5 text-[10px] text-white hover:bg-rose-600"
+              type="button"
+              variant="secondary"
             >
-              {examplePreview}
-            </p>
-          </div>
-        ) : null}
-
-        {inventory && !frontMinimal && footerMode !== "empty" ? (
-          <div className="animate-quiz-card-progress-reveal w-full space-y-1" data-card-progress>
-            <div className="flex items-center justify-between text-xs font-semibold">
-              <span>{learned ? t("cards.learned") : t("cards.progress")}</span>
-              <span>
-                {visibleProgressCount}/{requirement}
-              </span>
-            </div>
-            <Progress
-              value={progress}
-              className="bg-white/30"
-              indicatorClassName={cn(
-                progressAnimationActive
-                  ? cn(
-                      card.tier === "B2"
-                        ? "bg-gradient-to-r from-[#0ea5e9] to-[#38bdf8]"
-                        : "bg-gradient-to-r from-[#ffad03] to-[#ffcd03]",
-                      "transition-[width,background-color] duration-[900ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
-                    )
-                  : "bg-white transition-[width,background-color] duration-[300ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
-              )}
-              indicatorOverlayClassName="bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 opacity-0"
-            />
-          </div>
-        ) : null}
-
-        {!frontMinimal && (onAdd || onSkip) ? (
-          <div className={cn("grid w-full gap-2 max-sm:gap-1.5", onAdd && onSkip ? "grid-cols-2" : "grid-cols-1")}>
-            {onSkip ? (
-              <Button
-                variant="secondary"
-                onClick={handleSkipClick}
-                className="h-8 border-0 bg-rose-500 px-2 text-xs text-white hover:bg-rose-600 max-sm:h-7 max-sm:px-1 max-sm:text-[10px]"
-              >
-                <X className="size-3" aria-hidden="true" />
-                {t("cards.skip")}
-              </Button>
-            ) : null}
-            {onAdd ? (
-              <Button
-                type="button"
-                onClick={handleAddClick}
-                disabled={showOwnedState || addLoading || addDisabled}
-                data-tutorial-target="card-add"
-                className={cn(
-                  "h-8 w-full bg-white px-2 text-xs hover:bg-white/90 max-sm:h-7 max-sm:px-1 max-sm:text-[10px]",
-                  ADD_BUTTON_TEXT_BY_TIER[card.tier],
-                )}
-              >
-                {addLoading
-                  ? <LoaderCircle className="size-3 animate-spin" aria-hidden="true" />
-                  : showOwnedState
-                    ? <Check className="size-3" aria-hidden="true" />
-                    : <Plus className="size-3" aria-hidden="true" />}
+              <X className="size-3 shrink-0" aria-hidden="true" />
+              <span className="truncate">{t("cards.skip")}</span>
+            </Button>
+          ) : null}
+          {onAdd ? (
+            <Button
+              type="button"
+              onClick={handleAddClick}
+              disabled={showOwnedState || addLoading || addDisabled}
+              data-tutorial-target="card-add"
+              className="h-7 min-w-0 border border-white/80 bg-white/95 px-1.5 text-[10px] hover:bg-white"
+              style={{ color: palette.label }}
+            >
+              {addLoading
+                ? <LoaderCircle className="size-3 shrink-0 animate-spin" aria-hidden="true" />
+                : showOwnedState
+                  ? <Check className="size-3 shrink-0" aria-hidden="true" />
+                  : <Plus className="size-3 shrink-0" aria-hidden="true" />}
+              <span className="truncate">
                 {showOwnedState
                   ? ownedLabel ?? t("cards.owned")
                   : addLoading
                     ? addLoadingLabel ?? t("common.loading")
                     : addLabel ?? t("cards.add")}
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function CardBack({
-  card,
-  isFaceUp,
-  backDisplayTier,
-  isControlled = false,
-  compact = false,
-  memoryGame = false,
-}: {
-  card: VocabularyCard;
-  isFaceUp: boolean;
-  backDisplayTier?: Tier;
-  isControlled?: boolean;
-  compact?: boolean;
-  memoryGame?: boolean;
-}) {
-  const { locale } = useLocale();
-  const t = useT();
-  const style = CARD_TIER_STYLES[card.tier];
-  const visibleBackTier = backDisplayTier ?? card.tier;
-
-  if (memoryGame) {
-    return (
-      <div
-        aria-hidden={isFaceUp && !isControlled}
-        inert={isFaceUp && !isControlled}
-        className="absolute inset-0 overflow-hidden rounded-lg border-0 bg-transparent shadow-none [backface-visibility:hidden] [transform:rotateY(180deg)]"
-      >
-        <div
-          data-card-back-tier={visibleBackTier}
-          className="h-full overflow-hidden rounded-md border-0 bg-center bg-no-repeat"
-          style={{
-            backgroundImage: `url('${MEMORY_CARD_BACKGROUNDS[card.tier]}')`,
-            backgroundSize: "cover",
-          }}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      aria-hidden={isFaceUp && !isControlled}
-      inert={isFaceUp && !isControlled}
-      className={cn(
-        "absolute inset-0 overflow-hidden rounded-lg border border-border bg-white shadow-sm [backface-visibility:hidden] [transform:rotateY(180deg)]",
-        "p-1.5 sm:p-2.5",
-        compact && "p-0.5 sm:p-1",
-      )}
-    >
-      <div
-        data-card-back-tier={visibleBackTier}
-        className={cn(
-          "relative flex h-full overflow-hidden rounded-md border bg-gradient-to-br p-4 text-white max-sm:p-2.5",
-          compact && "p-1 max-sm:p-0.5",
-          style.backPanel,
-          style.backBorder,
-        )}
-      >
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 opacity-35"
-          style={{
-            backgroundImage:
-              "linear-gradient(135deg, rgba(255,255,255,0.42) 1px, transparent 1px), linear-gradient(45deg, rgba(255,255,255,0.20) 1px, transparent 1px)",
-            backgroundSize: "18px 18px",
-          }}
-        />
-        <div className={cn("pointer-events-none absolute inset-0 origin-center", compact ? "scale-50" : "scale-100")}>
-          <PlayingCardBackPattern />
-        </div>
-
-        <div className="relative flex flex-1 flex-col">
-          <div className="flex items-start justify-between gap-3">
-            <span className={cn("font-semibold text-white/75", compact ? "text-[8px] max-sm:text-[6px]" : "text-xs max-sm:text-[10px]")}>
-              {getTierLabel(visibleBackTier, locale)}
-            </span>
-            <span className={cn("font-semibold text-white/75", compact ? "text-[8px] max-sm:text-[6px]" : "text-xs max-sm:text-[10px]")}>
-              {getLanguageDisplayName(card.language, locale)}
-            </span>
-          </div>
-
-          <div className="flex flex-1 flex-col items-center justify-center text-center">
-            <div
-              data-card-back-medallion="true"
-              className={cn(
-                "relative flex items-center justify-center rounded-full border border-white/80 bg-white shadow-sm",
-                compact ? "size-10 max-sm:size-8" : "size-24 max-sm:size-16",
-              )}
-            >
-              <span
-                className={cn(
-                  "font-display font-semibold leading-none",
-                  compact ? "text-2xl max-sm:text-xl" : "text-5xl max-sm:text-3xl",
-                  style.backText,
-                )}
-              >
-                {visibleBackTier}
               </span>
-              <span
-                className={cn("pointer-events-none absolute rounded-full border", compact ? "inset-0.5 max-sm:inset-0.5" : "inset-2 max-sm:inset-1", style.border)}
-                aria-hidden="true"
-              />
-            </div>
-            <p className={cn("font-semibold text-white/95", compact ? "mt-1 text-[10px] max-sm:text-[8px]" : "mt-4 text-sm max-sm:mt-2 max-sm:text-xs")}>
-              {t("cards.flip")}
-            </p>
-          </div>
-
-          <div className={cn("flex items-end justify-between gap-3 font-semibold text-white/75", compact ? "text-[8px] max-sm:text-[6px]" : "text-xs max-sm:text-[10px]")}>
-            <span>FoxiesDeck</span>
-            <span>{t("cards.collection")}</span>
-          </div>
+            </Button>
+          ) : null}
         </div>
-      </div>
-    </div>
-  );
-}
+      ) : null}
 
-function PlayingCardBackPattern() {
-  return (
-    <svg
-      aria-hidden="true"
-      focusable="false"
-      viewBox="0 0 240 320"
-      className="pointer-events-none absolute inset-0 h-full w-full text-white/70"
-      fill="none"
-    >
-      <g stroke="currentColor" strokeWidth="1.4">
-        <path d="M120 34 206 160 120 286 34 160Z" opacity="0.58" />
-        <path d="M120 58 184 160 120 262 56 160Z" opacity="0.5" />
-        <path d="M120 82 162 160 120 238 78 160Z" opacity="0.42" />
-        <circle cx="120" cy="160" r="68" opacity="0.36" />
-        <circle cx="120" cy="160" r="48" opacity="0.34" />
-      </g>
-      <g stroke="currentColor" strokeWidth="1.2" opacity="0.52">
-        <path d="M38 46c28 10 44 27 48 52" />
-        <path d="M202 46c-28 10-44 27-48 52" />
-        <path d="M38 274c28-10 44-27 48-52" />
-        <path d="M202 274c-28-10-44-27-48-52" />
-        <path d="M72 38c5 24 21 38 48 42 27-4 43-18 48-42" />
-        <path d="M72 282c5-24 21-38 48-42 27 4 43 18 48 42" />
-      </g>
-      <g fill="currentColor" opacity="0.32">
-        <circle cx="48" cy="58" r="4" />
-        <circle cx="192" cy="58" r="4" />
-        <circle cx="48" cy="262" r="4" />
-        <circle cx="192" cy="262" r="4" />
-        <path d="M120 102 128 116 120 130 112 116Z" />
-        <path d="M120 190 128 204 120 218 112 204Z" />
-      </g>
-    </svg>
+    </article>
   );
 }

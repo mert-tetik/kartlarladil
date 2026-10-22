@@ -98,7 +98,6 @@ export function AchievementCardSection({
               frontMinimal
               frontFit
               primaryTranslationOnly
-              memoryGame
               summaryCard
               summaryProgressCount={
                 tone === "advanced"

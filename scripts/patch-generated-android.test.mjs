@@ -125,7 +125,7 @@ describe("reproducible Android Firebase bootstrap", () => {
 
       const offlineShellSource = path.join(PROJECT_ROOT, "public", "offline-shell");
       const packagedOfflineShell = path.join(projectDir, "app", "src", "main", "assets", "foxiesdeck-offline");
-      for (const requiredFile of ["index.html", "offline-shell.js", "super-water.ttf"]) {
+      for (const requiredFile of ["index.html", "offline-shell.js", "card-renderer.js", "card-design.css", "super-water.ttf"]) {
         expect(fs.readFileSync(path.join(packagedOfflineShell, requiredFile)))
           .toEqual(fs.readFileSync(path.join(offlineShellSource, requiredFile)));
       }

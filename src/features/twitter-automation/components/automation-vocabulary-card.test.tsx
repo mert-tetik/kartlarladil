@@ -26,13 +26,13 @@ const card = {
 afterEach(() => cleanup());
 
 describe("AutomationVocabularyCard", () => {
-  it("renders the automation-owned front design and selected native translation", () => {
+  it("renders the shared card front with the selected native translation", () => {
     render(<AutomationVocabularyCard card={card} face="front" nativeLanguage="en" />);
 
-    const face = screen.getByRole("article", { name: "木漏れ日, A2" });
+    const face = screen.getByRole("group", { name: "木漏れ日, A2" });
     expect(face).toHaveAttribute("data-automation-card-face", "front");
     expect(face).toHaveAttribute("data-automation-card-layout", "standard");
-    expect(within(face).getByText("Japanese A2").closest("header")).toHaveClass("font-super-water", "text-lg", "sm:text-xl");
+    expect(within(face).getByTestId("reference-card")).toBeInTheDocument();
     expect(within(face).getByText("木漏れ日")).toBeInTheDocument();
     expect(within(face).getByText("sunlight filtering through trees")).toBeInTheDocument();
     expect(within(face).getByText("komorebi")).toBeInTheDocument();
@@ -44,20 +44,20 @@ describe("AutomationVocabularyCard", () => {
   it("renders only the requested back face", () => {
     render(<AutomationVocabularyCard card={card} face="back" nativeLanguage="en" />);
 
-    const face = screen.getByRole("article", { name: "木漏れ日, A2" });
+    const face = screen.getByRole("group", { name: "木漏れ日, A2" });
     expect(face).toHaveAttribute("data-automation-card-face", "back");
     expect(face.querySelector("[data-card-back-tier]")).toHaveAttribute("data-card-back-tier", "A2");
-    expect(within(face).getByText("A2")).toBeInTheDocument();
+    expect(within(face).getByTestId("card-back-tier-text")).toHaveTextContent("A2");
     expect(within(face).queryByText("Click to flip")).not.toBeInTheDocument();
-    expect(within(face).queryByText("木漏れ日")).not.toBeInTheDocument();
+    expect(within(face).getByTestId("reference-card")).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("supports the dedicated daily-challenge layout without study metadata", () => {
+  it("keeps the shared card face in the daily-challenge automation layout", () => {
     render(<AutomationVocabularyCard card={card} face="front" layout="daily-challenge" nativeLanguage="en" />);
 
-    const face = screen.getByRole("article", { name: "木漏れ日, A2" });
+    const face = screen.getByRole("group", { name: "木漏れ日, A2" });
     expect(face).toHaveAttribute("data-automation-card-layout", "daily-challenge");
     expect(within(face).getByText("sunlight filtering through trees")).toBeInTheDocument();
-    expect(within(face).queryByText("komorebi")).not.toBeInTheDocument();
+    expect(within(face).getByText("komorebi")).toBeInTheDocument();
   });
 });

@@ -25,6 +25,8 @@ const imageCacheManifest = readImageCacheManifest();
 const offlineShellManifestEntries = [
   "offline-shell/index.html",
   "offline-shell/offline-shell.js",
+  "offline-shell/card-renderer.js",
+  "offline-shell/card-design.css",
   "offline-shell/super-water.ttf",
   "offline-shell/foxies-mark.webp",
 ].flatMap((relativePath) => {

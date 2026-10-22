@@ -369,7 +369,7 @@ async function copyOfflineShellAssets(projectDir) {
   await fs.mkdir(destination, { recursive: true });
   await fs.cp(OFFLINE_SHELL_SOURCE, destination, { recursive: true, force: true });
 
-  for (const requiredFile of ["index.html", "offline-shell.js", "super-water.ttf"]) {
+  for (const requiredFile of ["index.html", "offline-shell.js", "card-renderer.js", "card-design.css", "super-water.ttf"]) {
     const source = await fs.readFile(path.join(OFFLINE_SHELL_SOURCE, requiredFile));
     const packaged = await fs.readFile(path.join(destination, requiredFile));
     if (!source.equals(packaged)) {

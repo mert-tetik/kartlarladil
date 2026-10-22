@@ -857,7 +857,6 @@
 
     function renderCards() {
       const root = element("saved-cards");
-      root.replaceChildren();
       const allEntries = cardsForSelectedLanguage();
       renderCardFilter();
       const entries = allEntries.filter(function (entry) {
@@ -866,6 +865,7 @@
           : !entry.inventory || entry.inventory.status !== "learned";
       });
       if (!entries.length) {
+        root.replaceChildren();
         const empty = document.createElement("p"); empty.className = "empty";
         const filterCopy = savedCardFilterCopy[userLocale] || savedCardFilterCopy.en;
         empty.textContent = allEntries.length
@@ -873,64 +873,55 @@
           : (state.cards.length ? (noCardsInLanguageCopy[userLocale] || noCardsInLanguageCopy.en) : strings.noCards);
         root.appendChild(empty); return;
       }
-      const tierStyles = {
-        A1: { accent: "#10b981", requirement: 4 },
-        A2: { accent: "#0ea5e9", requirement: 4 },
-        B1: { accent: "#8b5cf6", requirement: 6 },
-        B2: { accent: "#f59e0b", requirement: 6 },
-        C1: { accent: "#f43f5e", requirement: 8 },
-      };
-      const termKinds = {
-        en: { word: "Word", phrase: "Phrase" }, tr: { word: "Kelime", phrase: "Kalıp" }, de: { word: "Wort", phrase: "Ausdruck" },
-        ru: { word: "Слово", phrase: "Фраза" }, fr: { word: "Mot", phrase: "Expression" }, es: { word: "Palabra", phrase: "Expresión" },
-        it: { word: "Parola", phrase: "Espressione" }, pt: { word: "Palavra", phrase: "Expressão" }, nl: { word: "Woord", phrase: "Uitdrukking" },
-        pl: { word: "Słowo", phrase: "Wyrażenie" }, ar: { word: "كلمة", phrase: "عبارة" }, ja: { word: "単語", phrase: "フレーズ" },
-        ko: { word: "단어", phrase: "표현" }, "zh-CN": { word: "单词", phrase: "短语" },
-      };
-      function makeNode(tagName, className, content) {
-        const node = document.createElement(tagName);
-        node.className = className;
-        if (content !== undefined) node.textContent = content;
-        return node;
+      const offlineRenderer = window.FoxiesDeckOfflineCardRenderer;
+      if (!offlineRenderer) {
+        root.replaceChildren();
+        console.error("[FoxiesDeck offline] Bundled vocabulary-card renderer is missing.");
+        return;
       }
-      entries.forEach(function (entry) {
-        const card = entry.card || {};
-        const inventory = entry.inventory || {};
-        const tier = tierStyles[card.tier] || tierStyles.A1;
-        const isLearned = inventory.status === "learned";
-        const progress = isLearned ? tier.requirement : Math.max(0, Math.min(tier.requirement, Number(inventory.correctCount) || 0));
-        const row = document.createElement("article"); row.className = "card";
-        row.dataset.savedCardTier = card.tier || "A1";
-        row.dataset.savedCardStatus = isLearned ? "learned" : "active";
-        row.dataset.cardLanguage = card.language || "";
-        row.style.setProperty("--tier-accent", tier.accent);
-        const header = makeNode("div", "card-header");
-        header.append(makeNode("span", "card-tier", card.tier || "A1"));
-        const body = makeNode("div", "card-body");
-        const pronunciation = makeNode("div", "card-pronunciation");
-        const pronunciationText = document.createElement("span"); pronunciationText.textContent = card.pronunciation || "";
-        pronunciation.append(pronunciationText);
-        const termNode = makeNode("h3", "card-term", card.term || card.translation || "");
-        const kinds = termKinds[userLocale] || termKinds.en;
-        const kindNode = card.termKind === "fixed_phrase" ? makeNode("span", "card-kind", kinds.phrase) : null;
-        const translationNode = makeNode("p", "card-translation");
-        const translated = card.translations && (card.translations[userLocale] || card.translations.en);
-        translationNode.textContent = translated || card.translation || "";
-        if (card.pronunciation) body.append(pronunciation);
-        body.append(termNode);
-        if (kindNode) body.append(kindNode);
-        body.append(translationNode);
-        const footer = makeNode("div", "card-footer");
-        const example = card.example || (Array.isArray(card.examples) && card.examples[0] && card.examples[0].sentence) || "";
-        if (example) footer.append(makeNode("p", "card-example", example));
-        const progressLabel = makeNode("div", "card-progress-label");
-        progressLabel.append(makeNode("span", "", isLearned ? strings.learned : strings.active), makeNode("span", "", progress + "/" + tier.requirement));
-        const track = makeNode("div", "card-progress-track");
-        const fill = makeNode("div", "card-progress-fill"); fill.style.width = (progress / tier.requirement * 100) + "%";
-        track.append(fill); footer.append(progressLabel, track);
-        row.append(header, body, footer); root.appendChild(row);
-      });
+      root.innerHTML = offlineRenderer.render(entries, userLocale, { active: strings.active, learned: strings.learned });
+      fitOfflineCardText(root);
     }
+
+    let offlineCardTextObserver = null;
+    function fitOfflineCardText(root) {
+      if (offlineCardTextObserver) offlineCardTextObserver.disconnect();
+      const fit = function (container) {
+        const textNode = container.querySelector("[data-single-line-fit-content]");
+        if (!textNode) return;
+        const availableWidth = container.clientWidth;
+        const textWidth = textNode.scrollWidth;
+        const scale = availableWidth > 0 && textWidth > availableWidth ? availableWidth / textWidth : 1;
+        textNode.style.transform = "scale(" + scale + ")";
+      };
+      const containers = Array.from(root.querySelectorAll("[data-single-line-fit-container]"));
+      containers.forEach(fit);
+      if (typeof ResizeObserver !== "undefined") {
+        offlineCardTextObserver = new ResizeObserver(function (observations) {
+          observations.forEach(function (observation) { fit(observation.target); });
+        });
+        containers.forEach(function (container) { offlineCardTextObserver.observe(container); });
+      }
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function () {
+          containers.forEach(function (container) { if (container.isConnected) fit(container); });
+        });
+      }
+    }
+
+    element("saved-cards").addEventListener("click", function (event) {
+      const target = event.target;
+      const speakButton = target && target.closest ? target.closest("[data-card-speak]") : null;
+      if (!speakButton) return;
+      const cardElement = speakButton.closest("[data-card-language]");
+      const termElement = speakButton.closest(".fd-card-design")?.querySelector("[data-testid='card-term']");
+      const term = termElement && termElement.textContent ? termElement.textContent.trim() : "";
+      if (!term || !window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") return;
+      const utterance = new SpeechSynthesisUtterance(term);
+      utterance.lang = cardElement && cardElement.dataset.cardLanguage ? cardElement.dataset.cardLanguage : userLocale;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    });
 
     cardFilterButtons.forEach(function (button) {
       button.addEventListener("click", function () {

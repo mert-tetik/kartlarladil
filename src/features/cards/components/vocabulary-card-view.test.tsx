@@ -30,7 +30,8 @@ describe("VocabularyCardView", () => {
 
     expect(container.firstElementChild).toHaveAttribute("data-card-face", "front");
     expect(screen.getByRole("heading", { name: testCard.term })).toBeVisible();
-    expect(screen.getByLabelText("10 puan")).toBeVisible();
+    expect(screen.getByTestId("card-tier-badge")).toBeVisible();
+    expect(container.querySelector("[data-score-icon]")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: `${testCard.term}: Çevirmek için tıkla` })).not.toBeInTheDocument();
   });
 
@@ -43,8 +44,8 @@ describe("VocabularyCardView", () => {
 
     expect(container.firstElementChild).toHaveAttribute("data-card-face", "back");
     expect(container.querySelector('[data-card-back-tier="A1"]')).toBeInTheDocument();
-    expect(container.querySelector('[data-card-back-medallion="true"]')).toHaveTextContent("A1");
-    expect(screen.getByText("Çevirmek için tıkla")).toBeVisible();
+    expect(container.querySelector('[data-testid="card-back-tier-circle"]')).toHaveTextContent("A1");
+    expect(flipTarget).toHaveAttribute("aria-label", `${testCard.term}: Çevirmek için tıkla`);
     expect(screen.queryByRole("heading", { name: testCard.term })).not.toBeInTheDocument();
 
     await user.click(flipTarget);
@@ -58,7 +59,7 @@ describe("VocabularyCardView", () => {
 
     expect(container.firstElementChild).toHaveAttribute("data-card-face", "back");
     expect(container.querySelector('[data-card-back-tier="C1"]')).toBeInTheDocument();
-    expect(container.querySelector('[data-card-back-medallion="true"]')).toHaveTextContent("C1");
+    expect(container.querySelector('[data-testid="card-back-tier-circle"]')).toHaveTextContent("C1");
   });
 
   it.each([
@@ -88,7 +89,7 @@ describe("VocabularyCardView", () => {
     expect(container.querySelector('[data-tutorial-target="card-add"]')).toHaveAttribute("type", "button");
     expect(container.firstElementChild).toHaveAttribute("data-card-face", "front");
     expect(container.querySelector('[data-card-footer-mode="auto"]')?.querySelectorAll("button")).toHaveLength(1);
-    expect(container.querySelector('[data-tutorial-target="card-add"]')?.parentElement).toHaveClass("w-full");
+    expect(container.querySelector('[data-tutorial-target="card-add"]')).toBeVisible();
   });
 
   it("does not submit a surrounding form when adding a card", async () => {
@@ -124,7 +125,7 @@ describe("VocabularyCardView", () => {
     const examplePreview = screen.getByText(testCard.examples[0]!.sentence);
 
     expect(examplePreview).toBeVisible();
-    expect(examplePreview).toHaveClass("truncate");
+    expect(examplePreview).toHaveClass("fd-card-design__example");
     expect(container).not.toHaveTextContent("is useful in a clear sentence");
     expect(container).toHaveTextContent(getCardTranslation(testCard, "tr"));
   });
@@ -142,6 +143,15 @@ describe("VocabularyCardView", () => {
     expect(container).not.toHaveTextContent(meanings.slice(0, 3).join(", "));
   });
 
+  it("hides study metadata in minimal card previews without changing the shared card frame", () => {
+    renderCard(<VocabularyCardView card={testCard} frontMinimal />);
+
+    expect(screen.getByTestId("reference-card")).toBeInTheDocument();
+    expect(screen.getByTestId("card-tier-badge")).toBeInTheDocument();
+    expect(screen.queryByTestId("card-pronunciation")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("card-reference-example")).not.toBeInTheDocument();
+  });
+
   it("keeps the footer blank when quiz progress is not being revealed", () => {
     const { container } = renderCard(
       <VocabularyCardView
@@ -156,9 +166,9 @@ describe("VocabularyCardView", () => {
       />,
     );
 
-    expect(container.querySelector('[data-card-footer-mode="empty"]')).toBeInTheDocument();
     expect(container.querySelector("[data-card-progress]")).not.toBeInTheDocument();
     expect(container.querySelector("[data-card-example-row]")).not.toBeInTheDocument();
+    expect(container.querySelector('[data-testid="card-reference-example"]')).not.toBeInTheDocument();
   });
 
   it("shows the supplied quiz progress value only while progress is revealed", () => {
@@ -213,7 +223,7 @@ describe("VocabularyCardView", () => {
     });
 
     renderCard(<VocabularyCardView card={testCard} />);
-    await user.click(screen.getByRole("button", { name: `${testCard.term} Seslendir` }));
+    await user.click(screen.getByRole("button", { name: `Listen to ${testCard.term}` }));
 
     expect(cancel).toHaveBeenCalledTimes(1);
     expect(speak).toHaveBeenCalledTimes(1);
@@ -223,6 +233,16 @@ describe("VocabularyCardView", () => {
     expect(utterance.text).toBe(testCard.term);
     expect(utterance.lang).toBe("en-US");
     expect(utterance.rate).toBe(0.9);
+  });
+
+  it("does not bubble a pronunciation click into a controlled card action", async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+
+    renderCard(<VocabularyCardView card={testCard} face="front" onClick={onClick} />);
+    await user.click(screen.getByRole("button", { name: `Listen to ${testCard.term}` }));
+
+    expect(onClick).not.toHaveBeenCalled();
   });
 });
 

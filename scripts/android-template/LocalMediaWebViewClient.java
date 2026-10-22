@@ -161,6 +161,9 @@ public final class LocalMediaWebViewClient extends WebViewClient {
             } else if (assetPath.endsWith(".js")) {
                 mimeType = "application/javascript";
                 encoding = "utf-8";
+            } else if (assetPath.endsWith(".css")) {
+                mimeType = "text/css";
+                encoding = "utf-8";
             } else if (assetPath.endsWith(".webp")) {
                 mimeType = "image/webp";
             } else if (assetPath.endsWith(".ttf")) {
