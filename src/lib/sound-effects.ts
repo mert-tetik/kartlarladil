@@ -5,6 +5,7 @@ export type SoundEffectName =
   | "rank-up-reveal"
   | "points"
   | "learned"
+  | "card-progress-complete"
   | "confetti"
   | "quiz-complete"
   | "mission-passed"
@@ -337,6 +338,33 @@ function learned(context: AudioContext, now: number) {
 
   playTone(context, { frequency: SCALE.E6, startTime: now + 0.32, duration: 0.3, gain: 0.03 });
   playTone(context, { frequency: SCALE.G6, startTime: now + 0.36, duration: 0.3, gain: 0.025 });
+}
+
+function cardProgressComplete(context: AudioContext, now: number) {
+  // A compact ascending chime paired with the card's final progress pulse.
+  playTone(context, {
+    frequency: SCALE.E5,
+    endFrequency: SCALE.G5,
+    startTime: now,
+    duration: 0.13,
+    gain: 0.075,
+    type: "triangle",
+  });
+  playTone(context, {
+    frequency: SCALE.G5,
+    endFrequency: SCALE.C6,
+    startTime: now + 0.055,
+    duration: 0.17,
+    gain: 0.065,
+  });
+  playTone(context, {
+    frequency: SCALE.C6,
+    endFrequency: SCALE.G6,
+    startTime: now + 0.11,
+    duration: 0.22,
+    gain: 0.045,
+    type: "triangle",
+  });
 }
 
 function rankUpOpening(context: AudioContext, now: number) {
@@ -813,6 +841,7 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "rank-up-reveal": rankUpReveal,
   points,
   learned,
+  "card-progress-complete": cardProgressComplete,
   confetti,
   "quiz-complete": quizComplete,
   "mission-passed": missionPassed,

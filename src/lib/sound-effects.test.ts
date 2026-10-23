@@ -8,6 +8,7 @@ const EFFECT_NAMES: SoundEffectName[] = [
   "rank-up-reveal",
   "points",
   "learned",
+  "card-progress-complete",
   "confetti",
   "quiz-complete",
   "mission-passed",

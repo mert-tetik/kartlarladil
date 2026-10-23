@@ -1,7 +1,10 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { vi } from "vitest";
 import * as cardSpeech from "@/features/cards/card-speech";
+import { playSoundEffect } from "@/lib/sound-effects";
 import { CardDesignTestScreen } from "@/features/cards/components/card-design-test-screen";
+
+vi.mock("@/lib/sound-effects", () => ({ playSoundEffect: vi.fn() }));
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -10,6 +13,14 @@ describe("CardDesignTestScreen", () => {
     render(<CardDesignTestScreen />);
 
     expect(screen.getByTestId("reference-card")).toBeInTheDocument();
+    expect(screen.getByTestId("card-progress-mode")).toBeInTheDocument();
+    const progressCircle = screen.getByTestId("reference-card").querySelector("[data-card-progress][role='progressbar']");
+    expect(progressCircle).toBeInTheDocument();
+    expect(progressCircle?.querySelector("[data-progress-slice-dividers]")).toBeInTheDocument();
+    expect(progressCircle?.querySelector("[data-progress-indicator]")).toHaveStyle({
+      "--fd-card-progress-angle": "0deg",
+      "--fd-card-progress-slice-angle": "60deg",
+    });
     expect(screen.getByText("経済")).toBeVisible();
     expect(screen.getByText("economy")).toBeVisible();
     expect(screen.getByTestId("card-term")).toHaveClass("fd-card-design__term");
@@ -17,6 +28,8 @@ describe("CardDesignTestScreen", () => {
     expect(screen.getByTestId("card-reference-example")).toHaveClass("fd-card-design__example");
     expect(screen.getByTestId("card-term").querySelector("[data-single-line-fit-content]")).toHaveClass("whitespace-nowrap");
     expect(screen.getByTestId("card-translation").querySelector("[data-single-line-fit-content]")).toHaveClass("whitespace-nowrap");
+    expect(screen.getByTestId("card-term").querySelector("[data-single-line-fit-container]")).toHaveAttribute("data-single-line-fit-centered");
+    expect(screen.getByTestId("card-translation").querySelector("[data-single-line-fit-container]")).toHaveAttribute("data-single-line-fit-centered");
     expect(screen.getByTestId("card-pronunciation")).toHaveTextContent("keizai");
     const pronunciationButton = within(screen.getByTestId("card-pronunciation")).getByRole("button", { name: /^Listen to / });
     expect(pronunciationButton).toBeVisible();
@@ -41,6 +54,53 @@ describe("CardDesignTestScreen", () => {
     expect(screen.getAllByRole("button", { name: /^Resize card from/ })).toHaveLength(4);
     expect(screen.getByTestId("card-learning-language")).toHaveAttribute("data-language", "ja");
     expect(screen.getByTestId("card-native-language")).toHaveAttribute("data-language", "en");
+  });
+
+  it("switches between the progress and no-progress card modes", () => {
+    render(<CardDesignTestScreen />);
+
+    expect(screen.getByTestId("reference-card").querySelector("[data-card-progress]")).toBeInTheDocument();
+    expect(screen.getByTestId("card-progress-count")).toHaveTextContent("0/6");
+    expect(screen.getByTestId("advance-card-progress-button")).toBeEnabled();
+    fireEvent.click(screen.getByTestId("progress-mode-off"));
+    expect(screen.getByTestId("progress-mode-off")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("reference-card").querySelector("[data-card-progress]")).not.toBeInTheDocument();
+    expect(screen.getByTestId("advance-card-progress-button")).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId("progress-mode-on"));
+    expect(screen.getByTestId("progress-mode-on")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("reference-card").querySelector("[data-card-progress]")).toHaveTextContent("0/6");
+  });
+
+  it("advances one progress slice per level-up click and replays the shared animation", () => {
+    render(<CardDesignTestScreen />);
+    const playSoundEffectMock = vi.mocked(playSoundEffect);
+
+    const progress = screen.getByTestId("reference-card").querySelector<HTMLElement>("[data-card-progress]")!;
+    const advanceButton = screen.getByTestId("advance-card-progress-button");
+    const initialPulse = progress.querySelector("[data-progress-indicator-overlay]");
+
+    fireEvent.click(advanceButton);
+    expect(progress).toHaveTextContent("1/6");
+    expect(playSoundEffectMock).not.toHaveBeenCalled();
+    expect(progress).toHaveAttribute("data-progress-animation-active", "true");
+    expect(progress).toHaveAttribute("data-progress-animation-key", "1");
+    expect(progress.querySelector("[data-progress-indicator]")).toHaveStyle({ "--fd-card-progress-angle": "60deg" });
+    const firstStepPulse = progress.querySelector("[data-progress-indicator-overlay]");
+    expect(firstStepPulse).not.toBe(initialPulse);
+
+    fireEvent.click(advanceButton);
+    expect(progress).toHaveTextContent("2/6");
+    expect(progress).toHaveAttribute("data-progress-animation-key", "2");
+    expect(progress.querySelector("[data-progress-indicator-overlay]")).not.toBe(firstStepPulse);
+
+    for (let step = 3; step <= 6; step += 1) fireEvent.click(advanceButton);
+    expect(progress).toHaveTextContent("6/6");
+    expect(progress).toHaveAttribute("data-progress-complete", "true");
+    expect(screen.getByTestId("card-progress-count")).toHaveTextContent("6/6");
+    expect(advanceButton).toBeDisabled();
+    expect(playSoundEffectMock).toHaveBeenCalledTimes(1);
+    expect(playSoundEffectMock).toHaveBeenCalledWith("card-progress-complete");
   });
 
   it("speaks the vocabulary term from the pronunciation pill", () => {
@@ -146,7 +206,7 @@ describe("CardDesignTestScreen", () => {
     expect(screen.queryByTestId("card-back-tier-label")).not.toBeInTheDocument();
   });
 
-  it("keeps the fox mark behind a three-line example sentence", async () => {
+  it("marks a three-line example so the carved fox can be hidden", async () => {
     const threeLineSample = {
       cardId: "es-word-three-lines",
       learningLanguage: "es",
@@ -167,6 +227,7 @@ describe("CardDesignTestScreen", () => {
     fireEvent.click(screen.getByTestId("randomize-card-button"));
 
     await waitFor(() => expect(screen.getByTestId("card-reference-example")).toHaveTextContent("Tercera línea."));
+    expect(screen.getByTestId("reference-card")).toHaveAttribute("data-example-line-count", "3");
     expect(screen.getByTestId("fox-carved-mark")).toBeInTheDocument();
     expect(screen.getByTestId("fox-carved-mark")).toHaveClass("fd-card-design__front-fox");
     expect(screen.getByTestId("card-reference-example")).toHaveClass("fd-card-design__example");

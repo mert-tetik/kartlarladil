@@ -3301,7 +3301,8 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   will-change: opacity, transform;
 }
 
-[data-quiz-card-feedback="updating"] [data-card-progress] [data-progress-indicator] {
+[data-quiz-card-feedback="updating"] [data-card-progress] [data-progress-indicator],
+[data-card-progress][data-progress-animation-active="true"] [data-progress-indicator] {
   transition-duration: 900ms;
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -3318,8 +3319,59 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   }
 }
 
-[data-quiz-card-feedback="updating"] [data-card-progress] [data-progress-indicator-overlay] {
+[data-quiz-card-feedback="updating"] [data-card-progress] [data-progress-indicator-overlay],
+[data-card-progress][data-progress-animation-active="true"] [data-progress-indicator-overlay] {
   animation: quiz-card-progress-pulse 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Keep web card progress styling in the app's versioned CSS bundle as well as
+   the offline shell stylesheet, so active pages don't keep a stale white ring. */
+@property --fd-card-progress-angle {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+
+[data-card-progress] [data-progress-slice-dividers] {
+  background: repeating-conic-gradient(
+    from -90deg,
+    transparent 0deg calc(var(--fd-card-progress-slice-angle) - 6deg),
+    #fff calc(var(--fd-card-progress-slice-angle) - 6deg),
+    #fff var(--fd-card-progress-slice-angle)
+  );
+}
+
+[data-card-progress] [data-progress-indicator-overlay] {
+  background: conic-gradient(
+    from -90deg,
+    var(--fd-card-progress-animation-start, #ffe34a) 0deg,
+    var(--fd-card-progress-animation-middle, #ffae00) calc(var(--fd-card-progress-angle) * 0.55),
+    var(--fd-card-progress-animation-end, #ff6a00) var(--fd-card-progress-angle),
+    transparent var(--fd-card-progress-angle) 360deg
+  );
+}
+
+@keyframes quiz-card-progress-complete-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  42% {
+    transform: scale(1.26);
+  }
+}
+
+body [data-card-progress][data-progress-complete="true"] {
+  animation: quiz-card-progress-complete-pulse 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body [data-card-progress][data-progress-complete="true"] {
+    animation: none;
+  }
 }
 
 @keyframes route-view-enter {

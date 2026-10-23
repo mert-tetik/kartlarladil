@@ -219,6 +219,14 @@ export function VocabularyCardView({
         showExample={!frontMinimal && !frontHideStudyMetadata && footerMode !== "empty"}
         showBack={!isFaceUp}
         showPronunciation={!frontMinimal && !frontHideStudyMetadata}
+        learningProgress={isFaceUp && showProgress ? {
+          current: progress,
+          required: requirement,
+          progressLabel: t("cards.progress"),
+          isLearned: inventory?.status === "learned",
+          animationActive: progressAnimationActive,
+          footerMode,
+        } : undefined}
       />
 
       {isFaceUp && showActions && !frontMinimal ? (
@@ -233,31 +241,6 @@ export function VocabularyCardView({
         >
           <MessageCircleQuestion className="size-4" aria-hidden="true" />
         </Button>
-      ) : null}
-
-      {isFaceUp && showProgress ? (
-        <div
-          className={cn(
-            "absolute inset-x-[18%] bottom-[1.5%] z-10 rounded-sm px-1 py-0.5 text-white",
-            compact ? "text-[8px]" : "text-[10px]",
-          )}
-          data-card-progress
-          data-card-footer-mode={footerMode}
-        >
-          <div className="flex items-center justify-between gap-1 font-semibold leading-none">
-            <span>{inventory?.status === "learned" ? t("cards.learned") : t("cards.progress")}</span>
-            <span>{progress}/{requirement}</span>
-          </div>
-          <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/35">
-            <div
-              className={cn(
-                "h-full rounded-full bg-white transition-[width,background-color] duration-300",
-                progressAnimationActive && "duration-[900ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
-              )}
-              style={{ width: `${Math.round((progress / requirement) * 100)}%`, backgroundColor: progressAnimationActive ? palette.shellEnd : undefined }}
-            />
-          </div>
-        </div>
       ) : null}
 
       {isFaceUp && !compact && !frontMinimal && !frontHideStudyMetadata && (onAdd || onSkip) ? (

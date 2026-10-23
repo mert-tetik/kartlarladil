@@ -42,25 +42,38 @@ export function createRandomCardDesignTestSample(
     throw new Error("The vocabulary catalog does not contain any word cards.");
   }
 
-  const differentWords = words.filter((card) =>
-    card.id !== exclusions.cardId && card.language !== exclusions.learningLanguage,
-  );
-  const card = pickRandom(differentWords.length > 0 ? differentWords : words, random);
+  let bestScore = -1;
+  const bestChoices: Array<{ card: CardDesignTestCardSource; nativeLanguage: LocaleCode }> = [];
 
-  const nativeLanguages = LANGUAGE_CODES.filter((language) =>
-    language !== card.language
-    && language !== exclusions.nativeLanguage
-    && Boolean(
-      card.translationMeaningsByLocale[language]?.[0]?.trim()
-      || card.translations[language]?.trim(),
-    ),
-  );
+  for (const card of words) {
+    const nativeLanguages = LANGUAGE_CODES.filter((language) =>
+      language !== card.language
+      && Boolean(
+        card.translationMeaningsByLocale[language]?.[0]?.trim()
+        || card.translations[language]?.trim(),
+      ),
+    );
 
-  if (nativeLanguages.length === 0) {
-    throw new Error(`No native-language translation is available for card ${card.id}.`);
+    for (const nativeLanguage of nativeLanguages) {
+      const score = Number(card.id !== exclusions.cardId)
+        + Number(card.language !== exclusions.learningLanguage)
+        + Number(nativeLanguage !== exclusions.nativeLanguage);
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestChoices.length = 0;
+      }
+      if (score === bestScore) bestChoices.push({ card, nativeLanguage });
+    }
   }
 
-  const nativeLanguage = pickRandom(nativeLanguages, random);
+  if (bestChoices.length === 0) {
+    throw new Error("No native-language translation is available for any vocabulary card.");
+  }
+
+  // Prefer changing the card and both languages, but fall back gracefully when
+  // a word only has translations for a limited set of native languages.
+  const { card, nativeLanguage } = pickRandom(bestChoices, random);
   const translation = card.translationMeaningsByLocale[nativeLanguage]?.[0]?.trim()
     || card.translations[nativeLanguage]?.trim()
     || "";

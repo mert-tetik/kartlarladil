@@ -31,6 +31,7 @@ describe("VocabularyCardView", () => {
     expect(container.firstElementChild).toHaveAttribute("data-card-face", "front");
     expect(screen.getByRole("heading", { name: testCard.term })).toBeVisible();
     expect(screen.getByTestId("card-tier-badge")).toBeVisible();
+    expect(screen.getByTestId("reference-card").querySelector("[data-card-progress]")).not.toBeInTheDocument();
     expect(container.querySelector("[data-score-icon]")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: `${testCard.term}: Çevirmek için tıkla` })).not.toBeInTheDocument();
   });
@@ -194,11 +195,15 @@ describe("VocabularyCardView", () => {
         }}
         footerMode="progress"
         footerProgressCount={2}
+        progressAnimationActive
       />,
     );
 
     expect(container.querySelector('[data-card-footer-mode="progress"]')).toBeInTheDocument();
     expect(container.querySelector("[data-card-progress]")).toHaveTextContent("2/4");
+    expect(container.querySelector("[data-card-progress][role='progressbar']")).toHaveAttribute("aria-valuenow", "2");
+    expect(container.querySelector("[data-card-progress]")).toHaveAttribute("data-progress-animation-active", "true");
+    expect(container.querySelector("[data-card-progress] [data-progress-indicator-overlay]")).toBeInTheDocument();
   });
 
   it("opens the ask overlay with the card language and term", async () => {

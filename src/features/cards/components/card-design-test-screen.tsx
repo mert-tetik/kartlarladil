@@ -3,6 +3,7 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { LoaderCircle, RotateCcw, RotateCw, Shuffle } from "lucide-react";
 import { LANGUAGE_BY_CODE } from "@/data/languages";
+import { TIER_REQUIREMENTS } from "@/data/tiers";
 import { CardDesignReferencePreview } from "@/features/cards/components/card-design-reference-preview";
 import type { CardDesignTestSample } from "@/features/cards/card-design-test-sample";
 
@@ -62,10 +63,20 @@ export function CardDesignTestScreen() {
   const [dimensions, setDimensions] = useState(DEFAULT_DIMENSIONS);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [showCardBack, setShowCardBack] = useState(false);
+  const [showLearningProgress, setShowLearningProgress] = useState(true);
+  const [progressCount, setProgressCount] = useState(0);
+  const [progressAnimationKey, setProgressAnimationKey] = useState(0);
   const [widthDraft, setWidthDraft] = useState(String(DEFAULT_DIMENSIONS.width));
   const [heightDraft, setHeightDraft] = useState(String(DEFAULT_DIMENSIONS.height));
   const activeResize = useRef<ActiveResize | null>(null);
   const aspectRatio = getAspectRatio(dimensions);
+  const progressLimit = TIER_REQUIREMENTS[sample.tier];
+
+  function advanceProgress() {
+    if (progressCount >= progressLimit) return;
+    setProgressCount((current) => Math.min(progressLimit, current + 1));
+    setProgressAnimationKey((current) => current + 1);
+  }
 
   function startResize(corner: ResizeCorner, event: PointerEvent<HTMLButtonElement>) {
     event.preventDefault();
@@ -148,6 +159,8 @@ export function CardDesignTestScreen() {
   async function randomizeCard() {
     setIsRandomizing(true);
     setRandomizeError(null);
+    setProgressCount(0);
+    setProgressAnimationKey(0);
 
     const params = new URLSearchParams({
       excludeCardId: sample.cardId,
@@ -236,7 +249,18 @@ export function CardDesignTestScreen() {
                     transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
                   }}
                 >
-                  <CardDesignReferencePreview sample={sample} showBack={showCardBack} />
+                  <CardDesignReferencePreview
+                    key={sample.cardId}
+                    learningProgress={showLearningProgress ? {
+                      current: progressCount,
+                      required: progressLimit,
+                      progressLabel: "Progress",
+                      animationActive: progressAnimationKey > 0,
+                      animationKey: progressAnimationKey,
+                    } : undefined}
+                    sample={sample}
+                    showBack={showCardBack}
+                  />
                   {RESIZE_CORNERS.map((corner) => (
                     <button
                       aria-label={`Resize card from ${corner.id.replaceAll("-", " ")}`}
@@ -288,6 +312,45 @@ export function CardDesignTestScreen() {
                 </dd>
               </div>
             </dl>
+
+            <fieldset className="mt-5" data-testid="card-progress-mode">
+              <legend className="text-xs font-semibold text-[#cdbfb3]">Card progress</legend>
+              <div aria-label="Card progress display mode" className="mt-2 grid grid-cols-2 gap-1 rounded-lg bg-[#100d0b] p-1" role="group">
+                <button
+                  aria-pressed={showLearningProgress}
+                  className={`min-h-10 rounded-md px-2 text-xs font-semibold transition-colors ${showLearningProgress ? "bg-[#f59e0b] text-[#21160b]" : "text-[#c9bdb1] hover:bg-white/5"}`}
+                  data-testid="progress-mode-on"
+                  onClick={() => setShowLearningProgress(true)}
+                  type="button"
+                >
+                  Progress circle
+                </button>
+                <button
+                  aria-pressed={!showLearningProgress}
+                  className={`min-h-10 rounded-md px-2 text-xs font-semibold transition-colors ${!showLearningProgress ? "bg-[#f59e0b] text-[#21160b]" : "text-[#c9bdb1] hover:bg-white/5"}`}
+                  data-testid="progress-mode-off"
+                  onClick={() => setShowLearningProgress(false)}
+                  type="button"
+                >
+                  No progress
+                </button>
+              </div>
+            </fieldset>
+
+            <div className="mt-3 flex items-center gap-3">
+              <button
+                className="inline-flex min-h-10 flex-1 items-center justify-center rounded-md bg-[#f59e0b] px-3 text-sm font-semibold text-[#21160b] transition-colors hover:bg-[#ffc05a] disabled:cursor-not-allowed disabled:opacity-50"
+                data-testid="advance-card-progress-button"
+                disabled={!showLearningProgress || progressCount >= progressLimit}
+                onClick={advanceProgress}
+                type="button"
+              >
+                Level up
+              </button>
+              <output aria-live="polite" className="min-w-12 text-right text-sm font-semibold text-white" data-testid="card-progress-count">
+                {progressCount}/{progressLimit}
+              </output>
+            </div>
 
             {randomizeError ? <p className="mt-3 text-sm text-[#ff9a86]" role="alert">{randomizeError}</p> : null}
 

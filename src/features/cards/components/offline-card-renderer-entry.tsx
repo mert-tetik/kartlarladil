@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { TIER_REQUIREMENTS } from "@/data/tiers";
+import { fitCardExamples } from "@/features/cards/card-example-fitting";
 import { getStudyLocale } from "@/features/cards/card-localization";
 import { VocabularyCardDesign } from "@/features/cards/components/card-design-reference-preview";
 import type { CardDesignTestSample } from "@/features/cards/card-design-test-sample";
@@ -23,6 +24,7 @@ declare global {
         locale: LocaleCode,
         labels: OfflineCardRendererLabels,
       ) => string;
+      fitExamples: (root: ParentNode) => () => void;
     };
   }
 }
@@ -62,7 +64,6 @@ function OfflineSavedCards({
     const progress = isLearned
       ? requirement
       : Math.min(requirement, Math.max(0, Number(inventory.correctCount) || 0));
-    const percentage = Math.round((progress / requirement) * 100);
 
     return (
       <article
@@ -73,16 +74,16 @@ function OfflineSavedCards({
         data-saved-card-tier={card.tier}
         key={inventory.cardId || card.id}
       >
-        <VocabularyCardDesign className="offline-card-design" sample={toDesignSample(card, locale, inventory.cardId)} />
-        <div className="offline-card-progress" data-offline-card-progress>
-          <div className="offline-card-progress__label">
-            <span>{isLearned ? labels.learned : labels.active}</span>
-            <span>{progress}/{requirement}</span>
-          </div>
-          <div className="offline-card-progress__track" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={requirement}>
-            <span className="offline-card-progress__fill" style={{ width: `${percentage}%` }} />
-          </div>
-        </div>
+        <VocabularyCardDesign
+          className="offline-card-design"
+          learningProgress={{
+            current: progress,
+            required: requirement,
+            progressLabel: labels.active,
+            isLearned,
+          }}
+          sample={toDesignSample(card, locale, inventory.cardId)}
+        />
       </article>
     );
   });
@@ -92,5 +93,19 @@ if (typeof window !== "undefined") {
   window.FoxiesDeckOfflineCardRenderer = {
     render: (entries, locale, labels) =>
       renderToStaticMarkup(<OfflineSavedCards entries={entries} locale={locale} labels={labels} />),
+    fitExamples: (root) => {
+      fitCardExamples(root);
+      const cards = Array.from(root.querySelectorAll<HTMLElement>(".fd-card-design"));
+
+      if (typeof ResizeObserver !== "undefined") {
+        const observer = new ResizeObserver(() => fitCardExamples(root));
+        cards.forEach((card) => observer.observe(card));
+        return () => observer.disconnect();
+      }
+
+      const fit = () => fitCardExamples(root);
+      window.addEventListener("resize", fit);
+      return () => window.removeEventListener("resize", fit);
+    },
   };
 }

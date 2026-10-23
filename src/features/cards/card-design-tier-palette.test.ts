@@ -12,6 +12,7 @@ describe("card design tier palettes", () => {
       insetEnd: "#82e5df",
       badge: "#36b9ca",
       label: "#43b9ca",
+      progressAnimation: { start: "#ffe34a", middle: "#ffae00", end: "#ff6a00" },
     });
   });
 
@@ -25,6 +26,7 @@ describe("card design tier palettes", () => {
       insetEnd: "#9ce1a0",
       badge: "#52bf70",
       label: "#61c97b",
+      progressAnimation: { start: "#ffe34a", middle: "#ffae00", end: "#ff6a00" },
     });
   });
 
@@ -33,6 +35,19 @@ describe("card design tier palettes", () => {
     expect(getCardDesignTierPalette("B1").shellEnd).toBe("#b163ff");
     expect(getCardDesignTierPalette("C1").badge).toBe("#fa5252");
     expect(getCardDesignTierPalette("C1").shellEnd).toBe("#fa5252");
+  });
+
+  it("switches only orange B2 rank-up progress to a cyan-blue gradient", () => {
+    expect(getCardDesignTierPalette("B2").progressAnimation).toEqual({
+      start: "#72f2ff",
+      middle: "#22d3ee",
+      end: "#168bff",
+    });
+    expect(getCardDesignTierPalette("B1").progressAnimation).toEqual({
+      start: "#ffe34a",
+      middle: "#ffae00",
+      end: "#ff6a00",
+    });
   });
 
   it("gives every other tier a distinct, vivid color while retaining the palette structure", () => {

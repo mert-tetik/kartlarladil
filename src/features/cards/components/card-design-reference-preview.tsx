@@ -1,12 +1,14 @@
 "use client";
 
-import { useId, type CSSProperties } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, type CSSProperties } from "react";
 import { Volume2 } from "lucide-react";
 import { getLocaleDirection } from "@/data/languages";
+import { fitCardExampleText } from "@/features/cards/card-example-fitting";
 import { FittedSingleLineText } from "@/features/cards/components/fitted-single-line-text";
 import { speakCardTerm } from "@/features/cards/card-speech";
 import { getCardDesignTierPalette, type CardDesignTierPalette } from "@/features/cards/card-design-tier-palette";
 import type { CardDesignTestSample } from "@/features/cards/card-design-test-sample";
+import { playSoundEffect } from "@/lib/sound-effects";
 
 export interface VocabularyCardDesignProps {
   sample: CardDesignTestSample;
@@ -18,12 +20,22 @@ export interface VocabularyCardDesignProps {
   continuousFlip?: boolean;
   showPronunciation?: boolean;
   showExample?: boolean;
+  learningProgress?: {
+    current: number;
+    required: number;
+    progressLabel: string;
+    isLearned?: boolean;
+    animationActive?: boolean;
+    animationKey?: number;
+    footerMode?: string;
+  };
 }
 
 const FOX_OUTLINE = "M10 22 13 5l18 12a24 24 0 0 1 14 0L63 5l3 17c1 14-7 26-20 31-5 2-11 2-16 0C17 48 9 36 10 22Z";
 const FOX_FACE = "M27 34h.1M49 34h.1M35 40q3 3 6 0";
 const CARD_SHELL_PATH = "M55 4C28 4 8 23 8 52v466c0 27 18 43 45 43h294c27 0 45-16 45-43V52c0-29-20-48-47-48H55Z";
 const CARD_BACK_PANEL_PATH = "M58 30C40 30 27 45 27 65v439c0 21 14 35 36 35h274c22 0 36-14 36-35V65c0-20-14-35-36-35H58Z";
+const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 function GlassShellGradient({ id, palette }: { id: string; palette: CardDesignTierPalette }) {
   return (
@@ -80,6 +92,7 @@ export function VocabularyCardDesign({
   continuousFlip = false,
   showPronunciation = true,
   showExample = true,
+  learningProgress,
 }: VocabularyCardDesignProps) {
   const rawId = useId();
   const id = `fd-card-${rawId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
@@ -87,6 +100,52 @@ export function VocabularyCardDesign({
   const backTier = backDisplayTier ?? sample.tier;
   const backPalette = getCardDesignTierPalette(backTier);
   const scaleStyle = { "--fd-card-content-scale": contentScale } as CSSProperties;
+  const progressRequired = Math.max(1, Math.floor(learningProgress?.required ?? 1));
+  const progressCurrent = learningProgress?.isLearned
+    ? progressRequired
+    : Math.min(progressRequired, Math.max(0, Math.floor(learningProgress?.current ?? 0)));
+  const progressLabel = learningProgress?.progressLabel;
+  const exampleRef = useRef<HTMLParagraphElement>(null);
+  const lastProgressCompletionKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!learningProgress?.animationActive || progressCurrent < progressRequired) {
+      lastProgressCompletionKeyRef.current = null;
+      return;
+    }
+
+    const completionKey = `${sample.cardId}:${learningProgress.animationKey ?? "complete"}`;
+    if (lastProgressCompletionKeyRef.current === completionKey) return;
+
+    lastProgressCompletionKeyRef.current = completionKey;
+    playSoundEffect("card-progress-complete");
+  }, [learningProgress?.animationActive, learningProgress?.animationKey, progressCurrent, progressRequired, sample.cardId]);
+
+  useIsomorphicLayoutEffect(() => {
+    const example = exampleRef.current;
+    if (!showExample || !example) return;
+
+    let active = true;
+    const fit = () => {
+      if (active && example.isConnected) fitCardExampleText(example);
+    };
+
+    fit();
+
+    const card = example.closest(".fd-card-design");
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(fit);
+    if (card && observer) observer.observe(card);
+
+    const fontReady = document.fonts?.ready;
+    if (fontReady) void fontReady.then(fit);
+    if (!observer) window.addEventListener("resize", fit);
+
+    return () => {
+      active = false;
+      observer?.disconnect();
+      if (!observer) window.removeEventListener("resize", fit);
+    };
+  }, [sample.example, showExample]);
 
   return (
     <div
@@ -152,10 +211,10 @@ export function VocabularyCardDesign({
 
           <div className="fd-card-design__copy-scale" style={scaleStyle}>
             <h3 className="fd-card-design__term" data-testid="card-term" dir="auto" lang={sample.learningLanguage}>
-              <FittedSingleLineText>{sample.term}</FittedSingleLineText>
+              <FittedSingleLineText centered>{sample.term}</FittedSingleLineText>
             </h3>
             <div className="fd-card-design__translation" data-testid="card-translation" dir="auto" lang={sample.nativeLanguage}>
-              <FittedSingleLineText>{sample.translation}</FittedSingleLineText>
+              <FittedSingleLineText centered>{sample.translation}</FittedSingleLineText>
             </div>
             {showPronunciation ? (
               <div className="fd-card-design__pronunciation" data-testid="card-pronunciation" style={{ backgroundColor: palette.label }}>
@@ -176,11 +235,82 @@ export function VocabularyCardDesign({
               </div>
             ) : null}
           </div>
+          {learningProgress && progressLabel ? (
+            <div
+              aria-label={progressLabel}
+              aria-valuemax={progressRequired}
+              aria-valuemin={0}
+              aria-valuenow={progressCurrent}
+              aria-valuetext={`${progressCurrent}/${progressRequired}`}
+              className="fd-card-design__progress fd-card-design__progress-circle"
+              data-card-progress
+              data-card-footer-mode={learningProgress.footerMode}
+              data-progress-animation-active={learningProgress.animationActive ? "true" : undefined}
+              data-progress-animation-key={learningProgress.animationKey}
+              data-progress-complete={progressCurrent >= progressRequired && learningProgress.animationActive ? "true" : undefined}
+              role="progressbar"
+              style={{
+                "--fd-card-progress-filled-color": palette.label,
+                backgroundColor: `color-mix(in srgb, ${palette.label} 58%, white)`,
+              } as CSSProperties}
+            >
+              <span
+                aria-hidden="true"
+                className={`fd-card-design__progress-indicator${learningProgress.animationActive ? " fd-card-design__progress-indicator--animating" : ""}`}
+                data-progress-indicator
+                style={{
+                  "--fd-card-progress-angle": `${(progressCurrent / progressRequired) * 360}deg`,
+                  "--fd-card-progress-slice-angle": `${360 / progressRequired}deg`,
+                  background: `conic-gradient(from -90deg, ${palette.label} 0deg var(--fd-card-progress-angle), transparent var(--fd-card-progress-angle) 360deg)`,
+                } as CSSProperties}
+              >
+                <span
+                  aria-hidden="true"
+                  className="fd-card-design__progress-slice-dividers"
+                  data-progress-slice-dividers
+                />
+                <span
+                  aria-hidden="true"
+                  className="fd-card-design__progress-indicator-overlay"
+                  data-progress-indicator-overlay
+                  key={learningProgress.animationKey}
+                  style={{
+                    "--fd-card-progress-animation-start": palette.progressAnimation.start,
+                    "--fd-card-progress-animation-middle": palette.progressAnimation.middle,
+                    "--fd-card-progress-animation-end": palette.progressAnimation.end,
+                    background: `conic-gradient(from -90deg, ${palette.progressAnimation.start} 0deg, ${palette.progressAnimation.middle} calc(var(--fd-card-progress-angle) * 0.55), ${palette.progressAnimation.end} var(--fd-card-progress-angle), transparent var(--fd-card-progress-angle) 360deg)`,
+                  } as CSSProperties}
+                />
+              </span>
+              <span
+                aria-hidden="true"
+                className="fd-card-design__progress-count"
+                style={{ display: "inline-grid", placeItems: "center" }}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "grid",
+                    placeItems: "center",
+                    color: "#000",
+                    transform: "translate(-2px, 2px)",
+                  }}
+                >
+                  {progressCurrent}/{progressRequired}
+                </span>
+                <span style={{ position: "relative", zIndex: 1 }}>
+                  {progressCurrent}/{progressRequired}
+                </span>
+              </span>
+            </div>
+          ) : null}
           {showExample ? (
             <>
               <div className="fd-card-design__divider" />
               <CarvedFoxMark className="fd-card-design__front-fox" testId="fox-carved-mark" />
-              <p className="fd-card-design__example" data-testid="card-reference-example" dir="auto" lang={sample.learningLanguage}>
+              <p className="fd-card-design__example" data-testid="card-reference-example" dir="auto" lang={sample.learningLanguage} ref={exampleRef}>
                 {sample.example}
               </p>
             </>

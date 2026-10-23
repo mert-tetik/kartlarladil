@@ -209,7 +209,12 @@ const MOBILE_LOGIN_TUTORIAL_RESET_KEY = "foxiesdeck:mobile-login-tutorial-reset-
 const MOBILE_LOGIN_LANGUAGE_REFRESH_PARAM = "mobileLanguageRefresh";
 const MOBILE_BREAKPOINT = 1024;
 
-const PUBLIC_MOBILE_PATHS = ["/add-to-home-screen", "/content-automation", "/visual-test-missions"];
+const PUBLIC_MOBILE_PATHS = [
+  "/add-to-home-screen",
+  "/content-automation",
+  "/visual-test-missions",
+  "/visual-test-card",
+];
 const SERIOUS_LEARNER_TEST_PARAM = "serious-learner-test";
 const MOBILE_RESET_PASSWORD_PATH = "/reset-password";
 const MOBILE_UPDATE_PASSWORD_PATH = "/account/update-password";
@@ -692,7 +697,9 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   return (
     <>
       {gateway}
-      {bootstrapPhase === "hidden" ? null : <MobileGatewayBootstrap phase={bootstrapPhase} />}
+      {isPublicMobilePath || bootstrapPhase === "hidden" ? null : (
+        <MobileGatewayBootstrap phase={bootstrapPhase} />
+      )}
     </>
   );
 }

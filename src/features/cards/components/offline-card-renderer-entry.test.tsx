@@ -34,7 +34,9 @@ describe("offline vocabulary-card renderer", () => {
     expect(markup).toContain("木漏れ日");
     expect(markup).toContain("sunlight, dappled light");
     expect(markup).toContain("data-saved-card-status=\"active\"");
+    expect(markup).toContain("data-card-progress=\"true\"");
     expect(markup).toContain("2/4");
+    expect(markup).not.toContain("offline-card-progress");
     expect(markup).not.toMatch(/(?:src|href)=\"https?:\/\//i);
   });
 

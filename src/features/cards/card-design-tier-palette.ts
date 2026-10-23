@@ -9,7 +9,24 @@ export interface CardDesignTierPalette {
   insetEnd: string;
   badge: string;
   label: string;
+  progressAnimation: {
+    start: string;
+    middle: string;
+    end: string;
+  };
 }
+
+const WARM_PROGRESS_ANIMATION = {
+  start: "#ffe34a",
+  middle: "#ffae00",
+  end: "#ff6a00",
+};
+
+const CYAN_PROGRESS_ANIMATION = {
+  start: "#72f2ff",
+  middle: "#22d3ee",
+  end: "#168bff",
+};
 
 /**
  * Tier colors for the design reference card. A1 follows the supplied fresh
@@ -74,7 +91,11 @@ function mixHexWithBlack(color: string, amount: number): string {
     .join("")}`;
 }
 
-function createTierPalette(sourceColor: string, fullySaturate = true): CardDesignTierPalette {
+function createTierPalette(
+  sourceColor: string,
+  fullySaturate = true,
+  progressAnimation = WARM_PROGRESS_ANIMATION,
+): CardDesignTierPalette {
   const tierColor = fullySaturate ? toFullySaturatedHex(sourceColor) : sourceColor;
 
   return {
@@ -86,6 +107,7 @@ function createTierPalette(sourceColor: string, fullySaturate = true): CardDesig
     insetEnd: mixHexWithWhite(tierColor, 0.18),
     badge: tierColor,
     label: mixHexWithBlack(tierColor, 0.12),
+    progressAnimation,
   };
 }
 
@@ -99,6 +121,7 @@ export const CARD_DESIGN_TIER_PALETTES: Record<Tier, CardDesignTierPalette> = {
     insetEnd: "#9ce1a0",
     badge: "#52bf70",
     label: "#61c97b",
+    progressAnimation: WARM_PROGRESS_ANIMATION,
   },
   A2: {
     shellPrimary: "#72dce5",
@@ -109,9 +132,10 @@ export const CARD_DESIGN_TIER_PALETTES: Record<Tier, CardDesignTierPalette> = {
     insetEnd: "#82e5df",
     badge: "#36b9ca",
     label: "#43b9ca",
+    progressAnimation: WARM_PROGRESS_ANIMATION,
   },
   B1: createTierPalette("#b163ff", false),
-  B2: createTierPalette("#f59e0b"),
+  B2: createTierPalette("#f59e0b", true, CYAN_PROGRESS_ANIMATION),
   C1: createTierPalette("#fa5252", false),
 };
 

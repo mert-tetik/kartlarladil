@@ -855,7 +855,12 @@
       });
     }
 
+    let offlineExampleFitCleanup = null;
     function renderCards() {
+      if (offlineExampleFitCleanup) {
+        offlineExampleFitCleanup();
+        offlineExampleFitCleanup = null;
+      }
       const root = element("saved-cards");
       const allEntries = cardsForSelectedLanguage();
       renderCardFilter();
@@ -880,6 +885,7 @@
         return;
       }
       root.innerHTML = offlineRenderer.render(entries, userLocale, { active: strings.active, learned: strings.learned });
+      offlineExampleFitCleanup = offlineRenderer.fitExamples(root);
       fitOfflineCardText(root);
     }
 
