@@ -143,8 +143,9 @@ describe("RankProgressPopover", () => {
     expect(within(rankUpDialog).getByText(nextStats.rank.label)).toBeVisible();
     expect(within(rankUpDialog).queryByText("200")).not.toBeInTheDocument();
     expect(within(rankUpDialog).queryByText("Mevcut")).not.toBeInTheDocument();
+    expect(rankUpDialog.querySelector(".rank-up-close-control")).not.toBeInTheDocument();
 
-    fireEvent.click(within(rankUpDialog).getByRole("button", { name: "Rütbe atlama menüsünü kapat" }));
+    fireEvent.click(within(rankUpDialog).getByRole("button"));
 
     expect(screen.getByRole("dialog", { name: /Rütbe atlad/ })).toBeInTheDocument();
     act(() => {
@@ -206,7 +207,7 @@ describe("RankProgressPopover", () => {
     expect(fullScreenSurface).toHaveClass("h-full");
     expect(fullScreenSurface).toHaveClass("w-full");
 
-    fireEvent.click(within(rankUpDialog).getByRole("button", { name: "Rütbe atlama menüsünü kapat" }));
+    fireEvent.click(within(rankUpDialog).getByRole("button"));
     expect(screen.getByRole("dialog", { name: /Rütbe atlad/ })).toBeInTheDocument();
 
     act(() => {

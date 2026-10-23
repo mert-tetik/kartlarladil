@@ -139,7 +139,7 @@ public class LauncherActivity extends Activity {
 
         billingBridge = new NativeBillingBridge(this);
         webView.addJavascriptInterface(billingBridge, "FoxiesDeckNativeBilling");
-        textToSpeechBridge = new NativeTextToSpeechBridge(this);
+        textToSpeechBridge = new NativeTextToSpeechBridge(this, webView);
         webView.addJavascriptInterface(textToSpeechBridge, "FoxiesDeckNativeSpeech");
         vibrationBridge = new NativeVibrationBridge(this);
         webView.addJavascriptInterface(vibrationBridge, "FoxiesDeckNativeVibration");

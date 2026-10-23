@@ -108,6 +108,7 @@ const MOBILE_BOTTOM_SHEET_TONES: Record<MobileBottomSheetTone, {
 export interface MobileBottomSheetShellProps {
   open: boolean;
   onClose: () => void;
+  presentation?: "bottom-sheet" | "centered-dialog";
   title: string;
   visual: ReactNode;
   subtitle?: ReactNode;
@@ -116,6 +117,7 @@ export interface MobileBottomSheetShellProps {
   onEntered?: () => void;
   onExited?: () => void;
   panelClassName?: string;
+  panelAccentClassName?: string;
   contentClassName?: string;
   showBackdrop?: boolean;
   fullScreen?: boolean;
@@ -132,6 +134,7 @@ export interface MobileBottomSheetShellProps {
 export function MobileBottomSheetShell({
   open,
   onClose,
+  presentation = "bottom-sheet",
   title,
   visual,
   subtitle,
@@ -140,6 +143,7 @@ export function MobileBottomSheetShell({
   onEntered,
   onExited,
   panelClassName,
+  panelAccentClassName,
   contentClassName,
   showBackdrop = true,
   fullScreen = false,
@@ -170,9 +174,12 @@ export function MobileBottomSheetShell({
   onExitedRef.current = onExited;
 
   const toneStyles = MOBILE_BOTTOM_SHEET_TONES[tone];
-  const hiddenPanelTransform = fullScreen
-    ? "translateY(100%)"
-    : `translateY(calc(100% + ${MOBILE_BOTTOM_SHEET_OFFSCREEN_OFFSET}px))`;
+  const isCenteredDialog = presentation === "centered-dialog";
+  const hiddenPanelTransform = isCenteredDialog
+    ? "scale(0.96)"
+    : fullScreen
+      ? "translateY(100%)"
+      : `translateY(calc(100% + ${MOBILE_BOTTOM_SHEET_OFFSCREEN_OFFSET}px))`;
 
   useEffect(() => {
     if (open) {
@@ -282,7 +289,11 @@ export function MobileBottomSheetShell({
     <div
       className={cn(
         "fixed inset-0 z-50 flex flex-col lg:hidden",
-        fullScreen ? "justify-start" : "justify-end",
+        isCenteredDialog
+          ? "items-center justify-center p-4"
+          : fullScreen
+            ? "justify-start"
+            : "justify-end",
         hasPresented ? "visible" : "invisible pointer-events-none",
       )}
       aria-hidden={!open}
@@ -291,6 +302,7 @@ export function MobileBottomSheetShell({
       aria-modal={open}
       aria-label={panelLabel ?? title}
       data-mobile-bottom-sheet
+      data-mobile-presentation={presentation}
       data-tutorial-layer={tutorialLayer}
     >
       <button
@@ -304,16 +316,30 @@ export function MobileBottomSheetShell({
         ref={contentRef}
         data-mobile-bottom-sheet-panel
         className={cn(
-        "relative z-10 isolate flex w-full flex-col shadow-sm",
-          fullScreen
-            ? "h-full max-h-none overflow-hidden rounded-none"
-            : "max-h-[calc(100dvh-var(--app-header-height)-3rem)] overflow-visible rounded-t-[2rem]",
+          "relative z-10 isolate flex w-full flex-col shadow-sm",
+          isCenteredDialog
+            ? "max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-md overflow-y-auto rounded-2xl"
+            : fullScreen
+              ? "h-full max-h-none overflow-hidden rounded-none"
+              : "max-h-[calc(100dvh-var(--app-header-height)-3rem)] overflow-visible rounded-t-[2rem]",
           isDragging ? "transition-none" : "transition-transform duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
           toneStyles.panelClassName,
           panelClassName,
         )}
-        style={{ transform: entered ? `translateY(${dragY}px)` : hiddenPanelTransform }}
+        style={{
+          transform: isCenteredDialog
+            ? entered ? "scale(1)" : hiddenPanelTransform
+            : entered ? `translateY(${dragY}px)` : hiddenPanelTransform,
+        }}
       >
+        {panelAccentClassName ? (
+          <div
+            aria-hidden="true"
+            data-mobile-dialog-accent
+            className={cn("h-2 w-full shrink-0", panelAccentClassName)}
+          />
+        ) : null}
+
         {showPanelDecoration && !fullScreen ? (
           <div
             aria-hidden="true"
@@ -331,7 +357,7 @@ export function MobileBottomSheetShell({
           />
         ) : null}
 
-        {!fullScreen ? (
+        {!fullScreen && !isCenteredDialog ? (
           <div
             data-mobile-bottom-sheet-drag-handle
             onPointerDown={handleDragStart}
@@ -389,6 +415,7 @@ export function MobileBottomSheetShell({
         <div
           className={cn(
             "relative z-10 flex shrink-0 items-center justify-center px-14 pb-2 pt-0",
+            isCenteredDialog && "pt-5",
             fullScreen && "justify-start border-b border-border bg-background-card/80 px-5 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)]",
             headerClassName,
           )}
@@ -426,7 +453,9 @@ export function MobileBottomSheetShell({
               toneStyles.closeClassName,
               fullScreen
                 ? "right-2 top-[calc(env(safe-area-inset-top)+0.75rem)] text-foreground hover:bg-background-muted hover:text-foreground"
-                : "right-2 top-[-2.25rem]",
+                : isCenteredDialog
+                  ? "right-2 top-2"
+                  : "right-2 top-[-2.25rem]",
             )}
           >
             <X className="size-7 stroke-[3]" aria-hidden="true" />

@@ -16,6 +16,7 @@ import type { LanguageCode, LimitErrorCode, VocabularyCard } from "@/types/domai
 
 const THRESHOLD = 112;
 const DEMO_KEY = "foxiesdeck:card-swipe-demo:shown";
+const CARD_FRAME_CORNER_RADIUS = "12% / 8.5%";
 const DEMO_START_DELAY = 1000;
 const DEMO_SIDE_HOLD = 1800;
 const CARD_EXIT_DURATION = 320;
@@ -343,7 +344,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
       </p>
       {shouldRenderCard ? <div data-card-swipe-part="card" className="relative z-10 w-[72vw] max-w-[280px] translate-y-5">
         <div key={card.sourceKey} ref={mainCardRef} data-card-swipe-card onPointerDown={(event) => { if (!locked) { swipeInteractionActiveRef.current = true; start.current = { x: event.clientX, y: event.clientY }; dragPosition.current = { x: 0, y: 0 }; queuedDragPosition.current = { x: 0, y: 0 }; setDragging(true); event.currentTarget.setPointerCapture(event.pointerId); event.currentTarget.style.transition = "none"; } }} onPointerMove={handlePointerMove} onPointerUp={finishDrag} onPointerCancel={resetDrag} onLostPointerCapture={() => { if (start.current) resetDrag(); }} className={cn("relative w-full touch-none will-change-transform", dragging && !demoActive ? "" : "transition-[transform,opacity] duration-[260ms] ease-out", locked ? "pointer-events-none" : "") } style={mainCardStyle}>
-          <div data-card-swipe-state={leftActive ? "skip" : rightActive ? "add" : "idle"} className={cn("pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden rounded-lg transition-colors", leftActive ? "bg-red-500/85" : rightActive ? "bg-emerald-500/85" : "bg-transparent")}>
+          <div data-card-swipe-state={leftActive ? "skip" : rightActive ? "add" : "idle"} className={cn("pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden transition-colors", leftActive ? "bg-red-500/85" : rightActive ? "bg-emerald-500/85" : "bg-transparent")} style={{ borderRadius: CARD_FRAME_CORNER_RADIUS }}>
             {leftActive ? <X className="size-24 stroke-[3.5] text-white" aria-hidden="true" /> : null}
             {rightActive ? <Check className="size-24 stroke-[3.5] text-white" aria-hidden="true" /> : null}
           </div>
@@ -370,9 +371,10 @@ function OutgoingSwipeFeedback({ direction }: { direction: SwipeDirection }) {
       <div
         data-card-swipe-outgoing-state={direction}
         className={cn(
-          "absolute inset-0 z-20 flex items-center justify-center overflow-hidden rounded-lg",
+          "absolute inset-0 z-20 flex items-center justify-center overflow-hidden",
           isAdding ? "bg-emerald-500/85" : "bg-red-500/85",
         )}
+        style={{ borderRadius: CARD_FRAME_CORNER_RADIUS }}
       >
         {isAdding ? <Check className="size-24 stroke-[3.5] text-white" aria-hidden="true" /> : <X className="size-24 stroke-[3.5] text-white" aria-hidden="true" />}
       </div>

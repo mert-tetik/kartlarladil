@@ -611,6 +611,12 @@
   }
   function element(id) { return document.getElementById(id); }
 
+  function emitOfflineSpeechStatus(text, language, state) {
+    window.dispatchEvent(new CustomEvent("foxiesdeck:speech-status", {
+      detail: { text: text, language: language, state: state },
+    }));
+  }
+
   async function boot() {
     if (!document.body.hasAttribute("data-offline-shell")) return;
     const params = new URLSearchParams(location.search);
@@ -897,8 +903,10 @@
         if (!textNode) return;
         const availableWidth = container.clientWidth;
         const textWidth = textNode.scrollWidth;
-        const scale = availableWidth > 0 && textWidth > availableWidth ? availableWidth / textWidth : 1;
-        textNode.style.transform = "scale(" + scale + ")";
+        const safeWidth = availableWidth * 0.96;
+        const scale = safeWidth > 0 && textWidth > safeWidth ? safeWidth / textWidth : 1;
+        const centered = container.hasAttribute("data-single-line-fit-centered") ? "translateX(-50%) " : "";
+        textNode.style.transform = centered + "scale(" + scale + ")";
       };
       const containers = Array.from(root.querySelectorAll("[data-single-line-fit-container]"));
       containers.forEach(fit);
@@ -923,10 +931,25 @@
       const termElement = speakButton.closest(".fd-card-design")?.querySelector("[data-testid='card-term']");
       const term = termElement && termElement.textContent ? termElement.textContent.trim() : "";
       if (!term || !window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") return;
+      const language = cardElement && cardElement.dataset.cardLanguage ? cardElement.dataset.cardLanguage : userLocale;
       const utterance = new SpeechSynthesisUtterance(term);
-      utterance.lang = cardElement && cardElement.dataset.cardLanguage ? cardElement.dataset.cardLanguage : userLocale;
+      utterance.lang = language;
+      utterance.onstart = function () { emitOfflineSpeechStatus(term, language, "start"); };
+      utterance.onend = function () { emitOfflineSpeechStatus(term, language, "end"); };
+      utterance.onerror = function () { emitOfflineSpeechStatus(term, language, "end"); };
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
+    });
+
+    window.addEventListener("foxiesdeck:speech-status", function (event) {
+      const detail = event && event.detail;
+      if (!detail || !detail.text || !detail.language) return;
+      document.querySelectorAll(".fd-card-design").forEach(function (card) {
+        const term = card.querySelector("[data-testid='card-term']");
+        if (!term || term.textContent.trim() !== detail.text || term.lang !== detail.language) return;
+        const pronunciation = card.querySelector("[data-testid='card-pronunciation']");
+        if (pronunciation) pronunciation.classList.toggle("fd-card-design__pronunciation--speaking", detail.state === "start");
+      });
     });
 
     cardFilterButtons.forEach(function (button) {

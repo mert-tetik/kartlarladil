@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { Volume2 } from "lucide-react";
 import { getLocaleDirection } from "@/data/languages";
 import { fitCardExampleText } from "@/features/cards/card-example-fitting";
 import { FittedSingleLineText } from "@/features/cards/components/fitted-single-line-text";
-import { speakCardTerm } from "@/features/cards/card-speech";
+import { CARD_SPEECH_STATUS_EVENT, speakCardTerm, type CardSpeechStatusDetail } from "@/features/cards/card-speech";
 import { getCardDesignTierPalette, type CardDesignTierPalette } from "@/features/cards/card-design-tier-palette";
 import type { CardDesignTestSample } from "@/features/cards/card-design-test-sample";
 import { playSoundEffect } from "@/lib/sound-effects";
@@ -18,8 +18,6 @@ export interface VocabularyCardDesignProps {
   onSpeak?: () => void;
   backDisplayTier?: CardDesignTestSample["tier"];
   continuousFlip?: boolean;
-  showPronunciation?: boolean;
-  showExample?: boolean;
   learningProgress?: {
     current: number;
     required: number;
@@ -27,7 +25,6 @@ export interface VocabularyCardDesignProps {
     isLearned?: boolean;
     animationActive?: boolean;
     animationKey?: number;
-    footerMode?: string;
   };
 }
 
@@ -90,8 +87,6 @@ export function VocabularyCardDesign({
   onSpeak,
   backDisplayTier,
   continuousFlip = false,
-  showPronunciation = true,
-  showExample = true,
   learningProgress,
 }: VocabularyCardDesignProps) {
   const rawId = useId();
@@ -105,6 +100,9 @@ export function VocabularyCardDesign({
     ? progressRequired
     : Math.min(progressRequired, Math.max(0, Math.floor(learningProgress?.current ?? 0)));
   const progressLabel = learningProgress?.progressLabel;
+  const progressFilledColor = `color-mix(in srgb, ${palette.label} 82%, #000)`;
+  const progressEmptyColor = `color-mix(in srgb, ${palette.label} 34%, #fff)`;
+  const [pronunciationSpeaking, setPronunciationSpeaking] = useState(false);
   const exampleRef = useRef<HTMLParagraphElement>(null);
   const lastProgressCompletionKeyRef = useRef<string | null>(null);
 
@@ -121,9 +119,21 @@ export function VocabularyCardDesign({
     playSoundEffect("card-progress-complete");
   }, [learningProgress?.animationActive, learningProgress?.animationKey, progressCurrent, progressRequired, sample.cardId]);
 
+  useEffect(() => {
+    const handleSpeechStatus = (event: Event) => {
+      const detail = (event as CustomEvent<CardSpeechStatusDetail>).detail;
+      if (!detail || typeof detail.text !== "string" || typeof detail.language !== "string") return;
+      if (detail.text.trim() !== sample.term.trim() || detail.language !== sample.learningLanguage) return;
+      setPronunciationSpeaking(detail.state === "start");
+    };
+
+    window.addEventListener(CARD_SPEECH_STATUS_EVENT, handleSpeechStatus);
+    return () => window.removeEventListener(CARD_SPEECH_STATUS_EVENT, handleSpeechStatus);
+  }, [sample.learningLanguage, sample.term]);
+
   useIsomorphicLayoutEffect(() => {
     const example = exampleRef.current;
-    if (!showExample || !example) return;
+    if (!example) return;
 
     let active = true;
     const fit = () => {
@@ -145,7 +155,7 @@ export function VocabularyCardDesign({
       observer?.disconnect();
       if (!observer) window.removeEventListener("resize", fit);
     };
-  }, [sample.example, showExample]);
+  }, [sample.example]);
 
   return (
     <div
@@ -216,24 +226,27 @@ export function VocabularyCardDesign({
             <div className="fd-card-design__translation" data-testid="card-translation" dir="auto" lang={sample.nativeLanguage}>
               <FittedSingleLineText centered>{sample.translation}</FittedSingleLineText>
             </div>
-            {showPronunciation ? (
-              <div className="fd-card-design__pronunciation" data-testid="card-pronunciation" style={{ backgroundColor: palette.label }}>
-                <button
-                  aria-label={`Listen to ${sample.term}`}
-                  className="fd-card-design__speak"
-                  data-card-speak="true"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    (onSpeak ?? (() => speakCardTerm(sample.term, sample.learningLanguage)))();
-                  }}
-                  title={`Listen to ${sample.term}`}
-                  type="button"
-                >
-                  <Volume2 aria-hidden="true" className="fd-card-design__speaker-icon" />
-                </button>
-                <FittedSingleLineText className="fd-card-design__pronunciation-text">{sample.pronunciation || sample.term}</FittedSingleLineText>
-              </div>
-            ) : null}
+            <div
+              className={`fd-card-design__pronunciation${pronunciationSpeaking ? " fd-card-design__pronunciation--speaking" : ""}`}
+              data-pronunciation-speaking={pronunciationSpeaking ? "true" : "false"}
+              data-testid="card-pronunciation"
+              style={{ backgroundColor: palette.label }}
+            >
+              <button
+                aria-label={`Listen to ${sample.term}`}
+                className="fd-card-design__speak"
+                data-card-speak="true"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  (onSpeak ?? (() => speakCardTerm(sample.term, sample.learningLanguage)))();
+                }}
+                title={`Listen to ${sample.term}`}
+                type="button"
+              >
+                <Volume2 aria-hidden="true" className="fd-card-design__speaker-icon" />
+              </button>
+              <FittedSingleLineText className="fd-card-design__pronunciation-text">{sample.pronunciation || sample.term}</FittedSingleLineText>
+            </div>
           </div>
           {learningProgress && progressLabel ? (
             <div
@@ -244,14 +257,13 @@ export function VocabularyCardDesign({
               aria-valuetext={`${progressCurrent}/${progressRequired}`}
               className="fd-card-design__progress fd-card-design__progress-circle"
               data-card-progress
-              data-card-footer-mode={learningProgress.footerMode}
               data-progress-animation-active={learningProgress.animationActive ? "true" : undefined}
               data-progress-animation-key={learningProgress.animationKey}
               data-progress-complete={progressCurrent >= progressRequired && learningProgress.animationActive ? "true" : undefined}
               role="progressbar"
               style={{
-                "--fd-card-progress-filled-color": palette.label,
-                backgroundColor: `color-mix(in srgb, ${palette.label} 58%, white)`,
+                "--fd-card-progress-filled-color": progressFilledColor,
+                backgroundColor: progressEmptyColor,
               } as CSSProperties}
             >
               <span
@@ -261,7 +273,7 @@ export function VocabularyCardDesign({
                 style={{
                   "--fd-card-progress-angle": `${(progressCurrent / progressRequired) * 360}deg`,
                   "--fd-card-progress-slice-angle": `${360 / progressRequired}deg`,
-                  background: `conic-gradient(from -90deg, ${palette.label} 0deg var(--fd-card-progress-angle), transparent var(--fd-card-progress-angle) 360deg)`,
+                  background: `conic-gradient(from -90deg, ${progressFilledColor} 0deg var(--fd-card-progress-angle), transparent var(--fd-card-progress-angle) 360deg)`,
                 } as CSSProperties}
               >
                 <span
@@ -306,15 +318,11 @@ export function VocabularyCardDesign({
               </span>
             </div>
           ) : null}
-          {showExample ? (
-            <>
-              <div className="fd-card-design__divider" />
-              <CarvedFoxMark className="fd-card-design__front-fox" testId="fox-carved-mark" />
-              <p className="fd-card-design__example" data-testid="card-reference-example" dir="auto" lang={sample.learningLanguage} ref={exampleRef}>
-                {sample.example}
-              </p>
-            </>
-          ) : null}
+          <div className="fd-card-design__divider" />
+          <CarvedFoxMark className="fd-card-design__front-fox" testId="fox-carved-mark" />
+          <p className="fd-card-design__example" data-testid="card-reference-example" dir="auto" lang={sample.learningLanguage} ref={exampleRef}>
+            {sample.example}
+          </p>
         </article>
 
         <article

@@ -153,19 +153,23 @@ export function MobileOnboardingForm({
     hasSelectedLanguageRef.current = true;
     setPreferredUiLocale(code);
     setLocale(code);
-    void updateLanguagePreferenceAction({
-      field: "preferred_ui_locale",
-      value: code,
-    }).catch(() => undefined);
+    if (!isLoginLanguageRefresh) {
+      void updateLanguagePreferenceAction({
+        field: "preferred_ui_locale",
+        value: code,
+      }).catch(() => undefined);
+    }
 
     if (!hasSelectedLearningLanguageRef.current || preferredLanguageCode === code) {
       const defaultLearningLanguage = getDefaultLearningLanguage(code);
       setPreferredLanguageCode(defaultLearningLanguage);
       writeLandingCardLanguage(defaultLearningLanguage, { notify: false });
-      void updateLanguagePreferenceAction({
-        field: "preferred_language_code",
-        value: defaultLearningLanguage,
-      }).catch(() => undefined);
+      if (!isLoginLanguageRefresh) {
+        void updateLanguagePreferenceAction({
+          field: "preferred_language_code",
+          value: defaultLearningLanguage,
+        }).catch(() => undefined);
+      }
       setLanguageOrders((current) => ({
         ...current,
         learning: getLearningLanguageOrder(),
@@ -182,10 +186,12 @@ export function MobileOnboardingForm({
     hasSelectedLearningLanguageRef.current = true;
     setPreferredLanguageCode(code);
     writeLandingCardLanguage(code, { notify: false });
-    void updateLanguagePreferenceAction({
-      field: "preferred_language_code",
-      value: code,
-    }).catch(() => undefined);
+    if (!isLoginLanguageRefresh) {
+      void updateLanguagePreferenceAction({
+        field: "preferred_language_code",
+        value: code,
+      }).catch(() => undefined);
+    }
   }
 
   function advanceLanguageStep() {
@@ -343,7 +349,6 @@ export function MobileOnboardingForm({
                 <SubmitButton
                   className={cn("h-14 w-full text-base font-bold disabled:opacity-100", actionButtonClass)}
                   pendingLabel={t("auth.onboarding.pending")}
-                  pendingOverride={state.status === "success"}
                 >
                   {t("auth.onboarding.continue")}
                 </SubmitButton>

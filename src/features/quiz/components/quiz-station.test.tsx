@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
@@ -17,7 +17,7 @@ import { LOCALE_COOKIE_NAME } from "@/i18n/config";
 import { awardQuizResultPoints } from "@/features/quiz/actions";
 import { formatSuperWaterText } from "@/lib/super-water";
 import type { AuthShellUser } from "@/features/auth/auth-types";
-import type { InventoryCard, LocaleCode, ProgressStats } from "@/types/domain";
+import type { InventoryCard, LanguageCode, LocaleCode, ProgressStats } from "@/types/domain";
 import type { NormalQuizItem } from "@/features/quiz/components/quiz-station";
 
 const progressStatsMock = vi.hoisted(() => ({
@@ -37,6 +37,10 @@ const leaderboardOverlayMock = vi.hoisted(() => ({
   openLeaderboard: vi.fn(),
 }));
 
+const quizCountSelectionTestState = vi.hoisted(() => ({
+  autoSelectCount: null as number | null,
+}));
+
 const mathRandomSpy = vi.spyOn(Math, "random");
 
 beforeEach(() => {
@@ -52,6 +56,7 @@ beforeEach(() => {
   progressStatsMock.refreshStats.mockReset();
   progressStatsMock.refreshStats.mockResolvedValue(undefined);
   claimQuizResultMedalsMock.mockReset();
+  quizCountSelectionTestState.autoSelectCount = null;
 });
 
 afterAll(() => {
@@ -152,6 +157,33 @@ vi.mock("@/features/quiz/components/quiz-start-splash", () => ({
     return null;
   },
 }));
+
+vi.mock("@/features/quiz/components/quiz-count-selection", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/features/quiz/components/quiz-count-selection")
+  >("@/features/quiz/components/quiz-count-selection");
+
+  return {
+    ...actual,
+    QuizCountSelection: (
+      props: Parameters<typeof actual.QuizCountSelection>[0],
+    ) => {
+      const didAutoSelect = useRef(false);
+      const autoSelectCount = quizCountSelectionTestState.autoSelectCount;
+
+      useEffect(() => {
+        if (autoSelectCount === null || didAutoSelect.current) return;
+        didAutoSelect.current = true;
+        props.onSelect(autoSelectCount);
+      }, [autoSelectCount, props.onSelect]);
+
+      if (autoSelectCount !== null) {
+        return <div data-quiz-count-selection />;
+      }
+      return <actual.QuizCountSelection {...props} />;
+    },
+  };
+});
 
 vi.mock("@/features/quiz/components/quiz-streak-celebration-view", () => ({
   QuizStreakCelebrationView: ({ streak }: { streak: number }) => (
@@ -1931,14 +1963,106 @@ describe("QuizStation sound feedback", () => {
   });
 });
 
+describe("QuizStation learned-review transitions", () => {
+  it("advances once when the answer animation and fallback timer both complete", async () => {
+    const learnedCards = [testCard, learnedCardCandidate];
+    useInventoryStore.setState({
+      cards: learnedCards.map((card) => ({
+        cardId: card.id,
+        status: "learned" as const,
+        correctCount: 4,
+        addedAt: "2026-06-09T00:00:00.000Z",
+        learnedAt: "2026-06-09T01:00:00.000Z",
+      })),
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+    quizCountSelectionTestState.autoSelectCount = 2;
+
+    renderQuizStation("tr", undefined, "learned", "en");
+    await waitFor(() => {
+      expect(document.querySelector('[data-learn-quiz-page="quiz"]')).toBeInTheDocument();
+    });
+
+    const liveQuizPage = () =>
+      Array.from(
+        document.querySelectorAll<HTMLElement>('[data-learn-quiz-page="quiz"]'),
+      ).find((element) => !element.closest("[data-quiz-transition-fallback-old]")) ?? null;
+    const outgoingTerm = liveQuizPage()
+      ?.querySelector<HTMLElement>("[data-quiz-question-content] h2")
+      ?.textContent?.trim();
+    const outgoingCard = learnedCards.find((card) => card.term === outgoingTerm);
+    expect(outgoingCard).toBeDefined();
+
+    const correctAnswer = getPrimaryCardTranslation(outgoingCard!, "tr");
+    const correctOption = Array.from(
+      liveQuizPage()!.querySelectorAll<HTMLButtonElement>("[data-quiz-option]"),
+    ).find((option) => option.textContent?.trim() === correctAnswer);
+    expect(correctOption).toBeDefined();
+    fireEvent.click(correctOption!);
+
+    const answeredCorrectOption = await waitFor(() => {
+      const option = Array.from(
+        liveQuizPage()!.querySelectorAll<HTMLButtonElement>("[data-quiz-option]"),
+      ).find((candidate) => candidate.textContent?.trim() === correctAnswer);
+      expect(option).toHaveAttribute("data-quiz-answer-feedback", "correct");
+      return option!;
+    });
+    const animationEnd = new Event("animationend", { bubbles: true });
+    Object.defineProperty(animationEnd, "animationName", {
+      value: "quiz-word-button-correct",
+    });
+    answeredCorrectOption.dispatchEvent(animationEnd);
+
+    let nextTerm = "";
+    await waitFor(() => {
+      const outgoingSnapshot = document.querySelector<HTMLElement>(
+        "[data-quiz-transition-fallback-old] [data-quiz-question-content] h2",
+      );
+      expect(outgoingSnapshot?.textContent?.trim()).toBe(outgoingTerm);
+      expect(outgoingSnapshot?.closest("[data-quiz-transition-fallback-old]")).toHaveClass(
+        "quiz-transition-fallback-old",
+      );
+      const livePageHeading = liveQuizPage()?.querySelector<HTMLElement>(
+        "[data-quiz-question-content] h2",
+      );
+      expect(livePageHeading?.textContent?.trim()).not.toBe(outgoingTerm);
+      expect(livePageHeading?.closest("[data-quiz-mobile-layout]")).toHaveClass(
+        "quiz-flow-enter-right",
+      );
+      nextTerm = livePageHeading?.textContent?.trim() ?? "";
+    });
+
+    await act(async () => {
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 900));
+    });
+
+    expect(document.querySelector('[data-learn-quiz-page="quiz"]')).toBeInTheDocument();
+    expect(
+      liveQuizPage()?.querySelector<HTMLElement>("[data-quiz-question-content] h2")
+        ?.textContent?.trim(),
+    ).toBe(nextTerm);
+    expect(document.querySelector("[data-quiz-transition-fallback-old]")).not.toBeInTheDocument();
+  });
+});
+
 function renderQuizStation(
   locale: LocaleCode = "tr",
   normalQuestionType?: NormalQuizItem["questionType"],
+  mode: "active" | "learned" = "active",
+  initialLanguage?: LanguageCode,
 ) {
   render(
     <LocaleProvider initialLocale={locale}>
       <AuthSessionProvider user={testUser}>
-        <QuizStation mode="active" normalQuestionType={normalQuestionType} />
+        <QuizStation
+          mode={mode}
+          initialLanguage={initialLanguage}
+          normalQuestionType={normalQuestionType ?? null}
+        />
       </AuthSessionProvider>
     </LocaleProvider>,
   );

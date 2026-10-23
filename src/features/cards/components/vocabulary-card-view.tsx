@@ -4,7 +4,7 @@ import { useState, type KeyboardEvent, type MouseEvent } from "react";
 import { Check, LoaderCircle, MessageCircleQuestion, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TIER_REQUIREMENTS } from "@/data/tiers";
-import { getCardTranslation, getCardTranslationMeanings, getPrimaryCardTranslation } from "@/features/cards/card-localization";
+import { getCardTranslation, getCardTranslationMeanings } from "@/features/cards/card-localization";
 import { speakCardTerm } from "@/features/cards/card-speech";
 import { VocabularyCardDesign } from "@/features/cards/components/card-design-reference-preview";
 import { useCardPronunciation } from "@/features/cards/card-pronunciation-client";
@@ -17,7 +17,6 @@ import { cn } from "@/lib/utils";
 import type { InventoryCard, LocaleCode, Tier, VocabularyCard } from "@/types/domain";
 
 type CardFace = "front" | "back";
-type CardFooterMode = "auto" | "empty" | "progress";
 
 interface VocabularyCardViewProps {
   card: VocabularyCard;
@@ -38,22 +37,16 @@ interface VocabularyCardViewProps {
   onSkip?: () => void;
   showActions?: boolean;
   frontFit?: boolean;
-  frontMinimal?: boolean;
   frontContentScale?: number;
   frontTranslationBelowTerm?: boolean;
-  frontHideStudyMetadata?: boolean;
   frontFitCoreText?: boolean;
   compact?: boolean;
   translationLocale?: LocaleCode;
-  primaryTranslationOnly?: boolean;
   continuousFlip?: boolean;
-  footerMode?: CardFooterMode;
   footerProgressCount?: number;
   progressAnimationActive?: boolean;
   onClick?: () => void;
   staticFace?: boolean;
-  summaryCard?: boolean;
-  summaryProgressCount?: number;
 }
 
 interface CardFaceState {
@@ -80,19 +73,14 @@ export function VocabularyCardView({
   addDisabled = false,
   onSkip,
   showActions = true,
-  frontMinimal = false,
   frontContentScale = 1,
-  frontHideStudyMetadata = false,
   compact = false,
   translationLocale,
-  primaryTranslationOnly = false,
   continuousFlip = false,
-  footerMode = "auto",
   footerProgressCount,
   progressAnimationActive = false,
   onClick,
   staticFace = false,
-  summaryProgressCount,
 }: VocabularyCardViewProps) {
   const { locale } = useLocale();
   const t = useT();
@@ -115,11 +103,9 @@ export function VocabularyCardView({
         ? faceState.isFaceUp
         : initialFace === "front";
   const translationLanguage = translationLocale ?? locale;
-  const meanings = primaryTranslationOnly
-    ? [getPrimaryCardTranslation(displayCard, translationLanguage)]
-    : translationLocale
-      ? getCardTranslationMeanings(displayCard, translationLanguage).slice(0, 3)
-      : getCardTranslation(displayCard, translationLanguage).split(", ");
+  const meanings = translationLocale
+    ? getCardTranslationMeanings(displayCard, translationLanguage).slice(0, 3)
+    : getCardTranslation(displayCard, translationLanguage).split(", ");
   const sample = {
     cardId: card.id,
     learningLanguage: card.language,
@@ -128,21 +114,15 @@ export function VocabularyCardView({
     term: card.term,
     translation: meanings.filter(Boolean).join(", "),
     partOfSpeech: card.partOfSpeech,
-    pronunciation: frontHideStudyMetadata || compact && summaryProgressCount !== undefined
-      ? ""
-      : displayCard.pronunciation,
-    example: frontHideStudyMetadata || footerMode === "empty"
-      ? ""
-      : card.examples[0]?.sentence ?? card.example,
+    pronunciation: displayCard.pronunciation,
+    example: card.examples[0]?.sentence ?? card.example,
   };
   const requirement = TIER_REQUIREMENTS[card.tier];
-  const progressCount = footerProgressCount ?? summaryProgressCount ?? inventory?.correctCount ?? 0;
+  const progressCount = footerProgressCount ?? inventory?.correctCount ?? 0;
   const progress = inventory?.status === "learned"
     ? requirement
     : Math.min(requirement, Math.max(0, progressCount));
-  const showProgress = (inventory !== undefined && footerMode !== "empty")
-    || footerProgressCount !== undefined
-    || summaryProgressCount !== undefined;
+  const showProgress = inventory !== undefined || footerProgressCount !== undefined;
   const showOwnedState = owned === true && !allowOwnedAdd;
   const palette = getCardDesignTierPalette(card.tier);
 
@@ -216,20 +196,17 @@ export function VocabularyCardView({
         contentScale={frontContentScale}
         onSpeak={() => speakCardTerm(card.term, card.language)}
         sample={sample}
-        showExample={!frontMinimal && !frontHideStudyMetadata && footerMode !== "empty"}
         showBack={!isFaceUp}
-        showPronunciation={!frontMinimal && !frontHideStudyMetadata}
         learningProgress={isFaceUp && showProgress ? {
           current: progress,
           required: requirement,
           progressLabel: t("cards.progress"),
           isLearned: inventory?.status === "learned",
           animationActive: progressAnimationActive,
-          footerMode,
         } : undefined}
       />
 
-      {isFaceUp && showActions && !frontMinimal ? (
+      {isFaceUp && showActions ? (
         <Button
           aria-label={`${card.term} ${t("cards.ask")}`}
           className="absolute right-[7%] top-[5%] z-10 size-8 rounded-full border border-white/70 bg-black/15 p-0 text-white backdrop-blur-sm hover:bg-black/25"
@@ -243,10 +220,10 @@ export function VocabularyCardView({
         </Button>
       ) : null}
 
-      {isFaceUp && !compact && !frontMinimal && !frontHideStudyMetadata && (onAdd || onSkip) ? (
+      {isFaceUp && !compact && (onAdd || onSkip) ? (
         <div
           className={cn("absolute inset-x-[11%] bottom-[2%] z-20 grid gap-1.5", onAdd && onSkip ? "grid-cols-2" : "grid-cols-1")}
-          data-card-footer-mode={footerMode}
+          data-card-actions
         >
           {onSkip ? (
             <Button

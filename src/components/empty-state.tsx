@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 export function EmptyState({
   mascot,
   title,
+  titleClassName,
   description,
   descriptionClassName,
   action,
@@ -11,6 +12,7 @@ export function EmptyState({
 }: {
   mascot?: string;
   title: string;
+  titleClassName?: string;
   description: string;
   descriptionClassName?: string;
   action?: React.ReactNode;
@@ -27,7 +29,7 @@ export function EmptyState({
           className="object-contain"
         />
       </div>
-      <h2 className="mt-4 text-lg font-semibold text-foreground">{title}</h2>
+      <h2 className={cn("mt-4 text-lg font-semibold text-foreground", titleClassName)}>{title}</h2>
       <p className={cn("mx-auto mt-2 max-w-md text-sm leading-6 text-foreground-secondary", descriptionClassName)}>
         {description}
       </p>

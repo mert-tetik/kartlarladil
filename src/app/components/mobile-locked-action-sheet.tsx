@@ -34,21 +34,24 @@ export function MobileLockedActionSheet({
       open={isOpen}
       onClose={onClose}
       onExited={onExited}
+      presentation="centered-dialog"
       title={t(isActive ? "home.mobile.noActiveCardsTitle" : "home.mobile.noLearnedCardsTitle")}
       panelLabel={t(isActive ? "home.mobile.noActiveCardsTitle" : "home.mobile.noLearnedCardsTitle")}
-      panelClassName="min-h-[60dvh] max-h-[85dvh]"
+      panelClassName="bg-[#191919] text-white"
+      panelAccentClassName={isActive ? "bg-action-learn" : "bg-action-learned"}
       tone={isActive ? "learn" : "learned"}
       visual={null}
       showProtrusionCircle={false}
+      showPanelDecoration={false}
       contentClassName="px-5 pb-5"
     >
       <div className="flex shrink-0 flex-col items-center justify-start text-center">
-        <p className="text-sm leading-6 text-brand-foreground/80">
+        <p className="text-sm leading-6 text-white/75">
           {t(isActive ? "home.mobile.noActiveCardsDescription" : "home.mobile.noLearnedCardsDescription")}
         </p>
       </div>
 
-      <div className="mt-[46px] grid gap-2">
+      <div className={cn("grid gap-4", isActive ? "mt-[54px]" : "mt-6")}>
         {isActive ? (
           <>
             <div className="mobile-primary-action-depth mobile-primary-action-depth--amber-orange rounded-xl">

@@ -36,6 +36,30 @@ function renderSheet(overrides: Partial<React.ComponentProps<typeof MobileLocked
 }
 
 describe("MobileLockedActionSheet", () => {
+  it.each([
+    {
+      variant: "active" as const,
+      title: "home.mobile.noActiveCardsTitle",
+      accentClass: "bg-action-learn",
+    },
+    {
+      variant: "learned" as const,
+      title: "home.mobile.noLearnedCardsTitle",
+      accentClass: "bg-action-learned",
+    },
+  ])("renders the $variant empty-deck menu as a centered dark dialog", async ({ variant, title, accentClass }) => {
+    renderSheet({ variant });
+
+    const dialog = await screen.findByRole("dialog", { name: title });
+    const panel = dialog.querySelector("[data-mobile-bottom-sheet-panel]");
+
+    expect(dialog).toHaveAttribute("data-mobile-presentation", "centered-dialog");
+    expect(dialog).toHaveClass("items-center", "justify-center");
+    expect(panel).toHaveClass("rounded-2xl", "bg-[#191919]");
+    expect(dialog.querySelector("[data-mobile-dialog-accent]")).toHaveClass(accentClass);
+    expect(dialog.querySelector("[data-mobile-bottom-sheet-drag-handle]")).toBeNull();
+  });
+
   it("opens draw and create card actions from the empty learning deck sheet", async () => {
     const props = renderSheet();
 

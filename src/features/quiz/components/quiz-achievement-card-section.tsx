@@ -94,15 +94,11 @@ export function AchievementCardSection({
               compact
               owned={false}
               showActions={false}
-              footerMode="empty"
-              frontMinimal
               frontFit
-              primaryTranslationOnly
-              summaryCard
-              summaryProgressCount={
-                tone === "advanced"
-                  ? progressByCardId?.[card.id] ?? Math.max(1, TIER_REQUIREMENTS[card.tier] - 1)
-                  : undefined
+              footerProgressCount={
+                tone === "learned"
+                  ? TIER_REQUIREMENTS[card.tier]
+                  : progressByCardId?.[card.id] ?? Math.max(1, TIER_REQUIREMENTS[card.tier] - 1)
               }
               className="h-full min-h-0 w-full"
             />

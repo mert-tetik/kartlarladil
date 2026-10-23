@@ -128,9 +128,12 @@ export function MobileLandingDashboard() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const isLandingEmptyActionsTest = ["1", "true"].includes(
-    searchParams.get(LANDING_EMPTY_ACTIONS_TEST_PARAM) ?? "",
+  const landingEmptyActionsTestParam = searchParams.get(LANDING_EMPTY_ACTIONS_TEST_PARAM);
+  const isLandingEmptyActionsTest = ["1", "true", "active", "learned"].includes(
+    landingEmptyActionsTestParam ?? "",
   );
+  const landingEmptyActionsTestVariant: LandingEmptyActionsTestVariant =
+    landingEmptyActionsTestParam === "learned" ? "learned" : "active";
   const { user } = useAuthSession();
   const dayStreakOverlay = useOptionalMobileDayStreakOverlay();
   const dayStreakOpen = dayStreakOverlay?.isOpen ?? false;
@@ -186,9 +189,11 @@ export function MobileLandingDashboard() {
   const [infoSheetOpen, setInfoSheetOpen] = useState(false);
   const [rankInfoOpen, setRankInfoOpen] = useState(false);
   const [lockedSheet, setLockedSheet] = useState<"active" | "learned" | null>(
-    isLandingEmptyActionsTest ? "active" : null,
+    isLandingEmptyActionsTest ? landingEmptyActionsTestVariant : null,
   );
-  const [landingEmptyActionsTestVariant, setLandingEmptyActionsTestVariant] = useState<LandingEmptyActionsTestVariant>("active");
+  const [lastLockedSheetVariant, setLastLockedSheetVariant] = useState<"active" | "learned">(
+    landingEmptyActionsTestVariant,
+  );
   const [showLanguageMatchDialog, setShowLanguageMatchDialog] = useState(false);
   const [showLearnedReviewUpgrade, setShowLearnedReviewUpgrade] = useState(false);
   const [cardLimitError, setCardLimitError] = useState<UpgradeDialogErrorCode | null>(null);
@@ -491,6 +496,11 @@ export function MobileLandingDashboard() {
     window.setTimeout(action, 220);
   }
 
+  function openLockedSheet(variant: "active" | "learned") {
+    setLastLockedSheetVariant(variant);
+    setLockedSheet(variant);
+  }
+
   function handleLockedSheetDraw() {
     closeLockedSheetThen(handleDrawCards);
   }
@@ -502,16 +512,6 @@ export function MobileLandingDashboard() {
   function handleLockedSheetStartLearning() {
     if (activeCount === 0) return;
     closeLockedSheetThen(handleStartLearning);
-  }
-
-  function handleLockedSheetExited() {
-    if (!isLandingEmptyActionsTest) {
-      return;
-    }
-
-    const nextVariant = landingEmptyActionsTestVariant === "active" ? "learned" : "active";
-    setLandingEmptyActionsTestVariant(nextVariant);
-    setLockedSheet(nextVariant);
   }
 
   function handleStartLearning(languageOverride?: LanguageCode) {
@@ -528,7 +528,7 @@ export function MobileLandingDashboard() {
     }
 
     if (learningCardCount === 0) {
-      setLockedSheet("active");
+      openLockedSheet("active");
       return;
     }
     const nextPath = `/learn?mode=active&language=${encodeURIComponent(safeLearningLanguage)}`;
@@ -542,7 +542,7 @@ export function MobileLandingDashboard() {
   function handleRepeatLearned() {
     vibrate("tap");
     if (learnedCount === 0) {
-      setLockedSheet("learned");
+      openLockedSheet("learned");
       return;
     }
     const nextPath = `/learn?mode=learned&language=${encodeURIComponent(selectedLanguage)}`;
@@ -1082,8 +1082,7 @@ export function MobileLandingDashboard() {
       <MobileLockedActionSheet
         isOpen={lockedSheet !== null}
         onClose={() => setLockedSheet(null)}
-        onExited={handleLockedSheetExited}
-        variant={lockedSheet ?? "active"}
+        variant={lockedSheet ?? lastLockedSheetVariant}
         onOpenDraw={handleLockedSheetDraw}
         onOpenCreate={handleLockedSheetCreate}
         onStartLearning={handleLockedSheetStartLearning}

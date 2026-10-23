@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
-import { getCardTranslation, getCardTranslationMeanings, getPrimaryCardTranslation } from "@/features/cards/card-localization";
+import { getCardTranslation, getCardTranslationMeanings } from "@/features/cards/card-localization";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
 const mockOpenAsk = vi.fn();
@@ -100,7 +100,7 @@ describe("VocabularyCardView", () => {
     expect(addCard).toHaveBeenCalledTimes(1);
     expect(container.querySelector('[data-tutorial-target="card-add"]')).toHaveAttribute("type", "button");
     expect(container.firstElementChild).toHaveAttribute("data-card-face", "front");
-    expect(container.querySelector('[data-card-footer-mode="auto"]')?.querySelectorAll("button")).toHaveLength(1);
+    expect(container.querySelector("[data-card-actions]")?.querySelectorAll("button")).toHaveLength(1);
     expect(container.querySelector('[data-tutorial-target="card-add"]')).toBeVisible();
   });
 
@@ -142,29 +142,16 @@ describe("VocabularyCardView", () => {
     expect(container).toHaveTextContent(getCardTranslation(testCard, "tr"));
   });
 
-  it("can limit the visible translation to the first meaning", () => {
-    const multiMeaningCard = VOCABULARY_CARDS.find(
-      (card) => card.language === "en" && getCardTranslationMeanings(card, "tr").length > 1,
-    )!;
-    const meanings = getCardTranslationMeanings(multiMeaningCard, "tr");
-    const { container } = renderCard(
-      <VocabularyCardView card={multiMeaningCard} primaryTranslationOnly />,
-    );
-
-    expect(container).toHaveTextContent(getPrimaryCardTranslation(multiMeaningCard, "tr"));
-    expect(container).not.toHaveTextContent(meanings.slice(0, 3).join(", "));
-  });
-
-  it("hides study metadata in minimal card previews without changing the shared card frame", () => {
-    renderCard(<VocabularyCardView card={testCard} frontMinimal />);
+  it("always keeps pronunciation and example visible in compact card views", () => {
+    renderCard(<VocabularyCardView card={testCard} compact />);
 
     expect(screen.getByTestId("reference-card")).toBeInTheDocument();
     expect(screen.getByTestId("card-tier-badge")).toBeInTheDocument();
-    expect(screen.queryByTestId("card-pronunciation")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("card-reference-example")).not.toBeInTheDocument();
+    expect(screen.getByTestId("card-pronunciation")).toBeVisible();
+    expect(screen.getByTestId("card-reference-example")).toBeVisible();
   });
 
-  it("keeps the footer blank when quiz progress is not being revealed", () => {
+  it("shows the complete shared card face and owned-card progress without a regional hide mode", () => {
     const { container } = renderCard(
       <VocabularyCardView
         card={testCard}
@@ -174,16 +161,15 @@ describe("VocabularyCardView", () => {
           correctCount: 1,
           addedAt: "2026-07-19T00:00:00.000Z",
         }}
-        footerMode="empty"
       />,
     );
 
-    expect(container.querySelector("[data-card-progress]")).not.toBeInTheDocument();
-    expect(container.querySelector("[data-card-example-row]")).not.toBeInTheDocument();
-    expect(container.querySelector('[data-testid="card-reference-example"]')).not.toBeInTheDocument();
+    expect(container.querySelector("[data-card-progress]")).toHaveTextContent("1/4");
+    expect(screen.getByTestId("card-pronunciation")).toBeVisible();
+    expect(screen.getByTestId("card-reference-example")).toBeVisible();
   });
 
-  it("shows the supplied quiz progress value only while progress is revealed", () => {
+  it("shows supplied quiz progress with the standard card face", () => {
     const { container } = renderCard(
       <VocabularyCardView
         card={testCard}
@@ -193,13 +179,11 @@ describe("VocabularyCardView", () => {
           correctCount: 1,
           addedAt: "2026-07-19T00:00:00.000Z",
         }}
-        footerMode="progress"
         footerProgressCount={2}
         progressAnimationActive
       />,
     );
 
-    expect(container.querySelector('[data-card-footer-mode="progress"]')).toBeInTheDocument();
     expect(container.querySelector("[data-card-progress]")).toHaveTextContent("2/4");
     expect(container.querySelector("[data-card-progress][role='progressbar']")).toHaveAttribute("aria-valuenow", "2");
     expect(container.querySelector("[data-card-progress]")).toHaveAttribute("data-progress-animation-active", "true");

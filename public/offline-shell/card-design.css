@@ -162,6 +162,17 @@
   box-shadow: inset 0 0.3125cqw 0.3125cqw rgb(255 255 255 / 30%);
 }
 
+.fd-card-design__pronunciation--speaking {
+  animation: fd-card-pronunciation-wiggle 280ms ease-in-out infinite alternate;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@keyframes fd-card-pronunciation-wiggle {
+  from { transform: translateX(-50%) rotate(-4deg); }
+  to { transform: translateX(-50%) rotate(4deg); }
+}
+
 .fd-card-design__speak {
   display: inline-flex;
   width: 6.25cqw;
@@ -220,7 +231,7 @@
 }
 
 .fd-card-design__progress-circle {
-  background-color: color-mix(in srgb, var(--fd-card-progress-filled-color) 58%, white);
+  background-color: color-mix(in srgb, var(--fd-card-progress-filled-color) 34%, white);
 }
 
 .fd-card-design__progress-indicator {
@@ -286,6 +297,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .fd-card-design__pronunciation--speaking {
+    animation: none;
+  }
+
   .fd-card-design__progress[data-progress-complete="true"] {
     animation: none;
   }

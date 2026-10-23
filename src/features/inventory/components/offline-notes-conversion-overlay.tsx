@@ -917,7 +917,6 @@ function OfflineNotesConversionOverlayContent() {
                       addLoadingLabel={t("offline.notes.addingToDeck")}
                       addDisabled={bulkAdding || conversionBusy}
                       showActions={false}
-                      footerMode="empty"
                       translationLocale={locale}
                       className="w-full"
                     />

@@ -515,21 +515,6 @@ export function RankUpMenu({
           }}
         >
           <div className="relative flex h-full w-full max-w-[420px] flex-col bg-transparent px-6 pb-[calc(env(safe-area-inset-bottom)+56px)] pt-[calc(env(safe-area-inset-top)+24px)] lg:h-auto lg:max-h-[calc(100vh-2rem)] lg:rounded-lg lg:border lg:border-border/70 lg:bg-background/96 lg:px-6 lg:pb-6 lg:pt-6">
-          <button
-            type="button"
-            aria-label={t("rank.closeUp")}
-            onClick={handleClose}
-            className={cn(
-              "absolute right-4 top-[calc(env(safe-area-inset-top)+16px)] inline-flex size-10 items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-muted hover:text-foreground",
-              "rank-up-close-control",
-              revealed && "rank-up-close-control--visible",
-              closing && "rank-up-close-control--closing",
-              "lg:top-4",
-            )}
-          >
-            <X className="size-5" aria-hidden="true" />
-          </button>
-
           <div className="flex flex-1 flex-col items-center justify-center text-center">
             <div
               className={cn(

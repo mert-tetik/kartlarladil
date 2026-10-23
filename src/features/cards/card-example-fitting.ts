@@ -67,10 +67,18 @@ export function fitCardExampleText(element: HTMLElement) {
   element.style.setProperty("--fd-card-example-font-scale", String(scale));
   const visibleLineCount = Math.min(lineCount, MAX_CARD_EXAMPLE_LINES);
   element.dataset.exampleLineCount = String(visibleLineCount);
-  element.closest<HTMLElement>(".fd-card-design__front")?.setAttribute(
+  const front = element.closest<HTMLElement>(".fd-card-design__front");
+  front?.setAttribute(
     "data-example-line-count",
     String(visibleLineCount),
   );
+  const foxMark = front?.querySelector<SVGElement>(".fd-card-design__front-fox");
+  if (foxMark) {
+    const hideFox = visibleLineCount === MAX_CARD_EXAMPLE_LINES;
+    foxMark.toggleAttribute("hidden", hideFox);
+    if (hideFox) foxMark.style.display = "none";
+    else foxMark.style.removeProperty("display");
+  }
 
   return visibleLineCount;
 }

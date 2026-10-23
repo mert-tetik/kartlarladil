@@ -12,9 +12,11 @@ function createExample(text: string) {
   const example = document.createElement("p");
   example.className = "fd-card-design__example";
   example.textContent = text;
-  front.append(example);
+  const fox = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  fox.classList.add("fd-card-design__front-fox");
+  front.append(fox, example);
   document.body.append(front);
-  return { front, example };
+  return { front, fox, example };
 }
 
 function lineRects(count: number) {
@@ -27,7 +29,7 @@ function lineRects(count: number) {
 
 describe("fitCardExampleText", () => {
   it("scales a four-line example down until it uses at most three lines", () => {
-    const { front, example } = createExample("A long example sentence that wraps onto four lines.");
+    const { front, fox, example } = createExample("A long example sentence that wraps onto four lines.");
     vi.spyOn(document, "createRange").mockImplementation(() => ({
       selectNodeContents: vi.fn(),
       getClientRects: () => {
@@ -39,6 +41,20 @@ describe("fitCardExampleText", () => {
     expect(fitCardExampleText(example)).toBe(3);
     expect(Number(example.style.getPropertyValue("--fd-card-example-font-scale"))).toBeLessThan(0.75);
     expect(front).toHaveAttribute("data-example-line-count", "3");
+    expect(fox).toHaveAttribute("hidden");
+    expect(fox.style.display).toBe("none");
+  });
+
+  it("restores the fox mark when the example fits in fewer than three lines", () => {
+    const { fox, example } = createExample("A short example.");
+    vi.spyOn(document, "createRange").mockImplementation(() => ({
+      selectNodeContents: vi.fn(),
+      getClientRects: () => lineRects(2),
+    }) as unknown as Range);
+
+    expect(fitCardExampleText(example)).toBe(2);
+    expect(fox).not.toHaveAttribute("hidden");
+    expect(fox.style.display).toBe("");
   });
 
   it("keeps shrinking longer examples below the regular minimum until they fit", () => {

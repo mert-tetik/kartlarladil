@@ -33,7 +33,6 @@ export default function LearnMobileQuizCardPreviewPage() {
           initialFace="front"
           face="front"
           flippable={false}
-          footerMode="empty"
           className="h-auto w-full min-h-0 max-sm:aspect-[3/4] max-sm:min-h-0"
         />
       </div>

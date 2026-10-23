@@ -11,7 +11,7 @@ vi.mock("@/features/auth/auth-client", () => ({
 const card = VOCABULARY_CARDS.find((entry) => entry.language === "ja" && entry.tier === "B1")!;
 
 describe("AchievementCardSection shared vocabulary cards", () => {
-  it("uses the shared design, suppresses compact study details, and still flips on card click", () => {
+  it("keeps the complete shared card design and progress visible, and still flips on card click", () => {
     const { container } = render(
       <LocaleProvider initialLocale="en">
         <AchievementCardSection
@@ -29,8 +29,9 @@ describe("AchievementCardSection shared vocabulary cards", () => {
     expect(cardShell).toHaveAttribute("data-card-face", "front");
     expect(screen.getByTestId("reference-card")).toBeInTheDocument();
     expect(screen.getByTestId("card-tier-badge")).toHaveTextContent("B1");
-    expect(screen.queryByTestId("card-pronunciation")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("card-reference-example")).not.toBeInTheDocument();
+    expect(screen.getByTestId("card-pronunciation")).toBeVisible();
+    expect(screen.getByTestId("card-reference-example")).toBeVisible();
+    expect(container.querySelector("[data-card-progress]")).toHaveAttribute("aria-valuenow", "6");
 
     fireEvent.click(screen.getByTestId("reference-card"));
 

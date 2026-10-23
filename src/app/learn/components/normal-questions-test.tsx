@@ -259,7 +259,6 @@ export function NormalQuestionsTest() {
         initialFace="back"
         face={showingAnswer ? "front" : "back"}
         flippable={false}
-        footerMode="empty"
         className="h-full w-full min-h-0 max-sm:min-h-0"
       />
     </div>
@@ -342,7 +341,6 @@ export function NormalQuestionsTest() {
               initialFace="back"
               face={showingAnswer ? "front" : "back"}
               flippable={false}
-              footerMode="empty"
               className="h-full w-auto min-h-0 max-w-full"
             />
           </div>

@@ -606,7 +606,7 @@ function formatQuizDuration(totalSeconds: number) {
 export function QuizStation({
   mode,
   initialLanguage,
-  normalQuestionType,
+  normalQuestionType = null,
   bonusAfterEachNormalQuestion = false,
   quizCompletionTest = false,
   quizFlowTest = false,
@@ -3141,9 +3141,15 @@ export function QuizStation({
 
         if (!showCardProgress && isCorrect) {
           clearNormalAnswerAdvance();
+          let answerAdvanceCompleted = false;
           const advanceAfterCorrectFeedback = () => {
-            normalAnswerAdvanceTimeoutRef.current = null;
-            correctAnswerAnimationCompletionRef.current = null;
+            if (answerAdvanceCompleted) return;
+            answerAdvanceCompleted = true;
+            // The animation event and fallback timer are two completion
+            // signals for one answer. Whichever wins must cancel the other;
+            // otherwise learned-card review can advance twice and start the
+            // next transition from a question that was never actually seen.
+            clearNormalAnswerAdvance();
             if (correctAnswerFeedbackDurationMs === 0) {
               clearQuizAnswerFeedbackAnimation();
             }
@@ -4394,7 +4400,6 @@ export function CardProgressReveal({
               face="front"
               flippable={false}
               showActions={false}
-              footerMode="progress"
               footerProgressCount={progressCount}
               progressAnimationActive={hasStarted && !progressColorSettled}
               className="h-full w-full min-h-0 max-w-full max-sm:min-h-0"
@@ -4412,7 +4417,6 @@ function MobileQuizCard({
   progressAnimation = false,
   face,
   feedbackStage,
-  footerMode,
   footerProgressCount,
 }: {
   item: QuizItem;
@@ -4420,7 +4424,6 @@ function MobileQuizCard({
   progressAnimation?: boolean;
   face: "front" | "back";
   feedbackStage: QuizCardFeedbackStage;
-  footerMode: "empty" | "progress";
   footerProgressCount?: number;
 }) {
   const slotRef = useRef<HTMLDivElement>(null);
@@ -4612,7 +4615,6 @@ function MobileQuizCard({
             initialFace="back"
             face={face}
             flippable={false}
-            footerMode={footerMode}
             footerProgressCount={footerProgressCount}
             className="h-full w-full min-h-0 max-sm:min-h-0"
           />

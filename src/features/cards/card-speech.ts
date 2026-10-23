@@ -22,12 +22,42 @@ const SPEECH_LANG_BY_LANGUAGE: Record<LanguageCode, string> = {
 
 type BrowserSpeechRequest = {
   text: string;
+  language: LanguageCode;
   lang: string;
   rate: number;
 };
 
+export const CARD_SPEECH_STATUS_EVENT = "foxiesdeck:speech-status";
+
+export type CardSpeechStatusDetail = {
+  text: string;
+  language: LanguageCode;
+  state: "start" | "end";
+};
+
 let browserSpeechActivationWindow: Window | null = null;
 let pendingBrowserSpeechRequest: BrowserSpeechRequest | null = null;
+let speechRequestSequence = 0;
+
+const nativeSpeechRequests = new Map<string, Omit<CardSpeechStatusDetail, "state">>();
+
+function emitSpeechStatus(detail: CardSpeechStatusDetail) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent<CardSpeechStatusDetail>(CARD_SPEECH_STATUS_EVENT, { detail }));
+}
+
+function handleNativeSpeechStatus(requestId: string, state: "start" | "end") {
+  const request = nativeSpeechRequests.get(requestId);
+  if (!request) return;
+
+  emitSpeechStatus({ ...request, state });
+  if (state === "end") nativeSpeechRequests.delete(requestId);
+}
+
+function createSpeechRequestId() {
+  speechRequestSequence += 1;
+  return `${Date.now().toString(36)}-${speechRequestSequence.toString(36)}`;
+}
 
 function installBrowserSpeechActivationListeners() {
   if (typeof window === "undefined" || browserSpeechActivationWindow === window) return;
@@ -67,6 +97,16 @@ function speakWithBrowserSpeech(request: BrowserSpeechRequest) {
 
   utterance.lang = request.lang;
   utterance.rate = request.rate;
+  utterance.onstart = () => emitSpeechStatus({
+    text: request.text,
+    language: request.language,
+    state: "start",
+  });
+  utterance.onend = () => emitSpeechStatus({
+    text: request.text,
+    language: request.language,
+    state: "end",
+  });
   utterance.onerror = (event) => {
     // Mobile browsers may reject automatic speech until a user gesture has
     // unlocked the synthesis queue. Keep only that latest utterance and retry
@@ -74,7 +114,9 @@ function speakWithBrowserSpeech(request: BrowserSpeechRequest) {
     // must never resurrect an older question's pronunciation.
     if (event.error === "not-allowed") {
       pendingBrowserSpeechRequest = request;
+      return;
     }
+    emitSpeechStatus({ text: request.text, language: request.language, state: "end" });
   };
 
   try {
@@ -108,16 +150,25 @@ export function speakText(
   const lang = getSpeechLanguage(language);
   const nativeSpeech = window.FoxiesDeckNativeSpeech;
   if (nativeSpeech) {
+    const requestId = createSpeechRequestId();
     try {
       // Android TTS voice metadata is not reliable across engines. A voice
       // can match the requested gender/age but still be unavailable or fail
       // silently when selected. The native path therefore always uses the
       // engine's known-good voice for the requested language. The browser
       // fallback follows the same language-only rule below.
-      if (nativeSpeech.speak(text, lang, options?.rate ?? 0.95) !== false) {
+      if (nativeSpeech.speakWithLifecycle) {
+        nativeSpeechRequests.set(requestId, { text, language });
+        window.FoxiesDeckNativeSpeechStatus = handleNativeSpeechStatus;
+        if (nativeSpeech.speakWithLifecycle(text, lang, options?.rate ?? 0.95, requestId) !== false) {
+          return true;
+        }
+        nativeSpeechRequests.delete(requestId);
+      } else if (nativeSpeech.speak(text, lang, options?.rate ?? 0.95) !== false) {
         return true;
       }
     } catch {
+      nativeSpeechRequests.delete(requestId);
       // A stale bridge can survive a WebView navigation for one turn. Let the
       // browser implementation take over instead of silently dropping speech.
     }
@@ -138,6 +189,7 @@ export function speakText(
   // request fail silently.
   return speakWithBrowserSpeech({
     text,
+    language,
     lang,
     rate: Math.max(0.5, Math.min(options?.rate ?? 0.95, 2)),
   });

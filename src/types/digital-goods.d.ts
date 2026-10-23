@@ -42,6 +42,12 @@ interface Window {
       languageTag: string,
       rate: number,
     ): boolean;
+    speakWithLifecycle?(
+      text: string,
+      languageTag: string,
+      rate: number,
+      requestId: string,
+    ): boolean;
     speakWithProfile?(
       text: string,
       languageTag: string,
@@ -51,4 +57,5 @@ interface Window {
     ): boolean;
     stop(): void;
   };
+  FoxiesDeckNativeSpeechStatus?: (requestId: string, state: "start" | "end") => void;
 }

@@ -25,6 +25,7 @@ const {
   refreshEntitlementsMock,
   requestGooglePlayReviewMock,
   routerPushMock,
+  searchParamsMock,
   subscriptionEntitlementsMock,
   subscriptionPlanMock,
   dayStreakOverlayMock,
@@ -38,6 +39,7 @@ const {
   refreshEntitlementsMock: vi.fn(),
   requestGooglePlayReviewMock: vi.fn(),
   routerPushMock: vi.fn(),
+  searchParamsMock: { value: "" as string },
   subscriptionEntitlementsMock: {
     value: null as null | { effectivePlan: SubscriptionPlan },
   },
@@ -61,7 +63,7 @@ vi.mock("next/navigation", () => ({
     refresh: vi.fn(),
   }),
   usePathname: () => "/",
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(searchParamsMock.value),
 }));
 
 vi.mock("@/components/theme-provider", () => ({
@@ -182,6 +184,7 @@ describe("MobileLandingDashboard language sync", () => {
       effectivePlan: subscriptionPlanMock.value,
     }));
     routerPushMock.mockReset();
+    searchParamsMock.value = "";
     useLeaderboardDataMock.mockReturnValue({
       data: {
         viewer: {
@@ -205,6 +208,27 @@ describe("MobileLandingDashboard language sync", () => {
     );
 
     expect(screen.getByText("Dünyada 17.")).toBeInTheDocument();
+  });
+
+  it("keeps the learned empty-deck menu closed in the normal flow", async () => {
+    const user = userEvent.setup();
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Tekrar Et/ }));
+    const learnedMenu = await screen.findByRole("dialog", { name: "Öğrenilmiş kart yok" });
+    await user.click(within(learnedMenu).getAllByRole("button", { name: "Kapat" }).at(-1)!);
+
+    const closingMenu = document.querySelector('[data-mobile-bottom-sheet][data-mobile-presentation="centered-dialog"]');
+    expect(closingMenu).toHaveAttribute("aria-hidden", "true");
+    expect(closingMenu?.querySelector("[data-mobile-dialog-accent]")).toHaveClass("bg-action-learned");
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-mobile-bottom-sheet][data-mobile-presentation="centered-dialog"]')).toBeNull();
+    });
   });
 
   it("silently loads the daily streak count without a spinner", () => {

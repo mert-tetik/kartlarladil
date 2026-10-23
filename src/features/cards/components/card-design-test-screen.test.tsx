@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { vi } from "vitest";
 import * as cardSpeech from "@/features/cards/card-speech";
+import { CARD_SPEECH_STATUS_EVENT } from "@/features/cards/card-speech";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { CardDesignTestScreen } from "@/features/cards/components/card-design-test-screen";
 
@@ -54,6 +55,26 @@ describe("CardDesignTestScreen", () => {
     expect(screen.getAllByRole("button", { name: /^Resize card from/ })).toHaveLength(4);
     expect(screen.getByTestId("card-learning-language")).toHaveAttribute("data-language", "ja");
     expect(screen.getByTestId("card-native-language")).toHaveAttribute("data-language", "en");
+  });
+
+  it("wiggles the pronunciation pill only while its word is being spoken", () => {
+    render(<CardDesignTestScreen />);
+
+    const term = screen.getByTestId("card-term");
+    const pronunciation = screen.getByTestId("card-pronunciation");
+    const dispatchStatus = (state: "start" | "end") => {
+      window.dispatchEvent(new CustomEvent(CARD_SPEECH_STATUS_EVENT, {
+        detail: { text: term.textContent?.trim(), language: term.getAttribute("lang"), state },
+      }));
+    };
+
+    act(() => dispatchStatus("start"));
+    expect(pronunciation).toHaveAttribute("data-pronunciation-speaking", "true");
+    expect(pronunciation).toHaveClass("fd-card-design__pronunciation--speaking");
+
+    act(() => dispatchStatus("end"));
+    expect(pronunciation).toHaveAttribute("data-pronunciation-speaking", "false");
+    expect(pronunciation).not.toHaveClass("fd-card-design__pronunciation--speaking");
   });
 
   it("switches between the progress and no-progress card modes", () => {
@@ -228,7 +249,8 @@ describe("CardDesignTestScreen", () => {
 
     await waitFor(() => expect(screen.getByTestId("card-reference-example")).toHaveTextContent("Tercera línea."));
     expect(screen.getByTestId("reference-card")).toHaveAttribute("data-example-line-count", "3");
-    expect(screen.getByTestId("fox-carved-mark")).toBeInTheDocument();
+    expect(screen.getByTestId("fox-carved-mark")).toHaveAttribute("hidden");
+    expect(screen.getByTestId("fox-carved-mark")).toHaveStyle({ display: "none" });
     expect(screen.getByTestId("fox-carved-mark")).toHaveClass("fd-card-design__front-fox");
     expect(screen.getByTestId("card-reference-example")).toHaveClass("fd-card-design__example");
   });

@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, vi } from "vitest";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
+import { updateLanguagePreferenceAction } from "@/features/auth/actions";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import { MobileOnboardingForm } from "@/features/auth/components/mobile-onboarding-form";
 import { LocaleProvider } from "@/i18n/locale-provider";
@@ -99,6 +100,7 @@ describe("MobileOnboardingForm", () => {
 
   it("refreshes both login languages without rendering or submitting the avatar step", async () => {
     const user = userEvent.setup();
+    vi.mocked(updateLanguagePreferenceAction).mockClear();
     const { container } = render(
       <LocaleProvider initialLocale="tr">
         <AuthSessionProvider user={testUser}>
@@ -116,6 +118,7 @@ describe("MobileOnboardingForm", () => {
     expect(form).toHaveAttribute("data-mobile-onboarding-mode", "login-language-refresh");
     expect(form).toHaveAttribute("data-mobile-onboarding-step", "native");
     await selectLanguage("en");
+    expect(updateLanguagePreferenceAction).not.toHaveBeenCalled();
     const advanceButton = Array.from(form.querySelectorAll("button")).find((button) => !button.hasAttribute("aria-pressed"));
     await user.click(advanceButton as HTMLButtonElement);
 
@@ -124,6 +127,7 @@ describe("MobileOnboardingForm", () => {
       expect(container.querySelector('[data-onboarding-language-flag="en"]')).not.toBeInTheDocument();
     });
     await selectLanguage("de");
+    expect(updateLanguagePreferenceAction).not.toHaveBeenCalled();
     expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')).toBeInTheDocument();
     expect(form).toHaveAttribute("data-mobile-onboarding-step", "learning");
     expect(container.querySelector('input[name="profilePictureIndex"]')).not.toBeInTheDocument();
