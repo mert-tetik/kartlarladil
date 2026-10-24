@@ -20,6 +20,8 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { useAppMessage } from "@/components/app-message-provider";
+import { dispatchTutorialCardLayerCardsAdded } from "@/features/tutorial/tutorial-card-session";
+import { useTutorialCardCloseGuidance } from "@/features/tutorial/use-tutorial-card-close-guidance";
 import type { ActiveCardLimitDetails, LanguageCode, LimitErrorCode, VocabularyCard } from "@/types/domain";
 
 interface MobileCardGroupSheetProps {
@@ -37,6 +39,7 @@ export function MobileCardGroupSheet({
 }: MobileCardGroupSheetProps) {
   const { locale } = useLocale();
   const t = useT();
+  const showTutorialClosePointer = useTutorialCardCloseGuidance("card-groups");
   const { showMessage } = useAppMessage();
   const usesSuperWater = canUseSuperWater(locale);
   const displayText = (text: string) => formatSuperWaterText(locale, text);
@@ -88,6 +91,7 @@ export function MobileCardGroupSheet({
 
       if (result.addedCardIds.length > 0) {
         setAddedCounts((current) => ({ ...current, [groupId]: result.addedCardIds.length }));
+        dispatchTutorialCardLayerCardsAdded({ layer: "card-groups", count: result.addedCardIds.length });
       }
 
       if (result.limitReached) {
@@ -143,6 +147,10 @@ export function MobileCardGroupSheet({
       if (!result.ok) {
         showMessage(t("cards.groups.error"), "error");
         return;
+      }
+
+      if (result.addedCardIds.length > 0) {
+        dispatchTutorialCardLayerCardsAdded({ layer: "card-groups", count: result.addedCardIds.length });
       }
 
       if (result.limitReached) {
@@ -237,6 +245,7 @@ export function MobileCardGroupSheet({
         title={t("cards.groups.title")}
         panelLabel={t("cards.groups.title")}
         tutorialLayer="card-groups"
+        showTutorialClosePointer={showTutorialClosePointer}
         tone="lime"
         visual={<FolderPlus className="size-[3.25rem] stroke-[2.5] text-lime-950" aria-hidden="true" />}
         contentClassName={cn(

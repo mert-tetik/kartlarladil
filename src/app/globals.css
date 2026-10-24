@@ -6521,6 +6521,24 @@ body:has([data-games-active]) {
   }
 }
 
+@keyframes tutorial-circle-screen-enter {
+  from {
+    clip-path: circle(0 at 50% 50%);
+  }
+  to {
+    clip-path: circle(150vmax at 50% 50%);
+  }
+}
+
+@keyframes tutorial-circle-screen-exit {
+  from {
+    clip-path: circle(150vmax at 50% 50%);
+  }
+  to {
+    clip-path: circle(0 at 50% 50%);
+  }
+}
+
 @keyframes mission-details-content-enter {
   0% {
     opacity: 0;
@@ -6782,25 +6800,37 @@ body:has([data-games-active]) {
 .card-display-overlay,
 .card-gem-confirm-overlay,
 .card-group-confirm-overlay,
-.leaderboard-consent-overlay,
-.tutorial-origin-overlay {
+.leaderboard-consent-overlay {
   animation: mission-details-screen-enter 650ms cubic-bezier(0.85, 0, 0.15, 1) both;
   will-change: transform;
+}
+
+.tutorial-origin-overlay {
+  clip-path: circle(0 at 50% 50%);
+  animation: tutorial-circle-screen-enter 650ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: clip-path;
 }
 
 .card-display-overlay--closing,
 .card-gem-confirm-overlay--closing,
 .card-group-confirm-overlay--closing,
-.leaderboard-consent-overlay--closing,
-.tutorial-origin-overlay--closing {
+.leaderboard-consent-overlay--closing {
   animation: mission-details-screen-exit 500ms cubic-bezier(0.85, 0, 0.15, 1) 360ms both;
 }
 
+.tutorial-origin-overlay--closing {
+  animation: tutorial-circle-screen-exit 500ms cubic-bezier(0.85, 0, 0.15, 1) 360ms both;
+}
+
 .card-display-overlay--preparing,
-.leaderboard-consent-overlay--preparing,
-.tutorial-origin-overlay--preparing {
+.leaderboard-consent-overlay--preparing {
   animation: none;
   transform: scale(0);
+}
+
+.tutorial-origin-overlay--preparing {
+  animation: none;
+  clip-path: circle(0 at 50% 50%);
 }
 
 .card-display-overlay__item,
@@ -6810,6 +6840,27 @@ body:has([data-games-active]) {
 .tutorial-origin-overlay__item {
   animation: mission-details-content-enter 360ms cubic-bezier(0.85, 0, 0.15, 1) both;
   will-change: transform, opacity;
+}
+
+@keyframes tutorial-welcome-ui-scale-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.68);
+  }
+
+  72% {
+    opacity: 1;
+    transform: translateY(2px) scale(1.06);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.tutorial-origin-overlay__item.tutorial-welcome-ui-scale-in {
+  animation: tutorial-welcome-ui-scale-down 420ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
 }
 
 /* Tutorial callouts use a clean white surface and a flat speech-bubble tail;
@@ -6871,6 +6922,18 @@ body:has([data-games-active]) {
   }
 
   .tutorial-origin-overlay--preparing {
+    clip-path: circle(0 at 50% 50%);
+  }
+
+  .tutorial-origin-overlay,
+  .tutorial-origin-overlay--closing {
+    animation: none;
+    clip-path: circle(150vmax at 50% 50%);
+  }
+
+  .tutorial-origin-overlay__item.tutorial-welcome-ui-scale-in {
+    animation: none;
+    opacity: 1;
     transform: none;
   }
 }

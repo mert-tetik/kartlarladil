@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, type FormEvent } from "react";
 import { ChevronLeft } from "lucide-react";
 import { LanguageFlagWithBrandOutline } from "@/components/language-flag";
+import { useAppMessage } from "@/components/app-message-provider";
 import { LANGUAGES } from "@/data/languages";
 import { writeLandingCardLanguage } from "@/app/components/landing-card-language";
 import {
@@ -80,6 +81,7 @@ export function MobileOnboardingForm({
   const { locale, setLocale } = useLocale();
   const detectedLocale = useDetectedLocale();
   const { refreshProfile, updateProfileField } = useAuthSession();
+  const { showMessage } = useAppMessage();
   const initialDefaults = getOnboardingLanguageDefaults(countryCode, detectedLocale);
   const [step, setStep] = useState<OnboardingStep>("native");
   const [preferredUiLocale, setPreferredUiLocale] = useState<LocaleCode>(initialDefaults.preferredUiLocale);
@@ -90,15 +92,11 @@ export function MobileOnboardingForm({
   }));
   const [profilePictureIndex, setProfilePictureIndex] = useState(0);
   const [onboardingState, onboardingFormAction] = useActionState(completeOnboardingAction, AUTH_ACTION_IDLE_STATE);
-  const [loginLanguageState, loginLanguageFormAction] = useActionState(
-    updateMobileLoginLanguagePreferencesAction,
-    AUTH_ACTION_IDLE_STATE,
-  );
   const isLoginLanguageRefresh = mode === "login-language-refresh";
-  const state = isLoginLanguageRefresh ? loginLanguageState : onboardingState;
-  const formAction = isLoginLanguageRefresh ? loginLanguageFormAction : onboardingFormAction;
+  const state = onboardingState;
   const formRef = useRef<HTMLFormElement | null>(null);
   const handledSuccessRef = useRef(false);
+  const loginLanguageSubmitStartedRef = useRef(false);
   const hasSelectedLanguageRef = useRef(false);
   const hasSelectedLearningLanguageRef = useRef(false);
 
@@ -123,28 +121,21 @@ export function MobileOnboardingForm({
 
     handledSuccessRef.current = true;
     writeLandingCardLanguage(preferredLanguageCode);
-    // The locale was synchronized before submission; refreshing here races with onComplete navigation.
-    if (isLoginLanguageRefresh) {
-      updateProfileField({ preferredLanguageCode, preferredUiLocale });
-    } else {
-      updateProfileField({
-        preferredLanguageCode,
-        preferredUiLocale,
-        preferredTier: "all",
-        profilePictureIndex,
-        onboardingCompleted: true,
-      });
-    }
+    updateProfileField({
+      preferredLanguageCode,
+      preferredUiLocale,
+      preferredTier: "all",
+      profilePictureIndex,
+      onboardingCompleted: true,
+    });
     void refreshProfile();
     onComplete?.();
   }, [
     onComplete,
-    isLoginLanguageRefresh,
     preferredLanguageCode,
     preferredUiLocale,
     profilePictureIndex,
     refreshProfile,
-    setLocale,
     state.status,
     updateProfileField,
   ]);
@@ -208,6 +199,48 @@ export function MobileOnboardingForm({
     setStep((current) => (current === "picture" ? "learning" : "native"));
   }
 
+  function startLoginLanguageRefresh(form: HTMLFormElement) {
+    if (loginLanguageSubmitStartedRef.current) {
+      return;
+    }
+
+    loginLanguageSubmitStartedRef.current = true;
+    const formData = new FormData(form);
+    let savePromise: ReturnType<typeof updateMobileLoginLanguagePreferencesAction>;
+    try {
+      savePromise = updateMobileLoginLanguagePreferencesAction(AUTH_ACTION_IDLE_STATE, formData);
+    } catch (error) {
+      savePromise = Promise.reject(error);
+    }
+
+    // These preferences are already stored locally; update the in-memory profile and continue
+    // without waiting for the profile write to round-trip to Supabase.
+    setLocale(preferredUiLocale);
+    writeLandingCardLanguage(preferredLanguageCode);
+    updateProfileField({ preferredLanguageCode, preferredUiLocale });
+    onComplete?.();
+
+    void savePromise
+      .then((result) => {
+        if (result.status === "success") {
+          void refreshProfile().catch(() => undefined);
+          return;
+        }
+
+        loginLanguageSubmitStartedRef.current = false;
+        showMessage(result.message || t("auth.message.onboardingSaveFailed"), "error");
+      })
+      .catch(() => {
+        loginLanguageSubmitStartedRef.current = false;
+        showMessage(t("auth.message.onboardingSaveFailed"), "error");
+      });
+  }
+
+  function handleLoginLanguageRefreshSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    startLoginLanguageRefresh(event.currentTarget);
+  }
+
   const isLanguageStep = step === "native" || step === "learning";
   const heading =
     step === "native"
@@ -232,7 +265,8 @@ export function MobileOnboardingForm({
   return (
     <form
       ref={formRef}
-      action={formAction}
+      action={isLoginLanguageRefresh ? undefined : onboardingFormAction}
+      onSubmit={isLoginLanguageRefresh ? handleLoginLanguageRefreshSubmit : undefined}
       data-mobile-onboarding-mode={mode}
       data-mobile-onboarding-step={step}
       data-gateway-flow-screen
@@ -347,6 +381,14 @@ export function MobileOnboardingForm({
             ) : (
               <div className={cn("mobile-primary-action-depth w-full rounded-md", actionDepthClass)}>
                 <SubmitButton
+                  data-login-language-submit={isLoginLanguageRefresh ? "true" : undefined}
+                  onClick={isLoginLanguageRefresh
+                    ? () => {
+                      if (formRef.current) {
+                        startLoginLanguageRefresh(formRef.current);
+                      }
+                    }
+                    : undefined}
                   className={cn("h-14 w-full text-base font-bold disabled:opacity-100", actionButtonClass)}
                   pendingLabel={t("auth.onboarding.pending")}
                 >

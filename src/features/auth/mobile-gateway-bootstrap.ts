@@ -5,6 +5,7 @@ export function shouldKeepMobileGatewayBootstrapVisible({
   isRankUpTestMode,
   isOfferTriggered,
   isEntitlementsLoading,
+  isLoginLanguageRefresh,
 }: {
   mounted: boolean;
   isMobileViewport: boolean;
@@ -12,6 +13,7 @@ export function shouldKeepMobileGatewayBootstrapVisible({
   isRankUpTestMode: boolean;
   isOfferTriggered: boolean;
   isEntitlementsLoading: boolean;
+  isLoginLanguageRefresh: boolean;
 }) {
   if (isPublicMobilePath || isRankUpTestMode) {
     return false;
@@ -24,6 +26,7 @@ export function shouldKeepMobileGatewayBootstrapVisible({
   return (
     isMobileViewport &&
     isOfferTriggered &&
-    isEntitlementsLoading
+    isEntitlementsLoading &&
+    !isLoginLanguageRefresh
   );
 }

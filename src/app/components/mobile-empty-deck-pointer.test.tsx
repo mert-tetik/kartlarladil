@@ -87,4 +87,31 @@ describe("MobileEmptyDeckPointer", () => {
 
     unmount();
   });
+
+  it("can point to a close button inside the tutorial's active modal", async () => {
+    const dialog = document.createElement("div");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    setRect(dialog, { height: 200, width: 200 });
+    const closeButton = document.createElement("button");
+    setRect(closeButton, { left: 320, top: 16, width: 48, height: 48 });
+    dialog.append(closeButton);
+    document.body.append(dialog);
+
+    const { unmount } = render(
+      <MobileEmptyDeckPointer
+        enabled
+        anchorRef={{ current: closeButton }}
+        allowWithinBlockingLayer
+      />,
+    );
+
+    const pointer = await screen.findByTestId("mobile-empty-deck-pointer");
+    expect(pointer.parentElement).toBe(document.body);
+    expect(pointer).toHaveClass("fixed", "z-[1100]");
+    expect(pointer).toHaveStyle({ left: "319.4px", top: "38px" });
+
+    unmount();
+    dialog.remove();
+  });
 });

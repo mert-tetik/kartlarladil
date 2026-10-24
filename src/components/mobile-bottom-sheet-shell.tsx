@@ -3,7 +3,8 @@
 import { createPortal } from "react-dom";
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode, type Ref } from "react";
 import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { MobileEmptyDeckPointer } from "@/app/components/mobile-empty-deck-pointer";
+import { buttonClassName } from "@/components/ui/button";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
@@ -129,6 +130,7 @@ export interface MobileBottomSheetShellProps {
   tutorialLayer?: string;
   tone?: MobileBottomSheetTone;
   showProtrusionCircle?: boolean;
+  showTutorialClosePointer?: boolean;
 }
 
 export function MobileBottomSheetShell({
@@ -155,6 +157,7 @@ export function MobileBottomSheetShell({
   tutorialLayer,
   tone = "brand",
   showProtrusionCircle = true,
+  showTutorialClosePointer = false,
 }: MobileBottomSheetShellProps) {
   const t = useT();
   const { locale } = useLocale();
@@ -170,6 +173,7 @@ export function MobileBottomSheetShell({
   const onEnteredRef = useRef(onEntered);
   const onExitedRef = useRef(onExited);
   const hasBeenOpenedRef = useRef(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   onEnteredRef.current = onEntered;
   onExitedRef.current = onExited;
 
@@ -443,12 +447,12 @@ export function MobileBottomSheetShell({
             </h2>
             {subtitle ? <div className="mt-2 w-full">{subtitle}</div> : null}
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
+            ref={closeButtonRef}
+            type="button"
             onClick={closeSheet}
             aria-label={t("common.close")}
-            className={cn(
+            className={buttonClassName("ghost", "icon", cn(
               "!size-12 absolute",
               toneStyles.closeClassName,
               fullScreen
@@ -456,10 +460,15 @@ export function MobileBottomSheetShell({
                 : isCenteredDialog
                   ? "right-2 top-2"
                   : "right-2 top-[-2.25rem]",
-            )}
+            ))}
           >
             <X className="size-7 stroke-[3]" aria-hidden="true" />
-          </Button>
+          </button>
+          <MobileEmptyDeckPointer
+            enabled={open && showTutorialClosePointer}
+            anchorRef={closeButtonRef}
+            allowWithinBlockingLayer
+          />
         </div>
 
         <div className={cn("relative z-10 flex min-h-0 flex-1 flex-col", contentClassName)}>

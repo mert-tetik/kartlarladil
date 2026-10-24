@@ -46,6 +46,13 @@ describe("vibration", () => {
     expect(browserVibrate).toHaveBeenCalledWith([18]);
   });
 
+  it("uses a solid pulse when advancing through the tutorial", () => {
+    const browserVibrate = vi.fn();
+    setBrowserVibration(browserVibrate);
+    vibrate("tutorial-next");
+    expect(browserVibrate).toHaveBeenCalledWith([72]);
+  });
+
   it("does not vibrate when the user disabled vibration", () => {
     const nativeVibrate = vi.fn(() => true);
     window.FoxiesDeckNativeVibration = { vibrate: nativeVibrate };

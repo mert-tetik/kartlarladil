@@ -52,8 +52,10 @@ export async function GET(request: NextRequest) {
   }
 
   if (user) {
-    await recordAppLogin(user.id);
-    const { onboardingCompleted } = await ensureUserProfile(supabase, user);
+    const [, { onboardingCompleted }] = await Promise.all([
+      recordAppLogin(user.id),
+      ensureUserProfile(supabase, user),
+    ]);
 
     if (!onboardingCompleted) {
       return NextResponse.redirect(`${origin}/register/preferences?next=${encodeURIComponent(nextPath)}`);

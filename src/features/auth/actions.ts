@@ -631,7 +631,6 @@ export async function updateMobileLoginLanguagePreferencesAction(
     };
   }
 
-  revalidatePath("/", "layout");
   revalidatePath("/account/settings");
 
   return {

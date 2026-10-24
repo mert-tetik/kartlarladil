@@ -1,6 +1,8 @@
 import { act, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileCardSwipeOverlay } from "@/app/components/mobile-card-swipe-overlay";
+import { dispatchTutorialCardLayerPromptChanged } from "@/features/tutorial/tutorial-card-session";
+import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import type { InventoryCard, VocabularyCard } from "@/types/domain";
 
 const { cancelCardPronunciationMock, enqueueCardPronunciationMock } = vi.hoisted(() => ({
@@ -84,12 +86,14 @@ describe("MobileCardSwipeOverlay", () => {
     enqueueCardPronunciationMock.mockReset();
     inventoryState.cards = [];
     inventoryState.activeCardLimit = null;
+    useTutorialStore.setState({ active: false, completed: false, introSeen: true, step: 0, testMode: false });
   });
 
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     window.localStorage.clear();
+    useTutorialStore.setState({ active: false, completed: false, introSeen: false, step: 0, testMode: false });
   });
 
   it("marks the full-screen overlay to hide the mobile bottom navigation", () => {
@@ -98,6 +102,54 @@ describe("MobileCardSwipeOverlay", () => {
     expect(document.querySelector("[data-mobile-hide-bottom-nav='true']")).toHaveAttribute(
       "data-card-swipe-incoming-state",
     );
+  });
+
+  it("waits for the first tutorial prompt to disappear before starting the swipe demo", async () => {
+    window.localStorage.removeItem("foxiesdeck:card-swipe-demo:shown");
+    useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 0, testMode: false });
+    render(<MobileCardSwipeOverlay open language="en" onClose={vi.fn()} />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    const card = document.querySelector("[data-card-swipe-card]") as HTMLElement;
+    expect(card).toBeInTheDocument();
+    dispatchTutorialCardLayerPromptChanged({ layer: "draw-cards", active: true });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(card.style.transform).toBe("");
+
+    dispatchTutorialCardLayerPromptChanged({ layer: "draw-cards", active: false });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(card.style.transform).toContain("translate3d(-124px");
+  });
+
+  it("marks the draw-card entrance complete after its animation fallback", async () => {
+    render(<MobileCardSwipeOverlay open language="en" onClose={vi.fn()} />);
+    const overlay = document.querySelector("[data-mobile-hide-bottom-nav='true']");
+    expect(overlay).toHaveAttribute("data-card-swipe-entry-complete", "false");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+      const mountFrames = [...animationFrames.values()];
+      animationFrames.clear();
+      mountFrames.forEach((callback) => callback(performance.now()));
+    });
+    await act(async () => {
+      const enterFrames = [...animationFrames.values()];
+      animationFrames.clear();
+      enterFrames.forEach((callback) => callback(performance.now()));
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_400);
+    });
+
+    expect(overlay).toHaveAttribute("data-card-swipe-entry-complete", "true");
   });
 
   it("shows the next card immediately while the outgoing card exits", async () => {

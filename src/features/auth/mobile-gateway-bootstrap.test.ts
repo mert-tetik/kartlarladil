@@ -7,6 +7,7 @@ const baseState = {
   isRankUpTestMode: false,
   isOfferTriggered: false,
   isEntitlementsLoading: false,
+  isLoginLanguageRefresh: false,
 };
 
 describe("mobile gateway bootstrap", () => {
@@ -24,6 +25,17 @@ describe("mobile gateway bootstrap", () => {
         isEntitlementsLoading: true,
       }),
     ).toBe(true);
+  });
+
+  it("shows the login language picker without waiting for subscription details", () => {
+    expect(
+      shouldKeepMobileGatewayBootstrapVisible({
+        ...baseState,
+        isOfferTriggered: true,
+        isEntitlementsLoading: true,
+        isLoginLanguageRefresh: true,
+      }),
+    ).toBe(false);
   });
 
   it("does not block public routes or a resolved app route", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type AnimationEvent as ReactAnimationEvent, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { flushSync } from "react-dom";
 import { Check, X } from "lucide-react";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
@@ -12,6 +12,14 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
+import {
+  dispatchTutorialCardLayerCardsAdded,
+  TUTORIAL_CARD_LAYER_PROMPT_CHANGED_EVENT,
+  type TutorialCardLayerPromptChangedDetail,
+} from "@/features/tutorial/tutorial-card-session";
+import { useTutorialStore } from "@/features/tutorial/tutorial-store";
+import { useTutorialCardCloseGuidance } from "@/features/tutorial/use-tutorial-card-close-guidance";
+import { MobileEmptyDeckPointer } from "@/app/components/mobile-empty-deck-pointer";
 import type { LanguageCode, LimitErrorCode, VocabularyCard } from "@/types/domain";
 
 const THRESHOLD = 112;
@@ -19,6 +27,8 @@ const DEMO_KEY = "foxiesdeck:card-swipe-demo:shown";
 const CARD_FRAME_CORNER_RADIUS = "12% / 8.5%";
 const DEMO_START_DELAY = 1000;
 const DEMO_SIDE_HOLD = 1800;
+const CARD_ENTRY_ANIMATION_FALLBACK_MS = 1400;
+const TUTORIAL_PROMPT_WAIT_FALLBACK_MS = 10_000;
 const CARD_EXIT_DURATION = 320;
 const INCOMING_ENTRY_DURATION = 260;
 const INCOMING_START_OFFSET = 180;
@@ -32,6 +42,7 @@ type IncomingState = "idle" | "waiting" | "teleporting" | "preparing" | "enterin
 export function MobileCardSwipeOverlay({ open, language, onClose, onSubscriptionLimitReached }: { open: boolean; language: LanguageCode; onClose: () => void; onSubscriptionLimitReached?: (errorCode: LimitErrorCode) => void }) {
   const { locale } = useLocale();
   const t = useT();
+  const showTutorialClosePointer = useTutorialCardCloseGuidance("draw-cards");
   const inventory = useInventoryStore((state) => state.cards);
   const activeCardLimit = useInventoryStore((state) => state.activeCardLimit);
   const addCard = useInventoryStore((state) => state.addCard);
@@ -47,22 +58,36 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
   const [completedSwipes, setCompletedSwipes] = useState(0);
   const [mounted, setMounted] = useState(open);
   const [entered, setEntered] = useState(false);
+  const [cardEntranceComplete, setCardEntranceComplete] = useState(false);
   const start = useRef<{ x: number; y: number } | null>(null);
   const mainCardRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const swipeFeedbackRef = useRef<SwipeDirection | null>(null);
   const swipeAnimationActiveRef = useRef(false);
   const swipeInteractionActiveRef = useRef(false);
+  const cardEntranceCompleteRef = useRef(false);
   const dragPosition = useRef({ x: 0, y: 0 });
   const queuedDragPosition = useRef({ x: 0, y: 0 });
   const dragFrame = useRef<number | null>(null);
   const card = deck[0]?.language === language ? deck[0] : null;
   const usedIds = useMemo(() => new Set(inventory.map((item) => item.cardId)), [inventory]);
 
+  const completeCardEntrance = useCallback(() => {
+    if (cardEntranceCompleteRef.current) return;
+    cardEntranceCompleteRef.current = true;
+    setCardEntranceComplete(true);
+  }, []);
+
+  const handleCardEntranceAnimationEnd = useCallback((event: ReactAnimationEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget || event.animationName !== "card-swipe-overlay-enter-from-bottom") return;
+    completeCardEntrance();
+  }, [completeCardEntrance]);
+
   useEffect(() => {
     if (open) {
-      setEntered(false);
       let enterFrame: number | null = null;
       const mountFrame = window.requestAnimationFrame(() => {
+        setEntered(false);
         setMounted(true);
         enterFrame = window.requestAnimationFrame(() => setEntered(true));
       });
@@ -100,10 +125,22 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
       setLocked(false);
       setDragging(false);
       setCompletedSwipes(0);
+      cardEntranceCompleteRef.current = false;
+      setCardEntranceComplete(false);
     }, 0);
 
     return () => window.clearTimeout(resetTimer);
   }, [language, open]);
+
+  useEffect(() => {
+    if (!open || !entered) return;
+
+    // The CSS card entrance has an 820ms delay and a 480ms duration. This
+    // safety timer still releases the tutorial on reduced-motion/device edge
+    // cases where an animationend event is not delivered.
+    const timer = window.setTimeout(completeCardEntrance, CARD_ENTRY_ANIMATION_FALLBACK_MS);
+    return () => window.clearTimeout(timer);
+  }, [completeCardEntrance, entered, language, open]);
 
   const loadDeck = useCallback(() => {
     setDeck((current) => {
@@ -137,8 +174,63 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
 
   useEffect(() => {
     if (!open || typeof window === "undefined" || window.localStorage.getItem(DEMO_KEY)) return;
-    const timers = [window.setTimeout(() => { setLocked(true); setDemoActive(true); setDragging(false); start.current = null; setDemoX(0); }, 0), window.setTimeout(() => setDemoX(-THRESHOLD - 12), DEMO_START_DELAY), window.setTimeout(() => setDemoX(THRESHOLD + 12), DEMO_START_DELAY + DEMO_SIDE_HOLD), window.setTimeout(() => setDemoX(0), DEMO_START_DELAY + DEMO_SIDE_HOLD * 2), window.setTimeout(() => { window.localStorage.setItem(DEMO_KEY, "1"); setDemoActive(false); setLocked(false); }, DEMO_START_DELAY + DEMO_SIDE_HOLD * 2 + 500)];
-    return () => timers.forEach(window.clearTimeout);
+    const timers: number[] = [];
+    let promptWaitTimer: number | null = null;
+    let promptChangedHandler: ((event: Event) => void) | null = null;
+    let demoStarted = false;
+
+    const startDemo = (startImmediately = false) => {
+      if (demoStarted) return;
+      demoStarted = true;
+      if (promptWaitTimer !== null) window.clearTimeout(promptWaitTimer);
+      promptWaitTimer = null;
+      if (promptChangedHandler) {
+        window.removeEventListener(TUTORIAL_CARD_LAYER_PROMPT_CHANGED_EVENT, promptChangedHandler);
+        promptChangedHandler = null;
+      }
+      const firstSwipeDelay = startImmediately ? 0 : DEMO_START_DELAY;
+      timers.push(
+        window.setTimeout(() => { setLocked(true); setDemoActive(true); setDragging(false); start.current = null; setDemoX(0); }, 0),
+        window.setTimeout(() => setDemoX(-THRESHOLD - 12), firstSwipeDelay),
+        window.setTimeout(() => setDemoX(THRESHOLD + 12), firstSwipeDelay + DEMO_SIDE_HOLD),
+        window.setTimeout(() => setDemoX(0), firstSwipeDelay + DEMO_SIDE_HOLD * 2),
+        window.setTimeout(() => { window.localStorage.setItem(DEMO_KEY, "1"); setDemoActive(false); setLocked(false); }, firstSwipeDelay + DEMO_SIDE_HOLD * 2 + 500),
+      );
+    };
+
+    const tutorial = useTutorialStore.getState();
+    const isFirstTutorialCardDraw = (tutorial.active || tutorial.testMode)
+      && !tutorial.completed
+      && tutorial.step === 0;
+
+    if (!isFirstTutorialCardDraw) {
+      startDemo();
+    } else {
+      let promptWasShown = false;
+      promptChangedHandler = (event) => {
+        const detail = (event as CustomEvent<TutorialCardLayerPromptChangedDetail>).detail;
+        if (detail?.layer !== "draw-cards") return;
+
+        if (detail.active) {
+          promptWasShown = true;
+          if (promptWaitTimer !== null) window.clearTimeout(promptWaitTimer);
+          promptWaitTimer = null;
+          return;
+        }
+
+        if (promptWasShown) startDemo(true);
+      };
+      window.addEventListener(TUTORIAL_CARD_LAYER_PROMPT_CHANGED_EVENT, promptChangedHandler);
+      promptWaitTimer = window.setTimeout(() => {
+        if (!promptWasShown) startDemo();
+      }, TUTORIAL_PROMPT_WAIT_FALLBACK_MS);
+    }
+
+    return () => {
+      if (promptWaitTimer !== null) window.clearTimeout(promptWaitTimer);
+      if (promptChangedHandler) window.removeEventListener(TUTORIAL_CARD_LAYER_PROMPT_CHANGED_EVENT, promptChangedHandler);
+      timers.forEach(window.clearTimeout);
+    };
   }, [open]);
 
   function finish(direction: SwipeDirection) {
@@ -248,6 +340,9 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
 
       void Promise.resolve(addCard(cardId))
         .then((result) => {
+          if (result.ok && !result.limitReached) {
+            dispatchTutorialCardLayerCardsAdded({ layer: "draw-cards", count: 1 });
+          }
           if (result.limitReached) {
             onSubscriptionLimitReached?.("free_active_card_limit");
           }
@@ -325,7 +420,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
     : { transform: `translate3d(${incomingX}px, ${incomingY}px, 0) rotate(0deg)`, opacity: incomingIsHidden ? 0 : 1 };
   const overlayPhase = open ? entered ? "open" : "opening" : "exiting";
   const shouldRenderCard = card && incoming !== "waiting" && incoming !== "teleporting";
-  return <div role="dialog" aria-modal={open} aria-hidden={!open} inert={!open} data-mobile-hide-bottom-nav="true" data-tutorial-layer="draw-cards" data-card-swipe-incoming-state={incoming} data-card-swipe-phase={overlayPhase} className={cn("card-swipe-overlay fixed inset-0 z-[70] flex flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] lg:hidden", entered && open ? "pointer-events-auto" : "pointer-events-none")}>
+  return <div role="dialog" aria-modal={open} aria-hidden={!open} inert={!open} data-mobile-hide-bottom-nav="true" data-tutorial-layer="draw-cards" data-card-swipe-entry-complete={cardEntranceComplete} data-card-swipe-incoming-state={incoming} data-card-swipe-phase={overlayPhase} className={cn("card-swipe-overlay fixed inset-0 z-[70] flex flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] lg:hidden", entered && open ? "pointer-events-auto" : "pointer-events-none")}>
     <div data-card-swipe-part="header" className="relative z-[60] flex min-h-10 items-center justify-center">
       <p
         data-card-swipe-title
@@ -336,13 +431,18 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
       >
         {formatSuperWaterText(locale, t("cards.randomDrawTitle"))}
       </p>
-      <button type="button" onClick={onClose} aria-label={t("common.close")} className="relative z-[70] ml-auto inline-flex size-10 pointer-events-auto items-center justify-center rounded-md text-foreground"><X className="size-6" /></button>
+      <button ref={closeButtonRef} type="button" onClick={onClose} aria-label={t("common.close")} className="relative z-[70] ml-auto inline-flex size-10 pointer-events-auto items-center justify-center rounded-md text-foreground"><X className="size-6" /></button>
+      <MobileEmptyDeckPointer
+        enabled={open && showTutorialClosePointer}
+        anchorRef={closeButtonRef}
+        allowWithinBlockingLayer
+      />
     </div>
     <div className="relative flex flex-1 -translate-y-8 items-center justify-center overflow-hidden">
       <p data-card-swipe-part="instruction" className={cn("pointer-events-none absolute inset-x-5 top-14 z-30 text-center text-sm font-bold leading-snug text-foreground transition-[opacity,transform] duration-300 ease-out", completedSwipes >= 3 ? "-translate-y-2 opacity-0" : "translate-y-0 opacity-100")}>
         {t("cards.swipeInstruction")}
       </p>
-      {shouldRenderCard ? <div data-card-swipe-part="card" className="relative z-10 w-[72vw] max-w-[280px] translate-y-5">
+      {shouldRenderCard ? <div data-card-swipe-part="card" onAnimationEnd={handleCardEntranceAnimationEnd} className="relative z-10 w-[72vw] max-w-[280px] translate-y-5">
         <div key={card.sourceKey} ref={mainCardRef} data-card-swipe-card onPointerDown={(event) => { if (!locked) { swipeInteractionActiveRef.current = true; start.current = { x: event.clientX, y: event.clientY }; dragPosition.current = { x: 0, y: 0 }; queuedDragPosition.current = { x: 0, y: 0 }; setDragging(true); event.currentTarget.setPointerCapture(event.pointerId); event.currentTarget.style.transition = "none"; } }} onPointerMove={handlePointerMove} onPointerUp={finishDrag} onPointerCancel={resetDrag} onLostPointerCapture={() => { if (start.current) resetDrag(); }} className={cn("relative w-full touch-none will-change-transform", dragging && !demoActive ? "" : "transition-[transform,opacity] duration-[260ms] ease-out", locked ? "pointer-events-none" : "") } style={mainCardStyle}>
           <div data-card-swipe-state={leftActive ? "skip" : rightActive ? "add" : "idle"} className={cn("pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden transition-colors", leftActive ? "bg-red-500/85" : rightActive ? "bg-emerald-500/85" : "bg-transparent")} style={{ borderRadius: CARD_FRAME_CORNER_RADIUS }}>
             {leftActive ? <X className="size-24 stroke-[3.5] text-white" aria-hidden="true" /> : null}

@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { SlowConnectionMonitor } from "@/components/slow-connection-monitor";
 import { ThemeProvider } from "@/components/theme-provider";
+import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { CUSTOM_CARD_GENERATION_STALLED_EVENT } from "@/lib/slow-connection-quality";
 
 const routerMocks = vi.hoisted(() => ({ push: vi.fn(), pathname: "/" }));
@@ -48,6 +49,33 @@ afterEach(() => {
   routerMocks.push.mockClear();
   routerMocks.pathname = "/";
   MockPerformanceObserver.lastInstance = undefined;
+  useTutorialStore.setState({ active: false, completed: false, introSeen: false, step: 0, testMode: false });
+});
+
+it("never opens the prompt while the tutorial flow is active", async () => {
+  useTutorialStore.setState({ active: true, completed: false, testMode: false });
+  renderPrompt();
+
+  await act(async () => {
+    window.dispatchEvent(new Event(CUSTOM_CARD_GENERATION_STALLED_EVENT));
+  });
+
+  expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+});
+
+it("closes an open prompt when the tutorial starts and does not queue it for later", async () => {
+  renderPrompt();
+  expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
+
+  act(() => {
+    useTutorialStore.setState({ active: true, completed: false, testMode: false });
+  });
+  expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+
+  act(() => {
+    useTutorialStore.setState({ active: false, completed: false, testMode: false });
+  });
+  expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
 });
 
 it("shows a centered, outline-free brand dialog with stacked rounded actions", async () => {

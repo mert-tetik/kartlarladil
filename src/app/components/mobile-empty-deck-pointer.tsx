@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { createPortal } from "react-dom";
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { cn } from "@/lib/utils";
 
 const BLOCKING_LAYER_SELECTOR = [
   "[data-landing-tutorial]",
@@ -18,15 +19,19 @@ const BLOCKING_LAYER_SELECTOR = [
 export function MobileEmptyDeckPointer({
   enabled,
   anchorRef,
+  allowWithinBlockingLayer = false,
 }: {
   enabled: boolean;
   anchorRef?: RefObject<HTMLElement | null>;
+  allowWithinBlockingLayer?: boolean;
 }) {
   const [blocked, setBlocked] = useState(false);
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
   const markerRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
+    if (allowWithinBlockingLayer) return;
+
     function updateBlockedState() {
       setBlocked(hasBlockingLayer());
     }
@@ -41,16 +46,16 @@ export function MobileEmptyDeckPointer({
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, [allowWithinBlockingLayer]);
 
   useLayoutEffect(() => {
-    if (!anchorRef || !enabled || blocked) {
+    if (!anchorRef || !enabled || (blocked && !allowWithinBlockingLayer)) {
       setPosition(null);
       return;
     }
 
     const updatePosition = () => {
-      if (hasBlockingLayer()) {
+      if (!allowWithinBlockingLayer && hasBlockingLayer()) {
         setPosition(null);
         return;
       }
@@ -84,7 +89,7 @@ export function MobileEmptyDeckPointer({
       window.removeEventListener("scroll", updatePosition, true);
       resizeObserver?.disconnect();
     };
-  }, [anchorRef, blocked, enabled]);
+  }, [allowWithinBlockingLayer, anchorRef, blocked, enabled]);
 
   const marker = (
     <span
@@ -94,7 +99,7 @@ export function MobileEmptyDeckPointer({
     />
   );
 
-  if (!enabled || blocked) {
+  if (!enabled || (blocked && !allowWithinBlockingLayer)) {
     return null;
   }
 
@@ -111,7 +116,10 @@ export function MobileEmptyDeckPointer({
       {marker}
       {createPortal(
         <PointerImage
-          className="empty-deck-pointer-anchor pointer-events-none fixed z-[80]"
+          className={cn(
+            "empty-deck-pointer-anchor pointer-events-none fixed",
+            allowWithinBlockingLayer ? "z-[1100]" : "z-[80]",
+          )}
           style={{ left: position.left, top: position.top }}
         />,
         document.body,

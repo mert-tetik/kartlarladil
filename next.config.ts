@@ -109,6 +109,14 @@ const nextConfig: NextConfig = {
         pathname: "/mobile-nav-icons/**",
         search: "?v=20261006-2",
       },
+      {
+        pathname: "/mascots/tutorial-welcome/first-frame.png",
+        search: "?v=20261024-png-frames-2",
+      },
+      {
+        pathname: "/mascots/tutorial-welcome/last-frame.png",
+        search: "?v=20261024-png-frames-2",
+      },
     ],
   },
   async redirects() {

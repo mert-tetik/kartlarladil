@@ -4,6 +4,7 @@ import {
   updateLanguagePreferenceAction,
   updateMobileLoginLanguagePreferencesAction,
 } from "@/features/auth/actions";
+import { revalidatePath } from "next/cache";
 import { DELETE_ACCOUNT_CONFIRMATION } from "@/features/auth/auth-schemas";
 import { vi } from "vitest";
 
@@ -241,6 +242,7 @@ describe("updateMobileLoginLanguagePreferencesAction", () => {
     expect(mockEq).toHaveBeenCalledWith("user_id", "user-1");
     expect(mockSelect).toHaveBeenCalledWith("user_id");
     expect(mockMaybeSingle).toHaveBeenCalledOnce();
+    expect(vi.mocked(revalidatePath)).not.toHaveBeenCalledWith("/", "layout");
   });
 
   it("does not report success when no profile row was updated", async () => {

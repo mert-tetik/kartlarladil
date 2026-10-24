@@ -9,12 +9,15 @@ import { isTutorialVisibleState, useTutorialStore } from "@/features/tutorial/tu
 import {
   dispatchTutorialCardLayerClosed,
   dispatchTutorialCardLayerOpened,
+  dispatchTutorialCardLayerPromptChanged,
   dispatchTutorialCardLayerRequested,
+  type TutorialCardLayer,
   type TutorialLayerOrigin,
 } from "@/features/tutorial/tutorial-card-session";
 import { getTargetForStep, getTutorialStep, type TutorialTarget } from "@/features/tutorial/tutorial-targets";
 import { cn } from "@/lib/utils";
 import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
+import { vibrate } from "@/lib/vibration";
 
 const MOBILE_BREAKPOINT = 1023;
 const SPOTLIGHT_PADDING = 18;
@@ -23,13 +26,16 @@ const CALLOUT_WIDTH = 300;
 const MESSAGE_HEIGHT = 96;
 const ORIGINAL_TUTORIAL_ARROWHEAD_LENGTH = 22;
 const TUTORIAL_START_DELAY_MS = 700;
+const WELCOME_ANIMATION_DURATION_MS = 2155;
+const WELCOME_MEDIA_ASSET_VERSION = "20261024-45fps-1";
+const WELCOME_FRAME_ASSET_VERSION = "20261024-png-frames-2";
+const WELCOME_ANIMATION_FALLBACK_URL = `/mascots/tutorial-welcome/mascot-animation-fallback.webp?v=${WELCOME_MEDIA_ASSET_VERSION}`;
 const SCREEN_TRANSITION_MS = 1000;
 const SCREEN_SCROLL_DELAY_MS = 400;
 const ORIGIN_SCREEN_ENTER_MS = 650;
 const ORIGIN_SCREEN_CLOSE_TOTAL_MS = 860;
 const LAYER_MESSAGE_VISIBLE_MS = 1500;
 const LAYER_OPEN_RECOVERY_TIMEOUT_MS = 4000;
-const WELCOME_EXIT_DURATION_MS = ORIGIN_SCREEN_CLOSE_TOTAL_MS;
 const TUTORIAL_MESSAGE_SURFACE_CLASS =
   "border-0 shadow-none outline-none ring-0 before:border-0 before:shadow-none before:outline-none before:ring-0";
 
@@ -93,6 +99,8 @@ export function LandingTutorial() {
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth <= MOBILE_BREAKPOINT);
   const [position, setPosition] = useState<SpotlightPosition | null>(null);
   const [phase, setPhase] = useState<TutorialPhase>("visible");
+  const [welcomeStage, setWelcomeStage] = useState<"welcome" | "add-cards">("welcome");
+  const [showWelcomeBehindChoices, setShowWelcomeBehindChoices] = useState(false);
   const [activeLayer, setActiveLayer] = useState<string | null>(null);
   const [isWelcomeExiting, setIsWelcomeExiting] = useState(false);
   const [isChoiceExiting, setIsChoiceExiting] = useState(false);
@@ -102,7 +110,7 @@ export function LandingTutorial() {
   const [layerOrigin, setLayerOrigin] = useState<TutorialLayerOrigin>({ x: 0, y: 0 });
   const [tutorialStartReady, setTutorialStartReady] = useState(false);
   const [isLandingReady, setIsLandingReady] = useState(false);
-  const welcomeExitTimerRef = useRef<number | null>(null);
+  const welcomeUnderlayTimerRef = useRef<number | null>(null);
   const transitionTimerRef = useRef<number | null>(null);
   const scrollTimerRef = useRef<number | null>(null);
   const phaseRef = useRef<TutorialPhase>("visible");
@@ -120,8 +128,16 @@ export function LandingTutorial() {
   const shouldShowWelcome = isVisible && tutorialStartReady && !introSeen && phase === "visible";
 
   function updatePhase(nextPhase: TutorialPhase) {
+    const previousPhase = phaseRef.current;
+    const activeLayer = layerRef.current;
     phaseRef.current = nextPhase;
     setPhase(nextPhase);
+
+    if (activeLayer && previousPhase === "layer-message" && nextPhase !== "layer-message") {
+      dispatchTutorialCardLayerPromptChanged({ layer: activeLayer as TutorialCardLayer, active: false });
+    } else if (activeLayer && previousPhase !== "layer-message" && nextPhase === "layer-message") {
+      dispatchTutorialCardLayerPromptChanged({ layer: activeLayer as TutorialCardLayer, active: true });
+    }
   }
 
   function updateActiveLayer(nextLayer: string | null) {
@@ -130,18 +146,24 @@ export function LandingTutorial() {
   }
 
   const clearTutorialTimers = useCallback(() => {
-    if (welcomeExitTimerRef.current !== null) window.clearTimeout(welcomeExitTimerRef.current);
+    if (welcomeUnderlayTimerRef.current !== null) window.clearTimeout(welcomeUnderlayTimerRef.current);
     if (transitionTimerRef.current !== null) window.clearTimeout(transitionTimerRef.current);
     if (scrollTimerRef.current !== null) window.clearTimeout(scrollTimerRef.current);
     if (layerMessageTimerRef.current !== null) window.clearTimeout(layerMessageTimerRef.current);
     if (layerMessageCloseTimerRef.current !== null) window.clearTimeout(layerMessageCloseTimerRef.current);
     if (layerOpenRecoveryTimerRef.current !== null) window.clearTimeout(layerOpenRecoveryTimerRef.current);
-    welcomeExitTimerRef.current = null;
+    welcomeUnderlayTimerRef.current = null;
     transitionTimerRef.current = null;
     scrollTimerRef.current = null;
     layerMessageTimerRef.current = null;
     layerMessageCloseTimerRef.current = null;
     layerOpenRecoveryTimerRef.current = null;
+  }, []);
+
+  const finishWelcomeUnderlayTransition = useCallback(() => {
+    if (welcomeUnderlayTimerRef.current !== null) window.clearTimeout(welcomeUnderlayTimerRef.current);
+    welcomeUnderlayTimerRef.current = null;
+    setShowWelcomeBehindChoices(false);
   }, []);
 
   const startInvisibleTransition = useCallback((options?: { scrollToTopAfterMs?: number; onComplete?: () => void }) => {
@@ -226,6 +248,8 @@ export function LandingTutorial() {
       targetTransitionStartedRef.current = false;
       completionStartedRef.current = false;
       setIsWelcomeExiting(false);
+      setWelcomeStage("welcome");
+      setShowWelcomeBehindChoices(false);
       setIsChoiceExiting(false);
       setIsTargetExiting(false);
       setIsMessageExiting(false);
@@ -322,7 +346,15 @@ export function LandingTutorial() {
       return style.display !== "none" && style.visibility !== "hidden";
     }) ?? null;
     const checkLayer = () => {
-      if (getOpenLayer()) updatePhase("layer-message");
+      const openLayer = getOpenLayer();
+      if (!openLayer) return;
+
+      const cardSwipeIsEntering = activeLayer === "draw-cards"
+        && openLayer.matches(".card-swipe-overlay")
+        && openLayer.getAttribute("data-card-swipe-entry-complete") !== "true";
+      if (cardSwipeIsEntering) return;
+
+      updatePhase("layer-message");
     };
     const observer = new MutationObserver(checkLayer);
     observer.observe(document.body, { attributes: true, childList: true, subtree: true });
@@ -476,23 +508,27 @@ export function LandingTutorial() {
   if (isTutorialStarting) return <TutorialStartScreen />;
 
   function handleBeginTutorial() {
+    if (isWelcomeExiting || showWelcomeBehindChoices || welcomeUnderlayTimerRef.current !== null) return;
+    begin();
+    setShowWelcomeBehindChoices(true);
+    welcomeUnderlayTimerRef.current = window.setTimeout(
+      finishWelcomeUnderlayTransition,
+      ORIGIN_SCREEN_ENTER_MS + 100,
+    );
+  }
+
+  function handleWelcomeNext() {
     if (isWelcomeExiting) return;
-    setIsWelcomeExiting(true);
-    welcomeExitTimerRef.current = window.setTimeout(() => {
-      begin();
-      setIsWelcomeExiting(false);
-      updatePhase("transition");
-      setPosition(null);
-      transitionTimerRef.current = window.setTimeout(() => {
-        updatePhase("visible");
-        transitionTimerRef.current = null;
-      }, SCREEN_TRANSITION_MS);
-      welcomeExitTimerRef.current = null;
-    }, WELCOME_EXIT_DURATION_MS);
+    if (welcomeStage === "add-cards") {
+      handleBeginTutorial();
+      return;
+    }
+    setWelcomeStage("add-cards");
   }
 
   function handleChoice(choice: (typeof TUTORIAL_CHOICES)[number]) {
     if (phaseRef.current !== "visible" || isChoiceExiting) return;
+    finishWelcomeUnderlayTransition();
     const target = findVisibleElement(choice.selector);
     if (!target) return;
     const rect = target.getBoundingClientRect();
@@ -536,12 +572,39 @@ export function LandingTutorial() {
     }, ORIGIN_SCREEN_CLOSE_TOTAL_MS);
   }
 
-  if (shouldShowWelcome) return <WelcomeTutorialScreen exiting={isWelcomeExiting} origin={{ x: window.innerWidth / 2, y: window.innerHeight / 2 }} label={t("tutorial.welcome")} description={t("tutorial.welcomeDescription")} nextLabel={t("tutorial.next")} onNext={handleBeginTutorial} />;
+  if (shouldShowWelcome || showWelcomeBehindChoices) {
+    const isAddCardsStage = welcomeStage === "add-cards";
+    return <>
+      <WelcomeTutorialScreen
+        key="tutorial-welcome"
+        exiting={isWelcomeExiting}
+        underlay={showWelcomeBehindChoices}
+        origin={{ x: window.innerWidth / 2, y: window.innerHeight / 2 }}
+        stage={welcomeStage}
+        label={t(isAddCardsStage ? "tutorial.welcomeAddCards" : "tutorial.welcome")}
+        nextLabel={t(isAddCardsStage ? "tutorial.addCards" : "tutorial.next")}
+        onNext={handleWelcomeNext}
+      />
+      {showWelcomeBehindChoices ? <TutorialChoiceScreen
+        key="tutorial-card-choices"
+        exiting={false}
+        entering
+        onEnterComplete={finishWelcomeUnderlayTransition}
+        origin={{ x: window.innerWidth / 2, y: window.innerHeight / 2 }}
+        title={t("tutorial.cardModes.title")}
+        choices={TUTORIAL_CHOICES}
+        t={t}
+        onChoice={handleChoice}
+      /> : null}
+    </>;
+  }
   if (phase === "transition") return <TutorialTransitionScreen />;
   if (phase === "layer-wait") return <TutorialTransitionScreen />;
   if (phase === "layer-message") return <TutorialLayerMessageScreen message={t("tutorial.cardCollectionPrompt")} origin={layerOrigin} exiting={isLayerMessageExiting} />;
   if (phase === "layer") return null;
-  if (currentStep?.mode === "choice") return <TutorialChoiceScreen exiting={isChoiceExiting} origin={{ x: window.innerWidth / 2, y: window.innerHeight / 2 }} title={t("tutorial.cardModes.title")} choices={TUTORIAL_CHOICES} t={t} onChoice={handleChoice} />;
+  if (currentStep?.mode === "choice") return <>
+    <TutorialChoiceScreen key="tutorial-card-choices" exiting={isChoiceExiting} origin={{ x: window.innerWidth / 2, y: window.innerHeight / 2 }} title={t("tutorial.cardModes.title")} choices={TUTORIAL_CHOICES} t={t} onChoice={handleChoice} />
+  </>;
   if (currentStep?.mode === "message") return <TutorialMessageScreen exiting={isMessageExiting} origin={{ x: window.innerWidth / 2, y: window.innerHeight / 2 }} message={t((currentStep.messageKey ?? "tutorial.landingCardsMessage") as TranslationKey)} nextLabel={t("tutorial.next")} onNext={handleMessageContinue} />;
   if (!position || !currentStep?.messageKey) return null;
 
@@ -568,43 +631,177 @@ export function LandingTutorial() {
   );
 }
 
-function WelcomeTutorialScreen({ exiting, origin, label, description, nextLabel, onNext }: { exiting: boolean; origin: TutorialLayerOrigin; label: string; description: string; nextLabel: string; onNext: () => void }) {
+function WelcomeTutorialScreen({ exiting, underlay, origin, stage, label, nextLabel, onNext }: { exiting: boolean; underlay: boolean; origin: TutorialLayerOrigin; stage: "welcome" | "add-cards"; label: string; nextLabel: string; onNext: () => void }) {
   const { locale } = useLocale();
   const useSuperWater = canUseSuperWater(locale);
+  const isAddCardsStage = stage === "add-cards";
+  const [isPlaybackComplete, setIsPlaybackComplete] = useState(false);
+  const [hasVideoAlphaSupport, setHasVideoAlphaSupport] = useState(false);
+  const [usesAnimationFallback, setUsesAnimationFallback] = useState(false);
+  const [hasFallbackAnimationFailed, setHasFallbackAnimationFailed] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const playbackStartedRef = useRef(false);
+  const videoAlphaCheckedRef = useRef(false);
+  const animationFallbackRef = useRef(false);
+  const playbackEndTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!usesAnimationFallback) return;
+
+    const controller = new AbortController();
+    // Warm the image cache without instantiating the animated image; playback
+    // starts only after the user advances to the second welcome stage.
+    void fetch(WELCOME_ANIMATION_FALLBACK_URL, { signal: controller.signal }).then((response) => response.blob()).catch(() => undefined);
+    return () => controller.abort();
+  }, [usesAnimationFallback]);
+
+  useEffect(() => () => {
+    if (playbackEndTimerRef.current !== null) window.clearTimeout(playbackEndTimerRef.current);
+  }, []);
+
+  const switchToAnimationFallback = useCallback(() => {
+    animationFallbackRef.current = true;
+    videoRef.current?.pause();
+    setUsesAnimationFallback(true);
+  }, []);
+
+  const handleVideoLoadedData = useCallback(() => {
+    if (videoAlphaCheckedRef.current) return;
+
+    const video = videoRef.current;
+    if (!video || video.videoWidth === 0 || video.videoHeight === 0) return;
+
+    let hasAlpha = false;
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1;
+      canvas.height = 1;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (context) {
+        context.drawImage(video, 0, 0, 1, 1);
+        hasAlpha = context.getImageData(0, 0, 1, 1).data[3] < 255;
+      }
+    } catch {
+      hasAlpha = false;
+    }
+
+    videoAlphaCheckedRef.current = true;
+    setHasVideoAlphaSupport(hasAlpha);
+    if (!hasAlpha) switchToAnimationFallback();
+  }, [switchToAnimationFallback]);
+
+  const finishPlayback = useCallback(() => {
+    if (playbackEndTimerRef.current !== null) {
+      window.clearTimeout(playbackEndTimerRef.current);
+      playbackEndTimerRef.current = null;
+    }
+    videoRef.current?.pause();
+    audioRef.current?.pause();
+    setIsPlaybackComplete(true);
+  }, []);
+
+  const handleNext = useCallback(() => {
+    if (exiting) return;
+    vibrate("tutorial-next");
+
+    if (!isAddCardsStage) {
+      onNext();
+      if (playbackStartedRef.current) return;
+      playbackStartedRef.current = true;
+      playbackEndTimerRef.current = window.setTimeout(finishPlayback, WELCOME_ANIMATION_DURATION_MS);
+
+      try {
+        const audioPlayback = audioRef.current?.play();
+        // Audio playback is an enhancement; a device/browser audio failure
+        // should never interrupt the welcome flow or stop the video.
+        void audioPlayback?.catch(() => undefined);
+
+        if (animationFallbackRef.current) return;
+
+        const videoPlayback = videoRef.current?.play();
+        void videoPlayback?.catch(switchToAnimationFallback);
+      } catch {
+        switchToAnimationFallback();
+      }
+      return;
+    }
+
+    onNext();
+  }, [exiting, finishPlayback, isAddCardsStage, onNext, switchToAnimationFallback]);
+
+  const handleVideoError = useCallback(() => {
+    videoAlphaCheckedRef.current = true;
+    setHasVideoAlphaSupport(false);
+    switchToAnimationFallback();
+  }, [switchToAnimationFallback]);
+
+  const handleFallbackAnimationError = useCallback(() => {
+    setHasFallbackAnimationFailed(true);
+  }, []);
+
+  const canShowAlphaVideo = isAddCardsStage && hasVideoAlphaSupport && !usesAnimationFallback;
 
   return (
-    <div data-landing-tutorial data-landing-tutorial-welcome role="dialog" aria-label={label} aria-modal="true" aria-busy={exiting} className={cn("tutorial-origin-overlay fixed inset-0 z-[1000] flex min-h-[100dvh] touch-none items-center justify-center bg-black/80 px-6 text-center", exiting && "tutorial-origin-overlay--closing")} style={{ transformOrigin: `${origin.x}px ${origin.y}px` }}>
-      <div data-tutorial-welcome-content className="tutorial-origin-overlay__item flex w-full max-w-sm flex-col items-center" style={{ animationDelay: exiting ? "0ms" : "520ms" }}>
-        <Image alt="" aria-hidden="true" data-tutorial-welcome-mascot className="h-auto w-full max-w-[19rem] object-contain" height={720} priority src="/mascots/mascot1.webp" width={720} />
-        <h2 className={cn("mt-4 text-3xl font-bold text-white", useSuperWater && "font-super-water")}>
+    <div data-landing-tutorial data-landing-tutorial-welcome data-tutorial-welcome-underlay={underlay ? "" : undefined} role="dialog" aria-label={label} aria-modal={underlay ? undefined : "true"} aria-hidden={underlay || undefined} aria-busy={exiting} className={cn("tutorial-origin-overlay fixed inset-0 z-[1000] flex min-h-[100dvh] touch-none items-center justify-center bg-black/80 px-6 text-center", exiting && "tutorial-origin-overlay--closing")} style={{ transformOrigin: `${origin.x}px ${origin.y}px` }}>
+      <div data-tutorial-welcome-content className="tutorial-origin-overlay__item relative z-10 flex w-full max-w-sm flex-col items-center" style={{ animationDelay: exiting ? "0ms" : "520ms" }}>
+        <div aria-hidden="true" data-tutorial-welcome-media-spacer className="aspect-[47/45] w-full max-w-[19rem] shrink-0" />
+        {(!isAddCardsStage || isPlaybackComplete) ? <h2 data-tutorial-welcome-step-title className={cn("tutorial-origin-overlay__item mt-4 w-full shrink-0 text-center text-3xl font-bold leading-9 text-white", isAddCardsStage && "tutorial-welcome-ui-scale-in", useSuperWater && "font-super-water")} style={{ animationDelay: isAddCardsStage ? "0ms" : "520ms", translate: isAddCardsStage ? "0 35px" : undefined }}>
           {formatSuperWaterText(locale, label)}
-        </h2>
-        <p data-tutorial-welcome-description className="mt-4 max-w-[19rem] text-base font-semibold leading-relaxed text-white/90">{description}</p>
-        <button type="button" data-landing-tutorial-welcome-next disabled={exiting} onClick={onNext} className="mt-8 h-14 w-full max-w-64 rounded-lg bg-brand text-base font-bold text-brand-foreground shadow-sm transition-[background-color,opacity,transform] duration-300 hover:bg-brand-hover active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 focus:outline-none focus-visible:outline-none">{nextLabel}</button>
+        </h2> : null}
+        {(!isAddCardsStage || isPlaybackComplete) ? <button type="button" data-landing-tutorial-welcome-next disabled={exiting} onClick={handleNext} className={cn("tutorial-origin-overlay__item mt-8 h-14 w-full max-w-64 rounded-lg bg-brand text-lg font-bold text-brand-foreground shadow-sm transition-[background-color,opacity,transform] duration-300 hover:bg-brand-hover active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 focus:outline-none focus-visible:outline-none", useSuperWater && "font-super-water", isAddCardsStage && "tutorial-welcome-ui-scale-in")} style={isAddCardsStage ? { animationDelay: "180ms", translate: "0 35px" } : undefined}>{formatSuperWaterText(locale, nextLabel)}</button> : null}
+      </div>
+      <div
+        aria-hidden="true"
+        data-tutorial-welcome-media
+        className="tutorial-origin-overlay__item pointer-events-none absolute left-1/2 top-1/2 z-0 aspect-[47/45] w-[min(19rem,calc(100vw-3rem))] -translate-x-1/2 -translate-y-1/2"
+        style={{ top: "calc(50% - 6.25rem)", animationDelay: exiting ? "0ms" : "520ms" }}
+      >
+        {!isAddCardsStage ? <Image alt="" aria-hidden="true" data-tutorial-welcome-first-frame className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" height={900} priority src={`/mascots/tutorial-welcome/first-frame.png?v=${WELCOME_FRAME_ASSET_VERSION}`} width={940} /> : null}
+        {isAddCardsStage && usesAnimationFallback && !hasFallbackAnimationFailed ? <Image alt="" aria-hidden="true" className="absolute inset-0 z-0 h-full w-full origin-center scale-[1.5] object-contain" data-tutorial-welcome-fallback-animation height={900} onError={handleFallbackAnimationError} priority src={WELCOME_ANIMATION_FALLBACK_URL} unoptimized width={940} /> : null}
+        {isAddCardsStage && usesAnimationFallback && hasFallbackAnimationFailed && !isPlaybackComplete ? <Image alt="" aria-hidden="true" data-tutorial-welcome-last-frame className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" height={900} priority src={`/mascots/tutorial-welcome/last-frame.png?v=${WELCOME_FRAME_ASSET_VERSION}`} width={940} /> : null}
+        {isAddCardsStage && isPlaybackComplete ? <Image alt="" aria-hidden="true" data-tutorial-welcome-last-frame className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" height={900} priority src={`/mascots/tutorial-welcome/last-frame.png?v=${WELCOME_FRAME_ASSET_VERSION}`} width={940} /> : null}
+        {isAddCardsStage && !hasVideoAlphaSupport && !usesAnimationFallback ? <Image alt="" aria-hidden="true" className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" data-tutorial-welcome-video-poster height={900} src={`/mascots/tutorial-welcome/first-frame.png?v=${WELCOME_FRAME_ASSET_VERSION}`} width={940} /> : null}
+        <video
+          ref={videoRef}
+          aria-hidden="true"
+          className={cn("pointer-events-none absolute inset-0 h-full w-full origin-center scale-[1.5] object-contain", canShowAlphaVideo ? "z-0" : "z-0 opacity-0")}
+          data-tutorial-welcome-video
+          onError={handleVideoError}
+          onLoadedData={handleVideoLoadedData}
+          muted
+          playsInline
+          poster={`/mascots/tutorial-welcome/first-frame.png?v=${WELCOME_FRAME_ASSET_VERSION}`}
+          preload="auto"
+          src={`/mascots/tutorial-welcome/mascot-transparent.webm?v=${WELCOME_MEDIA_ASSET_VERSION}`}
+        />
+        <audio className="hidden" ref={audioRef} data-tutorial-welcome-audio preload="auto" src={`/mascots/tutorial-welcome/mascot-audio.m4a?v=${WELCOME_MEDIA_ASSET_VERSION}`} />
       </div>
     </div>
   );
 }
 
-function TutorialChoiceScreen({ exiting, origin, title, choices, t, onChoice }: { exiting: boolean; origin: TutorialLayerOrigin; title: string; choices: readonly (typeof TUTORIAL_CHOICES)[number][]; t: (key: TranslationKey, variables?: TranslationValues) => string; onChoice: (choice: (typeof TUTORIAL_CHOICES)[number]) => void }) {
+function TutorialChoiceScreen({ exiting, entering = false, onEnterComplete, origin, title, choices, t, onChoice }: { exiting: boolean; entering?: boolean; onEnterComplete?: () => void; origin: TutorialLayerOrigin; title: string; choices: readonly (typeof TUTORIAL_CHOICES)[number][]; t: (key: TranslationKey, variables?: TranslationValues) => string; onChoice: (choice: (typeof TUTORIAL_CHOICES)[number]) => void }) {
   const { locale } = useLocale();
   const useSuperWater = canUseSuperWater(locale);
   const displayText = (text: string) => formatSuperWaterText(locale, text);
 
   return (
-    <div data-landing-tutorial data-landing-tutorial-choice-screen role="dialog" aria-modal="true" aria-label={title} className={cn("tutorial-origin-overlay fixed inset-0 z-[1000] flex min-h-[100dvh] flex-col overflow-hidden bg-background px-4 py-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] text-foreground", exiting && "tutorial-origin-overlay--closing")} style={{ transformOrigin: `${origin.x}px ${origin.y}px` }}>
+    <div data-landing-tutorial data-landing-tutorial-choice-screen role="dialog" aria-modal="true" aria-label={title} onAnimationEnd={(event) => {
+      if (event.target === event.currentTarget && event.animationName === "tutorial-circle-screen-enter") onEnterComplete?.();
+    }} className={cn("tutorial-origin-overlay fixed inset-0 z-[1000] flex min-h-[100dvh] flex-col overflow-hidden bg-background px-4 py-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] text-foreground", entering && "z-[1001]", exiting && "tutorial-origin-overlay--closing")} style={{ transformOrigin: `${origin.x}px ${origin.y}px` }}>
       <h2 className={cn("tutorial-origin-overlay__item shrink-0 py-3 text-center text-4xl font-bold text-foreground", useSuperWater && "font-super-water")} style={{ animationDelay: exiting ? "210ms" : "520ms" }}>
         {formatSuperWaterUppercaseText(locale, title)}
       </h2>
-      <div className="grid min-h-0 flex-1 grid-rows-3 gap-3 py-3">
-        {choices.map((choice, index) => <button key={choice.key} type="button" disabled={exiting} data-landing-tutorial-choice data-tutorial-choice={choice.key} onClick={() => onChoice(choice)} className={cn(
+      <div className="grid min-h-0 flex-1 grid-rows-3 gap-3 py-5">
+        {choices.map((choice, index) => <button key={choice.key} type="button" disabled={exiting || entering} data-landing-tutorial-choice data-tutorial-choice={choice.key} onClick={() => { vibrate("tutorial-next"); onChoice(choice); }} className={cn(
           "tutorial-origin-overlay__item group flex min-h-0 w-full items-center gap-4 rounded-2xl border border-transparent px-5 text-left shadow-sm transition-[transform,filter] duration-500 ease-[cubic-bezier(0.85,0,0.15,1)] active:scale-[0.985] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:pointer-events-none",
-          choice.key === "random" && "bg-[#f59e0b] text-[#3b2a1c]",
+          choice.key === "random" && "bg-[#f59e0b] text-[#332417]",
           choice.key === "custom" && "bg-[#c026d3] text-white",
-          choice.key === "groups" && "bg-[#84cc16] text-[#26341b]",
+          choice.key === "groups" && "bg-[#84cc16] text-[#202c16]",
         )} style={{ animationDelay: exiting ? `${(3 - index) * 70}ms` : `${590 + index * 70}ms` }}>
           <Image src={choice.icon} alt="" aria-hidden="true" width={76} height={76} className="size-[clamp(3.5rem,18vw,5rem)] shrink-0 object-contain transition-transform duration-500 ease-[cubic-bezier(0.85,0,0.15,1)] group-hover:scale-105" />
-          <span className="min-w-0"><span className={cn("block text-3xl font-bold leading-none", useSuperWater && "font-super-water")}>{displayText(t(choice.titleKey))}</span><span className={cn("mt-1 block text-xl font-medium leading-tight opacity-80", useSuperWater && "font-super-water")}>{displayText(t(choice.descriptionKey))}</span></span>
+          <span className="min-w-0"><span className={cn("block text-2xl font-bold leading-none", useSuperWater && "font-super-water")}>{displayText(t(choice.titleKey))}</span></span>
         </button>)}
       </div>
     </div>
@@ -612,9 +809,12 @@ function TutorialChoiceScreen({ exiting, origin, title, choices, t, onChoice }: 
 }
 
 function TutorialMessageScreen({ exiting, origin, message, nextLabel, onNext }: { exiting: boolean; origin: TutorialLayerOrigin; message: string; nextLabel: string; onNext: () => void }) {
+  const { locale } = useLocale();
+  const useSuperWater = canUseSuperWater(locale);
+
   return (
     <div data-landing-tutorial data-landing-tutorial-message-screen role="dialog" aria-modal="true" aria-label={message} className={cn("tutorial-origin-overlay fixed inset-0 z-[1000] flex min-h-[100dvh] items-center justify-center bg-black/80 px-5 text-center backdrop-blur-[2px]", exiting && "tutorial-origin-overlay--closing")} style={{ transformOrigin: `${origin.x}px ${origin.y}px` }}>
-      <div className="tutorial-origin-overlay__item flex w-full max-w-[20rem] flex-col items-center" style={{ animationDelay: exiting ? "0ms" : "520ms" }}><div className="relative w-full pl-20"><Image aria-hidden="true" alt="" data-tutorial-callout-mascot className="pointer-events-none absolute -left-5 top-8 z-10 h-auto w-24" height={512} priority src="/mascots/mascot5.webp" width={512} /><p data-landing-tutorial-message className="relative z-20 flex min-h-28 items-center rounded-lg bg-white px-4 py-4 text-center text-base font-semibold leading-snug text-brand shadow-sm before:absolute before:-left-3.5 before:bottom-5 before:h-8 before:w-4 before:bg-white before:[clip-path:polygon(100%_0,100%_100%,0_50%)]">{message}</p></div><button type="button" data-landing-tutorial-next onClick={onNext} disabled={exiting} className="mt-12 h-14 w-[calc(100%-4rem)] rounded-lg bg-brand text-base font-bold text-brand-foreground shadow-sm transition-[background-color,transform] duration-300 hover:bg-brand-hover active:scale-[0.98] disabled:pointer-events-none focus:outline-none focus-visible:outline-none">{nextLabel}</button></div>
+      <div className="tutorial-origin-overlay__item flex w-full max-w-[20rem] flex-col items-center" style={{ animationDelay: exiting ? "0ms" : "520ms" }}><div className="relative w-full pl-20"><Image aria-hidden="true" alt="" data-tutorial-callout-mascot className="pointer-events-none absolute -left-5 top-8 z-10 h-auto w-24" height={512} priority src="/mascots/mascot5.webp" width={512} /><p data-landing-tutorial-message className="relative z-20 flex min-h-28 items-center rounded-lg bg-white px-4 py-4 text-center text-base font-semibold leading-snug text-brand shadow-sm before:absolute before:-left-3.5 before:bottom-5 before:h-8 before:w-4 before:bg-white before:[clip-path:polygon(100%_0,100%_100%,0_50%)]">{message}</p></div><button type="button" data-landing-tutorial-next onClick={() => { vibrate("tutorial-next"); onNext(); }} disabled={exiting} className={cn("mt-12 h-14 w-[calc(100%-4rem)] rounded-lg bg-brand text-lg font-bold text-brand-foreground shadow-sm transition-[background-color,transform] duration-300 hover:bg-brand-hover active:scale-[0.98] disabled:pointer-events-none focus:outline-none focus-visible:outline-none", useSuperWater && "font-super-water")}>{formatSuperWaterText(locale, nextLabel)}</button></div>
     </div>
   );
 }

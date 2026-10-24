@@ -139,5 +139,6 @@ describe("MobileAuthGateway returning-login flow", () => {
 
     expect(mocks.activateTutorial).toHaveBeenCalledOnce();
     await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/"));
+    expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
   });
 });

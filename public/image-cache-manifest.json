@@ -1,5 +1,5 @@
 {
-  "version": "b6274d922a5f88b4551d59fa2e7c6533aae40471775b44b011b77c84c4c1e2e3",
+  "version": "819c8c8b0b6a48b60e305b6a5b65a57256f35d502f5b5434eca180d8583e5ef6",
   "assets": [
     {
       "url": "/AppLogdfo.png",
@@ -912,6 +912,410 @@
     {
       "url": "/mascots/mascot9.webp",
       "revision": "4d4e24a48bafa75328f3bbe495441287a7d71fca01b729a751eac094156c1c53"
+    },
+    {
+      "url": "/mascots/tutorial-add-cards.png",
+      "revision": "b4e955d30dff7a1e24f860082ffd09fae2e27d8453f4502f00b52d89c870bfd6"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/first-frame.png",
+      "revision": "5db34023ad07f138e77176cd80931e48d84bf1e0f6ed43e67c06542fa3cea37d"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-001.webp",
+      "revision": "daa600c0c37528625df1c46f1b058ad09338fc4279af69be63fd71a2bc989470"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-002.webp",
+      "revision": "dfd119c0805bb9915987bb50215c0144a1fd7280eada8ecf84b6e3db052daede"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-003.webp",
+      "revision": "503b164957a939d1d8d01a658f4f5d5209d244e4b7da7c95c7915fbc2a2ed3a9"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-004.webp",
+      "revision": "cd0c3513684f76b86bb380ec4ca04fba732d9a35328b0ee29f69ad9adc3ab8cf"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-005.webp",
+      "revision": "e5ee564c7986f09a24669ec7f53f11823256e547738deea32fbda5425f445c5d"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-006.webp",
+      "revision": "8210781342ff045fa666b287ce3116b8298b61256a3242bdef770e350152f072"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-007.webp",
+      "revision": "c2f3e59c99fc97dce9409e62f0cd98c271e02dd9c7f1131673d75de1a5a864ed"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-008.webp",
+      "revision": "5848ed213265df8d64a325b7b1cd3de8e3bba6acf2906235e59198ae3d33b215"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-009.webp",
+      "revision": "22e903567cb7a0a5270ffb8a72f7db74cda44c5b72221e93fb7c958380a1ebaa"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-010.webp",
+      "revision": "3c1bfa4310753db13f476557a9a6cc65378b66ab3b78d5a2e08cfa9f32d98f10"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-011.webp",
+      "revision": "748a897819a57aa3b3a2ee41cf2105613b55ef568e8af8cecc974f8a33d9bfe3"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-012.webp",
+      "revision": "98856dc18cdfcd045d2a68efd7b6e5a2b5a7a9408efbaf4556e266e5fbcd803c"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-013.webp",
+      "revision": "429d4648a27d639550903df0e3249d94b502018cf38f2b64570796210742fb12"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-014.webp",
+      "revision": "9c16364a0c9d777fc18a5551769a7649688ce0e63283011115a6349add1ee9a9"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-015.webp",
+      "revision": "98933fea694c3a1999dcd8bfb9285dad9911c25eb061e338aac626065795dfc0"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-016.webp",
+      "revision": "3ab71fa70ac83b3a8861cb0255332829e1eede7b9f0bdf9e410526c2872792f0"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-017.webp",
+      "revision": "ed701161f991e78f37c25115bd9351cc6bd1153fa4ada50eec29b1f007111830"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-018.webp",
+      "revision": "d98893c29373f681594c473edb89e4969a4238ce249a7ba61b9792da395c3099"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-019.webp",
+      "revision": "5bc72bc6d295f36e2e219ddd23dc1da148c0afd2a540f588475c065b6e4496fe"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-020.webp",
+      "revision": "3ae02f8eb49e1ef445cde315ec4d379c730772301f3e3fda4c7e4764b4f9149a"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-021.webp",
+      "revision": "87f731fe32fcb11167257cf6805792569a3387a09955d5ae5e78aab82ef3c037"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-022.webp",
+      "revision": "d9a1f4377a4f6047142d7b17a8d32bc82957a2a32dcd6291ef989d81c494d5fe"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-023.webp",
+      "revision": "742834aedd2eeeab6fd33064dd42b171e572292e15939cfd954efb530bbe34d6"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-024.webp",
+      "revision": "7a7a05ecb1d1627cfe2fec549c7e4194e033c98506a8412af7dc8dc3ed6cb4c8"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-025.webp",
+      "revision": "1c4c8cfe73ffeaa74befb3f1118b7fa80baddc0706a3bfb65e019a326c6a4027"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-026.webp",
+      "revision": "4c5cf78359bcf8e6fff3c7e88bbe648078ca87975d5106c790a21994b0587dc2"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-027.webp",
+      "revision": "243e65fdf4510da601a185066864e04bd0caa3937bac2f8137d6ceb180008ccd"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-028.webp",
+      "revision": "ca82cccb69a6d9f45aab6245e4d6e2ee065ad0278b0e210cd8233e1b140fe1be"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-029.webp",
+      "revision": "c9d7eac5689456f8509788024a759d654cf69eee75b28af11c2989e1be7defa0"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-030.webp",
+      "revision": "7ed5f7216acf39dcbe7556f6fd5a9516d0d563dc54f50ef2683b0a8a527236bd"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-031.webp",
+      "revision": "82876b1e80a62df4ea314f6cac3e095556c1290f7707f1cce49d39a61d07f646"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-032.webp",
+      "revision": "3208bab73e31c5b0fca7dcd67b3c499ef758fbf4c8d9822a221013c83de100dc"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-033.webp",
+      "revision": "f14780b94c7a0e95186b8344180484bf1e38b4801282fbd51dc033b5e3c37467"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-034.webp",
+      "revision": "6d040126843dafadb4254470802c0f76c21eee4a043d019c635061ebc08c7884"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-035.webp",
+      "revision": "44c5a7e8b22dbdd2276ef33184611edce175421beabb1381e6754b227eb0de83"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-036.webp",
+      "revision": "23678f6b84cbb92d04b21e9e0e33d1a12a7f6d49acb33fbb8d67bcb43f2af03b"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-037.webp",
+      "revision": "c50d39bf447eafbaf07f037dbb38cdaba4dae6d17775c9cb42e54205e83f5b8e"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-038.webp",
+      "revision": "1a0fd98a493eeaf853b0d6ea63d021f4dae006639ee36362d72db3272796c3ea"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-039.webp",
+      "revision": "33835a3a8d28809900faa2087dd41293e1c9c51759b38b1f273ba5a8dca3689f"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-040.webp",
+      "revision": "78206cb3fa4d662f8bc024d072936c33c7a82f1db1b0695c19a9f46a23292753"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-041.webp",
+      "revision": "435a423cd258c3d298f0f447152da7d938238f1c14f688899b19e7cadf67fd8e"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-042.webp",
+      "revision": "e708989144b58e87f29c7bab82faa083926614d496ff623b7915a1b9690dbdcc"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-043.webp",
+      "revision": "8f6a7201efa5fc28f790276d469b65c0c82d25b029342bfbd5f88222cac5dda0"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-044.webp",
+      "revision": "24436dbb08c99b04c0768516707d6cbfea1371114e594345f99730368ced60a3"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-045.webp",
+      "revision": "098f01fa23aad8264d5dd7449ad02e8d065313eb66d10c6f3664f27587a08607"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-046.webp",
+      "revision": "d6bf1c588a04e991d197e76d787964d07811891604f2ed187e1e33d49cc51c85"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-047.webp",
+      "revision": "ac7b03c6a372449729fc1c88f225501ab3597176a59e1e1cdca72d1ce1d82cd9"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-048.webp",
+      "revision": "de2c68ea904380d3d516a83129d4647f47e654bd738fbd4a0b4c4c50494a0ee7"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-049.webp",
+      "revision": "9bfb91197c9986b84d88ec6c5423c0cc280ab5f80b246916a9dbacda19fe1b0f"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-050.webp",
+      "revision": "e82b6f4e357f81a37d1bff8c22ffd50f1e87002235741c9b896c1d0370c41655"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-051.webp",
+      "revision": "3649f81b3f499ae33aa5c11f4c63306908e9e51c103edfb75009686941c1cc2f"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-052.webp",
+      "revision": "a562655a3c7cb097f577f6444074454d654f860df471ed7ffbe3f6576f079812"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-053.webp",
+      "revision": "341bfde621bc52f9704e70909d2168afef6ce2d487fc905da9904d3aafdd7089"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-054.webp",
+      "revision": "b2fc39210f9fc0edfa7dbb19fe67f5bd51a9912c528b213e91e93417211a2e82"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-055.webp",
+      "revision": "e8eddb4b3f719a4f82aeb60163702ccedd1820982cb6c7edacee447dc64a3ed9"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-056.webp",
+      "revision": "a9d51d4047c2158173ad427a1a83519b2d9b4835d04950b92bfd1d43f61f055c"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-057.webp",
+      "revision": "55b150f5b5d9109d101eae6c746fd88be3050347b67969e7916c4a474862cd33"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-058.webp",
+      "revision": "2e3d35d9f0a3b08cdea842ddd856b5597e00e31adcd9c876989fac137b886163"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-059.webp",
+      "revision": "8c0734996624f82d75217b3eddc12c2d67f0e60c0be5df7cf428fbd50decc766"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-060.webp",
+      "revision": "57944f44bbdbf3bc2d23d2e230170f851868214d1d42ef8f8410c961ca019690"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-061.webp",
+      "revision": "a670f44245fb5e21f825786336a14c8d8bed8c5def90bc0719fca7fd0da7d47d"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-062.webp",
+      "revision": "f75c633d33105e302499c9962e476bbe3dc5e9a828dedefe34c69434036d4cb9"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-063.webp",
+      "revision": "28a2d6eeb0f3684c4e4bd2bd9f4407593f214607b464fe5140454b9e2cd71ed1"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-064.webp",
+      "revision": "229556dc14eca32979e9f5d61dd9eb8872e84d99292219fcffb97a67da2d0089"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-065.webp",
+      "revision": "60a25db4ee7b8276008cf4bee819a60f8b186183a7c321c2d1c8b83b9224102a"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-066.webp",
+      "revision": "900aa4b18a12baca45332a48670bbd113a7b8bf8e7d27f9550f50440c5812552"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-067.webp",
+      "revision": "32fbd7959197f87e16e9d755360104c42b851a7768820f8decce462db5b10cce"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-068.webp",
+      "revision": "62b1513060eb41539c375ff8b7418b892db3ca14d73c0d36663fd822f8464993"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-069.webp",
+      "revision": "bfca60cadbdcab360d30c3cb43a40f176f81500a20b8495ca81d309949c72615"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-070.webp",
+      "revision": "5e3591aee67094d89489f251c9f4449b5d8b628be5c75b0b06c4e99ff9a3cde8"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-071.webp",
+      "revision": "dd6a83351ee30166d2a1f4a001fd9b494a70b72f20f4b8d7d4f053f1f1be4378"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-072.webp",
+      "revision": "eac47b2051f1d87538d671b583c705546f5fab30cf27bc0234e7b3eac676eb92"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-073.webp",
+      "revision": "27607b2b70573cabc01d93af319c258314c581752268e69429d5071334907628"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-074.webp",
+      "revision": "595484782f6ee67113909c326ee6f2c2f71634e84aca062fa1f1b87c50907704"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-075.webp",
+      "revision": "5458e35567ee379a268899bf07fb561a09650b64f449e12c14281042fcc63748"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-076.webp",
+      "revision": "68c9b096ac217aa810d2a194149cd67b8dfb139344b29cc1e2a5f60d00c12052"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-077.webp",
+      "revision": "59022d580562ec90e72fdbb3b1028d1ab097161a94298504bb3140af05f6433a"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-078.webp",
+      "revision": "ebb6a44bd069550f8ddac70eb1d3649021baa8b45ac9a4c6c56fa9f8efb9a7c2"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-079.webp",
+      "revision": "55439b7ab06b06c13337ae2347f336558dbc1e560f1e27bf2828df58fc1969e7"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-080.webp",
+      "revision": "d078361af535f5ecd93101a91c89787cd3c4b9a2b9dfa59054e3e4da65e94123"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-081.webp",
+      "revision": "b2aa3064dbbe05d854df001591b3b7200534d66ed255b036827c0fe1b2f9b43e"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-082.webp",
+      "revision": "e26fda62580467f2ed70fd693bcfbccfeb29c6759711f36b627da549e272f9e0"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-083.webp",
+      "revision": "b499c30d01f0a4bdd2feedb546f6ffef38650b07a05db938717e861b2f6d5227"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-084.webp",
+      "revision": "548256e305d91663d02a17907ec0535dc882ff6de6a885d39adaf4744da059e9"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-085.webp",
+      "revision": "0828f564516213f472fe75d2b48e61ab9347a84cde190c7819b3091eba2988ef"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-086.webp",
+      "revision": "e18084e9376915aedc98a09c150305868f1e3b97bff84d8bf58120e095b2d6bb"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-087.webp",
+      "revision": "c906c5d626c2ee3d82ffd8e1a1488d7ffd19b111bcc8c26cdfe186c2efe48258"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-088.webp",
+      "revision": "a05a0b0d84bc374d53ed1ed2dda78b77f06f7e9794e72f72875845c1a186b7d1"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-089.webp",
+      "revision": "dfa7afb7b6b70537bb1b98ac06a7349f0efeecaa02b423e3e6aadf9239fd3685"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-090.webp",
+      "revision": "43a2a63f39da0ba7338f4bd978f05b4d34306d0113f97f87d9aacddf1d294a9d"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-091.webp",
+      "revision": "5b920fb9888284a4db649578b1b16aae868eb6a4fd04121e3cd4d4556bca28a8"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-092.webp",
+      "revision": "66d5499d2a96d5558ac02a1bf76454775c1bdf823adcf6b720ba415976e0bc65"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-093.webp",
+      "revision": "61bd4c7753e08aba38c83a70b5663798104a556a34877c1bbfd54386109c2eaf"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-094.webp",
+      "revision": "d85edbef0a1268901a840ab7e71fba07023fbe56a9db0515bd7bc0bf28922aa4"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-095.webp",
+      "revision": "083800ec9ecb78111b4524f1bcb929d1dad1be56888599601ca37e874e5d4958"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-096.webp",
+      "revision": "bc7a3d74b6fab2c2510b879cbce2f579bf96ae488f117afc109fc1017ddcb642"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/frames/frame-097.webp",
+      "revision": "4ed0886fa88d2171bdd4e2dc975c1ac7b0b1b3224d3bd9def8eddcf2fee50bba"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/last-frame.png",
+      "revision": "e3d2eca9136be0d35b154eea2ea54864930fd078db3d2e3bfb3836676869067b"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/mascot-animation-fallback.webp",
+      "revision": "5a29e74c36a0ffcfac6fded8b7d1efbe90890d57b8245b41b2c0b6fd1517cc52"
     },
     {
       "url": "/mission-icon-v20261006-2.png",

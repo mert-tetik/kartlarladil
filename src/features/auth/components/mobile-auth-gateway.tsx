@@ -466,6 +466,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     isRankUpTestMode,
     isOfferTriggered,
     isEntitlementsLoading,
+    isLoginLanguageRefresh: shouldRefreshLoginLanguages,
   });
 
   useEffect(() => {

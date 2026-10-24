@@ -12,6 +12,7 @@ import {
 } from "@/components/slow-connection-monitor-logger";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { useTheme } from "@/components/theme-provider";
+import { isTutorialVisibleState, useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { getAccessibleForeground } from "@/lib/color-contrast";
 import {
   estimateResourceTransfer,
@@ -142,6 +143,7 @@ function SlowConnectionMonitorContent() {
   const openPrompt = useCallback(() => {
     try {
       if (isOpenRef.current) return;
+      if (isTutorialVisibleState(useTutorialStore.getState())) return;
 
       if (!isVisualTestRef.current) {
         try {
@@ -158,6 +160,24 @@ function SlowConnectionMonitorContent() {
       isOpenRef.current = false;
       logSlowConnectionMonitorError("could not open the low-connection prompt", error);
     }
+  }, []);
+
+  useEffect(() => {
+    const closePromptDuringTutorial = () => {
+      try {
+        if (!isTutorialVisibleState(useTutorialStore.getState()) || !isOpenRef.current) return;
+
+        // Tutorial dialogs own the screen while the flow is visible. Close an
+        // already-open network prompt without recording a user dismissal.
+        isOpenRef.current = false;
+        setIsOpen(false);
+      } catch (error) {
+        logSlowConnectionMonitorError("could not suppress prompt during tutorial", error);
+      }
+    };
+
+    closePromptDuringTutorial();
+    return useTutorialStore.subscribe(closePromptDuringTutorial);
   }, []);
 
   const dismissPrompt = useCallback(() => {
@@ -264,6 +284,7 @@ function SlowConnectionMonitorContent() {
         disposed
         || warnedForCurrentDegradation
         || isOfflineRoute(pathnameRef.current)
+        || isTutorialVisibleState(useTutorialStore.getState())
         || getOnlineStatus() === false
         || getVisibilityState() === "hidden"
       ) return;
