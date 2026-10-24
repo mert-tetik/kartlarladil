@@ -32,6 +32,7 @@ import { OfflineInventorySync } from "@/features/inventory/offline-inventory-syn
 import { OfflineNotesConversionOverlay } from "@/features/inventory/components/offline-notes-conversion-overlay";
 import { OfflineRouteOverlay } from "@/app/offline/offline-route-overlay";
 import { SlowConnectionMonitor } from "@/components/slow-connection-monitor";
+import { MobileBackNavigation } from "@/components/mobile-back-navigation";
 
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { LocaleCode } from "@/types/domain";
@@ -51,6 +52,7 @@ export function AppShell({
     <LocaleProvider initialLocale={locale}>
       <AppMessageProvider>
         <BodyScrollLock />
+        <MobileBackNavigation />
         <MobileViewportController />
         <GlobalTapVibration />
         <AuthSessionProvider user={user}>

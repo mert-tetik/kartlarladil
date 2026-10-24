@@ -24,7 +24,7 @@ import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn, normalizeSearch } from "@/lib/utils";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { useAppMessage } from "@/components/app-message-provider";
-import { dispatchTutorialCardLayerCardsAdded } from "@/features/tutorial/tutorial-card-session";
+import { dispatchTutorialCardLayerAddAttempted } from "@/features/tutorial/tutorial-card-session";
 import { useTutorialCardCloseGuidance } from "@/features/tutorial/use-tutorial-card-close-guidance";
 import type { CreateCardDirection, GeneratedCardResponse } from "@/features/cards/create-card-schema";
 import type { LanguageCode, LimitErrorCode, VocabularyCard } from "@/types/domain";
@@ -153,9 +153,10 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
       return;
     }
 
+    dispatchTutorialCardLayerAddAttempted({ layer: "custom-card", count: 1 });
+
     if (aiResponse) {
       void createCustomCardFromGenerated(aiResponse, createCustomCard).then(() => {
-        dispatchTutorialCardLayerCardsAdded({ layer: "custom-card", count: 1 });
         showMessage(t("createCard.success.addedWithLanguage", { language: getLanguageDisplayName(aiResponse.language, locale) }), "success");
       }).catch((error: unknown) => {
         if (error instanceof InventoryActionError && error.errorCode === "free_active_card_limit") {
@@ -180,7 +181,6 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
           showMessage(t("createCard.error.addFailed"), "error");
           return;
         }
-        dispatchTutorialCardLayerCardsAdded({ layer: "custom-card", count: 1 });
         showMessage(t("createCard.success.addedWithLanguage", { language: getLanguageDisplayName(preview.language, locale) }), "success");
       })
       .catch(() => showMessage(t("createCard.error.addFailed"), "error"));

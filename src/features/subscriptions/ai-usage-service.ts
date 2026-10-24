@@ -51,6 +51,10 @@ export async function recordAiUsageEvent(
   if (data === "monthly_limit") {
     throw new Error("AI monthly limit exceeded");
   }
+
+  if (data !== "ok") {
+    throw new Error("unexpected_ai_usage_result");
+  }
 }
 
 export async function assertAndRecordAiUsage(
@@ -77,19 +81,58 @@ export async function assertAndRecordAiUsage(
     return "ai_monthly_limit";
   }
 
-  return null;
+  if (result === "ok") return null;
+  throw new Error("unexpected_ai_usage_result");
 }
 
-export async function consumeImageTextTranslation(userId: string): Promise<LimitErrorCode | null> {
+export type ImageTextTranslationReservation =
+  | { status: "reserved"; reservationId: string }
+  | { status: "limit" };
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+
+export async function reserveImageTextTranslation(
+  userId: string,
+): Promise<ImageTextTranslationReservation> {
   const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase.rpc("record_image_text_translation_if_available", {
+  const { data, error } = await supabase.rpc("reserve_image_text_translation", {
     p_user_id: userId,
   });
 
   if (error) throw error;
-  if (data === "feature_limit") return "image_text_translate_limit";
-  if (data !== "ok") throw new Error("unexpected_image_text_translation_usage_result");
-  return null;
+  if (data === "feature_limit") return { status: "limit" };
+  if (typeof data !== "string" || !UUID_PATTERN.test(data)) {
+    throw new Error("unexpected_image_text_translation_reservation_result");
+  }
+  return { status: "reserved", reservationId: data };
+}
+
+export async function completeImageTextTranslation(
+  userId: string,
+  reservationId: string,
+): Promise<void> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase.rpc("complete_image_text_translation", {
+    p_user_id: userId,
+    p_reservation_id: reservationId,
+  });
+
+  if (error) throw error;
+  if (data !== "ok") throw new Error("unexpected_image_text_translation_completion_result");
+}
+
+export async function releaseImageTextTranslation(
+  userId: string,
+  reservationId: string,
+): Promise<void> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase.rpc("release_image_text_translation", {
+    p_user_id: userId,
+    p_reservation_id: reservationId,
+  });
+
+  if (error) throw error;
+  if (data !== "ok") throw new Error("unexpected_image_text_translation_release_result");
 }
 
 export async function getImageTextTranslationUsage(

@@ -13,7 +13,7 @@ import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 import {
-  dispatchTutorialCardLayerCardsAdded,
+  dispatchTutorialCardLayerAddAttempted,
   TUTORIAL_CARD_LAYER_PROMPT_CHANGED_EVENT,
   type TutorialCardLayerPromptChangedDetail,
 } from "@/features/tutorial/tutorial-card-session";
@@ -43,6 +43,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
   const { locale } = useLocale();
   const t = useT();
   const showTutorialClosePointer = useTutorialCardCloseGuidance("draw-cards");
+  const tutorialTestMode = useTutorialStore((state) => state.testMode);
   const inventory = useInventoryStore((state) => state.cards);
   const activeCardLimit = useInventoryStore((state) => state.activeCardLimit);
   const addCard = useInventoryStore((state) => state.addCard);
@@ -173,8 +174,21 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
   }, [language, usedIds]);
 
   useEffect(() => {
-    if (!open || typeof window === "undefined" || window.localStorage.getItem(DEMO_KEY)) return;
+    if (!open || typeof window === "undefined") return;
+
+    // Tutorial test mode is deliberately repeatable: reopening the draw sheet
+    // should replay its swipe hint even if the regular one-time hint was seen.
+    if (!tutorialTestMode && window.localStorage.getItem(DEMO_KEY)) return;
+
     const timers: number[] = [];
+    if (tutorialTestMode) {
+      timers.push(window.setTimeout(() => {
+        setDemoX(0);
+        setDemoActive(false);
+        setLocked(false);
+      }, 0));
+    }
+
     let promptWaitTimer: number | null = null;
     let promptChangedHandler: ((event: Event) => void) | null = null;
     let demoStarted = false;
@@ -194,7 +208,11 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
         window.setTimeout(() => setDemoX(-THRESHOLD - 12), firstSwipeDelay),
         window.setTimeout(() => setDemoX(THRESHOLD + 12), firstSwipeDelay + DEMO_SIDE_HOLD),
         window.setTimeout(() => setDemoX(0), firstSwipeDelay + DEMO_SIDE_HOLD * 2),
-        window.setTimeout(() => { window.localStorage.setItem(DEMO_KEY, "1"); setDemoActive(false); setLocked(false); }, firstSwipeDelay + DEMO_SIDE_HOLD * 2 + 500),
+        window.setTimeout(() => {
+          if (!tutorialTestMode) window.localStorage.setItem(DEMO_KEY, "1");
+          setDemoActive(false);
+          setLocked(false);
+        }, firstSwipeDelay + DEMO_SIDE_HOLD * 2 + 500),
       );
     };
 
@@ -231,7 +249,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
       if (promptChangedHandler) window.removeEventListener(TUTORIAL_CARD_LAYER_PROMPT_CHANGED_EVENT, promptChangedHandler);
       timers.forEach(window.clearTimeout);
     };
-  }, [open]);
+  }, [open, tutorialTestMode]);
 
   function finish(direction: SwipeDirection) {
     if (!card || locked) return;
@@ -244,6 +262,10 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
       resetDrag();
       onSubscriptionLimitReached?.("free_active_card_limit");
       return;
+    }
+
+    if (direction === "add") {
+      dispatchTutorialCardLayerAddAttempted({ layer: "draw-cards", count: 1 });
     }
 
     if (direction === "skip") {
@@ -297,10 +319,10 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
   }
 
   useEffect(() => {
-    if (!open || deck.length >= PRELOAD_DECK_SIZE || locked) return;
+    if (!open || deck.length >= PRELOAD_DECK_SIZE || (locked && !demoActive)) return;
     const timer = window.setTimeout(loadDeck, 0);
     return () => window.clearTimeout(timer);
-  }, [deck.length, open, locked, loadDeck]);
+  }, [deck.length, demoActive, open, locked, loadDeck]);
 
   function resetDrag() {
     cancelPendingDragFrame();
@@ -340,9 +362,6 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
 
       void Promise.resolve(addCard(cardId))
         .then((result) => {
-          if (result.ok && !result.limitReached) {
-            dispatchTutorialCardLayerCardsAdded({ layer: "draw-cards", count: 1 });
-          }
           if (result.limitReached) {
             onSubscriptionLimitReached?.("free_active_card_limit");
           }
@@ -431,7 +450,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
       >
         {formatSuperWaterText(locale, t("cards.randomDrawTitle"))}
       </p>
-      <button ref={closeButtonRef} type="button" onClick={onClose} aria-label={t("common.close")} className="relative z-[70] ml-auto inline-flex size-10 pointer-events-auto items-center justify-center rounded-md text-foreground"><X className="size-6" /></button>
+      <button ref={closeButtonRef} type="button" onClick={onClose} aria-label={t("common.close")} data-mobile-back-close className="relative z-[70] ml-auto inline-flex size-10 pointer-events-auto items-center justify-center rounded-md text-foreground"><X className="size-7 stroke-[2.75]" /></button>
       <MobileEmptyDeckPointer
         enabled={open && showTutorialClosePointer}
         anchorRef={closeButtonRef}

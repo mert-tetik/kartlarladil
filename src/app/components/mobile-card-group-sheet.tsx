@@ -20,7 +20,7 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { useAppMessage } from "@/components/app-message-provider";
-import { dispatchTutorialCardLayerCardsAdded } from "@/features/tutorial/tutorial-card-session";
+import { dispatchTutorialCardLayerAddAttempted } from "@/features/tutorial/tutorial-card-session";
 import { useTutorialCardCloseGuidance } from "@/features/tutorial/use-tutorial-card-close-guidance";
 import type { ActiveCardLimitDetails, LanguageCode, LimitErrorCode, VocabularyCard } from "@/types/domain";
 
@@ -91,7 +91,6 @@ export function MobileCardGroupSheet({
 
       if (result.addedCardIds.length > 0) {
         setAddedCounts((current) => ({ ...current, [groupId]: result.addedCardIds.length }));
-        dispatchTutorialCardLayerCardsAdded({ layer: "card-groups", count: result.addedCardIds.length });
       }
 
       if (result.limitReached) {
@@ -139,6 +138,7 @@ export function MobileCardGroupSheet({
   async function handleAddCard(groupId: CardGroupIcon, cardId: string) {
     if (addingGroupId !== null || addingCardId !== null) return;
 
+    dispatchTutorialCardLayerAddAttempted({ layer: "card-groups", count: 1 });
     setAddingCardId(cardId);
 
     try {
@@ -147,10 +147,6 @@ export function MobileCardGroupSheet({
       if (!result.ok) {
         showMessage(t("cards.groups.error"), "error");
         return;
-      }
-
-      if (result.addedCardIds.length > 0) {
-        dispatchTutorialCardLayerCardsAdded({ layer: "card-groups", count: result.addedCardIds.length });
       }
 
       if (result.limitReached) {
@@ -208,6 +204,8 @@ export function MobileCardGroupSheet({
                 disabled={confirmationClosing}
                 onClick={() => {
                   const group = pendingGroup;
+                  if (!group) return;
+                  dispatchTutorialCardLayerAddAttempted({ layer: "card-groups", count: group.cardIds.length });
                   closeConfirmation(() => {
                     void handleAddGroup(group.groupId, group.cardIds);
                   });

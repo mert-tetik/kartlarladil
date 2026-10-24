@@ -15,10 +15,10 @@ it("renders the localized branded success dialog and continues explicitly", asyn
   );
 
   expect(screen.getByRole("alertdialog")).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Abonelik alindi!" })).toHaveClass("font-super-water");
-  expect(screen.getByText("Satin alimin icin cok tesekkur ederiz!")).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Abonelik alındı!" })).toHaveClass("font-super-water");
+  expect(screen.getByText("Satın alımın için çok tesekkür ederiz!")).toBeInTheDocument();
 
-  const continueButton = screen.getByRole("button", { name: "Ogrenmeye Basla!" });
+  const continueButton = screen.getByRole("button", { name: "Ögrenmeye Basla!" });
   expect(continueButton).toHaveClass("bg-white", "text-brand", "rounded-full", "font-super-water");
   await user.click(continueButton);
 

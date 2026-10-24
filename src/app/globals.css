@@ -408,7 +408,12 @@
 }
 
 /* Keep the TWA and mobile web UI independent from browser text autosizing. */
-html {
+html,
+body,
+button,
+input,
+textarea,
+select {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
@@ -5748,16 +5753,6 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
   }
 }
 
-@keyframes tutorial-arrow-draw {
-  from {
-    stroke-dashoffset: 1;
-  }
-
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
 .tutorial-welcome-enter {
   animation: tutorial-welcome-in 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
 }
@@ -5780,10 +5775,70 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
   animation: tutorial-callout-in 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
 }
 
-.tutorial-arrow-path {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 0;
-  animation: tutorial-arrow-draw 420ms cubic-bezier(0.85, 0, 0.15, 1) both;
+.tutorial-arrow-image {
+  transform-origin: center;
+  transform: translate(-50%, -50%) rotate(var(--tutorial-arrow-rotation)) scale(1);
+  animation: tutorial-arrow-image-in 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.tutorial-arrow-image[data-tutorial-arrow-direction="down"] {
+  animation:
+    tutorial-arrow-image-in 480ms cubic-bezier(0.22, 1, 0.36, 1) both,
+    tutorial-arrow-float-down 1.2s ease-in-out 480ms infinite alternate;
+}
+
+.tutorial-arrow-image[data-tutorial-arrow-direction="up"] {
+  animation:
+    tutorial-arrow-image-in 480ms cubic-bezier(0.22, 1, 0.36, 1) both,
+    tutorial-arrow-float-up 1.2s ease-in-out 480ms infinite alternate;
+}
+
+.tutorial-arrow-image[data-tutorial-arrow-direction].tutorial-arrow-image--exiting {
+  animation: tutorial-arrow-image-out 260ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@keyframes tutorial-arrow-image-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--tutorial-arrow-rotation)) scale(0.82);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--tutorial-arrow-rotation)) scale(1);
+  }
+}
+
+@keyframes tutorial-arrow-image-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--tutorial-arrow-rotation)) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--tutorial-arrow-rotation)) scale(0.82);
+  }
+}
+
+@keyframes tutorial-arrow-float-down {
+  from {
+    top: var(--tutorial-arrow-rest-top);
+  }
+
+  to {
+    top: calc(var(--tutorial-arrow-rest-top) - 8px);
+  }
+}
+
+@keyframes tutorial-arrow-float-up {
+  from {
+    top: var(--tutorial-arrow-rest-top);
+  }
+
+  to {
+    top: calc(var(--tutorial-arrow-rest-top) + 8px);
+  }
 }
 
 @keyframes tutorial-choice-in {
@@ -5823,14 +5878,38 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
   .tutorial-welcome-exit,
   .tutorial-welcome-enter .tutorial-welcome-content,
   .tutorial-callout-enter,
-  .tutorial-arrow-path,
+  .tutorial-arrow-image[data-tutorial-arrow-direction],
   .tutorial-choice-enter,
   .tutorial-message-enter {
     animation: none;
   }
+
+  .tutorial-arrow-image[data-tutorial-arrow-direction] {
+    top: var(--tutorial-arrow-rest-top);
+  }
+
+  .tutorial-arrow-image[data-tutorial-arrow-direction].tutorial-arrow-image--exiting {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 /* Tutorial pointer overlay */
+@keyframes tutorial-pointer-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  72% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes tutorial-pointer-pulse {
   0%, 100% {
     transform: scale(1);
@@ -5847,7 +5926,7 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
   width: 48px;
   height: 48px;
   filter: brightness(0) saturate(100%) invert(17%) sepia(96%) saturate(6200%) hue-rotate(357deg) brightness(95%) contrast(120%);
-  animation: tutorial-pointer-pulse 1.2s ease-in-out infinite;
+  animation: tutorial-pointer-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both, tutorial-pointer-pulse 1.2s ease-in-out 320ms infinite;
   transition: top 0.2s ease-out, left 0.2s ease-out;
 }
 
@@ -5864,7 +5943,14 @@ body:has([data-mobile-hide-bottom-nav]) #main-content {
   height: 56px;
   filter: brightness(0) saturate(100%) invert(17%) sepia(96%) saturate(6200%) hue-rotate(357deg) brightness(95%) contrast(120%);
   transform-origin: 43.9% 21.7%;
-  animation: tutorial-pointer-pulse 1.2s ease-in-out infinite;
+  animation: tutorial-pointer-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both, tutorial-pointer-pulse 1.2s ease-in-out 320ms infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tutorial-pointer,
+  .empty-deck-pointer-image {
+    animation: none;
+  }
 }
 
 /* Games feature layout rules */
@@ -6523,6 +6609,24 @@ body:has([data-games-active]) {
 
 @keyframes tutorial-circle-screen-enter {
   from {
+    transform: translate3d(-50%, -50%, 0) scale(0);
+  }
+  to {
+    transform: translate3d(-50%, -50%, 0) scale(1);
+  }
+}
+
+@keyframes tutorial-circle-screen-exit {
+  from {
+    transform: translate3d(-50%, -50%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-50%, -50%, 0) scale(0);
+  }
+}
+
+@keyframes tutorial-spotlight-screen-enter {
+  from {
     clip-path: circle(0 at 50% 50%);
   }
   to {
@@ -6530,7 +6634,7 @@ body:has([data-games-active]) {
   }
 }
 
-@keyframes tutorial-circle-screen-exit {
+@keyframes tutorial-spotlight-screen-exit {
   from {
     clip-path: circle(150vmax at 50% 50%);
   }
@@ -6562,6 +6666,18 @@ body:has([data-games-active]) {
   100% {
     opacity: 0;
     transform: translateY(-1.25rem) scale(0);
+  }
+}
+
+@keyframes tutorial-flow-item-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.84);
   }
 }
 
@@ -6805,10 +6921,40 @@ body:has([data-games-active]) {
   will-change: transform;
 }
 
-.tutorial-origin-overlay {
-  clip-path: circle(0 at 50% 50%);
+.tutorial-origin-overlay__circle {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 300vmax;
+  height: 300vmax;
+  border-radius: 50%;
+  transform: translate3d(-50%, -50%, 0) scale(0);
   animation: tutorial-circle-screen-enter 650ms cubic-bezier(0.85, 0, 0.15, 1) both;
-  will-change: clip-path;
+  will-change: transform;
+  z-index: 0;
+}
+
+.tutorial-origin-overlay__viewport {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  z-index: 1;
+  animation: tutorial-overlay-content-enter 1ms linear 520ms both;
+}
+
+@keyframes tutorial-overlay-content-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.tutorial-origin-overlay[data-landing-tutorial-phase="target"] .tutorial-origin-overlay__circle {
+  display: none;
+}
+
+.tutorial-origin-overlay[data-landing-tutorial-phase="target"] .tutorial-origin-overlay__viewport {
+  clip-path: circle(0 at 50% 50%);
+  animation: tutorial-spotlight-screen-enter 650ms cubic-bezier(0.85, 0, 0.15, 1) both;
 }
 
 .card-display-overlay--closing,
@@ -6819,7 +6965,21 @@ body:has([data-games-active]) {
 }
 
 .tutorial-origin-overlay--closing {
-  animation: tutorial-circle-screen-exit 500ms cubic-bezier(0.85, 0, 0.15, 1) 360ms both;
+  pointer-events: none;
+}
+
+.tutorial-origin-overlay--closing .tutorial-origin-overlay__circle {
+  animation: tutorial-circle-screen-exit 300ms cubic-bezier(0.85, 0, 0.15, 1) 560ms both;
+}
+
+.tutorial-origin-overlay--closing:not([data-landing-tutorial-phase="target"]) .tutorial-origin-overlay__viewport {
+  opacity: 0;
+  animation: none;
+  transition: opacity 180ms ease-out 450ms;
+}
+
+.tutorial-origin-overlay--closing[data-landing-tutorial-phase="target"] .tutorial-origin-overlay__viewport {
+  animation: tutorial-spotlight-screen-exit 300ms cubic-bezier(0.85, 0, 0.15, 1) 560ms both;
 }
 
 .card-display-overlay--preparing,
@@ -6829,8 +6989,17 @@ body:has([data-games-active]) {
 }
 
 .tutorial-origin-overlay--preparing {
+  pointer-events: none;
+}
+
+.tutorial-origin-overlay--preparing .tutorial-origin-overlay__circle {
   animation: none;
-  clip-path: circle(0 at 50% 50%);
+  transform: translate3d(-50%, -50%, 0) scale(0);
+}
+
+.tutorial-origin-overlay--preparing .tutorial-origin-overlay__viewport {
+  opacity: 0;
+  animation: none;
 }
 
 .card-display-overlay__item,
@@ -6863,13 +7032,12 @@ body:has([data-games-active]) {
   animation: tutorial-welcome-ui-scale-down 420ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
 }
 
-/* Tutorial callouts use a clean white surface and a flat speech-bubble tail;
-   keep browser focus/border/shadow styles from drawing an extra outline. */
+/* Keep tutorial speech bubbles crisp while outlining both the bubble and its tail. */
 [data-landing-tutorial-message],
 [data-landing-tutorial-layer-message] {
   border: 0 !important;
   box-shadow: none !important;
-  outline: none !important;
+  outline: 3px solid #000 !important;
 }
 
 [data-landing-tutorial-message]::before,
@@ -6877,15 +7045,74 @@ body:has([data-games-active]) {
   border: 0 !important;
   box-shadow: none !important;
   outline: none !important;
+  filter: drop-shadow(0 0 2px #000);
 }
 
 .card-display-overlay--closing .card-display-overlay__item,
 .card-gem-confirm-overlay--closing .card-gem-confirm-overlay__item,
 .card-group-confirm-overlay--closing .card-group-confirm-overlay__item,
-.leaderboard-consent-overlay--closing .leaderboard-consent-overlay__item,
-.tutorial-origin-overlay--closing .tutorial-origin-overlay__item {
+.leaderboard-consent-overlay--closing .leaderboard-consent-overlay__item {
   animation-name: mission-details-content-exit;
   animation-duration: 280ms;
+}
+
+.tutorial-origin-overlay--closing .tutorial-origin-overlay__item {
+  animation-name: tutorial-flow-item-exit;
+  animation-duration: 220ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tutorial-origin-overlay--closing [data-tutorial-welcome-content] {
+  animation: none;
+  opacity: 1;
+  transform: none;
+}
+
+.tutorial-origin-overlay--closing[data-landing-tutorial-layer-message-screen] .tutorial-origin-overlay__viewport {
+  opacity: 1;
+  transition: none;
+}
+
+.tutorial-origin-overlay--closing[data-landing-tutorial-layer-message-screen] .tutorial-origin-overlay__item {
+  animation: none;
+  opacity: 1;
+  transform: none;
+}
+
+.tutorial-origin-overlay--closing[data-landing-tutorial-layer-message-screen] [data-tutorial-layer-message-bubble],
+.tutorial-origin-overlay--closing[data-landing-tutorial-layer-message-screen] [data-tutorial-layer-message-character] {
+  animation: tutorial-layer-message-part-exit 280ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  will-change: opacity, transform;
+}
+
+@keyframes tutorial-layer-message-part-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.84);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tutorial-origin-overlay--closing[data-landing-tutorial-layer-message-screen] [data-tutorial-layer-message-bubble],
+  .tutorial-origin-overlay--closing[data-landing-tutorial-layer-message-screen] [data-tutorial-layer-message-character] {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+
+  .tutorial-origin-overlay--closing .tutorial-origin-overlay__item {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+
+  .tutorial-origin-overlay--closing:not([data-landing-tutorial-phase="target"]) .tutorial-origin-overlay__viewport {
+    transition-delay: 0ms;
+    transition-duration: 1ms;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -6922,12 +7149,29 @@ body:has([data-games-active]) {
   }
 
   .tutorial-origin-overlay--preparing {
-    clip-path: circle(0 at 50% 50%);
+    animation: none;
   }
 
-  .tutorial-origin-overlay,
-  .tutorial-origin-overlay--closing {
+  .tutorial-origin-overlay--preparing .tutorial-origin-overlay__circle {
+    transform: translate3d(-50%, -50%, 0) scale(0);
+  }
+
+  .tutorial-origin-overlay__circle {
     animation: none;
+    transform: translate3d(-50%, -50%, 0) scale(1);
+  }
+
+  .tutorial-origin-overlay__viewport {
+    animation: none;
+    opacity: 1;
+  }
+
+  .tutorial-origin-overlay[data-landing-tutorial-phase="target"] .tutorial-origin-overlay__viewport {
+    clip-path: circle(150vmax at 50% 50%);
+    animation: none;
+  }
+
+  .tutorial-origin-overlay--closing[data-landing-tutorial-phase="target"] .tutorial-origin-overlay__viewport {
     clip-path: circle(150vmax at 50% 50%);
   }
 

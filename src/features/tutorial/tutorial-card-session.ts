@@ -8,7 +8,7 @@ export interface TutorialLayerOrigin {
 export const TUTORIAL_CARD_LAYER_OPENED_EVENT = "foxiesdeck:tutorial-card-layer-opened";
 export const TUTORIAL_CARD_LAYER_CLOSED_EVENT = "foxiesdeck:tutorial-card-layer-closed";
 export const TUTORIAL_CARD_LAYER_REQUESTED_EVENT = "foxiesdeck:tutorial-card-layer-requested";
-export const TUTORIAL_CARD_LAYER_CARDS_ADDED_EVENT = "foxiesdeck:tutorial-card-layer-cards-added";
+export const TUTORIAL_CARD_LAYER_ADD_ATTEMPTED_EVENT = "foxiesdeck:tutorial-card-layer-add-attempted";
 export const TUTORIAL_CARD_LAYER_PROMPT_CHANGED_EVENT = "foxiesdeck:tutorial-card-layer-prompt-changed";
 
 export interface TutorialCardLayerRequestedDetail {
@@ -24,7 +24,7 @@ export interface TutorialCardLayerClosedDetail {
   layer: TutorialCardLayer;
 }
 
-export interface TutorialCardLayerCardsAddedDetail {
+export interface TutorialCardLayerAddAttemptedDetail {
   layer: TutorialCardLayer;
   count: number;
 }
@@ -49,9 +49,9 @@ export function dispatchTutorialCardLayerClosed(detail: TutorialCardLayerClosedD
   window.dispatchEvent(new CustomEvent<TutorialCardLayerClosedDetail>(TUTORIAL_CARD_LAYER_CLOSED_EVENT, { detail }));
 }
 
-export function dispatchTutorialCardLayerCardsAdded(detail: TutorialCardLayerCardsAddedDetail) {
+export function dispatchTutorialCardLayerAddAttempted(detail: TutorialCardLayerAddAttemptedDetail) {
   if (typeof window === "undefined" || !Number.isInteger(detail.count) || detail.count <= 0) return;
-  window.dispatchEvent(new CustomEvent<TutorialCardLayerCardsAddedDetail>(TUTORIAL_CARD_LAYER_CARDS_ADDED_EVENT, { detail }));
+  window.dispatchEvent(new CustomEvent<TutorialCardLayerAddAttemptedDetail>(TUTORIAL_CARD_LAYER_ADD_ATTEMPTED_EVENT, { detail }));
 }
 
 export function dispatchTutorialCardLayerPromptChanged(detail: TutorialCardLayerPromptChangedDetail) {

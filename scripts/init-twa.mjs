@@ -31,6 +31,7 @@ const ROOT = path.resolve(__dirname, "..");
 
 const TARGET_HOST = process.env.TWA_HOST || "www.foxiesdeck.com";
 const TARGET_START_URL = process.env.TWA_START_URL || "/";
+const ANDROID_MIN_SDK = 24;
 // Keep fresh generations on the package currently used by the published
 // Android integration. Changing this value creates a different Play app
 // identity, so callers can still override it explicitly with TWA_PACKAGE_ID.
@@ -38,8 +39,8 @@ const PACKAGE_ID =
   process.env.TWA_PACKAGE_ID || "com.LigidTools.Glidecore";
 const APP_VERSION_CODE = process.env.TWA_VERSION_CODE
   ? Number.parseInt(process.env.TWA_VERSION_CODE, 10)
-  : 161;
-const APP_VERSION_NAME = process.env.TWA_VERSION_NAME || "4.3.47";
+  : 162;
+const APP_VERSION_NAME = process.env.TWA_VERSION_NAME || "4.3.48";
 const KEYSTORE_PATH = process.env.TWA_KEYSTORE_PATH
   ? path.resolve(process.env.TWA_KEYSTORE_PATH)
   : undefined;
@@ -229,6 +230,10 @@ async function main() {
     twaManifest.host = TARGET_HOST;
     twaManifest.startUrl = TARGET_START_URL;
     twaManifest.packageId = PACKAGE_ID;
+    twaManifest.minSdkVersion = Math.max(
+      Number(twaManifest.minSdkVersion) || ANDROID_MIN_SDK,
+      ANDROID_MIN_SDK,
+    );
 
     // The web/PWA manifest intentionally uses the website logo. Android
     // launcher resources must never inherit that choice: AAB builds use only

@@ -834,6 +834,7 @@ export function MobileImageTextTranslateOverlay({
                   type="button"
                   onClick={() => setPreviewImage(null)}
                   aria-label={t("common.close")}
+                  data-mobile-back-close
                   className="inline-flex size-12 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10 active:scale-95"
                   data-image-text-image-preview-close
                 >
@@ -1186,7 +1187,7 @@ function WordDetailOverlay({
               <span className="truncate text-lg font-bold">{wordDetail.sourceWord || wordDetail.clickedWord}</span>
             </div>
           </div>
-          <button type="button" onClick={onClose} aria-label={t("imageTranslate.closeWordDetails")} className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-black/15 hover:text-white">
+          <button type="button" onClick={onClose} aria-label={t("imageTranslate.closeWordDetails")} data-mobile-back-close className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-black/15 hover:text-white">
             <X className="size-5" aria-hidden="true" />
           </button>
         </div>

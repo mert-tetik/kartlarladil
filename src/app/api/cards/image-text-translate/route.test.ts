@@ -2,9 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockCreate = vi.hoisted(() => vi.fn());
 const mockGetCurrentAuthUser = vi.hoisted(() => vi.fn());
-const mockConsumeImageTextTranslation = vi.hoisted(() => vi.fn());
+const mockReserveImageTextTranslation = vi.hoisted(() => vi.fn());
+const mockCompleteImageTextTranslation = vi.hoisted(() => vi.fn());
+const mockReleaseImageTextTranslation = vi.hoisted(() => vi.fn());
 const mockGetImageTextTranslationUsage = vi.hoisted(() => vi.fn());
 const mockGetUserEntitlements = vi.hoisted(() => vi.fn());
+const reservationId = "7b14850b-021e-4b37-a035-6ab40853c276";
 
 vi.mock("openai", () => ({
   default: class MockOpenAI {
@@ -17,7 +20,9 @@ vi.mock("@/features/auth/auth-session", () => ({
 }));
 
 vi.mock("@/features/subscriptions/ai-usage-service", () => ({
-  consumeImageTextTranslation: mockConsumeImageTextTranslation,
+  reserveImageTextTranslation: mockReserveImageTextTranslation,
+  completeImageTextTranslation: mockCompleteImageTextTranslation,
+  releaseImageTextTranslation: mockReleaseImageTextTranslation,
   getImageTextTranslationUsage: mockGetImageTextTranslationUsage,
 }));
 
@@ -29,27 +34,39 @@ import { POST } from "@/app/api/cards/image-text-translate/route";
 
 const image = "data:image/png;base64,AAAA";
 
-function makeResponse(sentences = [{ source: "Hello.", translation: "Merhaba.", separators: ["text"] }]) {
+function makeResponse(
+  sentences = [
+    { source: "Hello.", translation: "Merhaba.", separators: ["text"] },
+  ],
+) {
   return {
-    output: [{
-      type: "message",
-      content: [{
-        type: "output_text",
-        text: JSON.stringify({ sentences }),
-      }],
-    }],
+    output: [
+      {
+        type: "message",
+        content: [
+          {
+            type: "output_text",
+            text: JSON.stringify({ sentences }),
+          },
+        ],
+      },
+    ],
   };
 }
 
 function makeExtractionResponse(text = "Hello.") {
   return {
-    output: [{
-      type: "message",
-      content: [{
-        type: "output_text",
-        text: JSON.stringify({ text }),
-      }],
-    }],
+    output: [
+      {
+        type: "message",
+        content: [
+          {
+            type: "output_text",
+            text: JSON.stringify({ text }),
+          },
+        ],
+      },
+    ],
   };
 }
 
@@ -87,7 +104,12 @@ describe("POST /api/cards/image-text-translate", () => {
     mockCreate.mockReset();
     process.env.OPENAI_API_KEY = "test-key";
     mockGetCurrentAuthUser.mockResolvedValue({ id: "user-1" });
-    mockConsumeImageTextTranslation.mockResolvedValue(null);
+    mockReserveImageTextTranslation.mockResolvedValue({
+      status: "reserved",
+      reservationId,
+    });
+    mockCompleteImageTextTranslation.mockResolvedValue(undefined);
+    mockReleaseImageTextTranslation.mockResolvedValue(undefined);
     mockGetImageTextTranslationUsage.mockResolvedValue({
       used: 0,
       limit: 2,
@@ -100,7 +122,7 @@ describe("POST /api/cards/image-text-translate", () => {
       .mockResolvedValueOnce(makeResponse());
   });
 
-  it("sends image input and consumes usage only after a validated result", async () => {
+  it("reserves quota before model calls and records usage only after a validated result", async () => {
     const response = await POST(makeImageRequest());
 
     expect(response.status).toBe(200);
@@ -108,23 +130,38 @@ describe("POST /api/cards/image-text-translate", () => {
       sentences: [{ source: "Hello.", translation: "Merhaba." }],
     });
     expect(mockCreate).toHaveBeenCalledTimes(2);
+    expect(
+      mockReserveImageTextTranslation.mock.invocationCallOrder[0],
+    ).toBeLessThan(mockCreate.mock.invocationCallOrder[0]);
+    expect(mockCompleteImageTextTranslation).toHaveBeenCalledWith(
+      "user-1",
+      reservationId,
+    );
+    expect(mockReleaseImageTextTranslation).not.toHaveBeenCalled();
     expect(mockCreate.mock.calls[0]?.[0].model).toBe("gpt-4.1-mini");
     expect(mockCreate.mock.calls[1]?.[0].model).toBe("gpt-4.1-mini");
     expect(mockCreate.mock.calls[0]?.[0].reasoning).toBeUndefined();
     expect(mockCreate.mock.calls[1]?.[0].reasoning).toBeUndefined();
     expect(mockCreate.mock.calls[0]?.[0].input[0].content).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ type: "input_image", image_url: image, detail: "high" }),
+        expect.objectContaining({
+          type: "input_image",
+          image_url: image,
+          detail: "high",
+        }),
       ]),
     );
     expect(mockCreate.mock.calls[1]?.[0].input[0].content[0]).toMatchObject({
       type: "input_text",
     });
-    expect(mockCreate.mock.calls[1]?.[0].input[0].content[0].text).toContain("Hello.");
-    expect(mockCreate.mock.calls[1]?.[0].input[0].content).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({ type: "input_image" })]),
+    expect(mockCreate.mock.calls[1]?.[0].input[0].content[0].text).toContain(
+      "Hello.",
     );
-    expect(mockConsumeImageTextTranslation).toHaveBeenCalledWith("user-1");
+    expect(mockCreate.mock.calls[1]?.[0].input[0].content).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "input_image" }),
+      ]),
+    );
   });
 
   it("does not translate or consume when image extraction finds no text", async () => {
@@ -136,7 +173,11 @@ describe("POST /api/cards/image-text-translate", () => {
     expect(response.status).toBe(422);
     expect(await response.json()).toEqual({ errorCode: "no_text_detected" });
     expect(mockCreate).toHaveBeenCalledTimes(1);
-    expect(mockConsumeImageTextTranslation).not.toHaveBeenCalled();
+    expect(mockCompleteImageTextTranslation).not.toHaveBeenCalled();
+    expect(mockReleaseImageTextTranslation).toHaveBeenCalledWith(
+      "user-1",
+      reservationId,
+    );
   });
 
   it("keeps direct text translation as a single translation call", async () => {
@@ -152,11 +193,13 @@ describe("POST /api/cards/image-text-translate", () => {
       expect.objectContaining({ type: "input_text" }),
     ]);
     expect(mockCreate.mock.calls[0]?.[0].input[0].content).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({ type: "input_image" })]),
+      expect.arrayContaining([
+        expect.objectContaining({ type: "input_image" }),
+      ]),
     );
   });
 
-  it("does not consume a use when OpenAI fails", async () => {
+  it("releases its reservation when OpenAI fails", async () => {
     mockCreate.mockReset();
     mockCreate.mockRejectedValueOnce(new Error("upstream unavailable"));
 
@@ -164,16 +207,24 @@ describe("POST /api/cards/image-text-translate", () => {
 
     expect(response.status).toBe(502);
     expect(await response.json()).toEqual({ errorCode: "upstream_error" });
-    expect(mockConsumeImageTextTranslation).not.toHaveBeenCalled();
+    expect(mockCompleteImageTextTranslation).not.toHaveBeenCalled();
+    expect(mockReleaseImageTextTranslation).toHaveBeenCalledWith(
+      "user-1",
+      reservationId,
+    );
   });
 
-  it("returns a restriction without exposing an invalid successful result", async () => {
-    mockConsumeImageTextTranslation.mockResolvedValueOnce("image_text_translate_limit");
+  it("returns a restriction before calling OpenAI when no quota slot remains", async () => {
+    mockReserveImageTextTranslation.mockResolvedValueOnce({ status: "limit" });
 
     const response = await POST(makeImageRequest());
 
     expect(response.status).toBe(429);
-    expect(await response.json()).toEqual({ errorCode: "image_text_translate_limit" });
+    expect(await response.json()).toEqual({
+      errorCode: "image_text_translate_limit",
+    });
+    expect(mockCreate).not.toHaveBeenCalled();
+    expect(mockCompleteImageTextTranslation).not.toHaveBeenCalled();
   });
 
   it("fails before OpenAI when the authoritative usage snapshot is exhausted", async () => {
@@ -187,28 +238,50 @@ describe("POST /api/cards/image-text-translate", () => {
     const response = await POST(makeImageRequest());
 
     expect(response.status).toBe(429);
-    expect(await response.json()).toEqual({ errorCode: "image_text_translate_limit" });
+    expect(await response.json()).toEqual({
+      errorCode: "image_text_translate_limit",
+    });
     expect(mockCreate).not.toHaveBeenCalled();
-    expect(mockConsumeImageTextTranslation).not.toHaveBeenCalled();
+    expect(mockReserveImageTextTranslation).not.toHaveBeenCalled();
   });
 
-  it("surfaces a stable usage-unavailable code when the quota RPC is unavailable", async () => {
-    mockConsumeImageTextTranslation.mockRejectedValueOnce(new Error("PGRST202"));
+  it("surfaces a stable usage-unavailable code when reservation is unavailable", async () => {
+    mockReserveImageTextTranslation.mockRejectedValueOnce(
+      new Error("PGRST202"),
+    );
 
     const response = await POST(makeImageRequest());
 
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ errorCode: "usage_unavailable" });
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it("does not call OpenAI when the usage snapshot cannot be read", async () => {
-    mockGetImageTextTranslationUsage.mockRejectedValueOnce(new Error("database unavailable"));
+    mockGetImageTextTranslationUsage.mockRejectedValueOnce(
+      new Error("database unavailable"),
+    );
 
     const response = await POST(makeImageRequest());
 
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ errorCode: "usage_unavailable" });
     expect(mockCreate).not.toHaveBeenCalled();
-    expect(mockConsumeImageTextTranslation).not.toHaveBeenCalled();
+    expect(mockReserveImageTextTranslation).not.toHaveBeenCalled();
+  });
+
+  it("keeps a reservation temporarily if usage completion fails after generation", async () => {
+    mockCreate.mockReset();
+    mockCreate.mockResolvedValueOnce(makeResponse());
+    mockCompleteImageTextTranslation.mockRejectedValueOnce(
+      new Error("rpc unavailable"),
+    );
+
+    const response = await POST(makeTextRequest());
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ errorCode: "usage_unavailable" });
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockReleaseImageTextTranslation).not.toHaveBeenCalled();
   });
 });

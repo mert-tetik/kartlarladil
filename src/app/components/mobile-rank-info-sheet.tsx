@@ -609,6 +609,7 @@ export function MobileRankInfoSheet({
         type="button"
         onClick={onClose}
         aria-label={t("common.close")}
+        data-mobile-back-close
         className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-50 inline-flex size-12 items-center justify-center text-white transition-transform duration-200 active:scale-90"
         data-rank-details-close
         data-rank-details-ui="close"

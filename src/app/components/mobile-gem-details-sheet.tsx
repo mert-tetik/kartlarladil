@@ -361,6 +361,7 @@ export function MobileGemDetailsSheet({
             type="button"
             onClick={onClose}
             aria-label={t("common.close")}
+            data-mobile-back-close
             className="gem-details-overlay__item absolute right-3 top-3 z-10 inline-flex size-10 items-center justify-center text-foreground-muted transition-colors hover:bg-foreground/10 hover:text-foreground"
             style={{
               animationDelay: closing

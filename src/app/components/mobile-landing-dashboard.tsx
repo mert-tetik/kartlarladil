@@ -55,7 +55,6 @@ import {
 } from "@/app/components/mobile-landing-language-guard";
 import { useMissionWaitingCount } from "@/features/missions/use-mission-waiting-count";
 import { MissionsPanel } from "@/features/missions/components/missions-panel";
-import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import {
   TUTORIAL_CARD_LAYER_CLOSED_EVENT,
   TUTORIAL_CARD_LAYER_OPENED_EVENT,
@@ -683,13 +682,6 @@ export function MobileLandingDashboard() {
     setActiveCardLimitDetails(details ?? null);
   }
 
-  function handleTutorialPricingNavigate() {
-    const tutorial = useTutorialStore.getState();
-    if (tutorial.active && !tutorial.completed) {
-      tutorial.complete();
-    }
-  }
-
   return (
     <section data-mobile-landing-dashboard className={cn("relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] touch-pan-y flex-col overscroll-contain bg-background px-4 py-1 lg:hidden", cardCenterOpen ? "overflow-y-auto" : "overflow-y-hidden")}>
       {/* Leaderboard badge */}
@@ -1149,7 +1141,6 @@ export function MobileLandingDashboard() {
         }}
         selectedLanguage={selectedLanguage}
         activeCardLimitDetails={activeCardLimitDetails}
-        onPricingNavigate={handleTutorialPricingNavigate}
       />
 
       <UpgradeDialog
@@ -1324,6 +1315,7 @@ export function TierDetailMenu({
                 type="button"
                 onClick={onClose}
                 data-tutorial-target="close-collection-menu"
+                data-mobile-back-close
                 className="inline-flex size-10 items-center justify-center rounded-md text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground"
                 aria-label={t("common.close")}
               >

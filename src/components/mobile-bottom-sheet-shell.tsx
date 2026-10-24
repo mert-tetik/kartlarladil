@@ -452,6 +452,7 @@ export function MobileBottomSheetShell({
             type="button"
             onClick={closeSheet}
             aria-label={t("common.close")}
+            data-mobile-back-close
             className={buttonClassName("ghost", "icon", cn(
               "!size-12 absolute",
               toneStyles.closeClassName,

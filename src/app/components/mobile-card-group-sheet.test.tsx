@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileCardGroupSheet } from "@/app/components/mobile-card-group-sheet";
 import { getCardsForGroup } from "@/features/cards/card-groups";
+import { TUTORIAL_CARD_LAYER_ADD_ATTEMPTED_EVENT } from "@/features/tutorial/tutorial-card-session";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
 const { inventoryState } = vi.hoisted(() => ({
@@ -79,12 +80,21 @@ describe("MobileCardGroupSheet", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "School Add group" }));
+    const addAttempted = vi.fn();
+    window.addEventListener(TUTORIAL_CARD_LAYER_ADD_ATTEMPTED_EVENT, addAttempted);
     await user.click(screen.getByRole("button", { name: "Yes, add" }));
+
+    expect(addAttempted).toHaveBeenCalledOnce();
+    expect(addAttempted.mock.calls[0]?.[0]).toMatchObject({
+      detail: expect.objectContaining({ layer: "card-groups", count: expect.any(Number) }),
+    });
+    expect(inventoryState.addCards).not.toHaveBeenCalled();
 
     await waitFor(() => {
       expect(inventoryState.addCards).toHaveBeenCalledOnce();
     });
     expect(inventoryState.addCards.mock.calls[0]?.[0].length).toBeGreaterThan(0);
+    window.removeEventListener(TUTORIAL_CARD_LAYER_ADD_ATTEMPTED_EVENT, addAttempted);
   });
 
   it("adds an individual card from an expanded group", async () => {

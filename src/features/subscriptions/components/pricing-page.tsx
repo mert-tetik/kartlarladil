@@ -14,7 +14,6 @@ import {
   Gamepad2,
   MessageCircle,
   MessagesSquare,
-  Headset,
   Layers,
   Palette,
   ScanText,
@@ -153,16 +152,21 @@ export function getReferenceUsdPrice(
 export function PricingPage({ user, currencyCode }: PricingPageProps) {
   const t = useT();
   const { locale } = useLocale();
-  const { entitlements } = useSubscription();
+  const { entitlements, openSubscriptionDetails } = useSubscription();
   const searchParams = useSearchParams();
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
-  const [checkoutSelection, setCheckoutSelection] = useState<CheckoutSelection | null>(null);
   const isTwa = useTwaMode();
   const localizedPricing = useLocalizedPricing(currencyCode, isTwa);
   const googlePlayPricing = useGooglePlayPricing();
   const plans = isTwa ? TWA_PLANS : PLANS;
   const forceFreePricing = searchParams.get("pricing-test") === "free";
   const pricingEntitlements = forceFreePricing ? null : entitlements;
+  const handleRequestCheckout = useCallback((selection: CheckoutSelection) => {
+    openSubscriptionDetails(selection, {
+      currencyCode,
+      currentPlan: pricingEntitlements?.effectivePlan ?? null,
+    });
+  }, [currencyCode, openSubscriptionDetails, pricingEntitlements?.effectivePlan]);
   const paidPlan = pricingEntitlements?.effectivePlan === "basic" || pricingEntitlements?.effectivePlan === "pro"
     ? pricingEntitlements.effectivePlan
     : null;
@@ -282,7 +286,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
               entitlements={pricingEntitlements}
               locale={locale}
               forceFirstMonthFree={forceFreePricing}
-              onRequestCheckout={setCheckoutSelection}
+              onRequestCheckout={handleRequestCheckout}
             />
           </div>
 
@@ -309,7 +313,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
               isTwa={isTwa}
               forceFirstMonthFree={forceFreePricing}
               containerClassName={MOBILE_PLAN_ORDER_CLASSNAME[item.plan]}
-              onRequestCheckout={setCheckoutSelection}
+              onRequestCheckout={handleRequestCheckout}
             />
           ))}
         </div>
@@ -324,18 +328,6 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
           </div>
         </>
       )}
-      {checkoutSelection ? (
-        <SubscriptionDetailsOverlay
-          selection={checkoutSelection}
-          user={user}
-          currentPlan={pricingEntitlements?.effectivePlan ?? null}
-          isTwa={isTwa}
-          localizedPricing={localizedPricing}
-          googlePlayPricing={googlePlayPricing}
-          locale={locale}
-          onClose={() => setCheckoutSelection(null)}
-        />
-      ) : null}
     </div>
   );
 }
@@ -1121,7 +1113,7 @@ function ConsentText() {
   );
 }
 
-function SubscriptionDetailsOverlay({
+export function LegacySubscriptionDetailsOverlay({
   selection,
   user,
   currentPlan,
@@ -1399,9 +1391,12 @@ function SubscriptionDetailsFrameAnimation({
     );
 
     if (prefersReducedMotion) {
-      frameIndexRef.current = SUBSCRIPTION_DETAILS_FRAME_COUNT;
-      setFrameIndex(SUBSCRIPTION_DETAILS_FRAME_COUNT);
-      onComplete();
+      animationFrameId = window.requestAnimationFrame(() => {
+        if (cancelled) return;
+        frameIndexRef.current = SUBSCRIPTION_DETAILS_FRAME_COUNT;
+        setFrameIndex(SUBSCRIPTION_DETAILS_FRAME_COUNT);
+        onComplete();
+      });
       return () => {
         cancelled = true;
         preloadFrames.forEach((image) => {
@@ -1452,6 +1447,8 @@ function SubscriptionDetailsFrameAnimation({
         isClosing && "subscription-details-frame-layer--closing",
       )}
     >
+      {/* Frame animation intentionally swaps a new image every frame; next/image optimization adds avoidable latency. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={`${frameBasePath}/${frameIndex}.png`}
         alt=""

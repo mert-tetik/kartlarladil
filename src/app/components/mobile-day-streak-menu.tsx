@@ -307,6 +307,7 @@ export function MobileDayStreakMenu({
           onClose();
         }}
         aria-label={t("common.close")}
+        data-mobile-back-close
         className={cn(
           "absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-40 inline-flex size-12 items-center justify-center text-white transition-transform duration-200 active:scale-90",
           contentReady ? "day-streak-ui-enter" : "day-streak-ui-pending",

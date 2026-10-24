@@ -1,7 +1,11 @@
 import { act, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileCardSwipeOverlay } from "@/app/components/mobile-card-swipe-overlay";
-import { dispatchTutorialCardLayerPromptChanged } from "@/features/tutorial/tutorial-card-session";
+import {
+  dispatchTutorialCardLayerOpened,
+  dispatchTutorialCardLayerPromptChanged,
+  TUTORIAL_CARD_LAYER_ADD_ATTEMPTED_EVENT,
+} from "@/features/tutorial/tutorial-card-session";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import type { InventoryCard, VocabularyCard } from "@/types/domain";
 
@@ -104,6 +108,13 @@ describe("MobileCardSwipeOverlay", () => {
     );
   });
 
+  it("renders a larger, heavier close icon in the overlay header", () => {
+    render(<MobileCardSwipeOverlay open language="en" onClose={vi.fn()} />);
+
+    const closeIcon = document.querySelector('button[aria-label="common.close"] svg');
+    expect(closeIcon).toHaveClass("size-7", "stroke-[2.75]");
+  });
+
   it("waits for the first tutorial prompt to disappear before starting the swipe demo", async () => {
     window.localStorage.removeItem("foxiesdeck:card-swipe-demo:shown");
     useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 0, testMode: false });
@@ -127,6 +138,43 @@ describe("MobileCardSwipeOverlay", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     expect(card.style.transform).toContain("translate3d(-124px");
+  });
+
+  it("replays the swipe demo every time the draw sheet opens in tutorial test mode", async () => {
+    useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 3, testMode: true });
+    const { rerender } = render(<MobileCardSwipeOverlay open language="en" onClose={vi.fn()} />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    expect((document.querySelector("[data-card-swipe-card]") as HTMLElement).style.transform)
+      .toContain("translate3d(-124px");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4_100);
+    });
+    expect(window.localStorage.getItem("foxiesdeck:card-swipe-demo:shown")).toBe("1");
+
+    rerender(<MobileCardSwipeOverlay open={false} language="en" onClose={vi.fn()} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_200);
+    });
+    rerender(<MobileCardSwipeOverlay open language="en" onClose={vi.fn()} />);
+
+    await act(async () => {
+      const mountFrames = [...animationFrames.values()];
+      animationFrames.clear();
+      mountFrames.forEach((callback) => callback(performance.now()));
+      const enterFrames = [...animationFrames.values()];
+      animationFrames.clear();
+      enterFrames.forEach((callback) => callback(performance.now()));
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    expect((document.querySelector("[data-card-swipe-card]") as HTMLElement).style.transform)
+      .toContain("translate3d(-124px");
   });
 
   it("marks the draw-card entrance complete after its animation fallback", async () => {
@@ -154,6 +202,9 @@ describe("MobileCardSwipeOverlay", () => {
 
   it("shows the next card immediately while the outgoing card exits", async () => {
     render(<MobileCardSwipeOverlay open language="en" onClose={vi.fn()} />);
+    const addAttempted = vi.fn();
+    window.addEventListener(TUTORIAL_CARD_LAYER_ADD_ATTEMPTED_EVENT, addAttempted);
+    dispatchTutorialCardLayerOpened({ layer: "draw-cards", origin: { x: 0, y: 0 } });
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
@@ -165,6 +216,8 @@ describe("MobileCardSwipeOverlay", () => {
     fireEvent.pointerMove(swipeCard, { pointerId: 1, clientX: 250, clientY: 100 });
     fireEvent.pointerUp(swipeCard, { pointerId: 1, clientX: 250, clientY: 100 });
 
+    expect(addAttempted).toHaveBeenCalledOnce();
+    expect((addAttempted.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({ layer: "draw-cards", count: 1 });
     expect(document.querySelector("[data-card-swipe-outgoing]")).toBeInTheDocument();
     expect(addCardMock).not.toHaveBeenCalled();
     expect(document.querySelector("[data-card-swipe-outgoing]")).toHaveStyle({ transform: "translate3d(150px, 0, 0) rotate(8.333333333333334deg)" });

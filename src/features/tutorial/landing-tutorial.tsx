@@ -12,7 +12,6 @@ import {
   dispatchTutorialCardLayerPromptChanged,
   dispatchTutorialCardLayerRequested,
   type TutorialCardLayer,
-  type TutorialLayerOrigin,
 } from "@/features/tutorial/tutorial-card-session";
 import { getTargetForStep, getTutorialStep, type TutorialTarget } from "@/features/tutorial/tutorial-targets";
 import { cn } from "@/lib/utils";
@@ -24,7 +23,11 @@ const SPOTLIGHT_PADDING = 18;
 const VIEWPORT_GAP = 16;
 const CALLOUT_WIDTH = 300;
 const MESSAGE_HEIGHT = 96;
-const ORIGINAL_TUTORIAL_ARROWHEAD_LENGTH = 22;
+const TUTORIAL_ARROW_TIP_OFFSET = 22;
+const TUTORIAL_ARROW_IMAGE_WIDTH = 112;
+const TUTORIAL_ARROW_SCALE = 0.8;
+const TUTORIAL_ARROW_SOURCE_WIDTH = 433;
+const TUTORIAL_ARROW_SOURCE_HEIGHT = 305;
 const TUTORIAL_START_DELAY_MS = 700;
 const WELCOME_ANIMATION_DURATION_MS = 2155;
 const WELCOME_MEDIA_ASSET_VERSION = "20261024-45fps-1";
@@ -32,6 +35,7 @@ const WELCOME_FRAME_ASSET_VERSION = "20261024-png-frames-2";
 const WELCOME_ANIMATION_FALLBACK_URL = `/mascots/tutorial-welcome/mascot-animation-fallback.webp?v=${WELCOME_MEDIA_ASSET_VERSION}`;
 const SCREEN_TRANSITION_MS = 1000;
 const SCREEN_SCROLL_DELAY_MS = 400;
+const TUTORIAL_ARROW_EXIT_MS = 260;
 const ORIGIN_SCREEN_ENTER_MS = 650;
 const ORIGIN_SCREEN_CLOSE_TOTAL_MS = 860;
 const LAYER_MESSAGE_VISIBLE_MS = 1500;
@@ -77,7 +81,8 @@ interface SpotlightPosition {
   centerY: number;
   radius: number;
   calloutTop: number;
-  arrowStartY: number;
+  arrowDirection: -1 | 1;
+  arrowOffsetX: number;
   arrowEndY: number;
 }
 
@@ -85,7 +90,9 @@ type TutorialPhase = "visible" | "transition" | "layer-wait" | "layer-message" |
 
 export function LandingTutorial() {
   const pathname = usePathname();
+  const { locale } = useLocale();
   const t = useT();
+  const useSuperWater = canUseSuperWater(locale);
   const active = useTutorialStore((state) => state.active);
   const completed = useTutorialStore((state) => state.completed);
   const introSeen = useTutorialStore((state) => state.introSeen);
@@ -107,11 +114,11 @@ export function LandingTutorial() {
   const [isTargetExiting, setIsTargetExiting] = useState(false);
   const [isMessageExiting, setIsMessageExiting] = useState(false);
   const [isLayerMessageExiting, setIsLayerMessageExiting] = useState(false);
-  const [layerOrigin, setLayerOrigin] = useState<TutorialLayerOrigin>({ x: 0, y: 0 });
   const [tutorialStartReady, setTutorialStartReady] = useState(false);
   const [isLandingReady, setIsLandingReady] = useState(false);
   const welcomeUnderlayTimerRef = useRef<number | null>(null);
   const transitionTimerRef = useRef<number | null>(null);
+  const targetExitTimerRef = useRef<number | null>(null);
   const scrollTimerRef = useRef<number | null>(null);
   const phaseRef = useRef<TutorialPhase>("visible");
   const layerRef = useRef<string | null>(null);
@@ -148,12 +155,14 @@ export function LandingTutorial() {
   const clearTutorialTimers = useCallback(() => {
     if (welcomeUnderlayTimerRef.current !== null) window.clearTimeout(welcomeUnderlayTimerRef.current);
     if (transitionTimerRef.current !== null) window.clearTimeout(transitionTimerRef.current);
+    if (targetExitTimerRef.current !== null) window.clearTimeout(targetExitTimerRef.current);
     if (scrollTimerRef.current !== null) window.clearTimeout(scrollTimerRef.current);
     if (layerMessageTimerRef.current !== null) window.clearTimeout(layerMessageTimerRef.current);
     if (layerMessageCloseTimerRef.current !== null) window.clearTimeout(layerMessageCloseTimerRef.current);
     if (layerOpenRecoveryTimerRef.current !== null) window.clearTimeout(layerOpenRecoveryTimerRef.current);
     welcomeUnderlayTimerRef.current = null;
     transitionTimerRef.current = null;
+    targetExitTimerRef.current = null;
     scrollTimerRef.current = null;
     layerMessageTimerRef.current = null;
     layerMessageCloseTimerRef.current = null;
@@ -295,13 +304,12 @@ export function LandingTutorial() {
       ? clamp(top + height + 42, VIEWPORT_GAP, viewportHeight - MESSAGE_HEIGHT - VIEWPORT_GAP)
       : clamp(top - MESSAGE_HEIGHT - 42, VIEWPORT_GAP, viewportHeight - MESSAGE_HEIGHT - VIEWPORT_GAP);
     const isActionTarget = target.key === "landing-card-center" || target.key === "start-learning";
+    const calloutOffsetY = target.key === "landing-card-center" ? -80 : target.key === "start-learning" ? -50 : 0;
     const calloutTop = clamp(
-      preferredCalloutTop - (isActionTarget ? 40 : 8),
+      preferredCalloutTop - (isActionTarget ? 40 : 8) + calloutOffsetY,
       VIEWPORT_GAP,
       viewportHeight - MESSAGE_HEIGHT - VIEWPORT_GAP,
     );
-    const calloutBottom = calloutTop + MESSAGE_HEIGHT;
-
     setPosition({
       target,
       shape,
@@ -313,7 +321,8 @@ export function LandingTutorial() {
       centerY,
       radius,
       calloutTop,
-      arrowStartY: isCalloutBelowTarget ? calloutBottom + 8 : calloutTop - 8,
+      arrowDirection: isCalloutBelowTarget ? -1 : 1,
+      arrowOffsetX: target.key === "landing-card-center" ? -75 : 0,
       arrowEndY: isCalloutBelowTarget ? top + height + 5 : top - 5,
     });
   }, [isLandingReady]);
@@ -439,6 +448,7 @@ export function LandingTutorial() {
       if (!element) return false;
       if (element.closest("[data-tutorial-pricing-link]")) return true;
       if (element.closest("[data-tutorial-restriction-later]")) return true;
+      if (element.closest("[data-tutorial-subscription-overlay]")) return true;
       if (phaseRef.current === "transition") return false;
       if (phaseRef.current === "layer") {
         const layer = layerRef.current;
@@ -491,9 +501,28 @@ export function LandingTutorial() {
       } else if (current.key === "start-learning") {
         if (completionStartedRef.current) return;
         completionStartedRef.current = true;
-        // Complete in this click turn. The real button starts navigation in
-        // its React handler, and a pathname change must not cancel completion.
-        complete();
+        const target = element.closest(current.selector);
+        if (!(target instanceof HTMLElement)) {
+          completionStartedRef.current = false;
+          return;
+        }
+
+        // Keep the final target mounted long enough for the arrow's exit
+        // animation to finish, then replay the original action. Persist
+        // completion before that action can navigate away from this page.
+        event.preventDefault();
+        event.stopPropagation();
+        setIsTargetExiting(true);
+        targetExitTimerRef.current = window.setTimeout(() => {
+          targetExitTimerRef.current = null;
+          complete();
+          allowProgrammaticTargetClickRef.current = true;
+          try {
+            target.click();
+          } finally {
+            window.setTimeout(() => { allowProgrammaticTargetClickRef.current = false; }, 0);
+          }
+        }, TUTORIAL_ARROW_EXIT_MS);
       }
     };
     // Capture the click before the real action's React handler can start a
@@ -533,7 +562,6 @@ export function LandingTutorial() {
     if (!target) return;
     const rect = target.getBoundingClientRect();
     const origin = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-    setLayerOrigin(origin);
     setIsChoiceExiting(true);
     setPosition(null);
     transitionTimerRef.current = window.setTimeout(() => {
@@ -579,7 +607,6 @@ export function LandingTutorial() {
         key="tutorial-welcome"
         exiting={isWelcomeExiting}
         underlay={showWelcomeBehindChoices}
-        origin={{ x: window.innerWidth / 2, y: window.innerHeight / 2 }}
         stage={welcomeStage}
         label={t(isAddCardsStage ? "tutorial.welcomeAddCards" : "tutorial.welcome")}
         nextLabel={t(isAddCardsStage ? "tutorial.addCards" : "tutorial.next")}
@@ -590,7 +617,6 @@ export function LandingTutorial() {
         exiting={false}
         entering
         onEnterComplete={finishWelcomeUnderlayTransition}
-        origin={{ x: window.innerWidth / 2, y: window.innerHeight / 2 }}
         title={t("tutorial.cardModes.title")}
         choices={TUTORIAL_CHOICES}
         t={t}
@@ -600,38 +626,41 @@ export function LandingTutorial() {
   }
   if (phase === "transition") return <TutorialTransitionScreen />;
   if (phase === "layer-wait") return <TutorialTransitionScreen />;
-  if (phase === "layer-message") return <TutorialLayerMessageScreen message={t("tutorial.cardCollectionPrompt")} origin={layerOrigin} exiting={isLayerMessageExiting} />;
+  if (phase === "layer-message") return <TutorialLayerMessageScreen message={t("tutorial.cardCollectionPrompt")} exiting={isLayerMessageExiting} />;
   if (phase === "layer") return null;
   if (currentStep?.mode === "choice") return <>
-    <TutorialChoiceScreen key="tutorial-card-choices" exiting={isChoiceExiting} origin={{ x: window.innerWidth / 2, y: window.innerHeight / 2 }} title={t("tutorial.cardModes.title")} choices={TUTORIAL_CHOICES} t={t} onChoice={handleChoice} />
+    <TutorialChoiceScreen key="tutorial-card-choices" exiting={isChoiceExiting} title={t("tutorial.cardModes.title")} choices={TUTORIAL_CHOICES} t={t} onChoice={handleChoice} />
   </>;
-  if (currentStep?.mode === "message") return <TutorialMessageScreen exiting={isMessageExiting} origin={{ x: window.innerWidth / 2, y: window.innerHeight / 2 }} message={t((currentStep.messageKey ?? "tutorial.landingCardsMessage") as TranslationKey)} nextLabel={t("tutorial.next")} onNext={handleMessageContinue} />;
+  if (currentStep?.mode === "message") return <TutorialMessageScreen exiting={isMessageExiting} message={t((currentStep.messageKey ?? "tutorial.landingCardsMessage") as TranslationKey)} nextLabel={t(currentStep.key === "card-collection-message" ? "tutorial.collectionMessageButton" : "tutorial.next")} onNext={handleMessageContinue} />;
   if (!position || !currentStep?.messageKey) return null;
 
   const mask = `radial-gradient(circle ${position.radius}px at ${position.centerX}px ${position.centerY}px, transparent ${Math.max(0, position.radius - 1)}px, #000 ${position.radius}px)`;
   return (
-    <div data-landing-tutorial data-landing-tutorial-phase="target" role="dialog" aria-modal="true" aria-label={t(currentStep.messageKey as TranslationKey)} className={cn("tutorial-origin-overlay pointer-events-none fixed inset-0 z-[1000]", isTargetExiting && "tutorial-origin-overlay--closing")} style={{ transformOrigin: `${position.centerX}px ${position.centerY}px` }}>
+      <div data-landing-tutorial data-landing-tutorial-phase="target" role="dialog" aria-modal="true" aria-label={t(currentStep.messageKey as TranslationKey)} className={cn("tutorial-origin-overlay pointer-events-none fixed inset-0 z-[1000]", isTargetExiting && "tutorial-origin-overlay--closing")}>
+      <div aria-hidden="true" className="tutorial-origin-overlay__circle" />
+      <div className="tutorial-origin-overlay__viewport">
       {position.shape === "circle" ? <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-black/80" style={{ maskImage: mask, WebkitMaskImage: mask } as CSSProperties} /> : (
         <>
-          <div aria-hidden="true" data-landing-tutorial-rect-mask className="pointer-events-none fixed left-0 right-0 top-0 bg-black/80" style={{ height: position.top }} />
-          <div aria-hidden="true" data-landing-tutorial-rect-mask className="pointer-events-none fixed left-0 bg-black/80" style={{ top: position.top, width: position.left, height: position.height }} />
-          <div aria-hidden="true" data-landing-tutorial-rect-mask className="pointer-events-none fixed right-0 bg-black/80" style={{ top: position.top, left: position.left + position.width, height: position.height }} />
-          <div aria-hidden="true" data-landing-tutorial-rect-mask className="pointer-events-none fixed bottom-0 left-0 right-0 bg-black/80" style={{ top: position.top + position.height }} />
+          <div aria-hidden="true" data-landing-tutorial-rect-mask className="pointer-events-none absolute left-0 right-0 top-0 bg-black/80" style={{ height: position.top }} />
+          <div aria-hidden="true" data-landing-tutorial-rect-mask className="pointer-events-none absolute left-0 bg-black/80" style={{ top: position.top, width: position.left, height: position.height }} />
+          <div aria-hidden="true" data-landing-tutorial-rect-mask className="pointer-events-none absolute right-0 bg-black/80" style={{ top: position.top, left: position.left + position.width, height: position.height }} />
+          <div aria-hidden="true" data-landing-tutorial-rect-mask className="pointer-events-none absolute bottom-0 left-0 right-0 bg-black/80" style={{ top: position.top + position.height }} />
         </>
       )}
-      <div aria-hidden="true" data-landing-tutorial-spotlight data-spotlight-shape={position.shape} className={cn("pointer-events-none fixed border-[5px] border-red-500 shadow-[0_0_0_1px_rgba(255,255,255,0.15),0_0_28px_rgba(239,68,68,0.55)] transition-[left,top,width,height,border-radius] duration-500 ease-[cubic-bezier(0.85,0,0.15,1)] motion-reduce:transition-none", position.shape === "circle" ? "rounded-full" : "rounded-lg")} style={{ left: position.left, top: position.top, width: position.width, height: position.height }} />
-      <TutorialArrow position={position} />
-      <div key={`callout-${step}`} className="pointer-events-none fixed z-20" style={{ left: "50%", top: position.calloutTop, width: `min(${CALLOUT_WIDTH}px, calc(100vw - ${VIEWPORT_GAP * 2}px))`, transform: "translateX(-50%)" }}>
+      <div aria-hidden="true" data-landing-tutorial-spotlight data-spotlight-shape={position.shape} className={cn("pointer-events-none absolute border-[5px] border-brand shadow-[0_0_0_1px_color-mix(in_srgb,var(--brand)_15%,transparent),0_0_28px_color-mix(in_srgb,var(--brand)_55%,transparent)] transition-[left,top,width,height,border-radius] duration-500 ease-[cubic-bezier(0.85,0,0.15,1)] motion-reduce:transition-none", position.shape === "circle" ? "rounded-full" : "rounded-lg")} style={{ left: position.left, top: position.top, width: position.width, height: position.height }} />
+      <TutorialArrow position={position} exiting={isTargetExiting} />
+      <div key={`callout-${step}`} data-tutorial-callout-position className="pointer-events-none absolute z-20" style={{ left: "50%", top: position.calloutTop, width: `min(${CALLOUT_WIDTH}px, calc(100vw - ${VIEWPORT_GAP * 2}px))`, transform: "translateX(-50%)" }}>
         <div data-landing-tutorial-callout className="tutorial-origin-overlay__item" style={{ animationDelay: isTargetExiting ? "0ms" : "520ms" }}>
           <Image aria-hidden="true" alt="" data-tutorial-callout-mascot className="pointer-events-none absolute -left-3 top-8 z-10 h-auto w-24" height={512} priority src="/mascots/mascot5.webp" width={512} />
-          <p data-landing-tutorial-message className={cn("relative z-20 ml-20 flex h-24 items-center rounded-lg bg-white px-4 py-3 text-center text-base font-semibold leading-snug text-brand before:absolute before:-left-3.5 before:bottom-5 before:h-8 before:w-4 before:bg-white before:[clip-path:polygon(100%_0,100%_100%,0_50%)]", TUTORIAL_MESSAGE_SURFACE_CLASS)}>{t(currentStep.messageKey as TranslationKey)}</p>
+          <p data-landing-tutorial-message className={cn("relative z-20 ml-20 flex min-h-24 items-center rounded-lg bg-brand px-4 py-3 text-center text-lg font-semibold leading-snug text-white before:absolute before:-left-3.5 before:bottom-5 before:h-8 before:w-4 before:bg-brand before:[clip-path:polygon(100%_0,100%_100%,0_50%)]", TUTORIAL_MESSAGE_SURFACE_CLASS, useSuperWater && "font-super-water")} style={{ transform: currentStep.key === "start-learning" ? "translateY(-20px)" : undefined }}>{formatSuperWaterText(locale, t(currentStep.messageKey as TranslationKey))}</p>
         </div>
+      </div>
       </div>
     </div>
   );
 }
 
-function WelcomeTutorialScreen({ exiting, underlay, origin, stage, label, nextLabel, onNext }: { exiting: boolean; underlay: boolean; origin: TutorialLayerOrigin; stage: "welcome" | "add-cards"; label: string; nextLabel: string; onNext: () => void }) {
+function WelcomeTutorialScreen({ exiting, underlay, stage, label, nextLabel, onNext }: { exiting: boolean; underlay: boolean; stage: "welcome" | "add-cards"; label: string; nextLabel: string; onNext: () => void }) {
   const { locale } = useLocale();
   const useSuperWater = canUseSuperWater(locale);
   const isAddCardsStage = stage === "add-cards";
@@ -743,13 +772,15 @@ function WelcomeTutorialScreen({ exiting, underlay, origin, stage, label, nextLa
   const canShowAlphaVideo = isAddCardsStage && hasVideoAlphaSupport && !usesAnimationFallback;
 
   return (
-    <div data-landing-tutorial data-landing-tutorial-welcome data-tutorial-welcome-underlay={underlay ? "" : undefined} role="dialog" aria-label={label} aria-modal={underlay ? undefined : "true"} aria-hidden={underlay || undefined} aria-busy={exiting} className={cn("tutorial-origin-overlay fixed inset-0 z-[1000] flex min-h-[100dvh] touch-none items-center justify-center bg-black/80 px-6 text-center", exiting && "tutorial-origin-overlay--closing")} style={{ transformOrigin: `${origin.x}px ${origin.y}px` }}>
+    <div data-landing-tutorial data-landing-tutorial-welcome data-tutorial-welcome-underlay={underlay ? "" : undefined} role="dialog" aria-label={label} aria-modal={underlay ? undefined : "true"} aria-hidden={underlay || undefined} aria-busy={exiting} className={cn("tutorial-origin-overlay fixed inset-0 z-[1000]", exiting && "tutorial-origin-overlay--closing")}>
+      <div aria-hidden="true" className="tutorial-origin-overlay__circle bg-black/80" />
+      <div className="tutorial-origin-overlay__viewport flex min-h-[100dvh] touch-none items-center justify-center px-6 text-center">
       <div data-tutorial-welcome-content className="tutorial-origin-overlay__item relative z-10 flex w-full max-w-sm flex-col items-center" style={{ animationDelay: exiting ? "0ms" : "520ms" }}>
         <div aria-hidden="true" data-tutorial-welcome-media-spacer className="aspect-[47/45] w-full max-w-[19rem] shrink-0" />
-        {(!isAddCardsStage || isPlaybackComplete) ? <h2 data-tutorial-welcome-step-title className={cn("tutorial-origin-overlay__item mt-4 w-full shrink-0 text-center text-3xl font-bold leading-9 text-white", isAddCardsStage && "tutorial-welcome-ui-scale-in", useSuperWater && "font-super-water")} style={{ animationDelay: isAddCardsStage ? "0ms" : "520ms", translate: isAddCardsStage ? "0 35px" : undefined }}>
+        {(!isAddCardsStage || isPlaybackComplete) ? <h2 data-tutorial-welcome-step-title className={cn("tutorial-origin-overlay__item mt-4 w-full shrink-0 text-center text-3xl font-bold leading-9 text-white", isAddCardsStage && "tutorial-welcome-ui-scale-in", useSuperWater && "font-super-water")} style={{ animationDelay: exiting ? "70ms" : isAddCardsStage ? "0ms" : "520ms", translate: isAddCardsStage ? "0 35px" : undefined }}>
           {formatSuperWaterText(locale, label)}
         </h2> : null}
-        {(!isAddCardsStage || isPlaybackComplete) ? <button type="button" data-landing-tutorial-welcome-next disabled={exiting} onClick={handleNext} className={cn("tutorial-origin-overlay__item mt-8 h-14 w-full max-w-64 rounded-lg bg-brand text-lg font-bold text-brand-foreground shadow-sm transition-[background-color,opacity,transform] duration-300 hover:bg-brand-hover active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 focus:outline-none focus-visible:outline-none", useSuperWater && "font-super-water", isAddCardsStage && "tutorial-welcome-ui-scale-in")} style={isAddCardsStage ? { animationDelay: "180ms", translate: "0 35px" } : undefined}>{formatSuperWaterText(locale, nextLabel)}</button> : null}
+        {(!isAddCardsStage || isPlaybackComplete) ? <button type="button" data-landing-tutorial-welcome-next disabled={exiting} onClick={handleNext} className={cn("tutorial-origin-overlay__item mt-8 h-14 w-full max-w-64 rounded-lg bg-brand text-lg font-bold text-brand-foreground shadow-sm transition-[background-color,opacity,transform] duration-300 hover:bg-brand-hover active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 focus:outline-none focus-visible:outline-none", useSuperWater && "font-super-water", isAddCardsStage && "tutorial-welcome-ui-scale-in")} style={exiting ? { animationDelay: "140ms", translate: isAddCardsStage ? "0 35px" : undefined } : isAddCardsStage ? { animationDelay: "180ms", translate: "0 35px" } : undefined}>{formatSuperWaterText(locale, nextLabel)}</button> : null}
       </div>
       <div
         aria-hidden="true"
@@ -777,20 +808,23 @@ function WelcomeTutorialScreen({ exiting, underlay, origin, stage, label, nextLa
         />
         <audio className="hidden" ref={audioRef} data-tutorial-welcome-audio preload="auto" src={`/mascots/tutorial-welcome/mascot-audio.m4a?v=${WELCOME_MEDIA_ASSET_VERSION}`} />
       </div>
+      </div>
     </div>
   );
 }
 
-function TutorialChoiceScreen({ exiting, entering = false, onEnterComplete, origin, title, choices, t, onChoice }: { exiting: boolean; entering?: boolean; onEnterComplete?: () => void; origin: TutorialLayerOrigin; title: string; choices: readonly (typeof TUTORIAL_CHOICES)[number][]; t: (key: TranslationKey, variables?: TranslationValues) => string; onChoice: (choice: (typeof TUTORIAL_CHOICES)[number]) => void }) {
+function TutorialChoiceScreen({ exiting, entering = false, onEnterComplete, title, choices, t, onChoice }: { exiting: boolean; entering?: boolean; onEnterComplete?: () => void; title: string; choices: readonly (typeof TUTORIAL_CHOICES)[number][]; t: (key: TranslationKey, variables?: TranslationValues) => string; onChoice: (choice: (typeof TUTORIAL_CHOICES)[number]) => void }) {
   const { locale } = useLocale();
   const useSuperWater = canUseSuperWater(locale);
   const displayText = (text: string) => formatSuperWaterText(locale, text);
 
   return (
-    <div data-landing-tutorial data-landing-tutorial-choice-screen role="dialog" aria-modal="true" aria-label={title} onAnimationEnd={(event) => {
-      if (event.target === event.currentTarget && event.animationName === "tutorial-circle-screen-enter") onEnterComplete?.();
-    }} className={cn("tutorial-origin-overlay fixed inset-0 z-[1000] flex min-h-[100dvh] flex-col overflow-hidden bg-background px-4 py-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] text-foreground", entering && "z-[1001]", exiting && "tutorial-origin-overlay--closing")} style={{ transformOrigin: `${origin.x}px ${origin.y}px` }}>
-      <h2 className={cn("tutorial-origin-overlay__item shrink-0 py-3 text-center text-4xl font-bold text-foreground", useSuperWater && "font-super-water")} style={{ animationDelay: exiting ? "210ms" : "520ms" }}>
+    <div data-landing-tutorial data-landing-tutorial-choice-screen role="dialog" aria-modal="true" aria-label={title} className={cn("tutorial-origin-overlay fixed inset-0 z-[1000]", entering && "z-[1001]", exiting && "tutorial-origin-overlay--closing")}>
+      <div aria-hidden="true" className="tutorial-origin-overlay__circle bg-background" onAnimationEnd={(event) => {
+        if (event.target === event.currentTarget && event.animationName === "tutorial-circle-screen-enter") onEnterComplete?.();
+      }} />
+      <div className="tutorial-origin-overlay__viewport flex min-h-[100dvh] flex-col overflow-hidden px-4 py-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] text-foreground">
+      <h2 className={cn("tutorial-origin-overlay__item shrink-0 py-3 text-center text-4xl font-bold text-foreground", useSuperWater && "font-super-water")} style={{ animationDelay: exiting ? "0ms" : "520ms" }}>
         {formatSuperWaterUppercaseText(locale, title)}
       </h2>
       <div className="grid min-h-0 flex-1 grid-rows-3 gap-3 py-5">
@@ -799,34 +833,50 @@ function TutorialChoiceScreen({ exiting, entering = false, onEnterComplete, orig
           choice.key === "random" && "bg-[#f59e0b] text-[#332417]",
           choice.key === "custom" && "bg-[#c026d3] text-white",
           choice.key === "groups" && "bg-[#84cc16] text-[#202c16]",
-        )} style={{ animationDelay: exiting ? `${(3 - index) * 70}ms` : `${590 + index * 70}ms` }}>
+        )} style={{ animationDelay: exiting ? `${70 + index * 70}ms` : `${590 + index * 70}ms` }}>
           <Image src={choice.icon} alt="" aria-hidden="true" width={76} height={76} className="size-[clamp(3.5rem,18vw,5rem)] shrink-0 object-contain transition-transform duration-500 ease-[cubic-bezier(0.85,0,0.15,1)] group-hover:scale-105" />
           <span className="min-w-0"><span className={cn("block text-2xl font-bold leading-none", useSuperWater && "font-super-water")}>{displayText(t(choice.titleKey))}</span></span>
         </button>)}
+      </div>
       </div>
     </div>
   );
 }
 
-function TutorialMessageScreen({ exiting, origin, message, nextLabel, onNext }: { exiting: boolean; origin: TutorialLayerOrigin; message: string; nextLabel: string; onNext: () => void }) {
+function TutorialMessageScreen({ exiting, message, nextLabel, onNext }: { exiting: boolean; message: string; nextLabel: string; onNext: () => void }) {
   const { locale } = useLocale();
   const useSuperWater = canUseSuperWater(locale);
 
   return (
-    <div data-landing-tutorial data-landing-tutorial-message-screen role="dialog" aria-modal="true" aria-label={message} className={cn("tutorial-origin-overlay fixed inset-0 z-[1000] flex min-h-[100dvh] items-center justify-center bg-black/80 px-5 text-center backdrop-blur-[2px]", exiting && "tutorial-origin-overlay--closing")} style={{ transformOrigin: `${origin.x}px ${origin.y}px` }}>
-      <div className="tutorial-origin-overlay__item flex w-full max-w-[20rem] flex-col items-center" style={{ animationDelay: exiting ? "0ms" : "520ms" }}><div className="relative w-full pl-20"><Image aria-hidden="true" alt="" data-tutorial-callout-mascot className="pointer-events-none absolute -left-5 top-8 z-10 h-auto w-24" height={512} priority src="/mascots/mascot5.webp" width={512} /><p data-landing-tutorial-message className="relative z-20 flex min-h-28 items-center rounded-lg bg-white px-4 py-4 text-center text-base font-semibold leading-snug text-brand shadow-sm before:absolute before:-left-3.5 before:bottom-5 before:h-8 before:w-4 before:bg-white before:[clip-path:polygon(100%_0,100%_100%,0_50%)]">{message}</p></div><button type="button" data-landing-tutorial-next onClick={() => { vibrate("tutorial-next"); onNext(); }} disabled={exiting} className={cn("mt-12 h-14 w-[calc(100%-4rem)] rounded-lg bg-brand text-lg font-bold text-brand-foreground shadow-sm transition-[background-color,transform] duration-300 hover:bg-brand-hover active:scale-[0.98] disabled:pointer-events-none focus:outline-none focus-visible:outline-none", useSuperWater && "font-super-water")}>{formatSuperWaterText(locale, nextLabel)}</button></div>
+    <div data-landing-tutorial data-landing-tutorial-message-screen role="dialog" aria-modal="true" aria-label={message} className={cn("tutorial-origin-overlay fixed inset-0 z-[1000]", exiting && "tutorial-origin-overlay--closing")}>
+      <div aria-hidden="true" className="tutorial-origin-overlay__circle bg-black/80" />
+      <div className="tutorial-origin-overlay__viewport flex min-h-[100dvh] items-center justify-center px-5 text-center">
+        <div className="flex w-full max-w-[20rem] flex-col items-center">
+          <div data-tutorial-message-callout className="tutorial-origin-overlay__item relative w-full pl-20" style={{ animationDelay: exiting ? "0ms" : "520ms" }}>
+            <Image aria-hidden="true" alt="" data-tutorial-callout-mascot className="pointer-events-none absolute -left-5 top-8 z-10 h-auto w-24" height={512} priority src="/mascots/mascot5.webp" width={512} />
+            <p data-landing-tutorial-message className={cn("relative z-20 flex min-h-28 items-center rounded-lg bg-brand px-4 py-4 text-center text-lg font-semibold leading-snug text-white shadow-sm before:absolute before:-left-3.5 before:bottom-5 before:h-8 before:w-4 before:bg-brand before:[clip-path:polygon(100%_0,100%_100%,0_50%)]", useSuperWater && "font-super-water")}>{formatSuperWaterText(locale, message)}</p>
+          </div>
+          <button type="button" data-landing-tutorial-next onClick={() => { vibrate("tutorial-next"); onNext(); }} disabled={exiting} className={cn("tutorial-origin-overlay__item mt-12 h-14 w-[calc(100%-4rem)] translate-y-[30px] rounded-lg bg-brand text-lg font-bold text-brand-foreground shadow-sm transition-[background-color,transform] duration-300 hover:bg-brand-hover active:scale-[0.98] disabled:pointer-events-none focus:outline-none focus-visible:outline-none", useSuperWater && "font-super-water")} style={{ animationDelay: exiting ? "90ms" : "660ms" }}>{formatSuperWaterText(locale, nextLabel)}</button>
+        </div>
+      </div>
     </div>
   );
 }
 
-function TutorialLayerMessageScreen({ message, origin, exiting }: { message: string; origin: TutorialLayerOrigin; exiting: boolean }) {
+function TutorialLayerMessageScreen({ message, exiting }: { message: string; exiting: boolean }) {
+  const { locale } = useLocale();
+  const useSuperWater = canUseSuperWater(locale);
+
   return (
-    <div data-testid="tutorial-layer-message" data-landing-tutorial data-landing-tutorial-layer-message-screen role="dialog" aria-modal="true" aria-label={message} aria-busy={exiting} className={cn("tutorial-origin-overlay fixed inset-0 z-[1000] flex min-h-[100dvh] items-center justify-center bg-black/80 px-5 text-center backdrop-blur-[2px]", exiting && "tutorial-origin-overlay--closing")} style={{ transformOrigin: `${origin.x}px ${origin.y}px` }}>
+    <div data-testid="tutorial-layer-message" data-landing-tutorial data-landing-tutorial-layer-message-screen role="dialog" aria-modal="true" aria-label={message} aria-busy={exiting} className={cn("tutorial-origin-overlay fixed inset-0 z-[1000]", exiting && "tutorial-origin-overlay--closing")}>
+      <div aria-hidden="true" className="tutorial-origin-overlay__circle bg-black/80" />
+      <div className="tutorial-origin-overlay__viewport flex min-h-[100dvh] items-center justify-center px-5 text-center">
       <div className="tutorial-origin-overlay__item flex w-full max-w-[20rem] items-center justify-center" style={{ animationDelay: exiting ? "0ms" : "520ms" }}>
         <div className="relative w-full pl-20">
-          <Image aria-hidden="true" alt="" data-tutorial-callout-mascot className="pointer-events-none absolute -left-5 top-8 z-10 h-auto w-24" height={512} priority src="/mascots/mascot5.webp" width={512} />
-          <p data-landing-tutorial-layer-message className="relative z-20 flex min-h-28 items-center rounded-lg bg-white px-4 py-4 text-center text-base font-semibold leading-snug text-brand shadow-sm before:absolute before:-left-3.5 before:bottom-5 before:h-8 before:w-4 before:bg-white before:[clip-path:polygon(100%_0,100%_100%,0_50%)]">{message}</p>
+          <Image aria-hidden="true" alt="" data-tutorial-layer-message-character data-tutorial-callout-mascot className="pointer-events-none absolute -left-5 top-8 z-10 h-auto w-24" height={512} priority src="/mascots/mascot5.webp" width={512} />
+          <p data-tutorial-layer-message-bubble data-landing-tutorial-layer-message className={cn("relative z-20 flex min-h-28 items-center rounded-lg bg-brand px-4 py-4 text-center text-lg font-semibold leading-snug text-white shadow-sm before:absolute before:-left-3.5 before:bottom-5 before:h-8 before:w-4 before:bg-brand before:[clip-path:polygon(100%_0,100%_100%,0_50%)]", useSuperWater && "font-super-water")}>{formatSuperWaterText(locale, message)}</p>
         </div>
+      </div>
       </div>
     </div>
   );
@@ -840,12 +890,34 @@ function TutorialStartScreen() {
   return <div aria-busy="true" aria-label="Starting tutorial" data-landing-tutorial-starting role="status" className="fixed inset-0 z-[1000] min-h-[100dvh] touch-none bg-transparent" />;
 }
 
-function TutorialArrow({ position }: { position: SpotlightPosition }) {
-  const controlY = position.arrowStartY + (position.arrowEndY - position.arrowStartY) / 2;
-  const arrowDirection = position.arrowEndY >= position.arrowStartY ? 1 : -1;
-  const arrowTipY = position.arrowEndY + arrowDirection * ORIGINAL_TUTORIAL_ARROWHEAD_LENGTH;
-  const path = `M ${position.centerX} ${position.arrowStartY} C ${position.centerX} ${controlY}, ${position.centerX} ${controlY}, ${position.centerX} ${arrowTipY}`;
-  return <svg aria-hidden="true" className="pointer-events-none fixed inset-0 z-10 h-full w-full text-red-500" focusable="false"><defs><marker id="landing-tutorial-arrowhead" data-tutorial-arrow-tip-anchor="path-end" markerHeight="14" markerUnits="userSpaceOnUse" markerWidth="14" orient="auto" refX="14" refY="7" viewBox="0 0 14 14"><path d="M 0 0 L 14 7 L 0 14 z" fill="currentColor" /></marker></defs><path className="tutorial-arrow-path" data-tutorial-arrow-anchor-y={position.arrowEndY} data-tutorial-arrow-tip-offset={arrowDirection * ORIGINAL_TUTORIAL_ARROWHEAD_LENGTH} data-tutorial-arrow-tip-y={arrowTipY} d={path} fill="none" markerEnd="url(#landing-tutorial-arrowhead)" pathLength="1" stroke="currentColor" strokeLinecap="round" strokeWidth="5" /></svg>;
+function TutorialArrow({ position, exiting }: { position: SpotlightPosition; exiting: boolean }) {
+  const arrowDirection = position.arrowDirection;
+  const arrowCenterX = position.centerX + position.arrowOffsetX;
+  const arrowWidth = TUTORIAL_ARROW_IMAGE_WIDTH * TUTORIAL_ARROW_SCALE;
+  const arrowTipY = position.arrowEndY + arrowDirection * TUTORIAL_ARROW_TIP_OFFSET;
+  const arrowCenterY = arrowTipY - arrowDirection * arrowWidth / 2;
+
+  return <Image
+    aria-hidden="true"
+    alt=""
+    data-tutorial-arrow-image
+    data-tutorial-arrow-anchor-y={position.arrowEndY}
+    data-tutorial-arrow-direction={arrowDirection > 0 ? "down" : "up"}
+    data-tutorial-arrow-offset-x={position.arrowOffsetX}
+    data-tutorial-arrow-tip-offset={arrowDirection * TUTORIAL_ARROW_TIP_OFFSET}
+    data-tutorial-arrow-tip-y={arrowTipY}
+    className={cn("tutorial-arrow-image pointer-events-none absolute z-10 h-auto", exiting && "tutorial-arrow-image--exiting")}
+    height={TUTORIAL_ARROW_SOURCE_HEIGHT}
+    src="/mascots/tutorial-welcome/arrow.png"
+    style={{
+      left: arrowCenterX,
+      top: arrowCenterY,
+      width: arrowWidth,
+      "--tutorial-arrow-rest-top": `${arrowCenterY}px`,
+      "--tutorial-arrow-rotation": `${arrowDirection * 90}deg`,
+    } as CSSProperties}
+    width={TUTORIAL_ARROW_SOURCE_WIDTH}
+  />;
 }
 
 function isLandingPageReady() {

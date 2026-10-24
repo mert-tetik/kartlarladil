@@ -5470,6 +5470,7 @@ export function MobileQuizTopBar({
           type="button"
           onClick={onExit}
           aria-label={t("quiz.exit")}
+          data-mobile-back-close
           className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >
           <X className="size-6" aria-hidden="true" />
@@ -8538,6 +8539,7 @@ function ResultMenu({
             onClick={onClose}
             className="inline-flex size-9 items-center justify-center rounded-full text-white transition-colors hover:bg-white/15 hover:text-white"
             aria-label={t("common.close")}
+            data-mobile-back-close
           >
             <X className="size-5" aria-hidden="true" />
           </button>

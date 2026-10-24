@@ -16,6 +16,12 @@ const billingMocks = vi.hoisted(() => ({
   })),
   showMessage: vi.fn(),
 }));
+const subscriptionMocks = vi.hoisted(() => ({
+  openSubscriptionDetails: vi.fn<(
+    selection: { plan: "basic" | "pro"; cycle: "monthly" | "yearly"; ctaLabel?: string },
+    options?: { onPurchaseSuccess?: () => void | Promise<void> },
+  ) => void>(),
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -59,6 +65,7 @@ vi.mock("@/features/subscriptions/subscription-client", () => ({
   useSubscription: () => ({
     entitlements: { effectivePlan: "free" },
     isLoading: false,
+    openSubscriptionDetails: subscriptionMocks.openSubscriptionDetails,
   }),
 }));
 
@@ -77,7 +84,6 @@ function renderDialog(props: {
   activeCardLimitDetails?: ActiveCardLimitDetails | null;
   activeCardLimitDescription?: string;
   overlayClassName?: string;
-  onPricingNavigate?: () => void;
   onPurchaseSuccess?: () => void | Promise<void>;
 }) {
   const onOpenChange = vi.fn();
@@ -90,7 +96,6 @@ function renderDialog(props: {
         activeCardLimitDetails={props.activeCardLimitDetails}
         activeCardLimitDescription={props.activeCardLimitDescription}
         overlayClassName={props.overlayClassName}
-        onPricingNavigate={props.onPricingNavigate}
         onPurchaseSuccess={props.onPurchaseSuccess}
       />
     </LocaleProvider>,
@@ -111,12 +116,12 @@ describe("UpgradeDialog", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("shows the active card limit message and a pricing link", () => {
+  it("shows the active card limit message and opens subscription details", () => {
     renderDialog({ open: true, errorCode: "free_active_card_limit" });
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("heading")).toHaveTextContent(/Aktif öğrenilecek kart kotan doldu/i);
-    expect(screen.getByRole("link", { name: /ILK AY ÜCRETSIZ/i })).toHaveAttribute("href", "/pricing");
+    expect(screen.getByRole("button", { name: /ILK AY ÜCRETSIZ/i })).toHaveAttribute("data-restriction-subscription-details", "basic_monthly");
     expect(screen.getByRole("button", { name: /Kartları öğren/i })).toHaveClass("bg-action-learn");
   });
 
@@ -143,43 +148,47 @@ describe("UpgradeDialog", () => {
     expect(screen.getByRole("dialog").parentElement).toHaveClass("z-[2100]");
   });
 
-  it("notifies the tutorial before opening pricing", async () => {
+  it("opens subscription details without closing the restriction", async () => {
     const user = userEvent.setup();
-    const onPricingNavigate = vi.fn();
     const { onOpenChange } = renderDialog({
       open: true,
       errorCode: "free_active_card_limit",
-      onPricingNavigate,
     });
 
-    await user.click(screen.getByRole("link", { name: /ILK AY ÜCRETSIZ/i }));
+    await user.click(screen.getByRole("button", { name: /ILK AY ÜCRETSIZ/i }));
 
-    expect(onPricingNavigate).toHaveBeenCalledOnce();
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(subscriptionMocks.openSubscriptionDetails).toHaveBeenCalledWith(
+      { plan: "basic", cycle: "monthly", ctaLabel: expect.any(String) },
+      { onPurchaseSuccess: expect.any(Function) },
+    );
+    expect(onOpenChange).not.toHaveBeenCalled();
   });
 
-  it("starts the Basic monthly Play purchase in TWA and resumes the blocked action", async () => {
+  it("opens Basic monthly details in TWA without purchasing from the restriction", async () => {
     billingMocks.isTwa = true;
     const user = userEvent.setup();
-    const onPricingNavigate = vi.fn();
     const onPurchaseSuccess = vi.fn();
     const { onOpenChange } = renderDialog({
       open: true,
       errorCode: "free_active_card_limit",
-      onPricingNavigate,
       onPurchaseSuccess,
     });
 
-    expect(screen.queryByRole("link", { name: /ILK AY/i })).not.toBeInTheDocument();
-    const purchaseButton = await screen.findByRole("button", { name: /Basic.*4,99|Basic.*4\.99/i });
-    await user.click(purchaseButton);
+    await user.click(screen.getByRole("button", { name: /ILK AY ÜCRETSIZ/i }));
 
-    await waitFor(() => {
-      expect(billingMocks.purchase).toHaveBeenCalledWith("basic_monthly");
-      expect(onPurchaseSuccess).toHaveBeenCalledOnce();
-    });
-    expect(onPricingNavigate).toHaveBeenCalledOnce();
+    expect(subscriptionMocks.openSubscriptionDetails).toHaveBeenCalledWith(
+      { plan: "basic", cycle: "monthly", ctaLabel: expect.any(String) },
+      { onPurchaseSuccess: expect.any(Function) },
+    );
+    expect(billingMocks.purchase).not.toHaveBeenCalled();
+    expect(onPurchaseSuccess).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    const onDetailsPurchaseSuccess = subscriptionMocks.openSubscriptionDetails.mock.calls[0]?.[1]?.onPurchaseSuccess;
+    expect(onDetailsPurchaseSuccess).toBeTypeOf("function");
+    onDetailsPurchaseSuccess?.();
     expect(onOpenChange).toHaveBeenCalledWith(false);
+    await waitFor(() => expect(onPurchaseSuccess).toHaveBeenCalledOnce());
   });
 
   it("navigates to the learn page when the learn cards button is clicked", async () => {
@@ -204,7 +213,7 @@ describe("UpgradeDialog", () => {
     renderDialog({ open: true, errorCode: "learned_review_subscription_required" });
 
     expect(screen.getByRole("heading")).toHaveTextContent(/abonelik gerekli/i);
-    expect(screen.getByRole("link")).toHaveAttribute("href", "/pricing");
+    expect(screen.getByRole("button", { name: /ILK AY ÜCRETSIZ/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Belki sonra/i })).toBeInTheDocument();
   });
 

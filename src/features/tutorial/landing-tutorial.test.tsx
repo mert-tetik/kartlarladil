@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LandingTutorial } from "@/features/tutorial/landing-tutorial";
@@ -18,6 +19,8 @@ function TutorialFixture({ cardSwipeEntryComplete = true }: { cardSwipeEntryComp
   const [cardsOpen, setCardsOpen] = useState(false);
   const [started, setStarted] = useState(false);
   const [nestedInteraction, setNestedInteraction] = useState(false);
+  const [subscriptionOpen, setSubscriptionOpen] = useState(false);
+  const [subscriptionAction, setSubscriptionAction] = useState(false);
 
   return (
     <>
@@ -29,10 +32,12 @@ function TutorialFixture({ cardSwipeEntryComplete = true }: { cardSwipeEntryComp
         <button type="button" data-tutorial-target="start-learning" onClick={() => setStarted(true)}>start</button>
         {cardsOpen ? <div id="mobile-card-center-content">card collection</div> : null}
       </section>
-      {layer ? <div className={layer === "draw-cards" ? "card-swipe-overlay" : undefined} data-card-swipe-entry-complete={layer === "draw-cards" ? cardSwipeEntryComplete : undefined} data-tutorial-layer={layer} aria-hidden="false"><button type="button" onClick={() => setLayer(null)}>close layer</button></div> : null}
+      {layer ? <div className={layer === "draw-cards" ? "card-swipe-overlay" : undefined} data-card-swipe-entry-complete={layer === "draw-cards" ? cardSwipeEntryComplete : undefined} data-tutorial-layer={layer} aria-hidden="false"><button type="button" onClick={() => setLayer(null)}>close layer</button><button type="button" onClick={() => setSubscriptionOpen(true)}>open subscription details</button></div> : null}
       {layer ? <div data-tutorial-layer-portal={layer}><button type="button" onClick={() => setNestedInteraction(true)}>nested layer action</button></div> : null}
+      {subscriptionOpen ? createPortal(<section aria-modal="true" data-tutorial-subscription-overlay role="dialog"><button type="button" onClick={() => setSubscriptionAction(true)}>subscription action</button><button type="button" onClick={() => setSubscriptionOpen(false)}>close subscription details</button></section>, document.body) : null}
       {started ? <p>started</p> : null}
       {nestedInteraction ? <p>nested interaction</p> : null}
+      {subscriptionAction ? <p>subscription action complete</p> : null}
       <LandingTutorial />
     </>
   );
@@ -113,6 +118,11 @@ describe("LandingTutorial", () => {
     expect(await screen.findByRole("status", { name: "Starting tutorial" })).toBeInTheDocument();
     const firstWelcome = await screen.findByRole("dialog", { name: "tutorial.welcome" });
     expect(firstWelcome).toBeInTheDocument();
+    const welcomeRevealCircle = firstWelcome.querySelector(".tutorial-origin-overlay__circle");
+    const welcomeViewport = firstWelcome.querySelector(".tutorial-origin-overlay__viewport");
+    expect(welcomeRevealCircle).toBeInTheDocument();
+    expect(welcomeViewport).toBeInTheDocument();
+    expect(welcomeRevealCircle?.nextElementSibling).toBe(welcomeViewport);
     const firstWelcomeTitle = screen.getByRole("heading", { name: "tutorial.welcome" });
     expect(firstWelcomeTitle).toHaveClass("mt-4", "text-center");
     expect(document.querySelector("[data-tutorial-welcome-content] [data-tutorial-welcome-step-title]")).toBe(firstWelcomeTitle);
@@ -177,7 +187,7 @@ describe("LandingTutorial", () => {
     const mediaPause = vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
     render(<TutorialFixture />);
 
-    await screen.findByRole("dialog", { name: "tutorial.welcome" });
+    await screen.findByRole("dialog", { name: "tutorial.welcome" }, { timeout: 3_500 });
     const video = document.querySelector("[data-tutorial-welcome-video]") as HTMLVideoElement;
     fireEvent.error(video);
     fireEvent.click(screen.getByRole("button", { name: "tutorial.next" }));
@@ -192,6 +202,8 @@ describe("LandingTutorial", () => {
   it("renders exactly three card mode choices and blocks the landing below them", async () => {
     render(<TutorialFixture />);
     expect(await screen.findByRole("dialog", { name: "tutorial.cardModes.title" })).toBeInTheDocument();
+    expect(document.querySelector("[data-landing-tutorial-choice-screen] .tutorial-origin-overlay__circle")).toBeInTheDocument();
+    expect(document.querySelector("[data-landing-tutorial-choice-screen] .tutorial-origin-overlay__viewport")).toBeInTheDocument();
     const choices = document.querySelectorAll("[data-landing-tutorial-choice]");
     expect(choices).toHaveLength(3);
     expect(document.querySelector("[data-landing-tutorial-choice-screen] .grid")).toHaveClass("py-5");
@@ -206,12 +218,25 @@ describe("LandingTutorial", () => {
 
   it("opens the selected real layer and continues one second after it closes", async () => {
     render(<TutorialFixture />);
-    const choice = await screen.findByRole("button", { name: /tutorial\.cardModes\.random\.title/ });
+    const choice = await screen.findByRole("button", { name: /tutorial\.cardModes\.random\.title/ }, { timeout: 3_500 });
     fireEvent.click(choice);
     expect(vibrate).toHaveBeenCalledWith("tutorial-next");
+    const closingChoiceScreen = document.querySelector<HTMLElement>("[data-landing-tutorial-choice-screen]");
+    expect(closingChoiceScreen).toHaveClass("tutorial-origin-overlay--closing");
+    expect(closingChoiceScreen?.querySelector("h2")?.style.animationDelay).toBe("0ms");
+    expect(Array.from(closingChoiceScreen?.querySelectorAll<HTMLElement>("[data-landing-tutorial-choice]") ?? []).map((item) => item.style.animationDelay)).toEqual(["70ms", "140ms", "210ms"]);
     expect(await screen.findByText("close layer", {}, { timeout: 3_500 })).toBeInTheDocument();
     expect(document.querySelector("[data-landing-tutorial-choice-screen]")).not.toBeInTheDocument();
-    expect(await screen.findByTestId("tutorial-layer-message", {}, { timeout: 2_000 })).toBeInTheDocument();
+    const layerPrompt = await screen.findByTestId("tutorial-layer-message", {}, { timeout: 2_000 });
+    const character = layerPrompt.querySelector("[data-tutorial-layer-message-character]");
+    const bubble = layerPrompt.querySelector("[data-tutorial-layer-message-bubble]");
+    expect(character).toBeInTheDocument();
+    expect(bubble).toBeInTheDocument();
+    expect(bubble).toHaveClass("text-lg", "font-super-water", "bg-brand", "text-white", "before:bg-brand");
+    await waitFor(() => expect(layerPrompt).toHaveAttribute("aria-busy", "true"), { timeout: 3_500 });
+    expect(layerPrompt).toHaveClass("tutorial-origin-overlay--closing");
+    expect(character).toBeInTheDocument();
+    expect(bubble).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByTestId("tutorial-layer-message")).not.toBeInTheDocument(), { timeout: 4_000 });
 
     fireEvent.click(screen.getByRole("button", { name: "close layer" }));
@@ -221,7 +246,7 @@ describe("LandingTutorial", () => {
 
   it("waits for the draw-card screen entrance before showing its tutorial prompt", async () => {
     const { rerender } = render(<TutorialFixture cardSwipeEntryComplete={false} />);
-    const choice = await screen.findByRole("button", { name: /tutorial\.cardModes\.random\.title/ });
+    const choice = await screen.findByRole("button", { name: /tutorial\.cardModes\.random\.title/ }, { timeout: 5_000 });
     fireEvent.click(choice);
 
     expect(await screen.findByRole("button", { name: "close layer" }, { timeout: 3_500 })).toBeInTheDocument();
@@ -254,47 +279,93 @@ describe("LandingTutorial", () => {
     expect(screen.getByText("nested interaction")).toBeInTheDocument();
   });
 
+  it("allows the subscription details portal without completing or advancing the tutorial", async () => {
+    render(<TutorialFixture />);
+
+    const choice = await screen.findByRole("button", { name: /tutorial\.cardModes\.random\.title/ }, { timeout: 5_000 });
+    fireEvent.click(choice);
+    expect(await screen.findByRole("button", { name: "open subscription details" }, { timeout: 3_500 })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByTestId("tutorial-layer-message")).not.toBeInTheDocument(), { timeout: 4_000 });
+
+    fireEvent.click(screen.getByRole("button", { name: "open subscription details" }));
+    const subscriptionDialog = await screen.findByRole("dialog");
+    expect(subscriptionDialog).toHaveAttribute("data-tutorial-subscription-overlay");
+    fireEvent.click(screen.getByRole("button", { name: "subscription action" }));
+
+    expect(screen.getByText("subscription action complete")).toBeInTheDocument();
+    expect(useTutorialStore.getState()).toMatchObject({ active: true, completed: false, step: 0 });
+    expect(screen.getByRole("button", { name: "close layer" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "close subscription details" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "close layer" })).toBeInTheDocument();
+    expect(useTutorialStore.getState()).toMatchObject({ active: true, completed: false, step: 0 });
+  });
+
   it("keeps the cards target restricted and then shows a message-only screen", async () => {
     useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 1, testMode: false });
     render(<TutorialFixture />);
     await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_500 });
+    const targetViewport = document.querySelector("[data-landing-tutorial-phase=target] .tutorial-origin-overlay__viewport");
+    expect(targetViewport).toBeInTheDocument();
+    expect(targetViewport?.querySelectorAll(".fixed")).toHaveLength(0);
 
     fireEvent.click(screen.getByRole("button", { name: "cards" }));
+    expect(document.querySelector("[data-tutorial-arrow-image]")).toHaveClass("tutorial-arrow-image--exiting");
     await waitFor(() => expect(useTutorialStore.getState().step).toBe(2), { timeout: 2_500 });
     expect(document.querySelector("[data-landing-tutorial-spotlight]")).not.toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: "tutorial.next" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "tutorial.collectionMessageButton" })).toBeInTheDocument();
+    expect(screen.getByText("tutorial.landingCardsMessage")).toBeInTheDocument();
+    const message = document.querySelector<HTMLElement>("[data-landing-tutorial-message]");
+    expect(message).toHaveClass("text-lg", "font-super-water", "bg-brand", "text-white", "before:bg-brand");
+    expect(message?.style.transform).toBe("");
     expect(document.querySelector("#mobile-card-center-content")).toBeInTheDocument();
   });
 
   it.each([
     { direction: 1, step: 1, viewportHeight: 844 },
     { direction: -1, step: 3, viewportHeight: 1600 },
-  ])("shrinks the tutorial arrow while preserving its actual tip position (direction $direction)", async ({ direction, step, viewportHeight }) => {
+  ])("uses the tutorial arrow image at its natural aspect ratio and points it toward the target (direction $direction)", async ({ direction, step, viewportHeight }) => {
     Object.defineProperty(window, "innerHeight", { configurable: true, value: viewportHeight });
     useTutorialStore.setState({ active: true, completed: false, introSeen: true, step, testMode: false });
     render(<TutorialFixture />);
 
     await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_500 });
 
-    const arrow = document.querySelector<SVGPathElement>(".tutorial-arrow-path");
-    const marker = document.querySelector<SVGMarkerElement>("#landing-tutorial-arrowhead");
+    const arrow = document.querySelector<HTMLImageElement>("[data-tutorial-arrow-image]");
+    const spotlight = document.querySelector("[data-landing-tutorial-spotlight]");
     expect(arrow).toBeInTheDocument();
-    expect(arrow).toHaveAttribute("stroke-width", "5");
-    expect(marker).toHaveAttribute("markerWidth", "14");
-    expect(marker).toHaveAttribute("markerHeight", "14");
-    expect(marker).toHaveAttribute("refX", "14");
-    expect(marker).toHaveAttribute("refY", "7");
-    expect(marker).toHaveAttribute("viewBox", "0 0 14 14");
-    expect(marker).toHaveAttribute("data-tutorial-arrow-tip-anchor", "path-end");
+    expect(spotlight).toHaveClass("border-brand");
+    expect(spotlight).not.toHaveClass("border-red-500");
+    expect(arrow?.getAttribute("src")).toContain("arrow.png");
+    expect(arrow).toHaveAttribute("width", "433");
+    expect(arrow).toHaveAttribute("height", "305");
+    expect(Number(arrow?.getAttribute("width")) / Number(arrow?.getAttribute("height"))).toBeCloseTo(433 / 305);
+    expect(Number.parseFloat(arrow?.style.width ?? "")).toBeCloseTo(112 * 0.8);
+    expect(arrow?.style.getPropertyValue("--tutorial-arrow-rest-top")).toBe(`${arrow?.style.top}`);
+    expect(arrow).toHaveAttribute("data-tutorial-arrow-direction", direction > 0 ? "down" : "up");
+    expect(arrow?.style.getPropertyValue("--tutorial-arrow-rotation")).toBe(`${direction * 90}deg`);
+
+    const expectedOffsetX = step === 1 ? -75 : 0;
+    const targetSelector = step === 1 ? "landing-card-center" : "start-learning";
+    const target = document.querySelector<HTMLElement>(`[data-tutorial-target="${targetSelector}"]`);
+    const callout = document.querySelector<HTMLElement>("[data-tutorial-callout-position]");
+    const message = document.querySelector<HTMLElement>("[data-landing-tutorial-message]");
+    expect(message).toHaveClass("text-lg", "font-super-water", "bg-brand", "text-white", "before:bg-brand");
+    expect(message?.style.transform).toBe(step === 3 ? "translateY(-20px)" : "");
+    expect(arrow).toHaveAttribute("data-tutorial-arrow-offset-x", String(expectedOffsetX));
+    expect(Number.parseFloat(arrow?.style.left ?? "")).toBe((target?.getBoundingClientRect().left ?? 0) + (target?.getBoundingClientRect().width ?? 0) / 2 + expectedOffsetX);
+    expect(callout?.style.top).toBe(step === 1 ? "404px" : "698px");
 
     const originalAnchorY = Number(arrow?.getAttribute("data-tutorial-arrow-anchor-y"));
     const preservedTipOffset = Number(arrow?.getAttribute("data-tutorial-arrow-tip-offset"));
     const actualTipY = Number(arrow?.getAttribute("data-tutorial-arrow-tip-y"));
-    const pathEndY = Number(arrow?.getAttribute("d")?.trim().split(/\s/u).at(-1));
+    const imageCenterY = Number.parseFloat(arrow?.style.top ?? "");
+    const renderedImageWidth = Number.parseFloat(arrow?.style.width ?? "");
 
     expect(preservedTipOffset).toBe(direction * 22);
     expect(actualTipY).toBe(originalAnchorY + preservedTipOffset);
-    expect(pathEndY).toBe(actualTipY);
+    expect(imageCenterY + direction * renderedImageWidth / 2).toBe(actualTipY);
   });
 
   it("scrolls at 400ms and reaches the learning target after message continue", async () => {
@@ -302,10 +373,12 @@ describe("LandingTutorial", () => {
     render(<TutorialFixture />);
     const dashboard = document.querySelector("[data-mobile-landing-dashboard]") as HTMLElement;
     dashboard.scrollTo = vi.fn();
-    const continueButton = await screen.findByRole("button", { name: "tutorial.next" });
-    expect(continueButton).toHaveClass("text-lg", "font-super-water");
+    const continueButton = await screen.findByRole("button", { name: "tutorial.collectionMessageButton" }, { timeout: 3_500 });
+    expect(continueButton).toHaveClass("text-lg", "font-super-water", "translate-y-[30px]");
     fireEvent.click(continueButton);
     expect(vibrate).toHaveBeenCalledWith("tutorial-next");
+    expect(document.querySelector<HTMLElement>("[data-tutorial-message-callout]")?.style.animationDelay).toBe("0ms");
+    expect(continueButton.style.animationDelay).toBe("90ms");
     await waitFor(() => expect(dashboard.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" }), { timeout: 2_200 });
     await waitFor(() => expect(useTutorialStore.getState().step).toBe(3), { timeout: 2_500 });
     await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_500 });
@@ -316,6 +389,10 @@ describe("LandingTutorial", () => {
     render(<TutorialFixture />);
     await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_500 });
     fireEvent.click(screen.getByRole("button", { name: "start" }));
+
+    expect(document.querySelector("[data-tutorial-arrow-image]")).toHaveClass("tutorial-arrow-image--exiting");
+    expect(screen.queryByText("started")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("started")).toBeInTheDocument(), { timeout: 1_000 });
     expect(useTutorialStore.getState()).toMatchObject({
       active: false,
       completed: true,

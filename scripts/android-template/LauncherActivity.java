@@ -17,7 +17,11 @@ import android.provider.MediaStore;
 import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.view.View;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import androidx.core.content.FileProvider;
 import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
@@ -41,6 +45,7 @@ public class LauncherActivity extends Activity {
     private static final int AUDIO_PERMISSION_REQUEST_CODE = 4101;
     private WebView webView;
     private FrameLayout contentRoot;
+    private ImageView nativeSplashView;
     private NativeBillingBridge billingBridge;
     private NativeTextToSpeechBridge textToSpeechBridge;
     private NativeVibrationBridge vibrationBridge;
@@ -51,8 +56,11 @@ public class LauncherActivity extends Activity {
     private AppUpdateManager appUpdateManager;
     private Intent pendingLaunchIntent;
     private boolean updateCheckInFlight;
+    private boolean updateCheckCompleted;
     private boolean immediateUpdateFlowActive;
     private boolean startUrlLoaded;
+    private boolean backPressInFlight;
+    private final OnBackInvokedCallback androidBackCallback = this::handleBackPressed;
     private static final int FILE_CHOOSER_REQUEST_CODE = 4102;
     private static final int IMMEDIATE_UPDATE_REQUEST_CODE = 4103;
     private static final AppUpdateOptions IMMEDIATE_UPDATE_OPTIONS =
@@ -62,11 +70,46 @@ public class LauncherActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        pendingLaunchIntent = getIntent();
+        contentRoot = new FrameLayout(this);
+        contentRoot.setBackgroundColor(Color.rgb(254, 101, 7));
+        nativeSplashView = createNativeSplashView();
+        contentRoot.addView(
+                nativeSplashView,
+                new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT
+                )
+        );
+        setContentView(contentRoot);
+        configureWindow();
+        registerAndroidBackCallback();
+
+        // Let Android draw the local launch surface before the comparatively
+        // expensive WebView and bridge setup begins on the UI thread.
+        contentRoot.post(this::initializeWebView);
+    }
+
+    private ImageView createNativeSplashView() {
+        ImageView splash = new ImageView(this);
+        splash.setImageResource(R.drawable.native_splash);
+        splash.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        splash.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        return splash;
+    }
+
+    private void initializeWebView() {
+        if (webView != null || isFinishing()) return;
+
         webView = new WebView(this);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
+        // The app owns its responsive typography. Do not let the Android
+        // system font-scale preference resize WebView text and destabilize
+        // the mobile layout.
+        settings.setTextZoom(100);
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
@@ -76,7 +119,10 @@ public class LauncherActivity extends Activity {
         }
 
         CookieManager.getInstance().setAcceptCookie(true);
-        webView.setBackgroundColor(Color.BLACK);
+        // Keep the native splash visible underneath the WebView until the
+        // first committed web frame. This avoids a black intermediate surface
+        // while still allowing the remote app splash to take over naturally.
+        webView.setBackgroundColor(Color.TRANSPARENT);
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onShowFileChooser(
@@ -135,7 +181,7 @@ public class LauncherActivity extends Activity {
         });
 
         NativeMediaStore mediaStore = new NativeMediaStore(this);
-        webView.setWebViewClient(new LocalMediaWebViewClient(this, mediaStore));
+        webView.setWebViewClient(new LocalMediaWebViewClient(this, mediaStore, this::hideNativeSplash));
 
         billingBridge = new NativeBillingBridge(this);
         webView.addJavascriptInterface(billingBridge, "FoxiesDeckNativeBilling");
@@ -144,42 +190,60 @@ public class LauncherActivity extends Activity {
         vibrationBridge = new NativeVibrationBridge(this);
         webView.addJavascriptInterface(vibrationBridge, "FoxiesDeckNativeVibration");
 
-        contentRoot = new FrameLayout(this);
-        contentRoot.setBackgroundColor(Color.BLACK);
         contentRoot.addView(
                 webView,
+                0,
                 new FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         FrameLayout.LayoutParams.MATCH_PARENT
                 )
         );
-        setContentView(contentRoot);
-        configureWindow();
-        pendingLaunchIntent = getIntent();
-        checkForImmediateUpdate();
+
+        // The remote app must never wait for Play Core. Its splash can paint
+        // while the update check runs independently in the background.
+        continueLaunch();
+        contentRoot.post(this::checkForImmediateUpdate);
+    }
+
+    private void hideNativeSplash() {
+        if (nativeSplashView == null || contentRoot == null) return;
+
+        ImageView splash = nativeSplashView;
+        nativeSplashView = null;
+        splash.animate()
+                .alpha(0f)
+                .setDuration(120L)
+                .withEndAction(() -> contentRoot.removeView(splash))
+                .start();
     }
 
     /**
-     * Gate the first WebView load behind Google Play's native immediate update
-     * flow. Sideloaded/debug builds simply continue when Play cannot provide
-     * update information.
+     * Check Google Play's native immediate update flow without blocking the
+     * first WebView load. Sideloaded/debug builds simply continue when Play
+     * cannot provide update information.
      */
     private void checkForImmediateUpdate() {
-        if (startUrlLoaded || updateCheckInFlight || immediateUpdateFlowActive) return;
+        if (webView == null
+                || updateCheckCompleted
+                || updateCheckInFlight
+                || immediateUpdateFlowActive) return;
         updateCheckInFlight = true;
         try {
             appUpdateManager = AppUpdateManagerFactory.create(this);
             appUpdateManager.getAppUpdateInfo()
                     .addOnSuccessListener(appUpdateInfo -> {
                         updateCheckInFlight = false;
+                        updateCheckCompleted = true;
                         handleAppUpdateInfo(appUpdateInfo);
                     })
                     .addOnFailureListener(error -> {
                         updateCheckInFlight = false;
+                        updateCheckCompleted = true;
                         continueLaunch();
                     });
         } catch (RuntimeException ignored) {
             updateCheckInFlight = false;
+            updateCheckCompleted = true;
             continueLaunch();
         }
     }
@@ -215,7 +279,7 @@ public class LauncherActivity extends Activity {
     }
 
     private void continueLaunch() {
-        if (startUrlLoaded || isFinishing()) return;
+        if (webView == null || startUrlLoaded || isFinishing()) return;
         startUrlLoaded = true;
         loadStartUrl(pendingLaunchIntent != null ? pendingLaunchIntent : getIntent());
     }
@@ -225,7 +289,9 @@ public class LauncherActivity extends Activity {
         super.onResume();
         // If Android recreated/resumed the shell while Play had an update in
         // progress, ask Play for a fresh AppUpdateInfo and resume the flow.
-        checkForImmediateUpdate();
+        if (webView != null) {
+            checkForImmediateUpdate();
+        }
     }
 
     private Intent createCameraCaptureIntent() throws IOException {
@@ -476,16 +542,47 @@ public class LauncherActivity extends Activity {
         }
     }
 
-    @Override
-    public void onBackPressed() {
+    private void registerAndroidBackCallback() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                    androidBackCallback
+            );
+        }
+    }
+
+    private void handleBackPressed() {
         if (isOfflineScreenVisible()) {
             return;
         }
-        if (webView != null && webView.canGoBack()) {
-            webView.goBack();
+        if (backPressInFlight) {
             return;
         }
-        super.onBackPressed();
+        if (webView == null) {
+            finish();
+            return;
+        }
+
+        backPressInFlight = true;
+        try {
+            webView.evaluateJavascript(
+                    "(function(){try{return window.__foxiesDeckHandleAndroidBack ? window.__foxiesDeckHandleAndroidBack() : false;}catch(_){return false;}})()",
+                    handled -> {
+                        backPressInFlight = false;
+                        if (!isFinishing() && !"true".equals(handled)) {
+                            finish();
+                        }
+                    }
+            );
+        } catch (RuntimeException ignored) {
+            backPressInFlight = false;
+            finish();
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        handleBackPressed();
     }
 
     private boolean isOfflineScreenVisible() {
@@ -496,6 +593,9 @@ public class LauncherActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(androidBackCallback);
+        }
         if (pendingAudioPermissionRequest != null) {
             pendingAudioPermissionRequest.deny();
             pendingAudioPermissionRequest = null;

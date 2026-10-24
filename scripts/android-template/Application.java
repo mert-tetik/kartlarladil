@@ -7,6 +7,8 @@
 package __PACKAGE__;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import androidx.lifecycle.DefaultLifecycleObserver;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.ProcessLifecycleOwner;
@@ -18,9 +20,15 @@ public class Application extends android.app.Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        FirebaseApp.initializeApp(this);
+        // Firebase is ancillary to the first frame. Defer its setup until the
+        // Activity launch message has returned so analytics cannot extend the
+        // native launch window or delay the WebView splash.
+        new Handler(Looper.getMainLooper()).post(this::initializeAnalytics);
+    }
 
+    private void initializeAnalytics() {
         try {
+            FirebaseApp.initializeApp(this);
             FirebaseAnalytics analytics = FirebaseAnalytics.getInstance(this);
             ProcessLifecycleOwner.get().getLifecycle().addObserver(new DefaultLifecycleObserver() {
                 @Override

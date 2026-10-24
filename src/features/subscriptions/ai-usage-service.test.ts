@@ -2,9 +2,11 @@ import { vi } from "vitest";
 import {
   assertAndRecordAiUsage,
   assertCanUseAi,
-  consumeImageTextTranslation,
+  completeImageTextTranslation,
   getImageTextTranslationUsage,
+  releaseImageTextTranslation,
   recordAiUsageEvent,
+  reserveImageTextTranslation,
 } from "@/features/subscriptions/ai-usage-service";
 
 const mockCount = vi.fn();
@@ -107,6 +109,14 @@ describe("recordAiUsageEvent", () => {
       p_event_type: "ask",
     });
   });
+
+  it("fails closed when the usage RPC returns an unknown result", async () => {
+    mockRpc.mockResolvedValue({ data: "unexpected", error: null });
+
+    await expect(recordAiUsageEvent("user-1", "free", "chat")).rejects.toThrow(
+      "unexpected_ai_usage_result",
+    );
+  });
 });
 
 describe("assertAndRecordAiUsage", () => {
@@ -147,6 +157,14 @@ describe("assertAndRecordAiUsage", () => {
 
     await expect(assertAndRecordAiUsage("user-1", "free", "chat")).rejects.toThrow("db error");
   });
+
+  it("fails closed when the quota RPC returns an unknown result", async () => {
+    mockRpc.mockResolvedValue({ data: "unexpected", error: null });
+
+    await expect(assertAndRecordAiUsage("user-1", "free", "chat")).rejects.toThrow(
+      "unexpected_ai_usage_result",
+    );
+  });
 });
 
 describe("image text translation usage", () => {
@@ -156,26 +174,51 @@ describe("image text translation usage", () => {
     mockCount.mockReset();
   });
 
-  it("uses the dedicated atomic RPC", async () => {
-    await consumeImageTextTranslation("user-1");
+  it("reserves a quota slot through the dedicated atomic RPC", async () => {
+    const reservationId = "7b14850b-021e-4b37-a035-6ab40853c276";
+    mockRpc.mockResolvedValue({ data: reservationId, error: null });
 
-    expect(mockRpc).toHaveBeenCalledWith("record_image_text_translation_if_available", {
+    await expect(reserveImageTextTranslation("user-1")).resolves.toEqual({
+      status: "reserved",
+      reservationId,
+    });
+    expect(mockRpc).toHaveBeenCalledWith("reserve_image_text_translation", {
       p_user_id: "user-1",
     });
   });
 
-  it("returns a restriction code when the lifetime cap is reached", async () => {
+  it("returns a restriction when the lifetime cap is reached", async () => {
     mockRpc.mockResolvedValue({ data: "feature_limit", error: null });
 
-    await expect(consumeImageTextTranslation("user-1")).resolves.toBe("image_text_translate_limit");
+    await expect(reserveImageTextTranslation("user-1")).resolves.toEqual({ status: "limit" });
   });
 
   it("rejects an unexpected RPC result instead of treating usage as recorded", async () => {
     mockRpc.mockResolvedValue({ data: "", error: null });
 
-    await expect(consumeImageTextTranslation("user-1")).rejects.toThrow(
-      "unexpected_image_text_translation_usage_result",
+    await expect(reserveImageTextTranslation("user-1")).rejects.toThrow(
+      "unexpected_image_text_translation_reservation_result",
     );
+  });
+
+  it("completes a reservation as a successful usage event", async () => {
+    mockRpc.mockResolvedValue({ data: "ok", error: null });
+
+    await expect(completeImageTextTranslation("user-1", "reservation-1")).resolves.toBeUndefined();
+    expect(mockRpc).toHaveBeenCalledWith("complete_image_text_translation", {
+      p_user_id: "user-1",
+      p_reservation_id: "reservation-1",
+    });
+  });
+
+  it("releases a reservation after an unsuccessful request", async () => {
+    mockRpc.mockResolvedValue({ data: "ok", error: null });
+
+    await expect(releaseImageTextTranslation("user-1", "reservation-1")).resolves.toBeUndefined();
+    expect(mockRpc).toHaveBeenCalledWith("release_image_text_translation", {
+      p_user_id: "user-1",
+      p_reservation_id: "reservation-1",
+    });
   });
 
   it("reports remaining free-plan translation uses", async () => {

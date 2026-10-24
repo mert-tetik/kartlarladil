@@ -333,15 +333,18 @@ async function main() {
     );
   }
 
-  // Always create a fresh web build before indexing media. Otherwise an
-  // otherwise successful Android build could silently package an older .next
-  // output than the source currently checked out.
-  console.log("Building the Next.js website...");
-  await run(
-    process.platform === "win32" ? "npm.cmd" : "npm",
-    ["run", "build"],
-    { cwd: ROOT, env: process.env },
-  );
+  // Keep the safe default of creating a fresh web build. For a release retry,
+  // TWA_SKIP_WEB_BUILD=1 allows reusing an already verified .next output.
+  if (process.env.TWA_SKIP_WEB_BUILD === "1") {
+    console.log("Skipping the Next.js website build (TWA_SKIP_WEB_BUILD=1)...");
+  } else {
+    console.log("Building the Next.js website...");
+    await run(
+      process.platform === "win32" ? "npm.cmd" : "npm",
+      ["run", "build"],
+      { cwd: ROOT, env: process.env },
+    );
+  }
   await prepareHybridMedia(PROJECT_DIR);
   const keystorePath = manifest.signingKey.path;
   const keystoreAlias = manifest.signingKey.alias;

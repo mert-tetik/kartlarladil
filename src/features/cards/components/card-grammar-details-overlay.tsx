@@ -282,6 +282,7 @@ export function CardGrammarDetailsOverlay({
             <button
               type="button"
               data-card-grammar-details-close
+              data-mobile-back-close
               onClick={onClose}
               aria-label={t("cards.closeGrammarDetails")}
               className="absolute right-3 top-3 z-10 inline-flex size-12 items-center justify-center border-0 bg-transparent p-0 text-white shadow-none outline-none transition-transform duration-300 hover:bg-transparent focus-visible:outline-none active:scale-95"

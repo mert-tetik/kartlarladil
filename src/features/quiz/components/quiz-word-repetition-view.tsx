@@ -59,6 +59,7 @@ export function QuizWordRepetitionView({
           type="button"
           onClick={onExit}
           aria-label={t("quiz.exit")}
+          data-mobile-back-close
           className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >
           <X className="size-6" aria-hidden="true" />

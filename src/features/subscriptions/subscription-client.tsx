@@ -12,22 +12,50 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { SubscriptionPurchaseSuccessDialog } from "@/features/subscriptions/components/subscription-purchase-success-dialog";
+import {
+  type SubscriptionDetailsSelection,
+} from "@/features/subscriptions/components/global-subscription-details-overlay";
+import dynamic from "next/dynamic";
 import { getUserEntitlementsAction } from "@/features/subscriptions/subscription-actions";
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
+import { useGooglePlayPricing } from "@/features/subscriptions/use-google-play-pricing";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import { useAuthSession } from "@/features/auth/auth-client";
-import type { UserEntitlements } from "@/types/domain";
+import type { AuthShellUser } from "@/features/auth/auth-types";
+import type { SubscriptionPlan, UserEntitlements } from "@/types/domain";
 import { useAppMessage } from "@/components/app-message-provider";
 import { isMissionVisualTestRoute } from "@/lib/visual-test-mode";
 
 const ENTITLEMENTS_CACHE_KEY = "foxiesdeck:entitlements";
+
+const GlobalSubscriptionDetailsOverlay = dynamic(
+  () => import("@/features/subscriptions/components/global-subscription-details-overlay")
+    .then((module) => module.GlobalSubscriptionDetailsOverlay),
+  { ssr: false, loading: () => null },
+);
 
 interface SubscriptionContextValue {
   entitlements: UserEntitlements | null;
   isLoading: boolean;
   error: string | null;
   refreshEntitlements: () => Promise<UserEntitlements | null>;
+  applyVerifiedEntitlements: (next: UserEntitlements) => void;
   presentPurchaseSuccess: () => void;
+  openSubscriptionDetails: (
+    selection: SubscriptionDetailsSelection,
+    options?: {
+      currencyCode?: string | null;
+      currentPlan?: SubscriptionPlan | null;
+      onPurchaseSuccess?: () => void | Promise<void>;
+    },
+  ) => void;
+}
+
+interface SubscriptionDetailsRequest {
+  selection: SubscriptionDetailsSelection;
+  currencyCode: string | null;
+  currentPlan?: SubscriptionPlan | null;
+  onPurchaseSuccess?: () => void | Promise<void>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextValue | null>(null);
@@ -73,7 +101,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { user } = useAuthSession();
 
   return (
-    <SubscriptionProviderSession key={user?.id ?? "guest"} userId={user?.id ?? null}>
+    <SubscriptionProviderSession key={user?.id ?? "guest"} userId={user?.id ?? null} user={user}>
       {children}
     </SubscriptionProviderSession>
   );
@@ -82,9 +110,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 function SubscriptionProviderSession({
   children,
   userId,
+  user,
 }: {
   children: ReactNode;
   userId: string | null;
+  user: AuthShellUser | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -97,6 +127,7 @@ function SubscriptionProviderSession({
   );
   const [error, setError] = useState<string | null>(null);
   const [purchaseSuccessOpen, setPurchaseSuccessOpen] = useState(false);
+  const [subscriptionDetailsRequest, setSubscriptionDetailsRequest] = useState<SubscriptionDetailsRequest | null>(null);
   const entitlementsRef = useRef<UserEntitlements | null>(entitlements);
   const userIdRef = useRef<string | null>(userId);
   const refreshPromiseRef = useRef<Promise<UserEntitlements | null> | null>(null);
@@ -190,6 +221,15 @@ function SubscriptionProviderSession({
     return refreshRequest;
   }, [isVisualTestMode, userId]);
 
+  const applyVerifiedEntitlements = useCallback((next: UserEntitlements) => {
+    if (!userId) return;
+    entitlementsRef.current = next;
+    setEntitlements(next);
+    setIsLoading(false);
+    setError(null);
+    writeCachedEntitlements(userId, next);
+  }, [userId]);
+
   useEffect(() => {
     if (isVisualTestMode || !userId) {
       return;
@@ -204,6 +244,22 @@ function SubscriptionProviderSession({
     setPurchaseSuccessOpen(true);
   }, []);
 
+  const openSubscriptionDetails = useCallback<SubscriptionContextValue["openSubscriptionDetails"]>(
+    (selection, options) => {
+      setSubscriptionDetailsRequest({
+        selection,
+        currencyCode: options?.currencyCode ?? null,
+        currentPlan: options?.currentPlan,
+        onPurchaseSuccess: options?.onPurchaseSuccess,
+      });
+    },
+    [],
+  );
+
+  const closeSubscriptionDetails = useCallback(() => {
+    setSubscriptionDetailsRequest(null);
+  }, []);
+
   const handlePurchaseSuccessContinue = useCallback(() => {
     setPurchaseSuccessOpen(false);
     if (pathname !== "/") {
@@ -213,15 +269,61 @@ function SubscriptionProviderSession({
 
   return (
     <SubscriptionContext.Provider
-      value={{ entitlements, isLoading, error, refreshEntitlements, presentPurchaseSuccess }}
+      value={{ entitlements, isLoading, error, refreshEntitlements, applyVerifiedEntitlements, presentPurchaseSuccess, openSubscriptionDetails }}
     >
       {children}
+      {subscriptionDetailsRequest ? (
+        <SubscriptionDetailsHost
+          request={subscriptionDetailsRequest}
+          user={user}
+          currentPlan={subscriptionDetailsRequest.currentPlan !== undefined
+            ? subscriptionDetailsRequest.currentPlan
+            : entitlements?.effectivePlan ?? null}
+          onClose={closeSubscriptionDetails}
+          onPresentPurchaseSuccess={presentPurchaseSuccess}
+        />
+      ) : null}
       <GooglePlayBillingSync disabled={isVisualTestMode} />
       <SubscriptionPurchaseSuccessDialog
         open={purchaseSuccessOpen}
         onContinue={handlePurchaseSuccessContinue}
       />
     </SubscriptionContext.Provider>
+  );
+}
+
+function SubscriptionDetailsHost({
+  request,
+  user,
+  currentPlan,
+  onClose,
+  onPresentPurchaseSuccess,
+}: {
+  request: SubscriptionDetailsRequest;
+  user: AuthShellUser | null;
+  currentPlan: SubscriptionPlan | null;
+  onClose: () => void;
+  onPresentPurchaseSuccess: () => void;
+}) {
+  const isTwa = useTwaMode();
+  const googlePlayPricing = useGooglePlayPricing();
+  const { purchase, isLoading, isSupported } = useGooglePlayBilling();
+
+  return (
+    <GlobalSubscriptionDetailsOverlay
+      selection={request.selection}
+      user={user}
+      currentPlan={currentPlan}
+      isTwa={isTwa}
+      currencyCode={request.currencyCode}
+      googlePlayPricing={googlePlayPricing}
+      purchase={purchase}
+      purchaseLoading={isLoading}
+      purchaseSupported={isSupported}
+      onClose={onClose}
+      onPurchaseSuccess={request.onPurchaseSuccess}
+      onPresentPurchaseSuccess={onPresentPurchaseSuccess}
+    />
   );
 }
 

@@ -83,7 +83,7 @@ export function getEffectivePlan(subscription: UserSubscription): SubscriptionPl
 
 function hasUsableRemainingAccess(endsAt: string | null): boolean {
   if (!endsAt) {
-    return true;
+    return false;
   }
 
   const endTime = new Date(endsAt).getTime();

@@ -1,5 +1,5 @@
 {
-  "version": "819c8c8b0b6a48b60e305b6a5b65a57256f35d502f5b5434eca180d8583e5ef6",
+  "version": "cc761c3f6bc7a505c43395633dec14ed42ea8fe352113a1f8c4ae3bb58d50b52",
   "assets": [
     {
       "url": "/AppLogdfo.png",
@@ -916,6 +916,10 @@
     {
       "url": "/mascots/tutorial-add-cards.png",
       "revision": "b4e955d30dff7a1e24f860082ffd09fae2e27d8453f4502f00b52d89c870bfd6"
+    },
+    {
+      "url": "/mascots/tutorial-welcome/arrow.png",
+      "revision": "606ec065ed331d43146c61bb9242da86f9428f569c9c0ffbabd9433feda3dae9"
     },
     {
       "url": "/mascots/tutorial-welcome/first-frame.png",

@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import {
-  TUTORIAL_CARD_LAYER_CARDS_ADDED_EVENT,
+  TUTORIAL_CARD_LAYER_ADD_ATTEMPTED_EVENT,
   TUTORIAL_CARD_LAYER_CLOSED_EVENT,
   TUTORIAL_CARD_LAYER_OPENED_EVENT,
   type TutorialCardLayer,
-  type TutorialCardLayerCardsAddedDetail,
+  type TutorialCardLayerAddAttemptedDetail,
   type TutorialCardLayerClosedDetail,
   type TutorialCardLayerOpenedDetail,
 } from "@/features/tutorial/tutorial-card-session";
@@ -18,23 +18,23 @@ export function useTutorialCardCloseGuidance(layer: TutorialCardLayer) {
 
   useEffect(() => {
     let sessionIsActive = false;
-    let addedCardCount = 0;
+    let attemptedCardCount = 0;
 
     function handleLayerOpened(event: Event) {
       const detail = (event as CustomEvent<TutorialCardLayerOpenedDetail>).detail;
       if (detail?.layer !== layer) return;
 
       sessionIsActive = true;
-      addedCardCount = 0;
+      attemptedCardCount = 0;
       setShouldShowPointer(false);
     }
 
-    function handleCardsAdded(event: Event) {
-      const detail = (event as CustomEvent<TutorialCardLayerCardsAddedDetail>).detail;
+    function handleAddAttempted(event: Event) {
+      const detail = (event as CustomEvent<TutorialCardLayerAddAttemptedDetail>).detail;
       if (!sessionIsActive || detail?.layer !== layer || !Number.isInteger(detail.count) || detail.count <= 0) return;
 
-      addedCardCount += detail.count;
-      if (addedCardCount >= ADDED_CARDS_POINTER_THRESHOLD) {
+      attemptedCardCount += detail.count;
+      if (attemptedCardCount >= ADDED_CARDS_POINTER_THRESHOLD) {
         setShouldShowPointer(true);
       }
     }
@@ -44,17 +44,17 @@ export function useTutorialCardCloseGuidance(layer: TutorialCardLayer) {
       if (detail?.layer !== layer) return;
 
       sessionIsActive = false;
-      addedCardCount = 0;
+      attemptedCardCount = 0;
       setShouldShowPointer(false);
     }
 
     window.addEventListener(TUTORIAL_CARD_LAYER_OPENED_EVENT, handleLayerOpened);
-    window.addEventListener(TUTORIAL_CARD_LAYER_CARDS_ADDED_EVENT, handleCardsAdded);
+    window.addEventListener(TUTORIAL_CARD_LAYER_ADD_ATTEMPTED_EVENT, handleAddAttempted);
     window.addEventListener(TUTORIAL_CARD_LAYER_CLOSED_EVENT, handleLayerClosed);
 
     return () => {
       window.removeEventListener(TUTORIAL_CARD_LAYER_OPENED_EVENT, handleLayerOpened);
-      window.removeEventListener(TUTORIAL_CARD_LAYER_CARDS_ADDED_EVENT, handleCardsAdded);
+      window.removeEventListener(TUTORIAL_CARD_LAYER_ADD_ATTEMPTED_EVENT, handleAddAttempted);
       window.removeEventListener(TUTORIAL_CARD_LAYER_CLOSED_EVENT, handleLayerClosed);
     };
   }, [layer]);

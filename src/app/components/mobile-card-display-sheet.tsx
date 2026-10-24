@@ -310,6 +310,7 @@ export function MobileCardDisplaySheet({
                   onClick={onClose}
                   aria-label={t("common.close")}
                   title={t("common.close")}
+                  data-mobile-back-close
                   className={actionButtonClass}
                 >
                   <X className="size-5" aria-hidden="true" />

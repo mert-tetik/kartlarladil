@@ -9,7 +9,7 @@ import { isGooglePlayPurchaseCancellation } from "@/features/subscriptions/googl
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 
 export function useGooglePlayBilling() {
-  const { refreshEntitlements } = useSubscription();
+  const { applyVerifiedEntitlements } = useSubscription();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,7 +74,7 @@ export function useGooglePlayBilling() {
             throw new Error(result.message || "Purchase verification failed.");
           }
 
-          await refreshEntitlements();
+          applyVerifiedEntitlements(result.data);
           return result.data;
         }
 
@@ -120,7 +120,7 @@ export function useGooglePlayBilling() {
         }
 
         await response.complete("success");
-        await refreshEntitlements();
+        applyVerifiedEntitlements(result.data);
 
         return result.data;
       } catch (error) {
@@ -131,7 +131,7 @@ export function useGooglePlayBilling() {
         setIsLoading(false);
       }
     },
-    [getService, nativeBilling, refreshEntitlements],
+    [applyVerifiedEntitlements, getService, nativeBilling],
   );
 
   const restorePurchases = useCallback(async () => {
@@ -160,7 +160,7 @@ export function useGooglePlayBilling() {
         }
 
         if (result.data) {
-          await refreshEntitlements();
+          applyVerifiedEntitlements(result.data);
         }
         return;
       }
@@ -182,7 +182,7 @@ export function useGooglePlayBilling() {
       }
 
       if (result.data) {
-        await refreshEntitlements();
+        applyVerifiedEntitlements(result.data);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -191,7 +191,7 @@ export function useGooglePlayBilling() {
     } finally {
       setIsLoading(false);
     }
-  }, [getService, isSupported, nativeBilling, refreshEntitlements]);
+  }, [applyVerifiedEntitlements, getService, isSupported, nativeBilling]);
 
   return {
     isSupported,

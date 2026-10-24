@@ -22,11 +22,25 @@ public final class LocalMediaWebViewClient extends WebViewClient {
     private static final String TAG = "FoxiesDeckMedia";
     private final Activity activity;
     private final NativeMediaStore mediaStore;
+    private final Runnable onPageCommitVisible;
     private final Set<String> loggedRemoteFallbacks = Collections.synchronizedSet(new HashSet<>());
 
-    public LocalMediaWebViewClient(Activity activity, NativeMediaStore mediaStore) {
+    public LocalMediaWebViewClient(
+            Activity activity,
+            NativeMediaStore mediaStore,
+            Runnable onPageCommitVisible
+    ) {
         this.activity = activity;
         this.mediaStore = mediaStore;
+        this.onPageCommitVisible = onPageCommitVisible;
+    }
+
+    @Override
+    public void onPageCommitVisible(WebView view, String url) {
+        super.onPageCommitVisible(view, url);
+        if (onPageCommitVisible != null) {
+            view.post(onPageCommitVisible);
+        }
     }
 
     @Override

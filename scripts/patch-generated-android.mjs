@@ -154,8 +154,8 @@ dependencies {
     // FoxiesDeckNativeBilling JavaScript bridge.
     implementation 'com.android.billingclient:billing:${PLAY_BILLING_VERSION}'
 
-    // Google Play Immediate In-App Updates gate the first WebView load when a
-    // newer Play-distributed version is available.
+    // Google Play Immediate In-App Updates are checked after the first WebView
+    // load has started, so Play Core never delays the app's launch surface.
     implementation 'com.google.android.play:app-update:${PLAY_APP_UPDATE_VERSION}'
 
     // FileProvider exposes camera captures to the WebView without broad
@@ -268,6 +268,7 @@ const APP_ICON = `<?xml version="1.0" encoding="utf-8"?>
 `;
 
 const LAUNCHER_COLOR = "#FE6507";
+const NATIVE_SPLASH_SOURCE = path.join(ROOT, "public", "splash.png");
 
 const APP_THEME = `<?xml version="1.0" encoding="utf-8"?>
 <resources>
@@ -279,7 +280,7 @@ const APP_THEME = `<?xml version="1.0" encoding="utf-8"?>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:statusBarColor">#000000</item>
         <item name="android:navigationBarColor">#000000</item>
-        <item name="android:windowBackground">#000000</item>
+        <item name="android:windowBackground">${LAUNCHER_COLOR}</item>
     </style>
 </resources>
 `;
@@ -294,13 +295,14 @@ const APP_THEME_V31 = `<?xml version="1.0" encoding="utf-8"?>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:statusBarColor">#000000</item>
         <item name="android:navigationBarColor">#000000</item>
-        <item name="android:windowBackground">#000000</item>
-        <item name="android:windowSplashScreenBackground">#000000</item>
-        <!-- Keep the Android 12 launch window blank until the WebView paints
-             the orange app surface. The social/video splash bitmap is not a
-             valid native launch icon and must not be shown here. -->
+        <item name="android:windowBackground">${LAUNCHER_COLOR}</item>
+        <item name="android:windowSplashScreenBackground">${LAUNCHER_COLOR}</item>
+        <!-- The transparent icon keeps Android's system splash from scaling
+             the wide wordmark like an adaptive launcher icon. The matching
+             local bitmap is shown by LauncherActivity immediately after the
+             system launch window hands over to the app. -->
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/transparent_splash</item>
-        <item name="android:windowSplashScreenIconBackgroundColor">#000000</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">${LAUNCHER_COLOR}</item>
     </style>
 </resources>
 `;
@@ -399,6 +401,20 @@ async function patchLauncherColors(projectDir) {
   await writeText(colorsPath, colors);
 }
 
+async function copyNativeSplashAsset(projectDir) {
+  const targetPath = path.join(
+    projectDir,
+    "app",
+    "src",
+    "main",
+    "res",
+    "drawable-nodpi",
+    "native_splash.png",
+  );
+  await fs.mkdir(path.dirname(targetPath), { recursive: true });
+  await fs.copyFile(NATIVE_SPLASH_SOURCE, targetPath);
+}
+
 export async function patchGeneratedAndroidProject(
   projectDir = process.env.TWA_PROJECT_DIR || path.join(ROOT, "com.foxiesdeck"),
 ) {
@@ -452,6 +468,7 @@ export async function patchGeneratedAndroidProject(
     path.join(projectDir, "app", "src", "main", "res", "drawable-anydpi", "transparent_splash.xml"),
     TRANSPARENT_SPLASH,
   );
+  await copyNativeSplashAsset(projectDir);
   await writeText(
     path.join(projectDir, "app", "src", "main", "res", "xml", "file_paths.xml"),
     FILE_PROVIDER_PATHS,

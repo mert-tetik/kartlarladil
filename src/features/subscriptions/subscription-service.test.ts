@@ -76,14 +76,14 @@ describe("PLAN_LIMITS", () => {
 describe("getEffectivePlan", () => {
   it.each([
     ["free", "active", null, "free"],
-    ["basic", "active", null, "basic"],
-    ["pro", "active", null, "pro"],
+    ["basic", "active", null, "free"],
+    ["pro", "active", null, "free"],
     ["pro", "cancelled", null, "free"],
     ["pro", "cancelled", "2000-01-01T00:00:00Z", "free"],
     ["basic", "cancelled", "2099-12-31T23:59:59Z", "basic"],
     ["basic", "expired", null, "free"],
-    ["pro", "on_trial", null, "pro"],
-    ["basic", "past_due", null, "basic"],
+    ["pro", "on_trial", null, "free"],
+    ["basic", "past_due", null, "free"],
     ["basic", "active", "2000-01-01T00:00:00Z", "free"],
   ] as const)("for plan %s with status %s and endsAt %s returns %s", (plan, status, endsAt, expected) => {
     expect(getEffectivePlan(makeSubscription(plan, status, endsAt))).toBe(expected);
@@ -124,7 +124,7 @@ describe("getUserEntitlements", () => {
         provider: "google_play",
         customer_portal_url: "https://portal.example.com",
         renews_at: "2026-07-01T00:00:00Z",
-        ends_at: null,
+        ends_at: "2099-07-01T00:00:00Z",
       },
       error: null,
     });
@@ -153,6 +153,26 @@ describe("getUserEntitlements", () => {
     const result = await getUserEntitlements("user-3");
 
     expect(result.plan).toBe("basic");
+    expect(result.effectivePlan).toBe("free");
+    expect(result.limits).toEqual(PLAN_LIMITS.free);
+  });
+
+  it("fails closed when a paid subscription has no verified expiry", async () => {
+    mockSingle.mockResolvedValueOnce({
+      data: {
+        plan: "pro",
+        status: "active",
+        provider: "google_play",
+        customer_portal_url: null,
+        renews_at: null,
+        ends_at: null,
+      },
+      error: null,
+    });
+
+    const result = await getUserEntitlements("user-with-missing-expiry");
+
+    expect(result.plan).toBe("pro");
     expect(result.effectivePlan).toBe("free");
     expect(result.limits).toEqual(PLAN_LIMITS.free);
   });
