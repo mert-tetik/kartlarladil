@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/page-header";
 import { buttonClassName } from "@/components/ui/button";
 import { SubscriptionSettings } from "@/features/subscriptions/components/subscription-settings";
 import { requireAuthUser } from "@/features/auth/auth-session";
-import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
+import { getUserEntitlementsOrNull } from "@/features/subscriptions/subscription-service";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -27,7 +27,7 @@ export default async function AccountSubscriptionPage() {
   const locale = await getServerLocale();
   const t = createTranslator(locale);
   const user = await requireAuthUser("/account/subscription");
-  const entitlements = await getUserEntitlements(user.id);
+  const entitlements = await getUserEntitlementsOrNull(user.id);
 
   return (
     <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
@@ -42,7 +42,16 @@ export default async function AccountSubscriptionPage() {
       />
 
       <div className="mt-8 grid gap-6">
-        <SubscriptionSettings plan={entitlements.effectivePlan} />
+        {entitlements ? (
+          <SubscriptionSettings plan={entitlements.effectivePlan} />
+        ) : (
+          <p
+            role="alert"
+            className="rounded-lg border border-border bg-background-card px-4 py-3 text-sm text-foreground"
+          >
+            {t("pricing.error.loadFailed")}
+          </p>
+        )}
       </div>
     </section>
   );

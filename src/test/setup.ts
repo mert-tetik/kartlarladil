@@ -36,6 +36,11 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/",
   useParams: () => ({}),
   useSearchParams: () => new URLSearchParams(),
+  unstable_rethrow: (error: unknown) => {
+    if (error instanceof Error && error.message.startsWith("NEXT_REDIRECT")) {
+      throw error;
+    }
+  },
 }));
 
 vi.mock("@/features/subscriptions/subscription-client", () => ({

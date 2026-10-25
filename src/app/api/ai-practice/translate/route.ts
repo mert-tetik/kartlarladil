@@ -8,7 +8,7 @@ import {
 import { aiPracticeTranslateRequestSchema } from "@/features/ai-practice/ai-practice-schema";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { assertAndRecordAiUsage } from "@/features/subscriptions/ai-usage-service";
-import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
+import { getUserEntitlementsOrNull } from "@/features/subscriptions/subscription-service";
 import type { LanguageCode, LocaleCode } from "@/types/domain";
 
 export const runtime = "nodejs";
@@ -35,8 +35,17 @@ export async function POST(request: Request) {
     return Response.json({ errorCode: "invalid_request" }, { status: 400 });
   }
 
-  const entitlements = await getUserEntitlements(user.id);
-  const aiLimitError = await assertAndRecordAiUsage(user.id, entitlements.effectivePlan, "translate");
+  const entitlements = await getUserEntitlementsOrNull(user.id);
+  if (!entitlements) {
+    return Response.json({ errorCode: "usage_unavailable" }, { status: 503 });
+  }
+
+  let aiLimitError: Awaited<ReturnType<typeof assertAndRecordAiUsage>>;
+  try {
+    aiLimitError = await assertAndRecordAiUsage(user.id, entitlements.effectivePlan, "translate");
+  } catch {
+    return Response.json({ errorCode: "usage_unavailable" }, { status: 503 });
+  }
 
   if (aiLimitError) {
     return Response.json({ errorCode: aiLimitError }, { status: 429 });

@@ -22,7 +22,7 @@ import {
 import { aiPracticeChatRequestSchema } from "@/features/ai-practice/ai-practice-schema";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { assertAndRecordAiUsage } from "@/features/subscriptions/ai-usage-service";
-import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
+import { getUserEntitlementsOrNull } from "@/features/subscriptions/subscription-service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -61,13 +61,21 @@ export async function POST(request: Request) {
     return Response.json({ errorCode: "unknown_scenario" }, { status: 404 });
   }
 
-  const entitlements = await getUserEntitlements(user.id);
+  const entitlements = await getUserEntitlementsOrNull(user.id);
+  if (!entitlements) {
+    return Response.json({ errorCode: "usage_unavailable" }, { status: 503 });
+  }
 
   if (scenario && entitlements.effectivePlan === "free") {
     return Response.json({ errorCode: "scenario_subscription_required" }, { status: 403 });
   }
 
-  const aiLimitError = await assertAndRecordAiUsage(user.id, entitlements.effectivePlan, "chat");
+  let aiLimitError: Awaited<ReturnType<typeof assertAndRecordAiUsage>>;
+  try {
+    aiLimitError = await assertAndRecordAiUsage(user.id, entitlements.effectivePlan, "chat");
+  } catch {
+    return Response.json({ errorCode: "usage_unavailable" }, { status: 503 });
+  }
 
   if (aiLimitError) {
     return Response.json({ errorCode: aiLimitError }, { status: 429 });

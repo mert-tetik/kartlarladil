@@ -170,7 +170,9 @@ describe("assertAndRecordAiUsage", () => {
   it("throws when the RPC call fails", async () => {
     mockRpc.mockResolvedValue({ data: null, error: new Error("db error") });
 
-    await expect(assertAndRecordAiUsage("user-1", "free", "chat")).rejects.toThrow("db error");
+    await expect(assertAndRecordAiUsage("user-1", "free", "chat")).rejects.toThrow(
+      "subscription_service_unavailable",
+    );
   });
 
   it("fails closed when the quota RPC returns an unknown result", async () => {

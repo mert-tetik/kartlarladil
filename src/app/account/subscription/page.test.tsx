@@ -19,7 +19,7 @@ vi.mock("@/features/auth/auth-session", () => ({
 }));
 
 vi.mock("@/features/subscriptions/subscription-service", () => ({
-  getUserEntitlements: mockGetUserEntitlements,
+  getUserEntitlementsOrNull: mockGetUserEntitlements,
 }));
 
 vi.mock("@/features/subscriptions/components/subscription-settings", () => ({
@@ -56,5 +56,16 @@ describe("AccountSubscriptionPage", () => {
     render(await AccountSubscriptionPage());
 
     expect(screen.getByTestId("subscription-settings")).toHaveTextContent("pro");
+  });
+
+  it("renders a safe localized error when subscription data is unavailable", async () => {
+    mockGetUserEntitlements.mockResolvedValue(null);
+
+    render(await AccountSubscriptionPage());
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Subscription details could not be loaded right now. Please try again.",
+    );
+    expect(screen.queryByTestId("subscription-settings")).not.toBeInTheDocument();
   });
 });

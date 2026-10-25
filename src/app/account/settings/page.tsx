@@ -7,7 +7,7 @@ import { DeleteAccountForm } from "@/features/auth/components/delete-account-for
 import { requireAuthUser } from "@/features/auth/auth-session";
 import { NotificationSettingsCard } from "@/features/push/components/notification-settings-card";
 import { SubscriptionSettings } from "@/features/subscriptions/components/subscription-settings";
-import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
+import { getUserEntitlementsOrNull } from "@/features/subscriptions/subscription-service";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -29,8 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AccountSettingsPage() {
   const t = createTranslator(await getServerLocale());
   const user = await requireAuthUser("/account/settings");
-  const entitlements = await getUserEntitlements(user.id);
-  const hasActiveSubscription = entitlements.effectivePlan !== "free";
+  const entitlements = await getUserEntitlementsOrNull(user.id);
 
   return (
     <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
@@ -47,8 +46,22 @@ export default async function AccountSettingsPage() {
       <div className="mt-8 grid gap-6">
         <AccountSettingsForm user={user} />
         <NotificationSettingsCard />
-        <SubscriptionSettings plan={entitlements.effectivePlan} />
-        <DeleteAccountForm email={user.email} hasActiveSubscription={hasActiveSubscription} />
+        {entitlements ? (
+          <>
+            <SubscriptionSettings plan={entitlements.effectivePlan} />
+            <DeleteAccountForm
+              email={user.email}
+              hasActiveSubscription={entitlements.effectivePlan !== "free"}
+            />
+          </>
+        ) : (
+          <p
+            role="alert"
+            className="rounded-lg border border-border bg-background-card px-4 py-3 text-sm text-foreground"
+          >
+            {t("pricing.error.loadFailed")}
+          </p>
+        )}
       </div>
     </section>
   );

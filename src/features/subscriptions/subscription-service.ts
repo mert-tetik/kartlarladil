@@ -2,6 +2,10 @@ import "server-only";
 
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { hasUsableRemainingAccess } from "@/features/subscriptions/subscription-entitlement";
+import {
+  SubscriptionGateUnavailableError,
+  throwSubscriptionGateUnavailable,
+} from "@/features/subscriptions/subscription-gate-errors";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type {
   LimitErrorCode,
@@ -27,27 +31,38 @@ interface UserSubscriptionRow {
 }
 
 export async function getUserEntitlements(userId: string): Promise<UserEntitlements> {
-  const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase
-    .from("user_subscriptions")
-    .select(
-      [
-        "plan",
-        "status",
-        "provider",
-        "customer_portal_url",
-        "google_play_purchase_token",
-        "google_play_subscription_id",
-        "google_play_order_id",
-        "renews_at",
-        "ends_at",
-      ].join(", "),
-    )
-    .eq("user_id", userId)
-    .maybeSingle<UserSubscriptionRow>();
+  let data: UserSubscriptionRow | null;
 
-  if (error) {
-    throw error;
+  try {
+    const supabase = createSupabaseAdminClient();
+    const result = await supabase
+      .from("user_subscriptions")
+      .select(
+        [
+          "plan",
+          "status",
+          "provider",
+          "customer_portal_url",
+          "google_play_purchase_token",
+          "google_play_subscription_id",
+          "google_play_order_id",
+          "renews_at",
+          "ends_at",
+        ].join(", "),
+      )
+      .eq("user_id", userId)
+      .maybeSingle<UserSubscriptionRow>();
+
+    if (result.error) {
+      throwSubscriptionGateUnavailable("entitlements", result.error);
+    }
+
+    data = result.data;
+  } catch (error) {
+    if (error instanceof SubscriptionGateUnavailableError) {
+      throw error;
+    }
+    throwSubscriptionGateUnavailable("entitlements", error);
   }
 
   const subscription = normalizeSubscription(data);
@@ -62,6 +77,16 @@ export async function getUserEntitlements(userId: string): Promise<UserEntitleme
     customerPortalUrl: subscription.customerPortalUrl,
     endsAt: subscription.endsAt,
   };
+}
+
+export async function getUserEntitlementsOrNull(
+  userId: string,
+): Promise<UserEntitlements | null> {
+  try {
+    return await getUserEntitlements(userId);
+  } catch {
+    return null;
+  }
 }
 
 export function getEffectivePlan(subscription: UserSubscription): SubscriptionPlan {

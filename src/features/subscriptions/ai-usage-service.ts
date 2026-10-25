@@ -3,6 +3,7 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { AiUsageEventType, LimitErrorCode, SubscriptionPlan } from "@/types/domain";
 import { getAiFeatureLimit, PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
+import { throwSubscriptionGateUnavailable } from "@/features/subscriptions/subscription-gate-errors";
 
 export async function assertCanUseAi(
   userId: string,
@@ -41,7 +42,7 @@ export async function recordAiUsageEvent(
   });
 
   if (error) {
-    throw error;
+    throwSubscriptionGateUnavailable("ai_usage", error);
   }
 
   if (data === "daily_limit") {
@@ -70,7 +71,7 @@ export async function assertAndRecordAiUsage(
   });
 
   if (error) {
-    throw error;
+    throwSubscriptionGateUnavailable("ai_usage", error);
   }
 
   if (result === "daily_limit") {
@@ -99,7 +100,7 @@ export async function reserveImageTextTranslation(
     p_user_id: userId,
   });
 
-  if (error) throw error;
+  if (error) throwSubscriptionGateUnavailable("image_translation_quota", error);
   if (data === "feature_limit") return { status: "limit" };
   if (typeof data !== "string" || !UUID_PATTERN.test(data)) {
     throw new Error("unexpected_image_text_translation_reservation_result");
@@ -117,7 +118,7 @@ export async function completeImageTextTranslation(
     p_reservation_id: reservationId,
   });
 
-  if (error) throw error;
+  if (error) throwSubscriptionGateUnavailable("image_translation_quota", error);
   if (data !== "ok") throw new Error("unexpected_image_text_translation_completion_result");
 }
 
@@ -131,7 +132,7 @@ export async function releaseImageTextTranslation(
     p_reservation_id: reservationId,
   });
 
-  if (error) throw error;
+  if (error) throwSubscriptionGateUnavailable("image_translation_quota", error);
   if (data !== "ok") throw new Error("unexpected_image_text_translation_release_result");
 }
 
@@ -151,7 +152,7 @@ export async function getImageTextTranslationUsage(
     .eq("user_id", userId)
     .eq("event_type", "image_text_translate");
 
-  if (error) throw error;
+  if (error) throwSubscriptionGateUnavailable("image_translation_quota", error);
   const used = count ?? 0;
   return {
     used,
@@ -177,7 +178,7 @@ async function countAiUsage(
     .gte("created_at", since);
 
   if (error) {
-    throw error;
+    throwSubscriptionGateUnavailable("ai_usage", error);
   }
 
   return count ?? 0;

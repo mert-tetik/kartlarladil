@@ -56,7 +56,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 
 vi.mock("@/features/subscriptions/subscription-service", () => ({
-  getUserEntitlements: mockGetUserEntitlements,
+  getUserEntitlementsOrNull: mockGetUserEntitlements,
 }));
 
 vi.mock("@/features/auth/auth-session", () => ({

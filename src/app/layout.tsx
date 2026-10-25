@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { Fraunces, Manrope } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
-import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
+import { getUserEntitlementsOrNull } from "@/features/subscriptions/subscription-service";
 import {
   DEFAULT_THEME_ID,
   getEntitledThemeId,
@@ -65,13 +65,8 @@ export default async function RootLayout({
   let canUsePaidTheme = false;
 
   if (isThemePaid(storedThemeId)) {
-    try {
-      const entitlements = user ? await getUserEntitlements(user.id) : null;
-      canUsePaidTheme = !!entitlements && isPaidPlan(entitlements.effectivePlan);
-    } catch {
-      // A failed entitlement lookup must not expose a paid-only theme.
-      console.error("Paid theme entitlement verification failed during server rendering.");
-    }
+    const entitlements = user ? await getUserEntitlementsOrNull(user.id) : null;
+    canUsePaidTheme = !!entitlements && isPaidPlan(entitlements.effectivePlan);
   }
 
   const themeId = getEntitledThemeId(storedThemeId, canUsePaidTheme);

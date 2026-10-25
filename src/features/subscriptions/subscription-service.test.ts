@@ -3,6 +3,7 @@ import {
   checkLimit,
   getEffectivePlan,
   getUserEntitlements,
+  getUserEntitlementsOrNull,
 } from "@/features/subscriptions/subscription-service";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import type { SubscriptionStatus, UserSubscription } from "@/types/domain";
@@ -175,5 +176,36 @@ describe("getUserEntitlements", () => {
     expect(result.plan).toBe("pro");
     expect(result.effectivePlan).toBe("free");
     expect(result.limits).toEqual(PLAN_LIMITS.free);
+  });
+
+  it("throws a safe error and logs only metadata when the entitlement lookup fails", async () => {
+    const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockSingle.mockResolvedValueOnce({
+      data: null,
+      error: { code: "08006", message: "connection failed for token secret-value" },
+    });
+
+    await expect(getUserEntitlements("user-4")).rejects.toThrow(
+      "subscription_service_unavailable",
+    );
+
+    expect(logSpy).toHaveBeenCalledWith(
+      "Subscription gate backend check failed.",
+      { operation: "entitlements", code: "08006" },
+    );
+    expect(JSON.stringify(logSpy.mock.calls)).not.toContain("secret-value");
+    logSpy.mockRestore();
+  });
+
+  it("returns null rather than throwing when a caller needs a fail-closed result", async () => {
+    const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockSingle.mockResolvedValueOnce({
+      data: null,
+      error: { code: "08006", message: "database unavailable" },
+    });
+
+    await expect(getUserEntitlementsOrNull("user-5")).resolves.toBeNull();
+    expect(logSpy).toHaveBeenCalledOnce();
+    logSpy.mockRestore();
   });
 });

@@ -22,7 +22,7 @@ import { getGoogleOAuthRedirectTo } from "@/features/auth/google-oauth-redirects
 import { recordAppLogin } from "@/features/auth/login-events";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
-import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
+import { getUserEntitlementsOrNull } from "@/features/subscriptions/subscription-service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -469,7 +469,14 @@ export async function updateThemeAction(themeId: string): Promise<AuthActionStat
   }
 
   if (isThemePaid(validTheme.id)) {
-    const entitlements = await getUserEntitlements(user.id);
+    const entitlements = await getUserEntitlementsOrNull(user.id);
+
+    if (!entitlements) {
+      return {
+        status: "error",
+        message: t("auth.message.themeSaveFailed"),
+      };
+    }
 
     if (entitlements.effectivePlan === "free") {
       return {
@@ -668,7 +675,14 @@ export async function deleteAccountAction(_state: AuthActionState, formData: For
     };
   }
 
-  const entitlements = await getUserEntitlements(user.id);
+  const entitlements = await getUserEntitlementsOrNull(user.id);
+
+  if (!entitlements) {
+    return {
+      status: "error",
+      message: t("auth.message.deleteFailed"),
+    };
+  }
 
   if (entitlements.effectivePlan !== "free") {
     return {

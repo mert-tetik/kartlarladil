@@ -26,7 +26,7 @@ vi.mock("@/features/auth/auth-session", () => ({
 }));
 
 vi.mock("@/features/subscriptions/subscription-service", () => ({
-  getUserEntitlements: mockGetUserEntitlements,
+  getUserEntitlementsOrNull: mockGetUserEntitlements,
 }));
 
 vi.mock("@/features/subscriptions/ai-usage-service", () => ({
@@ -117,6 +117,39 @@ describe("POST /api/quiz/validate-answer", () => {
     const payload = (await response.json()) as { errorCode: string };
     expect(response.status).toBe(429);
     expect(payload.errorCode).toBe("ai_daily_limit");
+  });
+
+  it("fails closed with 503 when subscription entitlements are unavailable", async () => {
+    mockGetUserEntitlements.mockResolvedValue(null);
+
+    const response = await POST(makeRequest({
+      userAnswer: "apple",
+      correctAnswers: ["apple"],
+      sourceAnswers: ["elma"],
+      targetLanguage: "en",
+      sourceLanguage: "tr",
+      promptContext: "elma",
+    }));
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ accepted: false });
+    expect(mockAssertAndRecordAiUsage).not.toHaveBeenCalled();
+  });
+
+  it("fails closed with 503 when the quota reservation service is unavailable", async () => {
+    mockAssertAndRecordAiUsage.mockRejectedValue(new Error("private database details"));
+
+    const response = await POST(makeRequest({
+      userAnswer: "apple",
+      correctAnswers: ["apple"],
+      sourceAnswers: ["elma"],
+      targetLanguage: "en",
+      sourceLanguage: "tr",
+      promptContext: "elma",
+    }));
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ accepted: false });
   });
 
   it("rejects malformed requests before reserving AI usage", async () => {

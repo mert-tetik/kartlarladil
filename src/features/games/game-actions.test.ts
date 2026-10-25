@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { addGamePointsAction } from "@/features/games/game-actions";
 import { getPointsForLevel } from "@/features/games/game-levels";
 
-const { mockRequireAuthUser, mockGetUserEntitlements, mockRpc } = vi.hoisted(() => ({
+const { mockRequireAuthUser, mockGetUserEntitlementsOrNull, mockRpc } = vi.hoisted(() => ({
   mockRequireAuthUser: vi.fn(),
-  mockGetUserEntitlements: vi.fn(),
+  mockGetUserEntitlementsOrNull: vi.fn(),
   mockRpc: vi.fn(),
 }));
 
@@ -13,7 +13,7 @@ vi.mock("@/features/auth/auth-session", () => ({
 }));
 
 vi.mock("@/features/subscriptions/subscription-service", () => ({
-  getUserEntitlements: mockGetUserEntitlements,
+  getUserEntitlementsOrNull: mockGetUserEntitlementsOrNull,
 }));
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -23,7 +23,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 describe("addGamePointsAction", () => {
   beforeEach(() => {
     mockRequireAuthUser.mockReset().mockResolvedValue({ id: "user-1" });
-    mockGetUserEntitlements.mockReset().mockResolvedValue({ effectivePlan: "free" });
+    mockGetUserEntitlementsOrNull.mockReset().mockResolvedValue({ effectivePlan: "free" });
     mockRpc.mockReset().mockResolvedValue({ error: null });
   });
 
@@ -34,8 +34,26 @@ describe("addGamePointsAction", () => {
     expect(mockRpc).not.toHaveBeenCalled();
   });
 
+  it("fails closed without leaking errors when paid entitlements are unavailable", async () => {
+    mockGetUserEntitlementsOrNull.mockResolvedValue(null);
+
+    const result = await addGamePointsAction(16);
+
+    expect(result).toEqual({ status: "error", message: "subscription_unavailable" });
+    expect(mockRpc).not.toHaveBeenCalled();
+  });
+
+  it("does not expose database error messages from reward writes", async () => {
+    mockRpc.mockResolvedValue({ error: new Error("secret database details") });
+
+    const result = await addGamePointsAction(15);
+
+    expect(result).toEqual({ status: "error", message: "game_reward_unavailable" });
+    expect(JSON.stringify(result)).not.toContain("secret database details");
+  });
+
   it("allows paid accounts to claim locked-level rewards using server-calculated points", async () => {
-    mockGetUserEntitlements.mockResolvedValue({ effectivePlan: "pro" });
+    mockGetUserEntitlementsOrNull.mockResolvedValue({ effectivePlan: "pro" });
 
     const result = await addGamePointsAction(16);
 
@@ -50,7 +68,7 @@ describe("addGamePointsAction", () => {
     const result = await addGamePointsAction(15);
 
     expect(result).toEqual({ status: "success" });
-    expect(mockGetUserEntitlements).not.toHaveBeenCalled();
+    expect(mockGetUserEntitlementsOrNull).not.toHaveBeenCalled();
     expect(mockRpc).toHaveBeenCalledWith("increment_game_points", {
       p_user_id: "user-1",
       p_points: getPointsForLevel(15),
@@ -63,5 +81,11 @@ describe("addGamePointsAction", () => {
     expect(result).toEqual({ status: "error", message: "invalid_level" });
     expect(mockRequireAuthUser).not.toHaveBeenCalled();
     expect(mockRpc).not.toHaveBeenCalled();
+  });
+
+  it("preserves Next.js auth redirects", async () => {
+    mockRequireAuthUser.mockRejectedValue(new Error("NEXT_REDIRECT:/login"));
+
+    await expect(addGamePointsAction(15)).rejects.toThrow("NEXT_REDIRECT:/login");
   });
 });

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { isLanguageCode } from "@/data/languages";
 import { requireAuthUser } from "@/features/auth/auth-session";
-import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
+import { getUserEntitlementsOrNull } from "@/features/subscriptions/subscription-service";
 import { AiPracticeTierSelection } from "@/features/ai-practice/components/ai-practice-tier-selection";
 import { getAiPracticeCharacter } from "@/features/ai-practice/ai-practice-data";
 import { getAiPracticeScenario } from "@/features/ai-practice/ai-practice-scenarios";
@@ -46,7 +46,11 @@ export default async function AiPracticeTierPage({ params, searchParams }: AiPra
   const scenarioId = typeof rawScenarioId === "string" ? rawScenarioId : null;
   const scenario = isScenarioMode && scenarioId ? getAiPracticeScenario(scenarioId) : null;
 
-  if (scenario && (await getUserEntitlements(user.id)).effectivePlan === "free") {
+  const entitlements = scenario ? await getUserEntitlementsOrNull(user.id) : null;
+  if (
+    scenario &&
+    (!entitlements || (entitlements.effectivePlan !== "basic" && entitlements.effectivePlan !== "pro"))
+  ) {
     redirect(`/ai-practice/${rawLanguage}/character?mode=scenario`);
   }
 

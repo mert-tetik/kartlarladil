@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
-import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
+import { getUserEntitlementsOrNull } from "@/features/subscriptions/subscription-service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { THEMES, isPaidPlan } from "@/lib/themes";
 
@@ -21,7 +21,11 @@ export async function updateThemeAction(themeId: string): Promise<UpdateThemeRes
     return { status: "error", code: "invalid_theme" };
   }
 
-  const entitlements = await getUserEntitlements(user.id);
+  const entitlements = await getUserEntitlementsOrNull(user.id);
+
+  if (!entitlements) {
+    return { status: "error", code: "unknown" };
+  }
 
   if (!isPaidPlan(entitlements.effectivePlan)) {
     return { status: "error", code: "free_plan" };

@@ -186,7 +186,7 @@ export async function syncGooglePlayPurchasesAction(
         isValidPurchaseValue(purchase.purchaseToken) && isValidPurchaseValue(purchase.productId),
     );
 
-    let lastError: Error | null = null;
+    let lastError = false;
     let verificationCount = 0;
 
     for (const purchase of validPurchases) {
@@ -194,7 +194,12 @@ export async function syncGooglePlayPurchasesAction(
         await verifyGooglePlaySubscription(purchase.purchaseToken, purchase.productId, user.id);
         verificationCount += 1;
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
+        lastError = true;
+        logGooglePlayError(
+          "Google Play purchase restore verification failed.",
+          error,
+          [purchase.purchaseToken],
+        );
         // Continue trying the rest; a stale/expired token should not block active ones.
       }
     }
@@ -202,7 +207,7 @@ export async function syncGooglePlayPurchasesAction(
     if (lastError && verificationCount === 0) {
       return {
         status: "error",
-        message: lastError.message,
+        message: t("pricing.error.checkoutFailed"),
       };
     }
 

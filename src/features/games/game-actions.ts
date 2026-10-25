@@ -1,7 +1,9 @@
 "use server";
 
+import { unstable_rethrow } from "next/navigation";
 import { requireAuthUser } from "@/features/auth/auth-session";
-import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
+import { getUserEntitlementsOrNull } from "@/features/subscriptions/subscription-service";
+import { throwSubscriptionGateUnavailable } from "@/features/subscriptions/subscription-gate-errors";
 import { getPointsForLevel, isGameLevelLocked } from "@/features/games/game-levels";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -13,7 +15,10 @@ export async function addGamePointsAction(level: number): Promise<{ status: "suc
 
     const user = await requireAuthUser("/games");
     if (isGameLevelLocked(level)) {
-      const entitlements = await getUserEntitlements(user.id);
+      const entitlements = await getUserEntitlementsOrNull(user.id);
+      if (!entitlements) {
+        return { status: "error", message: "subscription_unavailable" };
+      }
       if (entitlements.effectivePlan !== "basic" && entitlements.effectivePlan !== "pro") {
         return { status: "error", message: "game_level_locked" };
       }
@@ -26,10 +31,13 @@ export async function addGamePointsAction(level: number): Promise<{ status: "suc
 
     const supabase = createSupabaseAdminClient();
     const { error } = await supabase.rpc("increment_game_points", { p_user_id: user.id, p_points: points });
-    if (error) return { status: "error", message: error.message };
+    if (error) {
+      throwSubscriptionGateUnavailable("game_reward", error);
+    }
 
     return { status: "success" };
   } catch (error) {
-    return { status: "error", message: error instanceof Error ? error.message : "Unknown error" };
+    unstable_rethrow(error);
+    return { status: "error", message: "game_reward_unavailable" };
   }
 }

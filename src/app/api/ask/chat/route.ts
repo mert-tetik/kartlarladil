@@ -10,7 +10,7 @@ import { buildAskInput, buildAskInstructions } from "@/features/ask/ask-prompts"
 import { ASK_RESPONSE_FORMAT, parseAskResponse } from "@/features/ask/ask-response";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { assertAndRecordAiUsage } from "@/features/subscriptions/ai-usage-service";
-import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
+import { getUserEntitlementsOrNull } from "@/features/subscriptions/subscription-service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,8 +36,17 @@ export async function POST(request: Request) {
     return Response.json({ errorCode: "invalid_request" }, { status: 400 });
   }
 
-  const entitlements = await getUserEntitlements(user.id);
-  const aiLimitError = await assertAndRecordAiUsage(user.id, entitlements.effectivePlan, "ask");
+  const entitlements = await getUserEntitlementsOrNull(user.id);
+  if (!entitlements) {
+    return Response.json({ errorCode: "usage_unavailable" }, { status: 503 });
+  }
+
+  let aiLimitError: Awaited<ReturnType<typeof assertAndRecordAiUsage>>;
+  try {
+    aiLimitError = await assertAndRecordAiUsage(user.id, entitlements.effectivePlan, "ask");
+  } catch {
+    return Response.json({ errorCode: "usage_unavailable" }, { status: 503 });
+  }
 
   if (aiLimitError) {
     return Response.json({ errorCode: aiLimitError }, { status: 429 });
