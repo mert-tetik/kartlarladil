@@ -11,12 +11,14 @@ import {
 import { getAiFeatureLimit } from "@/features/subscriptions/subscription-limits";
 
 const mockCount = vi.fn();
+const mockIn = vi.fn(() => mockQuery);
 const mockInsert = vi.fn(() => Promise.resolve({ error: null }));
 const mockRpc = vi.fn<(...args: unknown[]) => Promise<{ data: string | null; error: Error | null }>>(
   () => Promise.resolve({ data: "ok", error: null }),
 );
 const mockQuery = {
   eq: vi.fn(() => mockQuery),
+  in: mockIn,
   gte: vi.fn(() => Promise.resolve({ count: mockCount(), error: null })),
   then: (resolve: (value: { count: number; error: null }) => unknown) =>
     Promise.resolve({ count: mockCount(), error: null }).then(resolve),
@@ -37,6 +39,8 @@ vi.mock("@/lib/supabase/admin", () => ({
 describe("assertCanUseAi", () => {
   beforeEach(() => {
     mockCount.mockReset();
+    mockIn.mockClear();
+    mockQuery.eq.mockClear();
     mockInsert.mockClear();
     mockRpc.mockClear();
   });
@@ -80,11 +84,25 @@ describe("assertCanUseAi", () => {
     expect(mockCount).not.toHaveBeenCalled();
   });
 
-  it("counts each feature independently", async () => {
+  it("shares the advertised AI quota across chat, translation, and Ask", async () => {
     mockCount.mockReturnValueOnce(10).mockReturnValueOnce(0);
 
-    expect(await assertCanUseAi("user-4", "free", "chat")).toBe("ai_daily_limit");
-    expect(await assertCanUseAi("user-4", "free", "ask")).toBeNull();
+    expect(await assertCanUseAi("user-4", "free", "ask")).toBe("ai_daily_limit");
+    expect(mockIn).toHaveBeenCalledWith("event_type", ["chat", "translate", "ask"]);
+  });
+
+  it("enforces the shared monthly cap when usage is split across AI features", async () => {
+    mockCount.mockReturnValueOnce(4).mockReturnValueOnce(900);
+
+    expect(await assertCanUseAi("user-4", "basic", "translate")).toBe("ai_monthly_limit");
+    expect(mockIn).toHaveBeenCalledWith("event_type", ["chat", "translate", "ask"]);
+  });
+
+  it("keeps quiz-answer validation on its separate daily quota", async () => {
+    mockCount.mockReturnValueOnce(15).mockReturnValueOnce(120);
+
+    expect(await assertCanUseAi("user-4", "free", "quiz_validate")).toBe("ai_daily_limit");
+    expect(mockIn).toHaveBeenCalledWith("event_type", ["quiz_validate"]);
   });
 
   it("matches the Free quiz-validation cap and leaves paid plans unlimited", () => {
@@ -96,7 +114,6 @@ describe("assertCanUseAi", () => {
   it("enforces the Free quiz-validation cap from usage counts", async () => {
     mockCount.mockReturnValueOnce(14).mockReturnValueOnce(120);
     expect(await assertCanUseAi("user-5", "free", "quiz_validate")).toBeNull();
-
     mockCount.mockReturnValueOnce(15).mockReturnValueOnce(120);
     expect(await assertCanUseAi("user-5", "free", "quiz_validate")).toBe("ai_daily_limit");
   });

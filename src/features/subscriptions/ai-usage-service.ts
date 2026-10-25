@@ -5,6 +5,8 @@ import type { AiUsageEventType, LimitErrorCode, SubscriptionPlan } from "@/types
 import { getAiFeatureLimit, PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { throwSubscriptionGateUnavailable } from "@/features/subscriptions/subscription-gate-errors";
 
+const SHARED_AI_USAGE_EVENT_TYPES = ["chat", "translate", "ask"] as const;
+
 export async function assertCanUseAi(
   userId: string,
   plan: SubscriptionPlan,
@@ -13,9 +15,15 @@ export async function assertCanUseAi(
   const limits = getAiFeatureLimit(plan, eventType);
   if (limits.daily === null && limits.monthly === null) return null;
 
+  const countedEventTypes = SHARED_AI_USAGE_EVENT_TYPES.includes(
+    eventType as (typeof SHARED_AI_USAGE_EVENT_TYPES)[number],
+  )
+    ? SHARED_AI_USAGE_EVENT_TYPES
+    : [eventType];
+
   const [dailyCount, monthlyCount] = await Promise.all([
-    countAiUsage(userId, "day", eventType),
-    countAiUsage(userId, "month", eventType),
+    countAiUsage(userId, "day", countedEventTypes),
+    countAiUsage(userId, "month", countedEventTypes),
   ]);
 
   if (limits.daily !== null && dailyCount >= limits.daily) {
@@ -165,7 +173,7 @@ export async function getImageTextTranslationUsage(
 async function countAiUsage(
   userId: string,
   period: "day" | "month",
-  eventType: AiUsageEventType,
+  eventTypes: readonly AiUsageEventType[],
 ): Promise<number> {
   const supabase = createSupabaseAdminClient();
   const since = period === "day" ? getDayStartIso() : getMonthStartIso();
@@ -174,7 +182,7 @@ async function countAiUsage(
     .from("ai_usage_events")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
-    .eq("event_type", eventType)
+    .in("event_type", [...eventTypes])
     .gte("created_at", since);
 
   if (error) {
