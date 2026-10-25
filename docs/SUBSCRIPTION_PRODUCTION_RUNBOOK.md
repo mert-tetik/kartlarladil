@@ -8,6 +8,7 @@ This runbook documents the current Google Play subscription and entitlement mode
 - Google Play purchase tokens are checked server-side with `purchases.subscriptionsv2.get`. Client purchase data alone never grants access.
 - Never log complete Google API/Gaxios error objects. Their request configuration may contain purchase tokens or Pub/Sub bearer tokens; log only sanitized error metadata and redact before storing any RTDN `error_message`.
 - Subscription rows and quota writes are server-only. Do not grant browser roles access to `user_subscriptions`, `ai_usage_events`, or image-translation reservations.
+- Verified Google Play purchases may be restored by multiple FoxiesDeck accounts. The token registry must survive deletion of the account that first claimed a token, so other restored accounts remain linked for RTDN updates.
 - UI entitlements are for display only. Protected Server Actions, API routes, and database triggers must enforce the same limits independently.
 - Current Free limits include 20 active cards, 100 learned cards, 10 daily / 200 monthly chat, Ask, and translation uses, 15 daily AI quiz validations, and 2 total image-text translations. Basic raises AI limits to 30 daily / 900 monthly and removes card-count limits; image-text translation remains capped at 2. Pro has unlimited AI and image-text translations. Verify these against `src/features/subscriptions/subscription-limits.ts` before changing this checklist.
 
@@ -17,14 +18,15 @@ Before enabling paid plans or deploying subscription changes:
 
 1. Run the targeted subscription, card-limit, theme, game, and AI quota tests; run typecheck, lint, and the production build.
 2. Verify that `supabase/migrations/20261024233100_subscription_entitlement_expiry_and_image_quota_reservations.sql` is present in production and that its fail-fast checks passed. It is currently recorded as applied. If it is missing in another environment, stop and reconcile that environment's migration history before applying anything; do not hand-edit production grants or entitlement rows.
-3. Confirm the migration's fail-fast checks pass. Verify anon cannot execute public `SECURITY DEFINER` reward functions, authenticated users cannot write protected `user_profiles` columns, and browser roles cannot access subscription or quota tables/functions.
-4. Verify `enforce_user_card_subscription_limits` uses the expiry-aware plan helper, checks transitions into both `active` and `learned`, and shares the per-user advisory lock with `add_user_cards_with_active_limit`.
-5. Verify `image_text_translation_reservations` exists, has RLS enabled, and is accessible only to `service_role` through the Data API.
-6. Review Supabase Security Advisor findings. Treat expected service-only tables with RLS and no client policies as private by design; investigate all public function execution or unexpected client write grants.
+3. Before deploying the pending `20261025144500_preserve_shared_google_play_purchase_links_on_user_delete.sql` migration, reconcile the migration-history warning below. Then verify `google_play_purchase_tokens.user_id` is nullable and its FK uses `ON DELETE SET NULL`; account mappings owned by other users must survive deletion of the first claimant.
+4. Confirm the `20261024233100` migration's fail-fast checks pass. Verify anon cannot execute public `SECURITY DEFINER` reward functions, authenticated users cannot write protected `user_profiles` columns, and browser roles cannot access subscription or quota tables/functions.
+5. Verify `enforce_user_card_subscription_limits` uses the expiry-aware plan helper, checks transitions into both `active` and `learned`, and shares the per-user advisory lock with `add_user_cards_with_active_limit`.
+6. Verify `image_text_translation_reservations` exists, has RLS enabled, and is accessible only to `service_role` through the Data API.
+7. Review Supabase Security Advisor findings. Treat expected service-only tables with RLS and no client policies as private by design; investigate all public function execution or unexpected client write grants.
 
 ### Production migration-history warning
 
-Production currently records only version `20261024233100` in `supabase_migrations.schema_migrations`; the older migration files in this repository are not represented in production history. The repository also contains duplicate legacy numeric versions (`0015`, `0016`, and `0024`). Do not run `supabase db push`, rename old migrations, or mark them applied until the production schema and every historical migration have been reconciled into a reviewed baseline; otherwise the CLI may replay existing changes or encounter ambiguous versions. Check `supabase migration list` and resolve the history on a reviewed branch before any future schema deployment.
+Production currently records only version `20261024233100` in `supabase_migrations.schema_migrations`; the older migration files in this repository are not represented in production history. The repository also contains duplicate legacy numeric versions (`0015`, `0016`, and `0024`). The `20261025144500` migration is local and pending; do not apply it directly to production or run `supabase db push`, rename old migrations, or mark them applied until the production schema and every historical migration have been reconciled into a reviewed baseline. Otherwise the CLI may replay existing changes or encounter ambiguous versions. Check `supabase migration list` and resolve the history on a reviewed branch before any future schema deployment.
 
 ## Production configuration
 
@@ -49,6 +51,7 @@ After changing push authentication, do not assume every immediate retry has a ne
 - Free users can open pricing and see Free limits; Basic/Pro users get limits from the verified database entitlement.
 - A fake, malformed, expired, or missing `ends_at` never grants paid access, even if the row says `active`.
 - A verified purchase and purchase restore grant access only after Google verification; cancellation retains access only through the verified expiry.
+- In a disposable environment, restore one verified token to multiple FoxiesDeck test accounts, delete the first claimant, and verify the remaining account mappings still receive RTDN updates. Never use a production purchase or production user for this deletion test.
 - Free users cannot exceed 20 active or 100 learned cards through single adds, batch adds, direct status updates, or concurrent requests. Paid users are not blocked by those caps.
 - Free AI chat/Ask/translation, quiz-validation, and image-translation quotas are enforced server-side under concurrent requests. Failed image translation releases its reservation; successful completion consumes it once.
 - Free users cannot persist paid themes, access paid game levels, or delete an account with an effective paid subscription. Client/local-storage changes must not bypass the server checks.
