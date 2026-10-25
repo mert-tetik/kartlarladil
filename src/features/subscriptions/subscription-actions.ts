@@ -163,6 +163,8 @@ interface GooglePlayPurchaseDetail {
   productId: string;
 }
 
+const MAX_GOOGLE_PLAY_RESTORE_PURCHASES = 20;
+
 export async function syncGooglePlayPurchasesAction(
   purchases: GooglePlayPurchaseDetail[],
 ): Promise<EntitlementsActionResult> {
@@ -181,15 +183,32 @@ export async function syncGooglePlayPurchasesAction(
       };
     }
 
-    const validPurchases = purchases.filter(
-      (purchase) =>
-        isValidPurchaseValue(purchase.purchaseToken) && isValidPurchaseValue(purchase.productId),
-    );
+    if (!Array.isArray(purchases) || purchases.length > MAX_GOOGLE_PLAY_RESTORE_PURCHASES) {
+      return {
+        status: "error",
+        message: t("pricing.error.checkoutFailed"),
+      };
+    }
+
+    const validPurchasesByToken = new Map<string, GooglePlayPurchaseDetail>();
+    for (const purchase of purchases) {
+      if (!isGooglePlayPurchaseDetail(purchase)) continue;
+
+      const existingPurchase = validPurchasesByToken.get(purchase.purchaseToken);
+      if (existingPurchase && existingPurchase.productId !== purchase.productId) {
+        return {
+          status: "error",
+          message: t("pricing.error.checkoutFailed"),
+        };
+      }
+
+      validPurchasesByToken.set(purchase.purchaseToken, purchase);
+    }
 
     let lastError = false;
     let verificationCount = 0;
 
-    for (const purchase of validPurchases) {
+    for (const purchase of validPurchasesByToken.values()) {
       try {
         await verifyGooglePlaySubscription(purchase.purchaseToken, purchase.productId, user.id);
         verificationCount += 1;
@@ -229,4 +248,12 @@ export async function syncGooglePlayPurchasesAction(
 
 function isValidPurchaseValue(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0 && value.length <= 4096;
+}
+
+function isGooglePlayPurchaseDetail(value: unknown): value is GooglePlayPurchaseDetail {
+  if (!value || typeof value !== "object") return false;
+
+  const purchase = value as Partial<GooglePlayPurchaseDetail>;
+  return isValidPurchaseValue(purchase.purchaseToken)
+    && isValidPurchaseValue(purchase.productId);
 }

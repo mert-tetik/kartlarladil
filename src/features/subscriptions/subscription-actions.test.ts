@@ -1,6 +1,7 @@
 import { vi } from "vitest";
 import {
   createCustomerPortalAction,
+  syncGooglePlayPurchasesAction,
   verifyGooglePlayPurchaseAction,
 } from "@/features/subscriptions/subscription-actions";
 
@@ -86,5 +87,43 @@ describe("Google Play subscription actions", () => {
     );
     expect(result.status).toBe("success");
     expect(result.data?.provider).toBe("google_play");
+  });
+
+  it("rejects oversized purchase-restore batches before calling Google", async () => {
+    const purchases = Array.from({ length: 21 }, (_, index) => ({
+      purchaseToken: `purchase-token-${index}`,
+      productId: "basic_monthly",
+    }));
+
+    const result = await syncGooglePlayPurchasesAction(purchases);
+
+    expect(result.status).toBe("error");
+    expect(mockVerifyGooglePlaySubscription).not.toHaveBeenCalled();
+    expect(mockGetUserEntitlements).not.toHaveBeenCalled();
+  });
+
+  it("verifies duplicate restore tokens only once", async () => {
+    const result = await syncGooglePlayPurchasesAction([
+      { purchaseToken: "purchase-token", productId: "basic_monthly" },
+      { purchaseToken: "purchase-token", productId: "basic_monthly" },
+    ]);
+
+    expect(result.status).toBe("success");
+    expect(mockVerifyGooglePlaySubscription).toHaveBeenCalledOnce();
+    expect(mockVerifyGooglePlaySubscription).toHaveBeenCalledWith(
+      "purchase-token",
+      "basic_monthly",
+      "user-1",
+    );
+  });
+
+  it("rejects one token claimed for conflicting products", async () => {
+    const result = await syncGooglePlayPurchasesAction([
+      { purchaseToken: "purchase-token", productId: "basic_monthly" },
+      { purchaseToken: "purchase-token", productId: "pro_yearly" },
+    ]);
+
+    expect(result.status).toBe("error");
+    expect(mockVerifyGooglePlaySubscription).not.toHaveBeenCalled();
   });
 });
