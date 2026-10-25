@@ -2,6 +2,7 @@ import "server-only";
 
 import { google } from "googleapis";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { logGooglePlayError } from "@/features/subscriptions/google-play-errors";
 import type {
   SubscriptionPlan,
   SubscriptionProvider,
@@ -386,7 +387,11 @@ async function acknowledgeGooglePlaySubscription(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (!message.toLowerCase().includes("already acknowledged")) {
-      console.error("Failed to acknowledge Google Play purchase:", error);
+      logGooglePlayError(
+        "Failed to acknowledge Google Play purchase.",
+        error,
+        [verification.purchaseToken],
+      );
     }
   }
 }

@@ -5,6 +5,10 @@ import {
   syncGooglePlaySubscriptionFromRtdn,
   verifyGooglePlayRtdnToken,
 } from "@/features/subscriptions/google-play-service";
+import {
+  getGooglePlayErrorDetail,
+  logGooglePlayError,
+} from "@/features/subscriptions/google-play-errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,7 +43,11 @@ export async function POST(request: Request) {
   try {
     await verifyGooglePlayRtdnToken(idToken);
   } catch (error) {
-    console.error("Google Play RTDN identity verification failed:", error);
+    logGooglePlayError(
+      "Google Play RTDN identity verification failed.",
+      error,
+      [idToken],
+    );
     return NextResponse.json({ error: "Invalid Google Pub/Sub identity token." }, { status: 401 });
   }
 
@@ -83,9 +91,17 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ received: true }, { status: 200 });
   } catch (error) {
-    console.error("Google Play RTDN processing failed:", error);
-    const message = error instanceof Error ? error.message : "Google Play RTDN processing failed.";
-    await completeGooglePlayRtdnEvent(messageId, null, message).catch(() => undefined);
+    logGooglePlayError(
+      "Google Play RTDN processing failed.",
+      error,
+      [idToken, purchaseToken],
+    );
+    const safeMessage = getGooglePlayErrorDetail(error, [idToken, purchaseToken]);
+    await completeGooglePlayRtdnEvent(
+      messageId,
+      null,
+      safeMessage ?? "Google Play RTDN processing failed.",
+    ).catch(() => undefined);
     return NextResponse.json({ error: "Google Play RTDN processing failed." }, { status: 500 });
   }
 }

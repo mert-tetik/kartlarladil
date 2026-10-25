@@ -2,7 +2,10 @@
 
 import { verifyGooglePlaySubscription } from "@/features/subscriptions/google-play-service";
 import { GOOGLE_PLAY_SUBSCRIPTIONS_URL } from "@/features/subscriptions/google-play-links";
-import { getGooglePlayErrorMessage } from "@/features/subscriptions/google-play-errors";
+import {
+  getGooglePlayErrorMessage,
+  logGooglePlayError,
+} from "@/features/subscriptions/google-play-errors";
 import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
@@ -137,7 +140,11 @@ export async function verifyGooglePlayPurchaseAction(
       data: entitlements,
     };
   } catch (error) {
-    console.error("Google Play purchase verification failed:", error);
+    logGooglePlayError(
+      "Google Play purchase verification failed.",
+      error,
+      [purchaseToken],
+    );
     const t = await getSubscriptionActionText();
     return {
       status: "error",
@@ -145,6 +152,7 @@ export async function verifyGooglePlayPurchaseAction(
         error,
         t("pricing.error.checkoutFailed"),
         t("pricing.error.clientAppUnavailable"),
+        [purchaseToken],
       ),
     };
   }

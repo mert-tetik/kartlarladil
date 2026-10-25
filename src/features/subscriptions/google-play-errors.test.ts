@@ -1,5 +1,6 @@
 import {
   getGooglePlayErrorDetail,
+  getGooglePlayErrorLogMetadata,
   getGooglePlayErrorMessage,
   isGooglePlayPurchaseCancellation,
 } from "@/features/subscriptions/google-play-errors";
@@ -24,6 +25,32 @@ describe("google play error formatting", () => {
     );
 
     expect(detail).toBe("Verification failed for token [redacted]");
+  });
+
+  it("logs only redacted error metadata and never includes request configuration", () => {
+    const purchaseToken = "short-purchase-secret";
+    const bearerToken = "sensitive-bearer-value";
+    const error = Object.assign(
+      new Error(`Verification failed for ${purchaseToken}; Authorization: Bearer ${bearerToken}`),
+      {
+        code: "403",
+        status: 403,
+        config: { url: `https://example.test/tokens/${purchaseToken}` },
+        response: { config: { headers: { authorization: `Bearer ${bearerToken}` } } },
+      },
+    );
+
+    const metadata = getGooglePlayErrorLogMetadata(error, [purchaseToken]);
+
+    expect(metadata).toEqual({
+      name: "Error",
+      code: "403",
+      status: 403,
+      message: "Verification failed for [redacted]; Authorization: [redacted]",
+    });
+    expect(JSON.stringify(metadata)).not.toContain(purchaseToken);
+    expect(JSON.stringify(metadata)).not.toContain(bearerToken);
+    expect(JSON.stringify(metadata)).not.toContain("config");
   });
 
   it("returns the localized clientAppUnavailable message when the error contains it", () => {

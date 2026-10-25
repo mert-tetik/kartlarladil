@@ -91,4 +91,35 @@ describe("Google Play RTDN route", () => {
     expect(mockClaimEvent).not.toHaveBeenCalled();
     expect(mockSyncSubscription).not.toHaveBeenCalled();
   });
+
+  it("redacts the purchase token from RTDN logs and persisted processing errors", async () => {
+    const purchaseToken = "short-purchase-secret";
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockSyncSubscription.mockRejectedValueOnce(
+      new Error(`Google request failed for ${purchaseToken}`),
+    );
+
+    try {
+      const response = await POST(
+        makeRequest({
+          message: {
+            messageId: "message-error",
+            data: Buffer.from(
+              JSON.stringify({ subscriptionNotification: { purchaseToken } }),
+            ).toString("base64"),
+          },
+        }),
+      );
+
+      expect(response.status).toBe(500);
+      expect(mockCompleteEvent).toHaveBeenCalledWith(
+        "message-error",
+        null,
+        "Google request failed for [redacted]",
+      );
+      expect(JSON.stringify(errorLog.mock.calls)).not.toContain(purchaseToken);
+    } finally {
+      errorLog.mockRestore();
+    }
+  });
 });

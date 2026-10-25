@@ -6,6 +6,7 @@ This runbook documents the current Google Play subscription and entitlement mode
 
 - A paid plan is effective only for `basic` or `pro`, an allowed provider, an allowed status, and a valid future `ends_at`. A missing, malformed, or expired end time fails closed to Free.
 - Google Play purchase tokens are checked server-side with `purchases.subscriptionsv2.get`. Client purchase data alone never grants access.
+- Never log complete Google API/Gaxios error objects. Their request configuration may contain purchase tokens or Pub/Sub bearer tokens; log only sanitized error metadata and redact before storing any RTDN `error_message`.
 - Subscription rows and quota writes are server-only. Do not grant browser roles access to `user_subscriptions`, `ai_usage_events`, or image-translation reservations.
 - UI entitlements are for display only. Protected Server Actions, API routes, and database triggers must enforce the same limits independently.
 - Current Free limits include 20 active cards, 100 learned cards, 10 daily / 200 monthly chat, Ask, and translation uses, 15 daily AI quiz validations, and 2 total image-text translations. Basic raises AI limits to 30 daily / 900 monthly and removes card-count limits; image-text translation remains capped at 2. Pro has unlimited AI and image-text translations. Verify these against `src/features/subscriptions/subscription-limits.ts` before changing this checklist.
