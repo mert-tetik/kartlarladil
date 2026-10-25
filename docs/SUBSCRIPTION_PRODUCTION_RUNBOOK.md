@@ -32,7 +32,12 @@ Production initially recorded only version `20261024233100` in `supabase_migrati
 
 - Before production sign-off, check that the project's PostgreSQL minor version includes current Supabase security fixes. Follow the release-specific detection queries before upgrading; Supabase's [PostgreSQL 15.19 / 17.11 release](https://supabase.com/changelog/postgres-15-19-17-11-breaking-changes) closes 44 CVEs and calls out possible `ltree`, `pgcrypto`, `btree_gist`, and custom-operator actions.
 - Confirm a recent, restorable backup and schedule a maintenance window before using the Dashboard's **Upgrade project** action. Supabase takes the project offline during the upgrade; run application smoke tests afterwards. See [Supabase's upgrade procedure](https://supabase.com/docs/guides/platform/upgrading).
-- Audit observation (2026-10-25): production reported PostgreSQL `17.6.1.127`; `ltree` and `btree_gist` were not installed, no custom operators matching the release warning were found, and no `pgp_*` encryption calls were found in project code or user-defined functions. `pgcrypto` is installed. The CLI returned no physical backups and reported PITR disabled, so confirm backup availability in the Dashboard and do not upgrade until a restorable backup and maintenance window are established.
+- Audit observation (2026-10-26): production reports PostgreSQL `17.6.1.127`; Supabase's current `17.11` minor release is available. Release detection found no `ltree`/`btree_gist` indexes or affected custom operators; `pgcrypto` is installed, but no project-owned `pgp_*` calls were found in source or user-defined functions. The Supabase organization is on the Free plan, which does not include Supabase's automatic daily backups; its docs recommend regular off-site CLI dumps for Free projects. Neither PITR nor a restorable backup has been verified. Create and verify an off-site logical backup (or move to a plan with managed backups and confirm one exists) before scheduling the PostgreSQL upgrade. Do not store a production dump in the repository.
+
+### Current entitlement audit snapshot (2026-10-26)
+
+- The production database contains three currently effective admin grants and no currently effective Google Play subscription rows. The RTDN event table is empty; the Pub/Sub test notification does not verify purchase processing. A real Play test purchase/restore and its verified expiry remain unverified.
+- The learned-review database trigger is installed. A production probe confirmed that it rejects a learned-review insert for a Free account and accepts one for an entitled account; the temporary paid probe row was deleted and no probe rows remain.
 
 ## Production configuration
 
