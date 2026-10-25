@@ -1,115 +1,64 @@
 # Subscription Production Runbook
 
-This runbook covers the production checks and recovery actions for FoxiesDeck subscriptions.
+This runbook documents the current Google Play subscription and entitlement model. Historical Lemon Squeezy instructions are obsolete: the application grants paid entitlements only for verified `google_play` purchases or time-bounded `admin` grants.
 
-## Live Configuration Checklist
+## Entitlement rules
 
-Before enabling paid plans in production, verify and record evidence for:
+- A paid plan is effective only for `basic` or `pro`, an allowed provider, an allowed status, and a valid future `ends_at`. A missing, malformed, or expired end time fails closed to Free.
+- Google Play purchase tokens are checked server-side with `purchases.subscriptionsv2.get`. Client purchase data alone never grants access.
+- Subscription rows and quota writes are server-only. Do not grant browser roles access to `user_subscriptions`, `ai_usage_events`, or image-translation reservations.
+- UI entitlements are for display only. Protected Server Actions, API routes, and database triggers must enforce the same limits independently.
+- Current Free limits include 20 active cards, 100 learned cards, 10 daily / 200 monthly chat, Ask, and translation uses, 15 daily AI quiz validations, and 2 total image-text translations. Basic raises AI limits to 30 daily / 900 monthly and removes card-count limits; image-text translation remains capped at 2. Pro has unlimited AI and image-text translations. Verify these against `src/features/subscriptions/subscription-limits.ts` before changing this checklist.
 
-- Lemon Squeezy live store ID matches `LEMONSQUEEZY_STORE_ID`.
-- Lemon Squeezy live variant IDs match:
-  - `LEMONSQUEEZY_BASIC_VARIANT_ID`
-  - `LEMONSQUEEZY_BASIC_YEARLY_VARIANT_ID`
-  - `LEMONSQUEEZY_PRO_VARIANT_ID`
-  - `LEMONSQUEEZY_PRO_YEARLY_VARIANT_ID`
-- Lemon Squeezy webhook URL points to `/api/lemon-squeezy/webhook` on the production domain.
-- Lemon Squeezy webhook secret matches `LEMONSQUEEZY_WEBHOOK_SECRET`.
-- Webhook events include:
-  - `subscription_created`
-  - `subscription_updated`
-  - `subscription_cancelled`
-  - `subscription_expired`
-  - `subscription_payment_success`
-  - `subscription_payment_failed`
-  - `subscription_payment_recovered`
-- `NEXT_PUBLIC_SITE_URL` points to the production domain.
-- Supabase RLS is enabled on `user_subscriptions`, `ai_usage_events`, and `webhook_events`.
-- Supabase Security Advisor has no unresolved high severity finding for subscription objects.
+## Deployment gate
 
-## Smoke Test
+Before enabling paid plans or deploying subscription changes:
 
-Run these checks after every subscription deploy:
+1. Run the targeted subscription, card-limit, theme, game, and AI quota tests; run typecheck, lint, and the production build.
+2. Apply `supabase/migrations/20261024233100_subscription_entitlement_expiry_and_image_quota_reservations.sql` through the approved production migration process. Do not hand-edit production grants or entitlement rows.
+3. Confirm the migration's fail-fast checks pass. Verify anon cannot execute public `SECURITY DEFINER` reward functions, authenticated users cannot write protected `user_profiles` columns, and browser roles cannot access subscription or quota tables/functions.
+4. Verify `enforce_user_card_subscription_limits` uses the expiry-aware plan helper, checks transitions into both `active` and `learned`, and shares the per-user advisory lock with `add_user_cards_with_active_limit`.
+5. Verify `image_text_translation_reservations` exists, has RLS enabled, and is accessible only to `service_role` through the Data API.
+6. Review Supabase Security Advisor findings. Treat expected service-only tables with RLS and no client policies as private by design; investigate all public function execution or unexpected client write grants.
 
-- Free user can open `/pricing`.
-- Free user can create a Basic checkout.
-- Free user can create a Pro checkout.
-- Successful checkout returns to `/pricing?checkout=success`.
-- `subscription_created` or `subscription_updated` webhook creates/updates `user_subscriptions`.
-- Paid user sees paid entitlements after refresh.
-- Paid user can open a fresh customer portal URL from account settings.
-- Paid user cannot delete their account until the effective plan is free.
-- Duplicate webhook delivery does not mutate state twice.
-- Unknown Lemon variant logs a webhook error and does not downgrade the user to `free`.
+### Production migration-history warning
 
-## Webhook Replay
+The production project had no `supabase_migrations.schema_migrations` table before this migration. Supabase now records version `20261024233100`, but the older migration files in this repository are not represented in production history. Do not run `supabase db push` until the existing production schema and every historical migration have been reconciled; otherwise the CLI may try to replay old migrations against already-existing objects. Check `supabase migration list` before any future schema deployment.
 
-When a subscription looks wrong:
+## Production configuration
 
-1. Find the Lemon Squeezy event in the dashboard.
-2. Confirm the event has either `meta.custom_data.user_id`, a known subscription ID, or a known customer ID.
-3. Replay the event from Lemon Squeezy.
-4. Check `webhook_events` for `processed_at` and `error_message`.
-5. Check `user_subscriptions` for the expected `plan`, `status`, `lemon_squeezy_subscription_id`, and `lemon_squeezy_variant_id`.
-
-If replay still fails, do not manually change plan data until the Lemon event payload and variant mapping are verified.
-
-## Manual Reconciliation
-
-Use this only for support incidents:
-
-1. Retrieve the subscription from Lemon Squeezy.
-2. Verify the `variant_id` maps to exactly one FoxiesDeck plan.
-3. Verify the Lemon customer belongs to the same Supabase user.
-4. Update `user_subscriptions` through a controlled SQL script or admin tool.
-5. Add a note to the incident log with the Lemon subscription ID, user ID, reason, and operator.
-
-## Monitoring
-
-Alert on:
-
-- Any `/api/lemon-squeezy/webhook` 5xx.
-- Any `webhook_events.error_message is not null`.
-- Any unknown Lemon variant error.
-- Any paid `user_subscriptions` row with missing `lemon_squeezy_subscription_id`.
-- Any paid user reporting an unavailable customer portal.
-
-## Secret Rotation
-
-For webhook secret rotation:
-
-1. Create the new secret in Lemon Squeezy.
-2. Update `LEMONSQUEEZY_WEBHOOK_SECRET` in production.
-3. Redeploy.
-4. Send or replay one harmless subscription event.
-5. Confirm signature verification succeeds.
-
-For API key rotation:
-
-1. Create a new Lemon Squeezy API key.
-2. Update `LEMONSQUEEZY_API_KEY` in production.
-3. Redeploy.
-4. Verify checkout creation and customer portal retrieval.
-5. Revoke the old key.
-
-## Incident Response
-
-For billing incidents:
-
-- Freeze related deploys until the source is understood.
-- Preserve the Lemon event payload and `webhook_events` row.
-- Prefer replay/reconciliation over direct plan edits.
-- After repair, run the smoke test and record the final user state.
-# Subscription production hardening
-
-## Google Play source of truth and RTDN
-
-Google Play entitlements are verified server-side with `purchases.subscriptionsv2.get`; the browser is never trusted to grant a plan. Configure the following production secrets before shipping Android billing:
+Set these server-side secrets in the production environment; never expose them through `NEXT_PUBLIC_` variables:
 
 - `GOOGLE_PLAY_PACKAGE_NAME`
 - `GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_JSON`
 - `GOOGLE_PLAY_RTDN_AUDIENCE`
 - `GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT_EMAIL`
+- `NEXT_PUBLIC_SITE_URL` with the canonical production origin
 
-Create a Google Cloud Pub/Sub push subscription for the Play Console RTDN topic that targets `https://www.foxiesdeck.com/api/google-play/rtdn`. Enable an authenticated OIDC token for the configured service-account email and set the route URL as its audience. The route verifies that token, deduplicates the Pub/Sub message ID, and refreshes the subscription from Google before writing the entitlement.
+The Google Play service account must be authorized for the Play Console app and Android Publisher API. Configure a Pub/Sub push subscription for the Play Console RTDN topic targeting `https://www.foxiesdeck.com/api/google-play/rtdn`, with an authenticated OIDC token whose service-account email and audience exactly match the server secrets.
 
-The Google Play developer service account must have access to the Play Console application and the Android Publisher API. Test active, cancellation, grace-period, hold, expiry and a renewed purchase token before release.
+## Smoke tests after every deploy
+
+- Free users can open pricing and see Free limits; Basic/Pro users get limits from the verified database entitlement.
+- A fake, malformed, expired, or missing `ends_at` never grants paid access, even if the row says `active`.
+- A verified purchase and purchase restore grant access only after Google verification; cancellation retains access only through the verified expiry.
+- Free users cannot exceed 20 active or 100 learned cards through single adds, batch adds, direct status updates, or concurrent requests. Paid users are not blocked by those caps.
+- Free AI chat/Ask/translation, quiz-validation, and image-translation quotas are enforced server-side under concurrent requests. Failed image translation releases its reservation; successful completion consumes it once.
+- Free users cannot persist paid themes, access paid game levels, or delete an account with an effective paid subscription. Client/local-storage changes must not bypass the server checks.
+- Send a test RTDN message. Verify `/api/google-play/rtdn` authenticates the OIDC token, records the message, deduplicates retries, and refreshes the entitlement from Google.
+- A time-bounded admin grant produces access only until its stored future expiry.
+
+## Reconcile a subscription incident
+
+1. Confirm the signed-in Supabase user and locate their `user_subscriptions` row without exposing purchase tokens in logs or chat.
+2. Verify the purchase token and SKU against Google Play using the server-side verification flow. Confirm the package, plan, billing period, status, and expiry.
+3. Use the authenticated purchase-restore flow or the verified RTDN sync to persist Google's returned state. Never set `plan` or `status` to paid manually based only on a stale database row or client claim.
+4. For rows with missing or expired `ends_at`, keep access Free until Google confirms a valid future expiry. Then rerun the entitlement and restriction smoke tests.
+5. Record the incident, verified outcome, and operator without copying raw purchase tokens into logs.
+
+## Monitoring and incident response
+
+- Alert on `/api/google-play/rtdn` 401/5xx responses and processing errors in `google_play_rtdn_events`.
+- After sending a known test notification, confirm it appears exactly once and is marked processed. An empty event table alone does not prove Pub/Sub is healthy.
+- Periodically inspect paid-looking rows with missing/past `ends_at`, and confirm they fail closed until Google re-verification.
+- On entitlement discrepancies, preserve relevant error metadata, stop manual plan edits, verify the Google source of truth, apply the smallest verified reconciliation, then rerun the smoke tests.

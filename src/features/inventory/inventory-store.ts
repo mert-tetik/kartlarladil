@@ -776,6 +776,9 @@ export const useInventoryStore = create<InventoryState>()(
               cloudLoading: false,
               cloudError: result.message,
             });
+            if (result.errorCode) {
+              throw new InventoryActionError(result.message, result.errorCode);
+            }
             return undefined;
           }
 

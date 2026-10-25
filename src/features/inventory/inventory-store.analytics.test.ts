@@ -10,6 +10,7 @@ import {
   addCloudInventoryCardAction,
   addCloudInventoryCardsAction,
   createCustomCardAction,
+  recordCloudPracticeAttemptAction,
   removeCloudInventoryCardAction,
 } from "@/features/inventory/cloud-actions";
 import type { VocabularyCard } from "@/types/domain";
@@ -257,6 +258,42 @@ describe("inventory store analytics", () => {
         correct_count: getTierRequirement(testCard.tier),
       },
     });
+  });
+
+  it("surfaces a server-side subscription restriction from learned review after rolling back optimistic state", async () => {
+    const learnedCard = {
+      cardId: testCard.id,
+      status: "learned" as const,
+      correctCount: 4,
+      addedAt: "2026-01-01T00:00:00.000Z",
+      learnedAt: "2026-01-02T00:00:00.000Z",
+    };
+    useInventoryStore.setState({
+      cards: [learnedCard],
+      attempts: [],
+      cloudEnabled: true,
+      ownerUserId: "user-1",
+    });
+    vi.mocked(recordCloudPracticeAttemptAction).mockResolvedValueOnce({
+      status: "error",
+      message: "A subscription is required.",
+      errorCode: "learned_review_subscription_required",
+    });
+
+    await expect(useInventoryStore.getState().recordAnswer({
+      cardId: testCard.id,
+      selectedAnswer: "wrong",
+      correctAnswer: "right",
+      isCorrect: false,
+      mode: "learned",
+    })).rejects.toMatchObject({
+      name: "InventoryActionError",
+      errorCode: "learned_review_subscription_required",
+    });
+
+    expect(useInventoryStore.getState().cards).toEqual([learnedCard]);
+    expect(useInventoryStore.getState().attempts).toEqual([]);
+    expect(useInventoryStore.getState().cloudLoading).toBe(false);
   });
 
   it("sends a custom card added event after creation", async () => {

@@ -158,3 +158,8 @@ export function isPaidPlan(plan: "free" | "basic" | "pro"): boolean {
 export function isThemePaid(themeId: string): boolean {
   return !FREE_THEME_IDS.has(themeId);
 }
+
+export function getEntitledThemeId(themeId: string | null | undefined, canUsePaidTheme: boolean): string {
+  const resolvedThemeId = getThemeById(themeId).id;
+  return isThemePaid(resolvedThemeId) && !canUsePaidTheme ? DEFAULT_THEME_ID : resolvedThemeId;
+}

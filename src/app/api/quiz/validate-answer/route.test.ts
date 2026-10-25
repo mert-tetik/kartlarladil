@@ -119,6 +119,28 @@ describe("POST /api/quiz/validate-answer", () => {
     expect(payload.errorCode).toBe("ai_daily_limit");
   });
 
+  it("rejects malformed requests before reserving AI usage", async () => {
+    const response = await POST(makeRequest({ userAnswer: "" }));
+
+    expect(response.status).toBe(400);
+    expect(mockAssertAndRecordAiUsage).not.toHaveBeenCalled();
+  });
+
+  it("does not consume the AI quota when the answer is a source-language collision", async () => {
+    const response = await POST(makeRequest({
+      userAnswer: "elma",
+      correctAnswers: ["apple"],
+      sourceAnswers: ["elma"],
+      targetLanguage: "en",
+      sourceLanguage: "tr",
+      promptContext: "apple means elma",
+    }));
+
+    expect(response.status).toBe(200);
+    expect(mockAssertAndRecordAiUsage).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
   // The following tests exercise the OpenAI path. The project-wide OpenAI mock
   // does not currently intercept requests in this file, so they are skipped
   // until the mock setup is fixed. Auth and quota enforcement tests above still run.

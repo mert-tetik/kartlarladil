@@ -53,7 +53,7 @@ describe("PLAN_LIMITS", () => {
         translate: { daily: 10, monthly: 200 },
         ask: { daily: 10, monthly: 200 },
         create_card: { daily: null, monthly: null },
-        quiz_validate: { daily: null, monthly: null },
+        quiz_validate: { daily: 15, monthly: null },
         image_text_translate: { daily: null, monthly: null },
       },
       imageTextTranslations: 2,

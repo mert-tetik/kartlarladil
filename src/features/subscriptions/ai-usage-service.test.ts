@@ -8,6 +8,7 @@ import {
   recordAiUsageEvent,
   reserveImageTextTranslation,
 } from "@/features/subscriptions/ai-usage-service";
+import { getAiFeatureLimit } from "@/features/subscriptions/subscription-limits";
 
 const mockCount = vi.fn();
 const mockInsert = vi.fn(() => Promise.resolve({ error: null }));
@@ -84,6 +85,20 @@ describe("assertCanUseAi", () => {
 
     expect(await assertCanUseAi("user-4", "free", "chat")).toBe("ai_daily_limit");
     expect(await assertCanUseAi("user-4", "free", "ask")).toBeNull();
+  });
+
+  it("matches the Free quiz-validation cap and leaves paid plans unlimited", () => {
+    expect(getAiFeatureLimit("free", "quiz_validate")).toEqual({ daily: 15, monthly: null });
+    expect(getAiFeatureLimit("basic", "quiz_validate")).toEqual({ daily: null, monthly: null });
+    expect(getAiFeatureLimit("pro", "quiz_validate")).toEqual({ daily: null, monthly: null });
+  });
+
+  it("enforces the Free quiz-validation cap from usage counts", async () => {
+    mockCount.mockReturnValueOnce(14).mockReturnValueOnce(120);
+    expect(await assertCanUseAi("user-5", "free", "quiz_validate")).toBeNull();
+
+    mockCount.mockReturnValueOnce(15).mockReturnValueOnce(120);
+    expect(await assertCanUseAi("user-5", "free", "quiz_validate")).toBe("ai_daily_limit");
   });
 });
 

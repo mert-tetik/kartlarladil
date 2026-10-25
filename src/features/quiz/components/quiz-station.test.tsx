@@ -1834,7 +1834,7 @@ describe("QuizStation sound feedback", () => {
 
   it("auto-advances to the result screen when the learned-card limit blocks learning", async () => {
     const learnedCards = VOCABULARY_CARDS.filter((card) => card.id !== testCard.id)
-      .slice(0, 50)
+      .slice(0, 100)
       .map<InventoryCard>((card, index) => ({
         cardId: card.id,
         status: "learned",
@@ -1857,6 +1857,7 @@ describe("QuizStation sound feedback", () => {
       cloudLoading: false,
       cloudError: "",
     });
+    quizCountSelectionTestState.autoSelectCount = 1;
 
     renderQuizStation("tr");
     fireEvent.click(screen.getByRole("button", { name: /English/i }));
@@ -1866,8 +1867,8 @@ describe("QuizStation sound feedback", () => {
     fireEvent.keyDown(input, { key: "Enter" });
 
     await waitFor(() => {
-      expect(screen.getByTestId("quiz-result-panel")).toBeVisible();
-    });
+      expect(document.querySelector('[data-quiz-overlay="result"]')).toBeVisible();
+    }, { timeout: 5_000 });
   });
 
   it("does not call AI validation when the text answer is directly correct", async () => {
@@ -1913,6 +1914,7 @@ describe("QuizStation sound feedback", () => {
       cloudLoading: false,
       cloudError: "",
     });
+    quizCountSelectionTestState.autoSelectCount = 1;
 
     renderQuizStation("tr");
     fireEvent.click(screen.getByRole("button", { name: /English|Ä°ngilizce/i }));
@@ -1928,9 +1930,12 @@ describe("QuizStation sound feedback", () => {
     expect(playSoundEffect).toHaveBeenCalledWith("correct");
   });
 
-  it("falls back to incorrect when the free daily AI validation limit is exhausted", async () => {
+  it("shows the subscription restriction when the server rejects exhausted free AI quota", async () => {
     const fetchSpy = vi.fn(() =>
-      Promise.resolve({ json: () => Promise.resolve({ accepted: true }) }),
+      Promise.resolve({
+        status: 429,
+        json: () => Promise.resolve({ errorCode: "ai_daily_limit" }),
+      }),
     );
     vi.stubGlobal("fetch", fetchSpy as unknown as typeof fetch);
 
@@ -1942,11 +1947,7 @@ describe("QuizStation sound feedback", () => {
       cloudLoading: false,
       cloudError: "",
     });
-
-    window.localStorage.setItem(
-      "foxiesdeck:ai-quiz-validation:daily",
-      JSON.stringify({ date: new Date().toISOString().slice(0, 10), count: 15 }),
-    );
+    quizCountSelectionTestState.autoSelectCount = 1;
 
     renderQuizStation("tr");
     fireEvent.click(screen.getByRole("button", { name: /English|Ä°ngilizce/i }));
@@ -1955,11 +1956,9 @@ describe("QuizStation sound feedback", () => {
     fireEvent.change(input, { target: { value: "wrong again" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
-    await waitFor(() => {
-      expect(playSoundEffect).toHaveBeenCalledWith("incorrect");
-    });
-
-    expect(fetchSpy).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByRole("dialog")).toBeVisible());
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(playSoundEffect).not.toHaveBeenCalledWith("incorrect");
   });
 });
 
@@ -2055,6 +2054,13 @@ function renderQuizStation(
   mode: "active" | "learned" = "active",
   initialLanguage?: LanguageCode,
 ) {
+  // Most flow tests exercise question/answer behavior, not the count picker.
+  // Keep their default path on one card while allowing a test to request a
+  // different count explicitly.
+  if (quizCountSelectionTestState.autoSelectCount === null) {
+    quizCountSelectionTestState.autoSelectCount = 1;
+  }
+
   render(
     <LocaleProvider initialLocale={locale}>
       <AuthSessionProvider user={testUser}>

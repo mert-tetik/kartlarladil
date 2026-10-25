@@ -56,7 +56,7 @@ import {
   getCharacterVoiceProfile,
 } from "@/features/ai-practice/ai-practice-data";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
-import { useInventoryStore } from "@/features/inventory/inventory-store";
+import { InventoryActionError, useInventoryStore } from "@/features/inventory/inventory-store";
 import {
   buildQuizQuestion,
   buildListeningQuizQuestion,
@@ -3190,6 +3190,10 @@ export function QuizStation({
             isCorrect,
             mode,
             forceLearned: item.forceLearned,
+          }).catch((error: unknown) => {
+            if (error instanceof InventoryActionError && error.errorCode) {
+              setLimitError(error.errorCode);
+            }
           }).finally(() => {
             pendingAnswerWritesRef.current = Math.max(0, pendingAnswerWritesRef.current - 1);
             setPendingAnswerWrites(pendingAnswerWritesRef.current);

@@ -1,7 +1,15 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { getThemeById, type ThemeDefinition, type ThemeMode } from "@/lib/themes";
+import { useSubscription } from "@/features/subscriptions/subscription-client";
+import {
+  getEntitledThemeId,
+  getThemeById,
+  isPaidPlan,
+  isThemePaid,
+  type ThemeDefinition,
+  type ThemeMode,
+} from "@/lib/themes";
 
 interface ThemeContextValue {
   theme: ThemeDefinition;
@@ -36,12 +44,17 @@ export function ThemeProvider({
   children: ReactNode;
 }) {
   const [themeId, setThemeId] = useState(() => getThemeById(initialTheme).id);
+  const { entitlements } = useSubscription();
+  const hasPaidThemeAccess = entitlements
+    ? isPaidPlan(entitlements.effectivePlan)
+    : isThemePaid(getThemeById(initialTheme).id);
+  const visibleThemeId = getEntitledThemeId(themeId, hasPaidThemeAccess);
 
   useEffect(() => {
-    applyThemeToDocument(themeId);
-  }, [themeId]);
+    applyThemeToDocument(visibleThemeId);
+  }, [visibleThemeId]);
 
-  const theme = getThemeById(themeId);
+  const theme = getThemeById(visibleThemeId);
 
   return (
     <ThemeContext.Provider
@@ -50,8 +63,9 @@ export function ThemeProvider({
         mode: theme.mode,
         setTheme: (nextId) => {
           const resolved = getThemeById(nextId).id;
-          setThemeId(resolved);
-          applyThemeToDocument(resolved);
+          const allowedTheme = getEntitledThemeId(resolved, hasPaidThemeAccess);
+          setThemeId(allowedTheme);
+          applyThemeToDocument(allowedTheme);
         },
       }}
     >

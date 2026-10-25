@@ -3,6 +3,7 @@ import {
   signInWithGoogleAction,
   updateLanguagePreferenceAction,
   updateMobileLoginLanguagePreferencesAction,
+  updateThemeAction,
 } from "@/features/auth/actions";
 import { revalidatePath } from "next/cache";
 import { DELETE_ACCOUNT_CONFIRMATION } from "@/features/auth/auth-schemas";
@@ -199,6 +200,41 @@ describe("updateLanguagePreferenceAction", () => {
     });
 
     expect(mockFrom).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateThemeAction", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "user-1", email: "test@example.com" } },
+      error: null,
+    });
+    mockGetUserEntitlements.mockResolvedValue({ effectivePlan: "pro" });
+    mockEq.mockResolvedValue({ error: null });
+    mockUpdate.mockReturnValue({ eq: mockEq });
+    mockFrom.mockReturnValue({ update: mockUpdate });
+    mockCreateSupabaseAdminClient.mockReturnValue({ from: mockFrom });
+  });
+
+  it("persists a paid theme through the server-only admin client after entitlement validation", async () => {
+    const result = await updateThemeAction("ocean-dark");
+
+    expect(result.status).toBe("success");
+    expect(mockCreateSupabaseAdminClient).toHaveBeenCalledOnce();
+    expect(mockFrom).toHaveBeenCalledWith("user_profiles");
+    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ theme: "ocean-dark" }));
+    expect(mockEq).toHaveBeenCalledWith("user_id", "user-1");
+  });
+
+  it("does not use the admin client for a free user's paid theme request", async () => {
+    mockGetUserEntitlements.mockResolvedValue({ effectivePlan: "free" });
+
+    const result = await updateThemeAction("ocean-dark");
+
+    expect(result.status).toBe("error");
+    expect(mockCreateSupabaseAdminClient).not.toHaveBeenCalled();
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 });
 

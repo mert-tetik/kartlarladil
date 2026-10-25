@@ -14,7 +14,14 @@ import { SubscriptionRestrictionSurface } from "@/features/subscriptions/compone
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
-import { THEME_SWATCH_KEYS, THEMES, isPaidPlan, isThemePaid, type ThemeDefinition } from "@/lib/themes";
+import {
+  DEFAULT_THEME_ID,
+  THEME_SWATCH_KEYS,
+  THEMES,
+  isPaidPlan,
+  isThemePaid,
+  type ThemeDefinition,
+} from "@/lib/themes";
 
 interface ThemePickerDialogProps {
   open: boolean;
@@ -25,7 +32,7 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
   const t = useT();
   const { locale } = useLocale();
   const { theme, setTheme } = useTheme();
-  const { entitlements } = useSubscription();
+  const { entitlements, refreshEntitlements } = useSubscription();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeMounted, setUpgradeMounted] = useState(false);
   const [upgradeVisible, setUpgradeVisible] = useState(false);
@@ -91,15 +98,32 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
       return;
     }
 
+    const previousThemeId = theme.id;
     setTheme(themeId);
     const saveId = latestThemeSaveIdRef.current + 1;
     latestThemeSaveIdRef.current = saveId;
     setPendingId(themeId);
     startTransition(async () => {
+      const restoreThemeAfterFailedSave = async () => {
+        const latestEntitlements = await refreshEntitlements().catch(() => null);
+        if (latestThemeSaveIdRef.current !== saveId) return;
+
+        const hasVerifiedPaidPlan = latestEntitlements?.effectivePlan === "basic"
+          || latestEntitlements?.effectivePlan === "pro";
+        const safePreviousTheme = isThemePaid(previousThemeId) && !hasVerifiedPaidPlan
+          ? DEFAULT_THEME_ID
+          : previousThemeId;
+        setTheme(safePreviousTheme);
+      };
+
       const saveTask = themeSaveQueueRef.current
         .catch(() => undefined)
-        .then(() => updateThemeAction(themeId))
-        .then(() => undefined);
+        .then(async () => {
+          const result = await updateThemeAction(themeId);
+          if (result.status !== "success") {
+            await restoreThemeAfterFailedSave();
+          }
+        });
 
       themeSaveQueueRef.current = saveTask;
 
@@ -109,7 +133,7 @@ export function ThemePickerDialog({ open, onOpenChange }: ThemePickerDialogProps
           new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 8_000)),
         ]);
       } catch {
-        // Keep the optimistic theme visible even if persistence fails.
+        await restoreThemeAfterFailedSave();
       } finally {
         if (latestThemeSaveIdRef.current === saveId) {
           setPendingId(null);

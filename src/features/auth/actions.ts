@@ -479,7 +479,8 @@ export async function updateThemeAction(themeId: string): Promise<AuthActionStat
     }
   }
 
-  const { error } = await supabase
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin
     .from("user_profiles")
     .update({
       theme: validTheme.id,

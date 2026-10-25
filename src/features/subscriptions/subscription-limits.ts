@@ -30,7 +30,7 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanLimits> = {
     aiFeatureLimits: {
       ...LIMITED_AI_FEATURES,
       create_card: { daily: null, monthly: null },
-      quiz_validate: { daily: null, monthly: null },
+      quiz_validate: { daily: 15, monthly: null },
       image_text_translate: { daily: null, monthly: null },
     },
     imageTextTranslations: 2,

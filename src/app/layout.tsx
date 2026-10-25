@@ -3,7 +3,15 @@ import { headers } from "next/headers";
 import { Fraunces, Manrope } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
-import { DEFAULT_THEME_ID, getThemeById, getThemeCssText } from "@/lib/themes";
+import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
+import {
+  DEFAULT_THEME_ID,
+  getEntitledThemeId,
+  getThemeById,
+  getThemeCssText,
+  isPaidPlan,
+  isThemePaid,
+} from "@/lib/themes";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale, getServerTextDirection } from "@/i18n/server";
 import { APP_NAME } from "@/lib/constants";
@@ -53,7 +61,21 @@ export default async function RootLayout({
     getCurrentAuthUser(),
     headers(),
   ]);
-  const themeId = getThemeById(user?.profile.theme ?? DEFAULT_THEME_ID).id;
+  const storedThemeId = getThemeById(user?.profile.theme ?? DEFAULT_THEME_ID).id;
+  let canUsePaidTheme = false;
+
+  if (isThemePaid(storedThemeId)) {
+    try {
+      const entitlements = user ? await getUserEntitlements(user.id) : null;
+      canUsePaidTheme = !!entitlements && isPaidPlan(entitlements.effectivePlan);
+    } catch {
+      // A failed entitlement lookup must not expose a paid-only theme.
+      console.error("Paid theme entitlement verification failed during server rendering.");
+    }
+  }
+
+  const themeId = getEntitledThemeId(storedThemeId, canUsePaidTheme);
+
   const onboardingCountryCode = requestHeaders.get("x-vercel-ip-country");
 
   return (
@@ -63,7 +85,12 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full" data-theme={themeId}>
         <style id="theme-palette-vars" dangerouslySetInnerHTML={{ __html: getThemeCssText() }} />
-        <AppShell locale={locale} user={user} onboardingCountryCode={onboardingCountryCode}>
+        <AppShell
+          locale={locale}
+          user={user}
+          onboardingCountryCode={onboardingCountryCode}
+          initialTheme={themeId}
+        >
           {children}
         </AppShell>
       </body>

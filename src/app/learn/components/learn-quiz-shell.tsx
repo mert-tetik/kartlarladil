@@ -26,6 +26,8 @@ import { QuizWordButtonTest } from "@/app/learn/components/quiz-word-button-test
 import { cn } from "@/lib/utils";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { useOptionalAuthSession } from "@/features/auth/auth-client";
+import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
+import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import type { LanguageCode, PracticeMode } from "@/types/domain";
 
@@ -94,6 +96,7 @@ export function LearnQuizShell({
   const ownerUserId = useInventoryStore((state) => state.ownerUserId);
   const router = useRouter();
   const authSession = useOptionalAuthSession();
+  const { entitlements, isLoading: subscriptionLoading } = useSubscription();
   const { locale } = useLocale();
   const redirectStartedRef = useRef(false);
   const showHeader = phase === "mode" || phase === "language" || phase === "count";
@@ -106,6 +109,15 @@ export function LearnQuizShell({
   const cloudInventoryReady = !authSession?.user
     ? true
     : cloudEnabled && cloudLoadComplete && ownerUserId === authSession.user.id;
+  const hasLearnedReviewAccess = entitlements?.effectivePlan === "basic"
+    || entitlements?.effectivePlan === "pro";
+  const learnedReviewEntitlementsPending = selectedMode === "learned"
+    && Boolean(authSession?.user)
+    && subscriptionLoading
+    && !entitlements;
+  const learnedReviewLocked = selectedMode === "learned"
+    && !learnedReviewEntitlementsPending
+    && !hasLearnedReviewAccess;
 
   const availablePracticeCards = useMemo(() => ({
     active: filterInventoryCards({ cards, status: "active" }).filter(({ card }) => card.language !== locale),
@@ -234,6 +246,13 @@ export function LearnQuizShell({
     return <BonusRewardTest />;
   }
 
+  // Do not expose learned-card practice while an authenticated user's first
+  // server entitlement lookup is unresolved. The server action remains the
+  // authoritative gate if an entitlement expires during an active quiz.
+  if (learnedReviewEntitlementsPending) {
+    return null;
+  }
+
   if ((!hydrated || cloudLoading || !cloudInventoryReady) && !canRenderPersistedPool) {
     return null;
   }
@@ -267,7 +286,7 @@ export function LearnQuizShell({
         data-learn-phase={phase}
         className="mt-8 flex min-h-0 flex-1 flex-col items-stretch max-lg:mt-0 max-lg:w-full"
       >
-        {selectedMode ? (
+        {selectedMode && !learnedReviewLocked ? (
           <div
             className="quiz-transition-stage relative flex min-h-0 flex-1 flex-col max-lg:fixed max-lg:inset-0 max-lg:z-0 max-lg:h-dvh max-lg:w-full"
           >
@@ -294,12 +313,29 @@ export function LearnQuizShell({
                 redirectToLanding();
                 return;
               }
+              if (mode === "learned" && !hasLearnedReviewAccess) {
+                setSelectedMode("learned");
+                setPhase("mode");
+                return;
+              }
               setSelectedMode(mode);
               setPhase("language");
             }}
           />
         )}
       </div>
+      {learnedReviewLocked ? (
+        <UpgradeDialog
+          open
+          errorCode="learned_review_subscription_required"
+          onOpenChange={(open) => {
+            if (!open && !hasLearnedReviewAccess) {
+              setSelectedMode(null);
+              setPhase("mode");
+            }
+          }}
+        />
+      ) : null}
     </>
   );
 }

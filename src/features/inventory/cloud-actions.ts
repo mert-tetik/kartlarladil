@@ -190,15 +190,27 @@ export async function recordCloudPracticeAttemptAction(input: {
 }): Promise<CloudActionResult<CloudInventoryPayload>> {
   try {
     const { supabase, user } = await getAuthedSupabase();
-    const localCard = await resolveLocalCard(supabase, input.cardId);
+    const entitlements = await getUserEntitlements(user.id);
     const t = await getCloudActionText();
+
+    if (
+      input.mode === "learned" &&
+      entitlements.effectivePlan !== "basic" &&
+      entitlements.effectivePlan !== "pro"
+    ) {
+      return {
+        status: "error",
+        message: t("limit.learnedReviewSubscriptionDescription"),
+        errorCode: "learned_review_subscription_required",
+      };
+    }
+
+    const localCard = await resolveLocalCard(supabase, input.cardId);
     const currentCard = await readUserCard(supabase, user, localCard.sourceKey);
     const nextCard =
       input.mode === "learned"
         ? currentCard
         : applyAnswerProgress(currentCard, localCard, input.isCorrect);
-
-    const entitlements = await getUserEntitlements(user.id);
 
     if (
       entitlements.effectivePlan === "free" &&

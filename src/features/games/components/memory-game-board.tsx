@@ -43,7 +43,7 @@ interface MemoryGameBoardProps {
 export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
   const t = useT();
   const { user, refreshProfile, updateProfileField } = useAuthSession();
-  const { entitlements } = useSubscription();
+  const { entitlements, refreshEntitlements } = useSubscription();
   const sounds = useGameSounds();
   const startLevel = useGameProgressStore((state) => state.startLevel);
   const completeLevel = useGameProgressStore((state) => state.completeLevel);
@@ -146,8 +146,14 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
         updateProfileField({
           gamePoints: (user.profile.gamePoints ?? 0) + points,
         });
-        void addGamePointsAction(points).then(async (result) => {
-          if (result.status !== "success") return;
+        void addGamePointsAction(level).then(async (result) => {
+          if (result.status !== "success") {
+            if (result.message === "game_level_locked") {
+              await refreshEntitlements();
+              setUpgradeOpen(true);
+            }
+            return;
+          }
           await refreshProfile();
           refreshLeaderboardPositions();
         });
@@ -158,7 +164,7 @@ export function MemoryGameBoard({ initialLevel }: MemoryGameBoardProps) {
         setPhase("completed");
       }, MEMORY_MATCH_ANIMATION_DURATION_MS);
     }
-  }, [matchedCount, pairCount, phase, completeLevel, addLocalPoints, level, user, refreshProfile, updateProfileField]);
+  }, [matchedCount, pairCount, phase, completeLevel, addLocalPoints, level, user, refreshProfile, refreshEntitlements, updateProfileField]);
 
   const isFreePlan = entitlements?.effectivePlan === "free" || !entitlements;
 

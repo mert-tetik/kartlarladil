@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import type { SubscriptionPlan } from "@/types/domain";
 
 const STORAGE_KEY = "foxiesdeck:ai-quiz-validation:daily";
-const FREE_DAILY_LIMIT = 15;
+const FREE_DAILY_LIMIT = PLAN_LIMITS.free.aiFeatureLimits?.quiz_validate?.daily ?? 15;
 
 interface LimitState {
   date: string;

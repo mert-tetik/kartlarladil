@@ -42,11 +42,13 @@ export function AppShell({
   locale,
   user,
   onboardingCountryCode,
+  initialTheme,
 }: {
   children: ReactNode;
   locale: LocaleCode;
   user: AuthShellUser | null;
   onboardingCountryCode: string | null;
+  initialTheme: string;
 }) {
   return (
     <LocaleProvider initialLocale={locale}>
@@ -62,7 +64,7 @@ export function AppShell({
           <TwaAnalyticsProvider>
             <SubscriptionProvider>
               <ProgressStatsProvider>
-                <ThemeProvider initialTheme={user?.profile.theme}>
+                <ThemeProvider initialTheme={initialTheme}>
                   <CardPronunciationQueue />
                   <PushNotificationsProvider>
                     <RouteTransitionProvider>

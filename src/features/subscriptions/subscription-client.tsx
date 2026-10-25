@@ -21,6 +21,8 @@ import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-b
 import { useGooglePlayPricing } from "@/features/subscriptions/use-google-play-pricing";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import { useAuthSession } from "@/features/auth/auth-client";
+import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
+import { isUsableEntitlementsSnapshot } from "@/features/subscriptions/subscription-entitlement";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { SubscriptionPlan, UserEntitlements } from "@/types/domain";
 import { useAppMessage } from "@/components/app-message-provider";
@@ -74,7 +76,8 @@ function readCachedEntitlements(userId: string | null): UserEntitlements | null 
   try {
     const raw = window.localStorage.getItem(getEntitlementsCacheKey(userId));
     if (!raw) return null;
-    return JSON.parse(raw) as UserEntitlements;
+    const cached: unknown = JSON.parse(raw);
+    return isUsableEntitlementsSnapshot(cached) ? cached : null;
   } catch {
     return null;
   }
@@ -130,7 +133,11 @@ function SubscriptionProviderSession({
   const [subscriptionDetailsRequest, setSubscriptionDetailsRequest] = useState<SubscriptionDetailsRequest | null>(null);
   const entitlementsRef = useRef<UserEntitlements | null>(entitlements);
   const userIdRef = useRef<string | null>(userId);
-  const refreshPromiseRef = useRef<Promise<UserEntitlements | null> | null>(null);
+  const entitlementRevisionRef = useRef(0);
+  const refreshPromiseRef = useRef<{
+    revision: number;
+    promise: Promise<UserEntitlements | null>;
+  } | null>(null);
   const { showMessage } = useAppMessage();
 
   useEffect(() => {
@@ -155,11 +162,24 @@ function SubscriptionProviderSession({
       return null;
     }
 
-    const pendingRefresh = refreshPromiseRef.current;
-    if (pendingRefresh) {
-      return pendingRefresh;
+    // A server read started before a verified purchase or expiry transition
+    // must not be allowed to overwrite that newer state. If such a read is
+    // still pending, wait for it to settle and then issue a fresh read.
+    let pendingRefresh = refreshPromiseRef.current;
+    while (pendingRefresh) {
+      const currentRevision = entitlementRevisionRef.current;
+      if (pendingRefresh.revision === currentRevision) {
+        return pendingRefresh.promise;
+      }
+
+      await pendingRefresh.promise;
+      if (userIdRef.current !== requestUserId) {
+        return null;
+      }
+      pendingRefresh = refreshPromiseRef.current;
     }
 
+    const requestRevision = entitlementRevisionRef.current;
     const hadKnownEntitlements = entitlementsRef.current !== null;
     // Cached entitlements are already authoritative enough for immediate UI
     // actions. A background refresh must not turn a usable paid UI back into a
@@ -175,6 +195,10 @@ function SubscriptionProviderSession({
 
         if (userIdRef.current !== requestUserId) {
           return null;
+        }
+
+        if (entitlementRevisionRef.current !== requestRevision) {
+          return entitlementsRef.current;
         }
 
         if (result.status === "success" && result.data) {
@@ -196,6 +220,13 @@ function SubscriptionProviderSession({
         setIsLoading(false);
         return entitlementsRef.current;
       } catch {
+        if (
+          userIdRef.current !== requestUserId
+          || entitlementRevisionRef.current !== requestRevision
+        ) {
+          return entitlementsRef.current;
+        }
+
         if (!hadKnownEntitlements) {
           entitlementsRef.current = null;
           setEntitlements(null);
@@ -211,18 +242,20 @@ function SubscriptionProviderSession({
       }
     })();
 
-    refreshPromiseRef.current = refreshRequest;
-    void refreshRequest.finally(() => {
-      if (refreshPromiseRef.current === refreshRequest) {
+    refreshPromiseRef.current = { revision: requestRevision, promise: refreshRequest };
+    const clearRefresh = () => {
+      if (refreshPromiseRef.current?.promise === refreshRequest) {
         refreshPromiseRef.current = null;
       }
-    });
+    };
+    void refreshRequest.then(clearRefresh, clearRefresh);
 
     return refreshRequest;
   }, [isVisualTestMode, userId]);
 
   const applyVerifiedEntitlements = useCallback((next: UserEntitlements) => {
     if (!userId) return;
+    entitlementRevisionRef.current += 1;
     entitlementsRef.current = next;
     setEntitlements(next);
     setIsLoading(false);
@@ -239,6 +272,47 @@ function SubscriptionProviderSession({
       void refreshEntitlements();
     });
   }, [isVisualTestMode, refreshEntitlements, userId]);
+
+  useEffect(() => {
+    if (!userId || !entitlements || entitlements.effectivePlan === "free") return;
+
+    const expiresAt = new Date(entitlements.endsAt ?? "").getTime();
+    let timeoutId: number | undefined;
+
+    const expireEntitlementAtDeadline = () => {
+      const remainingMs = expiresAt - Date.now();
+      if (remainingMs > 0) {
+        timeoutId = window.setTimeout(
+          expireEntitlementAtDeadline,
+          Math.min(remainingMs, 2_147_000_000),
+        );
+        return;
+      }
+
+      const latestEntitlements = entitlementsRef.current;
+      if (!latestEntitlements || latestEntitlements.effectivePlan === "free") return;
+
+      const expiredEntitlements: UserEntitlements = {
+        ...latestEntitlements,
+        effectivePlan: "free",
+        limits: PLAN_LIMITS.free,
+      };
+      entitlementRevisionRef.current += 1;
+      entitlementsRef.current = expiredEntitlements;
+      setEntitlements(expiredEntitlements);
+      writeCachedEntitlements(userId, expiredEntitlements);
+      void refreshEntitlements();
+    };
+
+    timeoutId = window.setTimeout(
+      expireEntitlementAtDeadline,
+      Math.max(0, Math.min(expiresAt - Date.now(), 2_147_000_000)),
+    );
+
+    return () => {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
+  }, [entitlements, refreshEntitlements, userId]);
 
   const presentPurchaseSuccess = useCallback(() => {
     setPurchaseSuccessOpen(true);

@@ -197,6 +197,7 @@ export type SubscriptionStatus =
 export type LimitErrorCode =
   | "free_active_card_limit"
   | "free_learned_card_limit"
+  | "learned_review_subscription_required"
   | "ai_daily_limit"
   | "ai_monthly_limit"
   | "image_text_translate_limit";
@@ -249,6 +250,7 @@ export interface UserEntitlements {
   provider: SubscriptionProvider;
   limits: PlanLimits;
   customerPortalUrl: string | null;
+  endsAt: string | null;
 }
 
 export interface CardFilters {

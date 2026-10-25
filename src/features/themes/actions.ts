@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { THEMES, isPaidPlan } from "@/lib/themes";
 
 export type UpdateThemeResult =
@@ -27,7 +27,7 @@ export async function updateThemeAction(themeId: string): Promise<UpdateThemeRes
     return { status: "error", code: "free_plan" };
   }
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   const { error } = await supabase
     .from("user_profiles")

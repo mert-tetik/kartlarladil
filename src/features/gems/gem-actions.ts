@@ -217,13 +217,3 @@ export async function markCardLearnedWithGemAction(sourceKey: string): Promise<{
     return { success: data.success, balances: readBalances(data) };
   } catch (error) { return { success: false, error: error instanceof Error ? error.message : "database_error" }; }
 }
-
-export async function addGamePointsActionV2(points: number): Promise<{ success: boolean; error?: string }> {
-  if (!Number.isInteger(points) || points <= 0 || points > 100000) return { success: false, error: "invalid_points" };
-  try {
-    const user = await requireAuthUser("/games");
-    const admin = createSupabaseAdminClient();
-    const { error } = await admin.rpc("increment_game_points", { p_user_id: user.id, p_points: points });
-    return error ? { success: false, error: error.message } : { success: true };
-  } catch (error) { return { success: false, error: error instanceof Error ? error.message : "database_error" }; }
-}

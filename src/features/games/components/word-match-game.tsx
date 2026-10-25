@@ -58,7 +58,7 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
   const t = useT();
   const { locale } = useLocale();
   const { user, refreshProfile, updateProfileField } = useAuthSession();
-  const { entitlements } = useSubscription();
+  const { entitlements, refreshEntitlements } = useSubscription();
   const sounds = useGameSounds();
   const startLevel = useGameProgressStore((state) => state.startLevel);
   const completeLevel = useGameProgressStore((state) => state.completeLevel);
@@ -205,15 +205,21 @@ export function WordMatchGame({ initialLevel }: WordMatchGameProps) {
         updateProfileField({
           gamePoints: (user.profile.gamePoints ?? 0) + points,
         });
-        void addGamePointsAction(points).then(async (result) => {
-          if (result.status !== "success") return;
+        void addGamePointsAction(level).then(async (result) => {
+          if (result.status !== "success") {
+            if (result.message === "game_level_locked") {
+              await refreshEntitlements();
+              setUpgradeOpen(true);
+            }
+            return;
+          }
           await refreshProfile();
           refreshLeaderboardPositions();
         });
       }
       setPhase("completed");
     }
-  }, [items, phase, level, sounds, completeLevel, addLocalPoints, user, refreshProfile, updateProfileField]);
+  }, [items, phase, level, sounds, completeLevel, addLocalPoints, user, refreshProfile, refreshEntitlements, updateProfileField]);
 
   const handleItemClick = useCallback(
     (id: string) => {

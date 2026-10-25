@@ -44,25 +44,18 @@ export async function POST(request: Request) {
     return Response.json({ errorCode: "auth_required" }, { status: 401 });
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-
-  if (!apiKey) {
-    return Response.json({ accepted: false }, { status: 503 });
-  }
-
-  const entitlements = await getUserEntitlements(user.id);
-  const aiLimitError = await assertAndRecordAiUsage(user.id, entitlements.effectivePlan, "quiz_validate");
-
-  if (aiLimitError) {
-    return Response.json({ errorCode: aiLimitError }, { status: 429 });
-  }
-
   const parsed = aiValidateAnswerRequestSchema.safeParse(
     await request.json().catch(() => null),
   );
 
   if (!parsed.success) {
     return Response.json({ accepted: false }, { status: 400 });
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    return Response.json({ accepted: false }, { status: 503 });
   }
 
   const {
@@ -88,6 +81,13 @@ export async function POST(request: Request) {
     !normalizedCorrectAnswers.has(normalizedUserAnswer)
   ) {
     return Response.json({ accepted: false });
+  }
+
+  const entitlements = await getUserEntitlements(user.id);
+  const aiLimitError = await assertAndRecordAiUsage(user.id, entitlements.effectivePlan, "quiz_validate");
+
+  if (aiLimitError) {
+    return Response.json({ errorCode: aiLimitError }, { status: 429 });
   }
 
   const textAnswerSystemContent = [

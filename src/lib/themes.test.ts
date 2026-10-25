@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_THEME_ID, THEMES, getThemeById, getThemeCssText, getThemeCssVariables } from "@/lib/themes";
+import {
+  DEFAULT_THEME_ID,
+  THEMES,
+  getEntitledThemeId,
+  getThemeById,
+  getThemeCssText,
+  getThemeCssVariables,
+} from "@/lib/themes";
 
 describe("theme palettes", () => {
   it("keeps the default dark brand and surfaces", () => {
@@ -41,5 +48,11 @@ describe("theme palettes", () => {
     expect(variables["--tier-a1-text"]).toBeTruthy();
     expect(cssText).toContain('[data-theme="violet-dark"]');
     expect(cssText).not.toContain('[data-theme="violet"]');
+  });
+
+  it("falls back to the free theme when paid theme access is unavailable", () => {
+    expect(getEntitledThemeId("ocean-dark", false)).toBe(DEFAULT_THEME_ID);
+    expect(getEntitledThemeId("ocean-dark", true)).toBe("ocean-dark");
+    expect(getEntitledThemeId(DEFAULT_THEME_ID, false)).toBe(DEFAULT_THEME_ID);
   });
 });

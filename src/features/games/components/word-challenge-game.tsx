@@ -39,7 +39,7 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
   const t = useT();
   const { locale } = useLocale();
   const { user, refreshProfile, updateProfileField } = useAuthSession();
-  const { entitlements } = useSubscription();
+  const { entitlements, refreshEntitlements } = useSubscription();
   const sounds = useGameSounds();
   const startLevel = useGameProgressStore((state) => state.startLevel);
   const completeLevel = useGameProgressStore((state) => state.completeLevel);
@@ -128,8 +128,14 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
             updateProfileField({
               gamePoints: (user.profile.gamePoints ?? 0) + points,
             });
-            void addGamePointsAction(points).then(async (result) => {
-              if (result.status !== "success") return;
+            void addGamePointsAction(level).then(async (result) => {
+              if (result.status !== "success") {
+                if (result.message === "game_level_locked") {
+                  await refreshEntitlements();
+                  setUpgradeOpen(true);
+                }
+                return;
+              }
               await refreshProfile();
               refreshLeaderboardPositions();
             });
@@ -145,7 +151,7 @@ export function WordChallengeGame({ initialLevel }: WordChallengeGameProps) {
         setPhase("failed");
       }
     },
-    [phase, currentItem, index, items.length, sounds, completeLevel, addLocalPoints, level, user, refreshProfile, updateProfileField],
+    [phase, currentItem, index, items.length, sounds, completeLevel, addLocalPoints, level, user, refreshProfile, refreshEntitlements, updateProfileField],
   );
 
   const handleNextLevel = useCallback(() => {

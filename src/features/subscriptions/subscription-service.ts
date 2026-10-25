@@ -1,6 +1,7 @@
 import "server-only";
 
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
+import { hasUsableRemainingAccess } from "@/features/subscriptions/subscription-entitlement";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type {
   LimitErrorCode,
@@ -59,6 +60,7 @@ export async function getUserEntitlements(userId: string): Promise<UserEntitleme
     provider: subscription.provider,
     limits: PLAN_LIMITS[effectivePlan],
     customerPortalUrl: subscription.customerPortalUrl,
+    endsAt: subscription.endsAt,
   };
 }
 
@@ -79,15 +81,6 @@ export function getEffectivePlan(subscription: UserSubscription): SubscriptionPl
   }
 
   return "free";
-}
-
-function hasUsableRemainingAccess(endsAt: string | null): boolean {
-  if (!endsAt) {
-    return false;
-  }
-
-  const endTime = new Date(endsAt).getTime();
-  return Number.isFinite(endTime) && endTime > Date.now();
 }
 
 export function checkLimit(

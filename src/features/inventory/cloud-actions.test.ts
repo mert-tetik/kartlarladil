@@ -416,6 +416,7 @@ function createEntitlements(plan: UserEntitlements["effectivePlan"] = "basic"): 
     status: plan === "free" ? "free" : "active",
     provider: "google_play",
     customerPortalUrl: null,
+    endsAt: plan === "free" ? null : "2099-01-01T00:00:00.000Z",
     limits: {
       activeCards: plan === "free" ? 20 : null,
       learnedCards: plan === "free" ? 100 : null,
@@ -558,6 +559,61 @@ describe("cloud-actions", () => {
       is_correct: true,
     });
     expect(result.data?.cards[0]?.cardId).toBe(sampleCard.sourceKey);
+  });
+
+  it("blocks Free users from recording learned-card review attempts server-side", async () => {
+    const learnedCard: UserCardRecord = {
+      user_id: "user-1",
+      card_source_key: sampleCard.sourceKey,
+      status: "learned",
+      correct_count: 4,
+      added_at: "2026-02-01T10:00:00.000Z",
+      learned_at: "2026-02-03T10:00:00.000Z",
+    };
+    const state = createState({ userCards: [learnedCard] });
+    currentSupabase = createSupabaseMock(state);
+    mockGetUserEntitlements.mockResolvedValue(createEntitlements("free"));
+
+    const result = await recordCloudPracticeAttemptAction({
+      cardId: sampleCard.id,
+      selectedAnswer: "sel",
+      correctAnswer: "ok",
+      isCorrect: true,
+      mode: "learned",
+    });
+
+    expect(result).toMatchObject({
+      status: "error",
+      errorCode: "learned_review_subscription_required",
+    });
+    expect(state.userCards).toEqual([learnedCard]);
+    expect(state.practiceAttempts).toHaveLength(0);
+  });
+
+  it("allows paid users to record learned-card review attempts", async () => {
+    const learnedCard: UserCardRecord = {
+      user_id: "user-1",
+      card_source_key: sampleCard.sourceKey,
+      status: "learned",
+      correct_count: 4,
+      added_at: "2026-02-01T10:00:00.000Z",
+      learned_at: "2026-02-03T10:00:00.000Z",
+    };
+    const state = createState({ userCards: [learnedCard] });
+    currentSupabase = createSupabaseMock(state);
+
+    const result = await recordCloudPracticeAttemptAction({
+      cardId: sampleCard.id,
+      selectedAnswer: "sel",
+      correctAnswer: "ok",
+      isCorrect: true,
+      mode: "learned",
+    });
+
+    expect(result.status).toBe("success");
+    expect(state.practiceAttempts).toHaveLength(1);
+    expect(state.practiceAttempts[0]?.mode).toBe("learned");
+    expect(state.userCards[0]).toEqual(learnedCard);
   });
 
   it("rejects a practice attempt for a card that is not in the user's inventory", async () => {
