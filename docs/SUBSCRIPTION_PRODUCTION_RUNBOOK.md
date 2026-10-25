@@ -36,7 +36,9 @@ Set these server-side secrets in the production environment; never expose them t
 - `GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT_EMAIL`
 - `NEXT_PUBLIC_SITE_URL` with the canonical production origin
 
-The Google Play service account must be authorized for the Play Console app and Android Publisher API. Configure a Pub/Sub push subscription for the Play Console RTDN topic targeting `https://www.foxiesdeck.com/api/google-play/rtdn`, with an authenticated OIDC token whose service-account email and audience exactly match the server secrets.
+The Google Play service account must be authorized for the Play Console app and Android Publisher API. Configure a Pub/Sub push subscription for the Play Console RTDN topic targeting `https://www.foxiesdeck.com/api/google-play/rtdn`, with an authenticated OIDC token whose service-account email and audience exactly match the server secrets. Check the subscription actually attached to the topic; the signed token's `email` claim must equal `GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT_EMAIL` byte-for-byte, and its `aud` claim must equal `GOOGLE_PLAY_RTDN_AUDIENCE`.
+
+Use **Retry after exponential backoff delay** for the production push subscription rather than immediate redelivery. Google's documented default bounds are 10 seconds minimum and 600 seconds maximum; retain those unless measured delivery requirements justify different values. This limits retry pressure during configuration or endpoint incidents, but does not fix authentication: keep failed messages unacknowledged until the endpoint returns 2xx. See Google's [retry policy](https://cloud.google.com/pubsub/docs/subscription-retry-policy) and [authenticated push subscription](https://cloud.google.com/pubsub/docs/authenticate-push-subscriptions) documentation.
 
 ## Smoke tests after every deploy
 
@@ -60,6 +62,7 @@ The Google Play service account must be authorized for the Play Console app and 
 ## Monitoring and incident response
 
 - Alert on `/api/google-play/rtdn` 401/5xx responses and processing errors in `google_play_rtdn_events`.
+- For 401s, compare the sanitized `receivedEmail` claim in Vercel logs with the configured service-account email; do not weaken the server's exact identity check to accommodate a typo or an unintended account. Also confirm the request's audience matches the configured endpoint URL.
 - Google's Pub/Sub test notification is intentionally not stored in `google_play_rtdn_events`; confirm its HTTP 2xx acknowledgement in Pub/Sub metrics instead. Only a subscription notification carrying a purchase token should create an event row. An empty event table alone does not establish Pub/Sub health.
 - Periodically inspect paid-looking rows with missing/past `ends_at`, and confirm they fail closed until Google re-verification.
 - On entitlement discrepancies, preserve relevant error metadata, stop manual plan edits, verify the Google source of truth, apply the smallest verified reconciliation, then rerun the smoke tests.
