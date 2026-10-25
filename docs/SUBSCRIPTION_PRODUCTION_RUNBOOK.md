@@ -23,7 +23,7 @@ Before enabling paid plans or deploying subscription changes:
 
 ### Production migration-history warning
 
-The production project had no `supabase_migrations.schema_migrations` table before this migration. Supabase now records version `20261024233100`, but the older migration files in this repository are not represented in production history. Do not run `supabase db push` until the existing production schema and every historical migration have been reconciled; otherwise the CLI may try to replay old migrations against already-existing objects. Check `supabase migration list` before any future schema deployment.
+Production currently records only version `20261024233100` in `supabase_migrations.schema_migrations`; the older migration files in this repository are not represented in production history. The repository also contains duplicate legacy numeric versions (`0015`, `0016`, and `0024`). Do not run `supabase db push`, rename old migrations, or mark them applied until the production schema and every historical migration have been reconciled into a reviewed baseline; otherwise the CLI may replay existing changes or encounter ambiguous versions. Check `supabase migration list` and resolve the history on a reviewed branch before any future schema deployment.
 
 ## Production configuration
 
@@ -45,7 +45,7 @@ The Google Play service account must be authorized for the Play Console app and 
 - Free users cannot exceed 20 active or 100 learned cards through single adds, batch adds, direct status updates, or concurrent requests. Paid users are not blocked by those caps.
 - Free AI chat/Ask/translation, quiz-validation, and image-translation quotas are enforced server-side under concurrent requests. Failed image translation releases its reservation; successful completion consumes it once.
 - Free users cannot persist paid themes, access paid game levels, or delete an account with an effective paid subscription. Client/local-storage changes must not bypass the server checks.
-- Send a test RTDN message. Verify `/api/google-play/rtdn` authenticates the OIDC token, records the message, deduplicates retries, and refreshes the entitlement from Google.
+- Send Google's Pub/Sub test notification. Verify the push is acknowledged with HTTP 2xx and the delivery metrics show no authentication error. This payload has no purchase token, so `/api/google-play/rtdn` intentionally returns `{ received: true, skipped: true }` without writing a `google_play_rtdn_events` row or calling Android Publisher. To verify entitlement refresh and event deduplication, generate a real subscription notification from a test-track purchase (for example, renew or cancel it) and confirm one processed event plus the matching verified expiry in the database.
 - A time-bounded admin grant produces access only until its stored future expiry.
 
 ## Reconcile a subscription incident
@@ -59,6 +59,6 @@ The Google Play service account must be authorized for the Play Console app and 
 ## Monitoring and incident response
 
 - Alert on `/api/google-play/rtdn` 401/5xx responses and processing errors in `google_play_rtdn_events`.
-- After sending a known test notification, confirm it appears exactly once and is marked processed. An empty event table alone does not prove Pub/Sub is healthy.
+- Google's Pub/Sub test notification is intentionally not stored in `google_play_rtdn_events`; confirm its HTTP 2xx acknowledgement in Pub/Sub metrics instead. Only a subscription notification carrying a purchase token should create an event row. An empty event table alone does not establish Pub/Sub health.
 - Periodically inspect paid-looking rows with missing/past `ends_at`, and confirm they fail closed until Google re-verification.
 - On entitlement discrepancies, preserve relevant error metadata, stop manual plan edits, verify the Google source of truth, apply the smallest verified reconciliation, then rerun the smoke tests.

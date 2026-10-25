@@ -73,4 +73,22 @@ describe("Google Play RTDN route", () => {
     expect(response.status).toBe(200);
     expect(mockSyncSubscription).not.toHaveBeenCalled();
   });
+
+  it("acknowledges Google's test notification without claiming a subscription event", async () => {
+    const testNotification = { testNotification: { version: "1.0" } };
+    const response = await POST(
+      makeRequest({
+        message: {
+          messageId: "test-notification-1",
+          data: Buffer.from(JSON.stringify(testNotification)).toString("base64"),
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ received: true, skipped: true });
+    expect(mockVerifyIdentity).toHaveBeenCalledWith("signed-token");
+    expect(mockClaimEvent).not.toHaveBeenCalled();
+    expect(mockSyncSubscription).not.toHaveBeenCalled();
+  });
 });
