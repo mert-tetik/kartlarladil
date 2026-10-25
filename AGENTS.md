@@ -40,7 +40,7 @@ Uygulama 14 dil destekler: `tr`, `en`, `de`, `ru`, `fr`, `es`, `it`, `pt`, `nl`,
 | State (yerel) | Zustand + `localStorage` |
 | Auth / DB | Supabase Auth (`@supabase/ssr`) + Supabase PostgreSQL (`@supabase/supabase-js`) |
 | AI | OpenAI SDK, Responses API, varsayılan model `gpt-5-nano` |
-| Ödeme | Lemon Squeezy webhook entegrasyonu; TWA için Google Play Billing (Digital Goods API) |
+| Ödeme | Google Play Billing (Digital Goods API); doğrulanmış Google Play satın alımları ve süreli admin yetkileri |
 | Doğrulama | Zod 4 |
 | Birim test | Vitest 4 + jsdom + Testing Library |
 | E2E test | Playwright 1.60 |
@@ -68,7 +68,7 @@ Her modül kendi veri mantığını, bileşenlerini ve testlerini içerir:
 - `quiz/` — quiz motoru (`quiz-engine.ts`), quiz istasyonu, cevap / eşik kuralları.
 - `auth/` — login, register, reset password, profile update, logout, hesap silme, onboarding, auth şemaları ve session yardımcıları.
 - `progress/` — puan, rank, ilerleme istatistikleri.
-- `subscriptions/` — Lemon Squeezy ve Google Play Billing entegrasyonu, haklar (entitlements), plan limitleri, webhook servisi.
+- `subscriptions/` — Google Play Billing doğrulama/restore/RTDN akışı, haklar (entitlements) ve plan limitleri. Lemon Squeezy migration alanları tarihî uyumluluk içindir; etkin ödeme sağlayıcısı değildir.
 - `themes/` — tema seçimi ve tema değişkenleri.
 - `ai-practice/` — AI karakterleri, prompt'lar, streaming sohbet, puanlama.
 - `ask/` — dil asistanı (Ask) sohbet akışı.
@@ -93,7 +93,7 @@ Route dosyaları mümkün olduğunca ince tutulur; iş mantığı `features/` i�
 - `/create-card` — GPT destekli özel kart oluşturma (giriş gerektirir).
 - `/api/cards/generate` — özel kart üretimi endpoint'i.
 - `/terms`, `/privacy`, `/refund`, `/cookies`, `/subscriptions` — yasal sayfalar.
-- `/api/ai-practice/chat`, `/api/ask/chat`, `/api/lemon-squeezy/webhook`, `/api/ai-practice/score`, `/api/ai-practice/translate`, `/api/quiz/validate-answer` — API route handler'ları.
+- `/api/ai-practice/chat`, `/api/ask/chat`, `/api/google-play/rtdn`, `/api/ai-practice/score`, `/api/ai-practice/translate`, `/api/quiz/validate-answer` — API route handler'ları.
 - `/auth/callback` — Supabase PKCE callback.
 
 `next.config.ts` içinde eski Türkçe path'lerden İngilizce path'lere kalıcı yönlendirmeler vardır (`permanent: true`):
@@ -249,40 +249,22 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 OPENAI_API_KEY=
 OPENAI_AI_PRACTICE_MODEL=gpt-5-nano
-LEMONSQUEEZY_API_KEY=
-LEMONSQUEEZY_STORE_ID=
-LEMONSQUEEZY_BASIC_VARIANT_ID=
-LEMONSQUEEZY_BASIC_YEARLY_VARIANT_ID=
-LEMONSQUEEZY_PRO_VARIANT_ID=
-LEMONSQUEEZY_PRO_YEARLY_VARIANT_ID=
-LEMONSQUEEZY_WEBHOOK_SECRET=
-NEXT_PUBLIC_SITE_URL=https://foxiesdeck.vercel.app
+GOOGLE_PLAY_PACKAGE_NAME=
+GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_JSON=
+GOOGLE_PLAY_RTDN_AUDIENCE=
+GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT_EMAIL=
+NEXT_PUBLIC_SITE_URL=https://www.foxiesdeck.com
 ```
 
 - `SUPABASE_SERVICE_ROLE_KEY` ve `OPENAI_API_KEY` sadece server tarafında kullanılır. Asla client dosyalarına veya `NEXT_PUBLIC_` değişkenlerine konmaz.
+- `GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_JSON` da yalnızca server-side kullanılmalıdır; hiçbir Google Play servis hesabı anahtarını client'a veya `NEXT_PUBLIC_` değişkenlerine taşımayın.
 - `OPENAI_AI_PRACTICE_MODEL` varsayılan değeri `gpt-5-nano`'dur.
 
 ## Supabase ve Veritabanı
 
-- Proje ID: `foxiesdeck` (`supabase/config.toml`).
+- Yerel Supabase CLI proje takma adı: `foxiesdeck` (`supabase/config.toml`). Bağlı production Supabase ref'i: `rakszjeifurfcnqsrqpr`.
 - Postgres sürümü: 17.
-- Migrations: `supabase/migrations/` altında sıralı SQL dosyaları:
-  - `0001_initial_schema.sql`
-  - `0002_user_profile_preferences.sql`
-  - `0003_multilingual_catalog_and_locale.sql`
-  - `0004_subscriptions_and_ai_usage.sql`
-  - `0005_subscription_enforcement.sql`
-  - `0006_onboarding_flag.sql`
-  - `0007_webhook_events.sql`
-  - `0008_ai_practice_points.sql`
-  - `0009_add_ask_usage_event.sql`
-  - `0010_reviews.sql`
-  - `0011_themes.sql`
-  - `0012_chest_points.sql`
-  - `0013_card_source_key_compat.sql`
-  - `0014_remove_cards_catalog.sql`
-  - `0015_custom_cards.sql`
-  - `0016_add_create_card_usage_event.sql`
+- Migration history is not safe to replay as-is. Production currently records only `20261024233100`, while the local migration directory includes duplicate legacy versions `0015`, `0016`, and `0024`. Do not run `supabase db push`, rename migrations, or repair migration history until a complete production-schema baseline is reviewed; see `docs/SUBSCRIPTION_PRODUCTION_RUNBOOK.md`.
 
 Temel tablolar:
 
@@ -300,7 +282,8 @@ Temel tablolar:
 RLS:
 
 - `languages` public read verisidir (`anon` + `authenticated`).
-- `user_profiles`, `user_cards`, `practice_attempts`, `custom_cards`, `ai_usage_events`, `user_subscriptions`, `ai_practice_scores` sadece satır sahibi tarafından okunur/yazılır (`auth.uid() = user_id`).
+- `user_profiles`, `user_cards`, `practice_attempts`, `custom_cards`, `ai_practice_scores` kullanıcıya ait satırlarla sınırlandırılır (`auth.uid() = user_id`).
+- `ai_usage_events`, `user_subscriptions`, `google_play_purchase_tokens`, `google_play_rtdn_events`, `image_text_translation_reservations` server-only tablolardır; RLS açıktır ve `anon`/`authenticated` rolleri doğrudan tablo erişimine sahip değildir.
 - `webhook_events` service role yazma; kullanıcı kendi satırlarını okuyabilir.
 - `reviews` public read; authenticated kullanıcı kendi satırını insert/update edebilir.
 - `custom_cards` — authenticated kullanıcı sadece kendi satırlarını okur/yazar/siler.
@@ -318,7 +301,7 @@ Kart kataloğu uygulama bundle'ında tutulur (`VOCABULARY_CARDS`), ancak kullan�
 
 ## Abonelikler ve Ödeme
 
-- Ödeme sağlayıcısı: Lemon Squeezy.
+- Etkin ödeme sağlayıcısı: doğrulanmış Google Play Billing. Süreli admin grant'leri ayrıca desteklenir. Lemon Squeezy alanları ve eski webhook kayıtları tarihî DB uyumluluğudur; yeni entitlement sağlamaz.
 - Planlar: `free`, `basic`, `pro`.
 - Plan limitleri (`src/features/subscriptions/subscription-limits.ts`):
 
@@ -328,11 +311,10 @@ Kart kataloğu uygulama bundle'ında tutulur (`VOCABULARY_CARDS`), ancak kullan�
 | basic | unlimited | unlimited | 30 | 900 |
 | pro | unlimited | unlimited | 150 | 4500 |
 
-- Webhook handler: `src/app/api/lemon-squeezy/webhook/route.ts` → `src/features/subscriptions/webhook-service.ts`.
-- Webhook olayları `webhook_events` tablosunda duplicate önlemesi için saklanır.
-- Checkout action: `src/features/subscriptions/subscription-actions.ts`.
+- RTDN handler: `src/app/api/google-play/rtdn/route.ts`; push OIDC token'ı audience ve service-account e-postasıyla doğrulanır.
+- Satın alma/restore doğrulaması: `src/features/subscriptions/google-play-service.ts` ve `src/features/subscriptions/subscription-actions.ts`.
 - Haklar ve limit kontrolü: `src/features/subscriptions/subscription-service.ts`.
-- Aktif aboneliğin sağlayıcısı (`lemon_squeezy`/`google_play`) ile mevcut ortam uyuşmuyorsa (örn. TWA içindeyken Lemon Squeezy aboneliği veya web'deyken Google Play aboneliği), satın alma/yönetim butonları kilitlenir ve kullanıcı diğer platforma yönlendirilir.
+- Paid erişim yalnızca sunucuda doğrulanmış, izin verilen provider/status ve gelecekteki `ends_at` ile verilir; eksik veya geçmiş expiry Free olarak değerlendirilir.
 - Web fiyatları (USD): Basic $3/ay veya $30/yıl, Pro $9/ay veya $90/yıl (`PLANS` in `src/features/subscriptions/components/pricing-page.tsx`).
 - TWA fiyatları (USD): Basic $2/ay veya $20/yıl, Pro $6/ay veya $60/yıl (`TWA_PLANS` in the same file). `useLocalizedPricing` converts these to the user's local currency when Google Play SKU details are not yet available.
 - TWA fiyatlarının Play Console'daki Google Play SKU fiyatlarıyla aynı olması gerekir; bu kod değişikliği yalnızca görünen fiyatları ve USD referans metnini günceller.

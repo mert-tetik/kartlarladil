@@ -29,32 +29,17 @@ Login/register default redirect hedefi `/card-draw` sayfasidir.
 
 ## Schema
 
-Migrationlar:
-
-- `0001_initial_schema.sql`: temel tablo, RLS ve grant yapisi.
-- `0002_user_profile_preferences.sql`: profil tercih alanlari.
-- `0003_multilingual_catalog_and_locale.sql`: 14 dil ve locale tercihi.
-- `0004_subscriptions_and_ai_usage.sql`: subscription ve AI usage tablolari.
-- `0005_subscription_enforcement.sql`: yeni kullanici icin default free subscription row'u ve AI usage RLS'i.
-- `0007_webhook_events.sql`: Lemon Squeezy webhook event log'u.
-- `0009_add_ask_usage_event.sql`: AI usage event tiplerine `ask` ekler.
-- `0013_card_source_key_compat.sql`: `card_source_key` uyumluluk kolonlari ve backfill.
-- `0014_remove_cards_catalog.sql`: `public.cards` kaldirimi ve source key cleanup'i.
-- `0015_allow_all_preferred_tier.sql`: `user_profiles.preferred_tier` alanina `"all"` secenegini ekler.
-- `0016_subscription_production_hardening.sql`: subscription trigger helper'ini hardened `security definer` ayarlariyla replace eder.
-- `20260920000000_subscription_feature_entitlements.sql`: feature-based AI quotas and image/text translation usage.
-- `20260922123828_repair_subscription_feature_entitlements.sql`: repairs legacy quota RPC deployments and refreshes PostgREST's schema cache.
+Migrationlar `supabase/migrations/` altinda tutulur. Ancak bu klasor production'da guvenle bastan oynatilabilecek bir seri degildir: production migration ledger'i su anda yalnizca `20261024233100` kaydini iceriyor; yerel klasorde `0015`, `0016` ve `0024` icin yinelenen legacy version'lar var. Supabase CLI ile production'a migration uygulamadan, dosya isimlerini degistirmeden veya migration history'yi repair etmeden once production schema'sini tarihsel tum migration'larla karsilastirip incelenmis bir baseline olustur. Ayrintilar: `docs/SUBSCRIPTION_PRODUCTION_RUNBOOK.md`.
 
 ### Image text translation quota migration
 
-The image/text translation endpoint requires the service-role-only RPCs from
-`20260920000000_subscription_feature_entitlements.sql` and
-`20260922123828_repair_subscription_feature_entitlements.sql`. Apply pending
-migrations before deploying the endpoint:
-
-```bash
-npx supabase db push --project-ref <project-ref>
-```
+The current image/text translation quota and reservation implementation is
+covered by
+`20261024233100_subscription_entitlement_expiry_and_image_quota_reservations.sql`.
+Production already contains the reservation table and server-only RPCs. Do not
+run `supabase db push` to apply this migration until the production migration
+history has been reconciled as described in
+`docs/SUBSCRIPTION_PRODUCTION_RUNBOOK.md`.
 
 After deployment, verify both routines exist in the `public` schema:
 
@@ -80,9 +65,9 @@ Tablolar:
 - `user_profiles`: private kullanici profili ve tercihleri.
 - `user_cards`: kullanici envanteri ve quiz progress'i (`card_source_key` ile local katalog kartina baglanir).
 - `practice_attempts`: quiz cevap gecmisi (`card_source_key` ile local katalog kartina baglanir).
-- `user_subscriptions`: kullanici subscription state'i ve Lemon Squeezy identifier'lari.
+- `user_subscriptions`: Google Play veya sureli admin subscription state'i. Lemon Squeezy kolonlari tarihî uyumluluk alanlaridir.
 - `ai_usage_events`: AI chat/translate/ask kullanim kayitlari.
-- `webhook_events`: Lemon Squeezy webhook idempotency ve support log'u.
+- `webhook_events`: legacy webhook idempotency verisi.
 
 `user_profiles` icin:
 
@@ -98,7 +83,7 @@ Tablolar:
 using ((select auth.uid()) = user_id)
 ```
 
-Migrationlar `anon` ve `authenticated` icin explicit grants icerir. Supabase Data API exposure ayarlari yine dashboard'dan kontrol edilmelidir.
+Her tablo icin grant ve RLS birlikte degerlendirilmelidir. Abonelik, Google Play purchase token/event ve quota tablolarinda RLS aciktir; `anon` ve `authenticated` rollerine dogrudan tablo erisimi verilmez. Supabase Data API exposure ayarlari yine dashboard'dan kontrol edilmelidir.
 
 ## Catalog Contract
 
@@ -106,7 +91,7 @@ Kart katalogu artik uygulama bundle'inda yasar. Supabase sadece kullanici state'
 
 ## Subscription Operations
 
-Subscription state'i Lemon Squeezy webhook'lari ile `user_subscriptions` tablosuna yazilir. Customer portal URL'leri Lemon Squeezy tarafinda imzali ve surelidir; app stale DB URL'sine guvenmez, paid kullanici yonetim aksiyonu istediginde subscription ID ile fresh portal URL alir.
+Etkin abonelik saglayicisi Google Play Billing'dir; uygulama satin alma ve restore verisini server-side Google Play API ile dogrulamadan entitlement vermez. Yenileme/iptal gibi durumlar imzali Pub/Sub OIDC push'u ile `/api/google-play/rtdn` endpoint'ine gelir. Admin grant'leri zaman sinirlidir. Lemon Squeezy schema kolonlari ve eski migration'lar yeni abonelik veya entitlement saglamaz.
 
 Production checklist, replay, reconciliation, monitoring ve secret rotation adimlari icin `docs/SUBSCRIPTION_PRODUCTION_RUNBOOK.md` kullanilir.
 
