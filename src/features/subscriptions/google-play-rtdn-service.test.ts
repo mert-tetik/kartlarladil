@@ -122,9 +122,18 @@ describe("Google Play RTDN service", () => {
         email: "attacker@example.com",
       }),
     });
-    await expect(verifyGooglePlayRtdnToken("signed-id-token")).rejects.toThrow(
-      "Invalid Google Play RTDN identity",
-    );
+    const identityLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      await expect(verifyGooglePlayRtdnToken("signed-id-token")).rejects.toThrow(
+        "Invalid Google Play RTDN identity",
+      );
+      expect(identityLog).toHaveBeenCalledWith(
+        "Google Play RTDN identity claims rejected.",
+        { receivedEmail: "attacker@example.com", emailVerified: true },
+      );
+    } finally {
+      identityLog.mockRestore();
+    }
   });
 
   it("syncs a verified renewal to every account mapped to the current or linked purchase token", async () => {

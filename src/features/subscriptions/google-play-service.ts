@@ -587,7 +587,13 @@ export async function verifyGooglePlayRtdnToken(
   });
   const payload = ticket.getPayload();
 
-  if (!payload?.email_verified || payload.email !== expectedEmail) {
+  if (payload?.email_verified !== true || payload.email !== expectedEmail) {
+    // Log only the signed identity claims needed to diagnose configuration
+    // mismatches. Never log the bearer token or the full JWT payload.
+    console.error("Google Play RTDN identity claims rejected.", {
+      receivedEmail: payload?.email ?? null,
+      emailVerified: payload?.email_verified ?? null,
+    });
     throw new Error("Invalid Google Play RTDN identity.");
   }
 }
