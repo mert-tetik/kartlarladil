@@ -18,7 +18,7 @@ const DIALOG_EXIT_DURATION = 320;
 
 export function SubscriptionRestrictionTestScreen() {
   const [testIndex, setTestIndex] = useState(0);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const nextOpenTimerRef = useRef<number | null>(null);
 
   const showNextRestriction = useCallback(() => {
@@ -39,10 +39,14 @@ export function SubscriptionRestrictionTestScreen() {
     nextOpenTimerRef.current = window.setTimeout(showNextRestriction, DIALOG_EXIT_DURATION);
   }, [showNextRestriction]);
 
-  useEffect(() => () => {
-    if (nextOpenTimerRef.current !== null) {
-      window.clearTimeout(nextOpenTimerRef.current);
-    }
+  useEffect(() => {
+    const openFrame = window.requestAnimationFrame(() => setOpen(true));
+    return () => {
+      if (nextOpenTimerRef.current !== null) {
+        window.clearTimeout(nextOpenTimerRef.current);
+      }
+      window.cancelAnimationFrame(openFrame);
+    };
   }, []);
 
   const activeCode = SUBSCRIPTION_RESTRICTION_TEST_CODES[testIndex];
