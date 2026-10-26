@@ -22,7 +22,7 @@ public class Application extends android.app.Application {
         super.onCreate();
         // Firebase is ancillary to the first frame. Defer its setup until the
         // Activity launch message has returned so analytics cannot extend the
-        // native launch window or delay the WebView splash.
+        // native launch window or delay the native loading handoff.
         new Handler(Looper.getMainLooper()).post(this::initializeAnalytics);
     }
 

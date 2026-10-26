@@ -1,6 +1,13 @@
 const MAX_PUBLIC_ERROR_LENGTH = 240;
 const LONG_TOKEN_PATTERN = /\b[A-Za-z0-9_-]{32,}\b/g;
 
+export class GooglePlayPurchaseInactiveError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "GooglePlayPurchaseInactiveError";
+  }
+}
+
 function extractErrorMessage(error: unknown): string | null {
   if (error instanceof Error && error.message.trim()) {
     return error.message;
@@ -120,6 +127,10 @@ export function getGooglePlayErrorMessage(
   clientAppUnavailableMessage?: string,
   sensitiveValues: readonly string[] = [],
 ): string {
+  if (error instanceof GooglePlayPurchaseInactiveError) {
+    return error.message;
+  }
+
   const detail = getGooglePlayErrorDetail(error, sensitiveValues);
   if (!detail) return fallbackMessage;
 

@@ -743,6 +743,7 @@ const dictionary = {
   "inventory.error.operationFailed": "A ação da carta não pôde ser concluída agora. Tente novamente.",
   "pricing.error.authRequired": "Você precisa fazer login para continuar.",
   "pricing.error.checkoutFailed": "O link de pagamento não pôde ser criado agora. Tente novamente.",
+  "pricing.error.purchaseNotActive": "O Google Play ainda não confirmou uma assinatura ativa para esta compra. Se o pagamento estiver pendente, o acesso será ativado quando for concluído. Caso contrário, use Restaurar compras para verificar novamente.",
   "pricing.error.invalidCycle": "Foi selecionado um ciclo de cobrança inválido.",
   "pricing.error.invalidPlan": "Foi selecionado um plano inválido.",
   "pricing.error.loadFailed": "Os detalhes da assinatura não puderam ser carregados agora. Tente novamente.",

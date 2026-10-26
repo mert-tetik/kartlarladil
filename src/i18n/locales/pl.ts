@@ -743,6 +743,7 @@ const dictionary = {
   "inventory.error.operationFailed": "Nie udaÅ‚o siÄ™ teraz wykonaÄ‡ akcji na karcie. Spróbuj ponownie.",
   "pricing.error.authRequired": "Musisz siÄ™ zalogowaÄ‡, aby kontynuowaÄ‡.",
   "pricing.error.checkoutFailed": "Nie udaÅ‚o siÄ™ teraz utworzyÄ‡ linku do pÅ‚atnoÅ›ci. Spróbuj ponownie.",
+  "pricing.error.purchaseNotActive": "Google Play nie potwierdziło jeszcze aktywnej subskrypcji dla tego zakupu. Jeśli płatność jest w toku, dostęp zostanie włączony po jej zakończeniu. W przeciwnym razie użyj opcji Przywróć zakupy, aby sprawdzić ponownie.",
   "pricing.error.invalidCycle": "Wybrano nieprawidÅ‚owy cykl rozliczeniowy.",
   "pricing.error.invalidPlan": "Wybrano nieprawidÅ‚owy plan.",
   "pricing.error.loadFailed": "Nie udaÅ‚o siÄ™ teraz zaÅ‚adowaÄ‡ szczegółów subskrypcji. Spróbuj ponownie.",

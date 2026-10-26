@@ -743,6 +743,7 @@ const dictionary = {
   "inventory.error.operationFailed": "L’azione sulla carta non può essere completata in questo momento. Riprova.",
   "pricing.error.authRequired": "Devi accedere per continuare.",
   "pricing.error.checkoutFailed": "Il link per il pagamento non può essere creato in questo momento. Riprova.",
+  "pricing.error.purchaseNotActive": "Google Play non ha ancora confermato un abbonamento attivo per questo acquisto. Se il pagamento è in sospeso, l’accesso verrà attivato al completamento. Altrimenti, usa «Ripristina acquisti» per controllare di nuovo.",
   "pricing.error.invalidCycle": "È stato selezionato un ciclo di fatturazione non valido.",
   "pricing.error.invalidPlan": "È stato selezionato un piano non valido.",
   "pricing.error.loadFailed": "I dettagli dell’abbonamento non possono essere caricati in questo momento. Riprova.",

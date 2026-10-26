@@ -743,6 +743,7 @@ const dictionary = {
   "inventory.error.operationFailed": "現在カード操作を完了できませんでした。もう一度お試しください。",
   "pricing.error.authRequired": "続行するにはログインが必要です。",
   "pricing.error.checkoutFailed": "現在チェックアウト用リンクを作成できませんでした。もう一度お試しください。",
+  "pricing.error.purchaseNotActive": "Google Play はこの購入の有効な定期購入をまだ確認できていません。お支払いが保留中の場合、完了後にアクセスが有効になります。それ以外の場合は「購入を復元」で再確認してください。",
   "pricing.error.invalidCycle": "無効な請求サイクルが選択されました。",
   "pricing.error.invalidPlan": "無効なプランが選択されました。",
   "pricing.error.loadFailed": "現在サブスクリプション情報を読み込めませんでした。もう一度お試しください。",

@@ -6,6 +6,7 @@ import {
   getGooglePlayErrorMessage,
   logGooglePlayError,
 } from "@/features/subscriptions/google-play-errors";
+import { hasUsableRemainingAccess } from "@/features/subscriptions/subscription-entitlement";
 import { getUserEntitlements } from "@/features/subscriptions/subscription-service";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
@@ -13,7 +14,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { UserEntitlements } from "@/types/domain";
 
 interface EntitlementsActionResult {
-  status: "success" | "error";
+  status: "success" | "error" | "inactive";
   message: string;
   data?: UserEntitlements;
 }
@@ -131,8 +132,26 @@ export async function verifyGooglePlayPurchaseAction(
       };
     }
 
-    await verifyGooglePlaySubscription(purchaseToken, productId, user.id);
+    const verification = await verifyGooglePlaySubscription(purchaseToken, productId, user.id);
+    const verifiedStatusCanGrantAccess = [
+      "active",
+      "on_trial",
+      "past_due",
+      "cancelled",
+    ].includes(verification.status);
     const entitlements = await getUserEntitlements(user.id);
+
+    if (
+      !verifiedStatusCanGrantAccess
+      || !hasUsableRemainingAccess(verification.endsAt)
+      || entitlements.effectivePlan === "free"
+    ) {
+      return {
+        status: "inactive",
+        message: t("pricing.error.purchaseNotActive"),
+        data: entitlements,
+      };
+    }
 
     return {
       status: "success",

@@ -23,7 +23,9 @@ describe("card speech", () => {
   });
 
   it("forwards native TTS start and end callbacks to the UI", () => {
-    const speakWithLifecycle = vi.fn(() => true);
+    const speakWithLifecycle = vi.fn(
+      (_text: string, _languageTag: string, _rate: number, _requestId: string) => true,
+    );
     window.FoxiesDeckNativeSpeech = { speak: vi.fn(() => true), speakWithLifecycle, stop: vi.fn() };
     const statuses: CardSpeechStatusDetail[] = [];
     const handleStatus = (event: Event) => statuses.push((event as CustomEvent<CardSpeechStatusDetail>).detail);

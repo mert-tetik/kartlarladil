@@ -742,6 +742,7 @@ const dictionary = {
   "inventory.error.operationFailed": "Die Kartenaktion konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut.",
   "pricing.error.authRequired": "Du musst dich anmelden, um fortzufahren.",
   "pricing.error.checkoutFailed": "Der Checkout-Link konnte gerade nicht erstellt werden. Bitte versuche es erneut.",
+  "pricing.error.purchaseNotActive": "Google Play hat für diesen Kauf noch kein aktives Abo bestätigt. Bei einer ausstehenden Zahlung wird der Zugriff nach Abschluss aktiviert. Andernfalls kannst du es über „Käufe wiederherstellen“ erneut prüfen.",
   "pricing.error.invalidCycle": "Es wurde ein ungültiger Abrechnungszeitraum ausgewählt.",
   "pricing.error.invalidPlan": "Es wurde ein ungültiger Tarif ausgewählt.",
   "pricing.error.loadFailed": "Abonnementdetails konnten gerade nicht geladen werden. Bitte versuche es erneut.",

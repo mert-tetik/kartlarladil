@@ -748,6 +748,7 @@ const dictionary = {
   "inventory.error.operationFailed": "Kart işlemi şu anda tamamlanamadı. Lütfen tekrar dene.",
   "pricing.error.authRequired": "Bu işlem için giriş yapmalısın.",
   "pricing.error.checkoutFailed": "Ödeme bağlantısı şu anda oluşturulamadı. Lütfen tekrar dene.",
+  "pricing.error.purchaseNotActive": "Google Play bu satın alma için henüz etkin bir abonelik doğrulamadı. Ödeme beklemedeyse tamamlandığında erişimin açılır. Değilse tekrar kontrol etmek için Satın alımları geri yükle seçeneğini kullan.",
   "pricing.error.invalidCycle": "Geçersiz fatura dönemi seçildi.",
   "pricing.error.invalidPlan": "Geçersiz plan seçildi.",
   "pricing.error.loadFailed": "Abonelik bilgisi şu anda alınamadı. Lütfen tekrar dene.",

@@ -165,6 +165,9 @@ describe("LandingTutorial", () => {
       expect(addCardsNextButton).toHaveClass("tutorial-welcome-ui-scale-in", "text-lg", "font-super-water");
       expect(addCardsNextButton).toHaveStyle({ translate: "0 35px" });
       expect(decodeURIComponent(document.querySelector("[data-tutorial-welcome-last-frame]")?.getAttribute("src") ?? "")).toContain("tutorial-welcome/last-frame.png?v=20261024-png-frames-2");
+      expect(document.querySelector("[data-tutorial-welcome-fallback-animation]")).not.toBeInTheDocument();
+      expect(document.querySelector("[data-tutorial-welcome-video-poster]")).not.toBeInTheDocument();
+      expect(document.querySelector("[data-tutorial-welcome-video]")).toHaveClass("opacity-0");
     }, { timeout: 3_000 });
     expect(mediaPause).toHaveBeenCalled();
 
@@ -197,6 +200,13 @@ describe("LandingTutorial", () => {
     expect(mediaPlay).toHaveBeenCalledTimes(1);
     expect(mediaPause).toHaveBeenCalled();
     expect(screen.queryByRole("heading", { name: "tutorial.welcomeAddCards" })).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "tutorial.welcomeAddCards" })).toBeInTheDocument();
+      expect(document.querySelector("[data-tutorial-welcome-fallback-animation]")).not.toBeInTheDocument();
+      expect(document.querySelector("[data-tutorial-welcome-last-frame]")).toBeInTheDocument();
+      expect(document.querySelector("[data-tutorial-welcome-video]")).toHaveClass("opacity-0");
+    }, { timeout: 3_000 });
   });
 
   it("renders exactly three card mode choices and blocks the landing below them", async () => {

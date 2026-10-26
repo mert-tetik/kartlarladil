@@ -743,6 +743,7 @@ const dictionary = {
   "inventory.error.operationFailed": "当前无法完成卡片操作。请重试。",
   "pricing.error.authRequired": "您需要登录后才能继续。",
   "pricing.error.checkoutFailed": "当前无法创建支付链接。请重试。",
+  "pricing.error.purchaseNotActive": "Google Play 尚未确认此购买对应的有效订阅。如果付款仍在处理中，完成后即可使用；否则，请使用“恢复购买”重新检查。",
   "pricing.error.invalidCycle": "选择了无效的计费周期。",
   "pricing.error.invalidPlan": "选择了无效的套餐。",
   "pricing.error.loadFailed": "当前无法加载订阅详情。请重试。",

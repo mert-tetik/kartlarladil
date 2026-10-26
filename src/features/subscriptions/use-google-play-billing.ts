@@ -5,7 +5,10 @@ import {
   syncGooglePlayPurchasesAction,
   verifyGooglePlayPurchaseAction,
 } from "@/features/subscriptions/subscription-actions";
-import { isGooglePlayPurchaseCancellation } from "@/features/subscriptions/google-play-errors";
+import {
+  GooglePlayPurchaseInactiveError,
+  isGooglePlayPurchaseCancellation,
+} from "@/features/subscriptions/google-play-errors";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 
 export function useGooglePlayBilling() {
@@ -70,6 +73,10 @@ export function useGooglePlayBilling() {
             purchase.purchaseToken,
             purchase.itemId || sku,
           );
+          if (result.status === "inactive") {
+            if (result.data) applyVerifiedEntitlements(result.data);
+            throw new GooglePlayPurchaseInactiveError(result.message);
+          }
           if (result.status !== "success" || !result.data) {
             throw new Error(result.message || "Purchase verification failed.");
           }
@@ -113,6 +120,12 @@ export function useGooglePlayBilling() {
         }
 
         const result = await verifyGooglePlayPurchaseAction(purchaseToken, sku);
+
+        if (result.status === "inactive") {
+          if (result.data) applyVerifiedEntitlements(result.data);
+          await response.complete("fail");
+          throw new GooglePlayPurchaseInactiveError(result.message);
+        }
 
         if (result.status !== "success" || !result.data) {
           await response.complete("fail");

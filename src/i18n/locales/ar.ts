@@ -743,6 +743,7 @@ const dictionary = {
   "inventory.error.operationFailed": "تعذر إكمال إجراء البطاقة الآن. يرجى المحاولة مرة أخرى.",
   "pricing.error.authRequired": "يجب عليك تسجيل الدخول للمتابعة.",
   "pricing.error.checkoutFailed": "تعذر إنشاء رابط الدفع الآن. يرجى المحاولة مرة أخرى.",
+  "pricing.error.purchaseNotActive": "لم يؤكد Google Play اشتراكًا نشطًا لهذا الشراء بعد. إذا كان الدفع قيد الانتظار، فسيتم تفعيل الوصول عند اكتماله. وإلا، استخدم خيار استعادة المشتريات للتحقق مرة أخرى.",
   "pricing.error.invalidCycle": "تم اختيار دورة فوترة غير صالحة.",
   "pricing.error.invalidPlan": "تم اختيار خطة غير صالحة.",
   "pricing.error.loadFailed": "تعذر تحميل تفاصيل الاشتراك الآن. يرجى المحاولة مرة أخرى.",

@@ -746,6 +746,7 @@ const dictionary = {
   "inventory.error.operationFailed": "The card action could not be completed right now. Please try again.",
   "pricing.error.authRequired": "You need to log in to continue.",
   "pricing.error.checkoutFailed": "The checkout link could not be created right now. Please try again.",
+  "pricing.error.purchaseNotActive": "Google Play has not confirmed an active subscription for this purchase yet. If payment is pending, access will turn on when it completes. Otherwise, use Restore purchases to check again.",
   "pricing.error.invalidCycle": "An invalid billing cycle was selected.",
   "pricing.error.invalidPlan": "An invalid plan was selected.",
   "pricing.error.loadFailed": "Subscription details could not be loaded right now. Please try again.",

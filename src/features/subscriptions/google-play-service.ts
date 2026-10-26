@@ -1,6 +1,7 @@
 import "server-only";
 
 import { google } from "googleapis";
+import { hasUsableRemainingAccess } from "@/features/subscriptions/subscription-entitlement";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { logGooglePlayError } from "@/features/subscriptions/google-play-errors";
 import type {
@@ -333,6 +334,10 @@ async function persistGooglePlayEntitlement(
   await claimGooglePlayPurchaseToken(verification, userId);
 
   const supabase = createSupabaseAdminClient();
+  if (await shouldPreserveCurrentEntitlement(supabase, verification, userId)) {
+    return;
+  }
+
   const recurringMonthlyTry = verification.recurringPrice
     ? await convertToTry(
         verification.recurringPrice.amount /
@@ -368,6 +373,44 @@ async function persistGooglePlayEntitlement(
   if (error) {
     throw error;
   }
+}
+
+async function shouldPreserveCurrentEntitlement(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  verification: GooglePlaySubscriptionVerification,
+  userId: string,
+): Promise<boolean> {
+  if (["active", "on_trial", "past_due", "cancelled"].includes(verification.status)) {
+    return false;
+  }
+
+  const { data, error } = await supabase
+    .from("user_subscriptions")
+    .select("plan, status, provider, google_play_purchase_token, ends_at")
+    .eq("user_id", userId)
+    .maybeSingle<{
+      plan: string | null;
+      status: string | null;
+      provider: string | null;
+      google_play_purchase_token: string | null;
+      ends_at: string | null;
+    }>();
+
+  if (error) throw error;
+  if (!data || data.google_play_purchase_token === verification.purchaseToken) {
+    return false;
+  }
+
+  const hasPaidPlan = data.plan === "basic" || data.plan === "pro";
+  const hasEntitledStatus = ["active", "on_trial", "past_due", "cancelled"].includes(
+    data.status ?? "",
+  );
+  const hasEntitlementProvider = data.provider === "google_play" || data.provider === "admin";
+
+  return hasPaidPlan
+    && hasEntitledStatus
+    && hasEntitlementProvider
+    && hasUsableRemainingAccess(data.ends_at);
 }
 
 async function acknowledgeGooglePlaySubscription(

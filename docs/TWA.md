@@ -51,6 +51,33 @@ is the single Android resource-generation path; it always reads
   card and chat pronunciation uses the native Android Text-to-Speech bridge in
   the app; normal browsers keep using `speechSynthesis`.
 
+## Native launch transition
+
+The Android launch surface is intentionally independent of WebView. The
+system/native launch surface first shows `public/splash.png`, then the native
+`NativeLoadingIndicatorView` takes over with the same orange background and
+three-dot loading animation used by the app. The overlay stays above WebView
+until `onPageCommitVisible`, preventing a black or blank handoff while the web
+document starts.
+
+`AppImageCacheGate` still warms the TWA image cache, but does not render a
+second WebView loading overlay in the Android app. The source template and
+`scripts/patch-generated-android.mjs` must remain the authority for this flow;
+do not edit only the ignored `com.foxiesdeck/` generated project.
+
+## Black system bars
+
+The Android status bar and navigation bar must remain black throughout the
+application, including while the orange native splash and three-dot loader are
+visible. The orange launch surface belongs only to the inset app-content area.
+This is important for target API 36, where Android enforces edge-to-edge and
+legacy bar-color calls alone may be ignored. `LauncherActivity` therefore keeps
+the root background black, applies vertical system-bar insets before laying out
+the orange overlay/WebView, disables light system-bar icons and navigation-bar
+contrast enforcement, and the generated theme also declares both bar colors as
+black. Preserve these settings in every future AAB build; do not copy only the
+generated `com.foxiesdeck/` project.
+
 ## Firebase Analytics
 
 - The Android shell includes Firebase Analytics. Native review/event callbacks
@@ -159,6 +186,9 @@ present in the production response.
 - Run `npm run pwa:build`.
 - Validate the AAB with bundletool and install it on an Android 16 device or
   emulator.
+- On the installed build, verify that both system bars stay black during the
+  native splash, the three-dot loader, and the loaded app; the orange surface
+  must not extend behind either bar.
 - After the remote page has loaded, disable network access and confirm that at
   least one image and one video still come from the local asset pack. A cold
   launch still needs network access for the remote HTML and API layer.

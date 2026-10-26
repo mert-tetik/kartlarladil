@@ -7,7 +7,6 @@ import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-
 import { localCardRepository } from "@/features/cards/card-repository";
 import { cancelCardPronunciation } from "@/features/cards/card-pronunciation-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
-import { TIERS } from "@/data/tiers";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
@@ -67,6 +66,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
   const swipeAnimationActiveRef = useRef(false);
   const swipeInteractionActiveRef = useRef(false);
   const cardEntranceCompleteRef = useRef(false);
+  const sessionSeenIdsRef = useRef(new Set<string>());
   const dragPosition = useRef({ x: 0, y: 0 });
   const queuedDragPosition = useRef({ x: 0, y: 0 });
   const dragFrame = useRef<number | null>(null);
@@ -117,6 +117,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
   useEffect(() => {
     if (!open) return;
 
+    sessionSeenIdsRef.current.clear();
     const resetTimer = window.setTimeout(() => {
       setDeck([]);
       setOutgoing(null);
@@ -144,34 +145,37 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
   }, [completeCardEntrance, entered, language, open]);
 
   const loadDeck = useCallback(() => {
-    setDeck((current) => {
-      const needed = PRELOAD_DECK_SIZE - current.length;
-      if (needed <= 0) return current;
+    const currentDeck = deck;
+    const needed = PRELOAD_DECK_SIZE - currentDeck.length;
+    if (needed <= 0) return;
 
-      const excludedIds = new Set([
-        ...usedIds,
-        ...current.flatMap((candidate) => [candidate.sourceKey, candidate.id]),
-      ]);
-      const additions: VocabularyCard[] = [];
+    const excludedIds = new Set([
+      ...usedIds,
+      ...sessionSeenIdsRef.current,
+      ...currentDeck.flatMap((candidate) => [candidate.sourceKey, candidate.id]),
+    ]);
+    const choices = localCardRepository
+      .list({ language })
+      .filter((candidate) => !excludedIds.has(candidate.sourceKey) && !excludedIds.has(candidate.id));
+    const additions: VocabularyCard[] = [];
+    const sampleSize = Math.min(needed, choices.length);
 
-      for (const tier of TIERS) {
-        if (additions.length >= needed) break;
+    // Partial Fisher–Yates sampling makes every eligible card equally likely,
+    // without imposing a tier order or shuffling the entire language catalog.
+    for (let index = 0; index < sampleSize; index += 1) {
+      const randomIndex = index + Math.floor(Math.random() * (choices.length - index));
+      [choices[index], choices[randomIndex]] = [choices[randomIndex], choices[index]];
+      additions.push(choices[index]);
+    }
 
-        const choices = localCardRepository
-          .list({ language, tier })
-          .filter((candidate) => !excludedIds.has(candidate.sourceKey) && !excludedIds.has(candidate.id));
-        const choice = choices[Math.floor(Math.random() * choices.length)];
-
-        if (choice) {
-          additions.push(choice);
-          excludedIds.add(choice.sourceKey);
-          excludedIds.add(choice.id);
-        }
-      }
-
-      return additions.length > 0 ? [...current, ...additions] : current;
-    });
-  }, [language, usedIds]);
+    if (additions.length > 0) {
+      setDeck((current) => {
+        const deckIsUnchanged = current.length === currentDeck.length
+          && current.every((candidate, index) => candidate === currentDeck[index]);
+        return deckIsUnchanged ? [...current, ...additions] : current;
+      });
+    }
+  }, [deck, language, usedIds]);
 
   useEffect(() => {
     if (!open || typeof window === "undefined") return;
@@ -263,6 +267,9 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
       onSubscriptionLimitReached?.("free_active_card_limit");
       return;
     }
+
+    sessionSeenIdsRef.current.add(card.sourceKey);
+    sessionSeenIdsRef.current.add(card.id);
 
     if (direction === "add") {
       dispatchTutorialCardLayerAddAttempted({ layer: "draw-cards", count: 1 });

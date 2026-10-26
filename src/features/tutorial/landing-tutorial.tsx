@@ -769,7 +769,7 @@ function WelcomeTutorialScreen({ exiting, underlay, stage, label, nextLabel, onN
     setHasFallbackAnimationFailed(true);
   }, []);
 
-  const canShowAlphaVideo = isAddCardsStage && hasVideoAlphaSupport && !usesAnimationFallback;
+  const canShowAlphaVideo = isAddCardsStage && hasVideoAlphaSupport && !usesAnimationFallback && !isPlaybackComplete;
 
   return (
     <div data-landing-tutorial data-landing-tutorial-welcome data-tutorial-welcome-underlay={underlay ? "" : undefined} role="dialog" aria-label={label} aria-modal={underlay ? undefined : "true"} aria-hidden={underlay || undefined} aria-busy={exiting} className={cn("tutorial-origin-overlay fixed inset-0 z-[1000]", exiting && "tutorial-origin-overlay--closing")}>
@@ -789,15 +789,16 @@ function WelcomeTutorialScreen({ exiting, underlay, stage, label, nextLabel, onN
         style={{ top: "calc(50% - 6.25rem)", animationDelay: exiting ? "0ms" : "520ms" }}
       >
         {!isAddCardsStage ? <Image alt="" aria-hidden="true" data-tutorial-welcome-first-frame className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" height={900} priority src={`/mascots/tutorial-welcome/first-frame.png?v=${WELCOME_FRAME_ASSET_VERSION}`} width={940} /> : null}
-        {isAddCardsStage && usesAnimationFallback && !hasFallbackAnimationFailed ? <Image alt="" aria-hidden="true" className="absolute inset-0 z-0 h-full w-full origin-center scale-[1.5] object-contain" data-tutorial-welcome-fallback-animation height={900} onError={handleFallbackAnimationError} priority src={WELCOME_ANIMATION_FALLBACK_URL} unoptimized width={940} /> : null}
+        {isAddCardsStage && usesAnimationFallback && !hasFallbackAnimationFailed && !isPlaybackComplete ? <Image alt="" aria-hidden="true" className="absolute inset-0 z-0 h-full w-full origin-center scale-[1.5] object-contain" data-tutorial-welcome-fallback-animation height={900} onError={handleFallbackAnimationError} priority src={WELCOME_ANIMATION_FALLBACK_URL} unoptimized width={940} /> : null}
         {isAddCardsStage && usesAnimationFallback && hasFallbackAnimationFailed && !isPlaybackComplete ? <Image alt="" aria-hidden="true" data-tutorial-welcome-last-frame className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" height={900} priority src={`/mascots/tutorial-welcome/last-frame.png?v=${WELCOME_FRAME_ASSET_VERSION}`} width={940} /> : null}
         {isAddCardsStage && isPlaybackComplete ? <Image alt="" aria-hidden="true" data-tutorial-welcome-last-frame className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" height={900} priority src={`/mascots/tutorial-welcome/last-frame.png?v=${WELCOME_FRAME_ASSET_VERSION}`} width={940} /> : null}
-        {isAddCardsStage && !hasVideoAlphaSupport && !usesAnimationFallback ? <Image alt="" aria-hidden="true" className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" data-tutorial-welcome-video-poster height={900} src={`/mascots/tutorial-welcome/first-frame.png?v=${WELCOME_FRAME_ASSET_VERSION}`} width={940} /> : null}
+        {isAddCardsStage && !hasVideoAlphaSupport && !usesAnimationFallback && !isPlaybackComplete ? <Image alt="" aria-hidden="true" className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" data-tutorial-welcome-video-poster height={900} src={`/mascots/tutorial-welcome/first-frame.png?v=${WELCOME_FRAME_ASSET_VERSION}`} width={940} /> : null}
         <video
           ref={videoRef}
           aria-hidden="true"
           className={cn("pointer-events-none absolute inset-0 h-full w-full origin-center scale-[1.5] object-contain", canShowAlphaVideo ? "z-0" : "z-0 opacity-0")}
           data-tutorial-welcome-video
+          onEnded={finishPlayback}
           onError={handleVideoError}
           onLoadedData={handleVideoLoadedData}
           muted

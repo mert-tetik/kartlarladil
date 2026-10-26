@@ -32,6 +32,7 @@ export const ANDROID_JAVA_TEMPLATE_FILES = [
   "NativeBillingBridge.java",
   "NativeTextToSpeechBridge.java",
   "NativeVibrationBridge.java",
+  "NativeLoadingIndicatorView.java",
   "EventReceiverActivity.java",
 ];
 
@@ -278,6 +279,7 @@ const APP_THEME = `<?xml version="1.0" encoding="utf-8"?>
         <item name="android:windowNoTitle">true</item>
         <item name="android:colorAccent">#fe6708</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:statusBarColor">#000000</item>
         <item name="android:navigationBarColor">#000000</item>
         <item name="android:windowBackground">${LAUNCHER_COLOR}</item>
@@ -293,6 +295,7 @@ const APP_THEME_V31 = `<?xml version="1.0" encoding="utf-8"?>
         <item name="android:windowNoTitle">true</item>
         <item name="android:colorAccent">#fe6708</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:statusBarColor">#000000</item>
         <item name="android:navigationBarColor">#000000</item>
         <item name="android:windowBackground">${LAUNCHER_COLOR}</item>

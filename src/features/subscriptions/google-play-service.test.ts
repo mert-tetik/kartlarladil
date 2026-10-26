@@ -232,6 +232,33 @@ describe("verifyGooglePlaySubscription", () => {
       publisher.purchases.subscriptions.acknowledge,
     ).not.toHaveBeenCalled();
   });
+
+  it.each([
+    "SUBSCRIPTION_STATE_PENDING",
+    "SUBSCRIPTION_STATE_EXPIRED",
+  ])("does not replace a current paid plan with a different %s token", async (state) => {
+    mockMaybeSingle.mockResolvedValueOnce({
+      data: {
+        plan: "pro",
+        status: "active",
+        provider: "google_play",
+        google_play_purchase_token: "current-token",
+        ends_at: "2030-07-01T00:00:00.000Z",
+      },
+      error: null,
+    });
+
+    await verifyGooglePlaySubscription(
+      "stale-or-pending-token",
+      "basic_monthly",
+      "user-1",
+      makePublisher({ state }),
+    );
+
+    expect(mockUpsert.mock.calls.some(([row]) =>
+      row && typeof row === "object" && "plan" in row,
+    )).toBe(false);
+  });
 });
 
 describe("cancelGooglePlaySubscription", () => {

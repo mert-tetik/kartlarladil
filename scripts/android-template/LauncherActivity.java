@@ -45,7 +45,9 @@ public class LauncherActivity extends Activity {
     private static final int AUDIO_PERMISSION_REQUEST_CODE = 4101;
     private WebView webView;
     private FrameLayout contentRoot;
+    private FrameLayout nativeLaunchOverlay;
     private ImageView nativeSplashView;
+    private NativeLoadingIndicatorView nativeLoadingView;
     private NativeBillingBridge billingBridge;
     private NativeTextToSpeechBridge textToSpeechBridge;
     private NativeVibrationBridge vibrationBridge;
@@ -72,10 +74,14 @@ public class LauncherActivity extends Activity {
 
         pendingLaunchIntent = getIntent();
         contentRoot = new FrameLayout(this);
-        contentRoot.setBackgroundColor(Color.rgb(254, 101, 7));
-        nativeSplashView = createNativeSplashView();
+        // API 35+ enforces edge-to-edge for target API 36. Keep the native
+        // root black so transparent system-bar regions never inherit the
+        // orange launch surface; the orange overlay is inset into the app
+        // content area by configureSystemBarInsets().
+        contentRoot.setBackgroundColor(Color.BLACK);
+        nativeLaunchOverlay = createNativeLaunchOverlay();
         contentRoot.addView(
-                nativeSplashView,
+                nativeLaunchOverlay,
                 new FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         FrameLayout.LayoutParams.MATCH_PARENT
@@ -85,9 +91,36 @@ public class LauncherActivity extends Activity {
         configureWindow();
         registerAndroidBackCallback();
 
-        // Let Android draw the local launch surface before the comparatively
-        // expensive WebView and bridge setup begins on the UI thread.
-        contentRoot.post(this::initializeWebView);
+        // Let Android draw the local launch surface first. The native loader
+        // then takes over before WebView and bridge setup begins, so the user
+        // never depends on a WebView frame for the first loading indicator.
+        contentRoot.post(this::beginWebViewStartup);
+    }
+
+    private FrameLayout createNativeLaunchOverlay() {
+        FrameLayout overlay = new FrameLayout(this);
+        overlay.setBackgroundColor(Color.rgb(254, 101, 7));
+
+        nativeSplashView = createNativeSplashView();
+        overlay.addView(
+                nativeSplashView,
+                new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT
+                )
+        );
+
+        nativeLoadingView = new NativeLoadingIndicatorView(this);
+        nativeLoadingView.setAlpha(0f);
+        nativeLoadingView.setVisibility(View.INVISIBLE);
+        overlay.addView(
+                nativeLoadingView,
+                new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT
+                )
+        );
+        return overlay;
     }
 
     private ImageView createNativeSplashView() {
@@ -96,6 +129,35 @@ public class LauncherActivity extends Activity {
         splash.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         splash.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         return splash;
+    }
+
+    private void beginWebViewStartup() {
+        if (isFinishing() || nativeLoadingView == null) return;
+
+        // Give the local wordmark one rendered frame before the loader takes
+        // over. This is a visual handoff only; it does not delay WebView work.
+        showNativeLoadingScreen();
+        contentRoot.post(this::initializeWebView);
+    }
+
+    private void showNativeLoadingScreen() {
+        if (nativeLoadingView == null || nativeLaunchOverlay == null) return;
+
+        nativeLoadingView.setVisibility(View.VISIBLE);
+        nativeLoadingView.startAnimating();
+        nativeLoadingView.animate()
+                .alpha(1f)
+                .setDuration(180L)
+                .start();
+
+        if (nativeSplashView != null) {
+            ImageView splash = nativeSplashView;
+            splash.animate()
+                    .alpha(0f)
+                    .setDuration(180L)
+                    .withEndAction(() -> splash.setVisibility(View.GONE))
+                    .start();
+        }
     }
 
     private void initializeWebView() {
@@ -119,9 +181,9 @@ public class LauncherActivity extends Activity {
         }
 
         CookieManager.getInstance().setAcceptCookie(true);
-        // Keep the native splash visible underneath the WebView until the
-        // first committed web frame. This avoids a black intermediate surface
-        // while still allowing the remote app splash to take over naturally.
+        // Keep the native launch overlay above the WebView until the first
+        // committed web frame. This avoids a black intermediate surface and
+        // keeps the native three-dot loader independent of WebView startup.
         webView.setBackgroundColor(Color.TRANSPARENT);
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
@@ -181,7 +243,7 @@ public class LauncherActivity extends Activity {
         });
 
         NativeMediaStore mediaStore = new NativeMediaStore(this);
-        webView.setWebViewClient(new LocalMediaWebViewClient(this, mediaStore, this::hideNativeSplash));
+        webView.setWebViewClient(new LocalMediaWebViewClient(this, mediaStore, this::hideNativeLaunchOverlay));
 
         billingBridge = new NativeBillingBridge(this);
         webView.addJavascriptInterface(billingBridge, "FoxiesDeckNativeBilling");
@@ -199,21 +261,27 @@ public class LauncherActivity extends Activity {
                 )
         );
 
-        // The remote app must never wait for Play Core. Its splash can paint
-        // while the update check runs independently in the background.
+        // The app must never wait for Play Core. The native loader can remain
+        // visible while the update check runs independently in the background.
         continueLaunch();
         contentRoot.post(this::checkForImmediateUpdate);
     }
 
-    private void hideNativeSplash() {
-        if (nativeSplashView == null || contentRoot == null) return;
+    private void hideNativeLaunchOverlay() {
+        if (nativeLaunchOverlay == null || contentRoot == null) return;
 
-        ImageView splash = nativeSplashView;
+        if (nativeLoadingView != null) {
+            nativeLoadingView.stopAnimating();
+        }
+
+        FrameLayout overlay = nativeLaunchOverlay;
+        nativeLaunchOverlay = null;
         nativeSplashView = null;
-        splash.animate()
+        nativeLoadingView = null;
+        overlay.animate()
                 .alpha(0f)
                 .setDuration(120L)
-                .withEndAction(() -> contentRoot.removeView(splash))
+                .withEndAction(() -> contentRoot.removeView(overlay))
                 .start();
     }
 
@@ -344,10 +412,15 @@ public class LauncherActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.setNavigationBarDividerColor(Color.BLACK);
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.setNavigationBarContrastEnforced(false);
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             WindowInsetsController controller = window.getDecorView().getWindowInsetsController();
             if (controller != null) {
-                controller.setSystemBarsAppearance(0, WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS);
+                int lightSystemBars = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                        | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+                controller.setSystemBarsAppearance(0, lightSystemBars);
             }
         }
         configureSystemBarInsets();
@@ -605,6 +678,9 @@ public class LauncherActivity extends Activity {
             pendingFileChooserCallback = null;
         }
         deletePendingCameraCapture();
+        if (nativeLoadingView != null) {
+            nativeLoadingView.stopAnimating();
+        }
         if (webView != null) {
             webView.removeJavascriptInterface("FoxiesDeckNativeBilling");
             webView.removeJavascriptInterface("FoxiesDeckNativeSpeech");

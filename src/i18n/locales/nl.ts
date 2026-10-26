@@ -743,6 +743,7 @@ const dictionary = {
   "inventory.error.operationFailed": "De kaartactie kon nu niet worden voltooid. Probeer het opnieuw.",
   "pricing.error.authRequired": "Je moet inloggen om door te gaan.",
   "pricing.error.checkoutFailed": "De betaallink kon nu niet worden aangemaakt. Probeer het opnieuw.",
+  "pricing.error.purchaseNotActive": "Google Play heeft voor deze aankoop nog geen actief abonnement bevestigd. Als de betaling in behandeling is, wordt de toegang geactiveerd zodra deze is voltooid. Gebruik anders Aankopen herstellen om het opnieuw te controleren.",
   "pricing.error.invalidCycle": "Er is een ongeldige factureringscyclus geselecteerd.",
   "pricing.error.invalidPlan": "Er is een ongeldig abonnement geselecteerd.",
   "pricing.error.loadFailed": "Abonnementsgegevens konden nu niet worden geladen. Probeer het opnieuw.",

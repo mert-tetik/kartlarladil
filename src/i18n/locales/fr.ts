@@ -743,6 +743,7 @@ const dictionary = {
   "inventory.error.operationFailed": "L’action sur la carte n’a pas pu être effectuée pour le moment. Veuillez réessayer.",
   "pricing.error.authRequired": "Vous devez vous connecter pour continuer.",
   "pricing.error.checkoutFailed": "Le lien de paiement n’a pas pu être créé pour le moment. Veuillez réessayer.",
+  "pricing.error.purchaseNotActive": "Google Play n’a pas encore confirmé d’abonnement actif pour cet achat. Si le paiement est en attente, l’accès sera activé une fois celui-ci terminé. Sinon, utilisez « Restaurer les achats » pour vérifier à nouveau.",
   "pricing.error.invalidCycle": "Une période de facturation invalide a été sélectionnée.",
   "pricing.error.invalidPlan": "Un forfait invalide a été sélectionné.",
   "pricing.error.loadFailed": "Les détails de l’abonnement n’ont pas pu être chargés pour le moment. Veuillez réessayer.",

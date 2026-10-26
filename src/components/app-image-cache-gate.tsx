@@ -15,12 +15,11 @@ const IMAGE_MANIFEST_STORAGE_KEY = "foxiesdeck:image-cache-manifest";
 const CRITICAL_IMAGE_CACHE_CONCURRENCY = 3;
 const BACKGROUND_IMAGE_CACHE_CONCURRENCY = 2;
 const BACKGROUND_CACHE_DELAY_MS = 1_200;
-const EXIT_ANIMATION_DURATION_MS = 320;
 const MAX_CACHE_GATE_DURATION_MS = 1_200;
 const CACHE_REQUEST_TIMEOUT_MS = 2_500;
 const APP_LOADING_TEST_PARAM = "loading-test";
 
-type CacheGatePhase = "hidden" | "loading" | "exiting";
+type CacheGatePhase = "hidden" | "loading";
 
 export function AppImageCacheGate() {
   const [phase, setPhase] = useState<CacheGatePhase>("hidden");
@@ -38,17 +37,18 @@ export function AppImageCacheGate() {
       return;
     }
 
+    // The TWA launch loader is rendered natively before WebView starts. Keep
+    // this component responsible for cache warming, but do not paint a second
+    // WebView overlay during the same launch transition.
     if (!getTwaMode() || !("caches" in window)) {
       return;
     }
 
     let cancelled = false;
-    let exitTimer: number | undefined;
     let cancelBackgroundCache: (() => void) | undefined;
     void Promise.resolve().then(async () => {
       if (cancelled) return;
 
-      setPhase("loading");
       const criticalCachePromise = prepareCriticalImageCache(() => undefined);
       const cacheResultPromise = criticalCachePromise
         .then((manifest) => ({ kind: "complete" as const, manifest }))
@@ -62,9 +62,6 @@ export function AppImageCacheGate() {
       ]);
 
       if (cancelled) return;
-
-      setPhase("exiting");
-      exitTimer = window.setTimeout(() => setPhase("hidden"), EXIT_ANIMATION_DURATION_MS);
 
       if (gateResult.manifest) {
         cancelBackgroundCache = scheduleBackgroundImageCache(gateResult.manifest);
@@ -83,9 +80,6 @@ export function AppImageCacheGate() {
 
     return () => {
       cancelled = true;
-      if (exitTimer !== undefined) {
-        window.clearTimeout(exitTimer);
-      }
       cancelBackgroundCache?.();
     };
   }, []);
@@ -98,9 +92,7 @@ export function AppImageCacheGate() {
     <div
       aria-busy="true"
       aria-label="Loading"
-      className={`fixed inset-0 z-[200] flex items-center justify-center bg-[#f76808] px-8 text-white transition-[opacity,transform] duration-300 ease-out ${
-        phase === "exiting" ? "pointer-events-none -translate-y-3 opacity-0" : "translate-y-0 opacity-100"
-      }`}
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-[#f76808] px-8 text-white transition-[opacity,transform] duration-300 ease-out translate-y-0 opacity-100"
       data-app-image-cache-gate
       data-testid="app-image-cache-gate"
       role="status"

@@ -42,6 +42,7 @@ function makeRequest(body: unknown) {
 
 function makeOpenAiResponse(accepted: boolean) {
   return {
+    output_text: JSON.stringify({ accepted }),
     output: [
       {
         type: "message" as const,
@@ -174,10 +175,7 @@ describe("POST /api/quiz/validate-answer", () => {
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
-  // The following tests exercise the OpenAI path. The project-wide OpenAI mock
-  // does not currently intercept requests in this file, so they are skipped
-  // until the mock setup is fixed. Auth and quota enforcement tests above still run.
-  it.skip("returns accepted: true when the model accepts the answer", async () => {
+  it("returns accepted: true when the model accepts the answer", async () => {
     mockCreate.mockResolvedValue(makeOpenAiResponse(true));
 
     const response = await POST(
@@ -196,7 +194,7 @@ describe("POST /api/quiz/validate-answer", () => {
     expect(payload.accepted).toBe(true);
   });
 
-  it.skip("returns accepted: false when the model rejects the answer", async () => {
+  it("returns accepted: false when the model rejects the answer", async () => {
     mockCreate.mockResolvedValue(makeOpenAiResponse(false));
 
     const response = await POST(
@@ -242,7 +240,7 @@ describe("POST /api/quiz/validate-answer", () => {
     expect(payload.accepted).toBe(false);
   });
 
-  it.skip("returns accepted: false with 504 when the model call throws", async () => {
+  it("returns accepted: false with 504 when the model call throws", async () => {
     mockCreate.mockRejectedValue(new Error("timeout"));
 
     const response = await POST(
@@ -261,7 +259,7 @@ describe("POST /api/quiz/validate-answer", () => {
     expect(payload.accepted).toBe(false);
   });
 
-  it.skip("tells the model to accept lemma or inflection matches like found -> find", async () => {
+  it("tells the model to accept lemma or inflection matches like found -> find", async () => {
     mockCreate.mockResolvedValue(makeOpenAiResponse(true));
 
     await POST(

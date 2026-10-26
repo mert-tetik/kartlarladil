@@ -1,4 +1,5 @@
 import {
+  GooglePlayPurchaseInactiveError,
   getGooglePlayErrorDetail,
   getGooglePlayErrorLogMetadata,
   getGooglePlayErrorMessage,
@@ -6,6 +7,15 @@ import {
 } from "@/features/subscriptions/google-play-errors";
 
 describe("google play error formatting", () => {
+  it("shows inactive purchase guidance without a generic checkout error wrapper", () => {
+    const message = getGooglePlayErrorMessage(
+      new GooglePlayPurchaseInactiveError("Restore purchases to check again."),
+      "Checkout failed.",
+    );
+
+    expect(message).toBe("Restore purchases to check again.");
+  });
+
   it("keeps the original Google Play error detail visible", () => {
     const message = getGooglePlayErrorMessage(
       new Error("Product basic_monthly is not available on Google Play."),

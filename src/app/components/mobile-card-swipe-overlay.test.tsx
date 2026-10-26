@@ -27,7 +27,9 @@ const inventoryState: {
 
 vi.mock("@/features/cards/card-repository", () => ({
   localCardRepository: {
-    list: ({ tier }: { tier: string }) => [createCard(tier)],
+    list: ({ tier }: { tier?: string }) => tier
+      ? [createCard(tier)]
+      : ["A1", "A2", "B1", "B2", "C1"].map(createCard),
   },
 }));
 
@@ -86,6 +88,7 @@ describe("MobileCardSwipeOverlay", () => {
     HTMLElement.prototype.setPointerCapture = vi.fn();
     addCardMock.mockReset();
     addCardMock.mockResolvedValue({ ok: true, firstCardAdded: false });
+    vi.spyOn(Math, "random").mockReturnValue(0);
     cancelCardPronunciationMock.mockReset();
     enqueueCardPronunciationMock.mockReset();
     inventoryState.cards = [];
@@ -113,6 +116,18 @@ describe("MobileCardSwipeOverlay", () => {
 
     const closeIcon = document.querySelector('button[aria-label="common.close"] svg');
     expect(closeIcon).toHaveClass("size-7", "stroke-[2.75]");
+  });
+
+  it("draws from the whole language pool instead of restarting at the first tier", async () => {
+    vi.mocked(Math.random).mockReturnValue(0.999);
+    render(<MobileCardSwipeOverlay open language="en" onClose={vi.fn()} />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(document.querySelector("[data-vocabulary-card='C1']")).toBeInTheDocument();
+    expect(document.querySelector("[data-vocabulary-card='A1']")).not.toBeInTheDocument();
   });
 
   it("waits for the first tutorial prompt to disappear before starting the swipe demo", async () => {

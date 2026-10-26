@@ -53,6 +53,11 @@ describe("Google Play subscription actions", () => {
       },
       customerPortalUrl: null,
     });
+    mockVerifyGooglePlaySubscription.mockResolvedValue({
+      plan: "basic",
+      status: "active",
+      endsAt: "2030-07-01T00:00:00.000Z",
+    });
   });
 
   it("returns the Google Play subscriptions page for paid users", async () => {
@@ -87,6 +92,38 @@ describe("Google Play subscription actions", () => {
     );
     expect(result.status).toBe("success");
     expect(result.data?.provider).toBe("google_play");
+  });
+
+  it("does not report an inactive Play purchase as a successful checkout", async () => {
+    mockVerifyGooglePlaySubscription.mockResolvedValueOnce({
+      plan: "basic",
+      status: "unpaid",
+      endsAt: "2030-07-01T00:00:00.000Z",
+    });
+    const freeEntitlements = {
+      plan: "free",
+      effectivePlan: "free",
+      status: "unpaid",
+      provider: "google_play",
+      limits: {
+        activeCards: 20,
+        learnedCards: 100,
+        aiDailyMessages: 10,
+        aiMonthlyMessages: 200,
+      },
+      customerPortalUrl: null,
+      endsAt: "2030-07-01T00:00:00.000Z",
+    };
+    mockGetUserEntitlements.mockResolvedValueOnce(freeEntitlements);
+
+    const result = await verifyGooglePlayPurchaseAction("pending-token", "basic_monthly");
+
+    expect(result).toEqual({
+      status: "inactive",
+      message: "pricing.error.purchaseNotActive",
+      data: freeEntitlements,
+    });
+    expect(mockGetUserEntitlements).toHaveBeenCalledOnce();
   });
 
   it("rejects oversized purchase-restore batches before calling Google", async () => {

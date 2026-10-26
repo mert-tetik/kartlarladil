@@ -743,6 +743,7 @@ const dictionary = {
   "inventory.error.operationFailed": "지금은 카드 작업을 완료할 수 없습니다. 다시 시도해 주세요.",
   "pricing.error.authRequired": "계속하려면 로그인해야 합니다.",
   "pricing.error.checkoutFailed": "지금은 결제 링크를 만들 수 없습니다. 다시 시도해 주세요.",
+  "pricing.error.purchaseNotActive": "Google Play에서 이 구매의 활성 구독을 아직 확인하지 못했습니다. 결제가 대기 중이면 완료된 후 이용할 수 있습니다. 그렇지 않다면 구매 복원을 사용해 다시 확인해 주세요.",
   "pricing.error.invalidCycle": "잘못된 결제 주기가 선택되었습니다.",
   "pricing.error.invalidPlan": "잘못된 요금제가 선택되었습니다.",
   "pricing.error.loadFailed": "지금은 구독 정보를 불러올 수 없습니다. 다시 시도해 주세요.",
