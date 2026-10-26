@@ -23,6 +23,8 @@ const PROJECT_DIR = path.resolve(
 );
 const PASSWORD_FILE = path.join(PROJECT_DIR, ".keystore-passwords");
 const CONFIG_FILE = path.join(os.homedir(), ".bubblewrap", "config.json");
+const CANONICAL_KEYSTORE_PATH = path.resolve("C:/Users/CASPER/user.keystore");
+const CANONICAL_KEYSTORE_ALIAS = "yeiexl";
 
 const knownLicenseHashes = {
   "android-sdk-license": "24333f8a63b6825ea9c5514f83c2829b004d1fee",
@@ -346,8 +348,20 @@ async function main() {
     );
   }
   await prepareHybridMedia(PROJECT_DIR);
-  const keystorePath = manifest.signingKey.path;
-  const keystoreAlias = manifest.signingKey.alias;
+  const keystorePath = CANONICAL_KEYSTORE_PATH;
+  const keystoreAlias = CANONICAL_KEYSTORE_ALIAS;
+  if (!fileExists(keystorePath)) {
+    throw new Error(`Canonical signing keystore not found: ${keystorePath}`);
+  }
+  if (
+    path.resolve(manifest.signingKey.path) !== keystorePath ||
+    String(manifest.signingKey.alias) !== keystoreAlias
+  ) {
+    throw new Error(
+      "Android signing metadata does not use the canonical FoxiesDeck key. " +
+        `Expected ${keystorePath} with alias ${keystoreAlias}. Run npm run pwa:init.`,
+    );
+  }
   const bundletoolJar = findBundletoolJar();
 
   const gradlew = process.platform === "win32" ? "./gradlew" : "./gradlew";

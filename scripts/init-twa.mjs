@@ -41,10 +41,10 @@ const APP_VERSION_CODE = process.env.TWA_VERSION_CODE
   ? Number.parseInt(process.env.TWA_VERSION_CODE, 10)
   : 163;
 const APP_VERSION_NAME = process.env.TWA_VERSION_NAME || "4.3.49";
-const KEYSTORE_PATH = process.env.TWA_KEYSTORE_PATH
-  ? path.resolve(process.env.TWA_KEYSTORE_PATH)
-  : undefined;
-const KEYSTORE_ALIAS = process.env.TWA_KEYSTORE_ALIAS || "android";
+// This is the only signing identity allowed for FoxiesDeck Play updates.
+// Never fall back to Bubblewrap's generated com.foxiesdeck/android.keystore.
+const KEYSTORE_PATH = path.resolve("C:/Users/CASPER/user.keystore");
+const KEYSTORE_ALIAS = "yeiexl";
 const PROJECT_DIR = path.resolve(
   process.env.TWA_PROJECT_DIR || path.join(ROOT, "com.foxiesdeck")
 );
@@ -251,7 +251,7 @@ async function main() {
     }
 
     twaManifest.signingKey = {
-      path: KEYSTORE_PATH || path.join(PROJECT_DIR, "android.keystore"),
+      path: KEYSTORE_PATH,
       alias: KEYSTORE_ALIAS,
     };
 

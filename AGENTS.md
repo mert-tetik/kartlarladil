@@ -373,6 +373,17 @@ Kart kataloğu uygulama bundle'ında tutulur (`VOCABULARY_CARDS`), ancak kullan�
 - `src/features/twitter-automation/social-studio-version.ts` içindeki `SOCIAL_CONTENT_STUDIO_VERSION`, Social Content Studio arayüzünde görünür.
 - Her kullanıcı talebiyle yapılan uygulama güncellemesinde bu long integer değerini tam olarak `1` artır. Sadece inceleme, açıklama, durum raporu veya salt commit/push taleplerinde artırma.
 
+## Canonical Android Signing Key
+
+- Every signed Android/AAB build must use exactly `C:\Users\CASPER\user.keystore`.
+- The only allowed alias is `yeiexl`.
+- Never use `com.foxiesdeck/android.keystore`, a Bubblewrap-generated fallback,
+  or any other keystore for a Play update.
+- The keystore password is kept only in the local ignored credential file or
+  environment variables. Never commit or print the password.
+- `scripts/init-twa.mjs` and `scripts/build-twa.mjs` must reject any other
+  signing path or alias.
+
 ## Canonical App Logo
 
 - Website branding, favicon, web/PWA metadata'sı ve website tarafından üretilen sosyal içerik görselleri `public/AppLogdfo.png` kullanır.

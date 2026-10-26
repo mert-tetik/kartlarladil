@@ -127,8 +127,12 @@ TWA_VERSION_CODE=163
 TWA_VERSION_NAME=4.3.49
 ```
 
-Keep the signing keystore and its passwords safe. Losing the original signing
-identity prevents future Google Play updates.
+All signed Android/AAB builds must use exactly
+`C:\Users\CASPER\user.keystore` with alias `yeiexl`. Never use the generated
+`com.foxiesdeck/android.keystore` or create a replacement key: losing the
+original signing identity prevents future Google Play updates. The password is
+kept only in the local ignored credential file/environment and must never be
+committed or printed.
 
 ## Build the APK / AAB
 
