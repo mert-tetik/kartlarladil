@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import {
   claimGooglePlayRtdnEvent,
   completeGooglePlayRtdnEvent,
+  GOOGLE_PLAY_RTDN_MANUAL_REVIEW_REQUIRED,
   syncGooglePlaySubscriptionFromRtdn,
+  syncGooglePlayVoidedSubscriptionFromRtdn,
   verifyGooglePlayRtdnToken,
 } from "@/features/subscriptions/google-play-service";
 import {
@@ -21,8 +23,20 @@ interface PubSubEnvelope {
 }
 
 interface RealTimeDeveloperNotification {
+  packageName?: string;
   subscriptionNotification?: {
     purchaseToken?: string;
+  };
+  voidedPurchaseNotification?: {
+    purchaseToken?: string;
+    orderId?: string;
+    productType?: number;
+    refundType?: number;
+  };
+  pendingRefundReviewNotification?: {
+    pendingRefundToken?: string;
+    orderId?: string;
+    refundReason?: number;
   };
   testNotification?: {
     version?: string;
@@ -74,11 +88,64 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid Google Play RTDN data." }, { status: 400 });
   }
 
-  const purchaseToken = notification.subscriptionNotification?.purchaseToken;
-  if (!purchaseToken) {
-    if (notification.testNotification) {
-      console.info("Google Play RTDN test notification acknowledged.");
+  if (notification.testNotification) {
+    console.info("Google Play RTDN test notification acknowledged.");
+    return NextResponse.json({ received: true, skipped: true }, { status: 200 });
+  }
+
+  const pendingRefund = notification.pendingRefundReviewNotification;
+  if (pendingRefund) {
+    if (!pendingRefund.pendingRefundToken || !pendingRefund.orderId) {
+      return NextResponse.json({ error: "Invalid Google Play refund-review payload." }, { status: 400 });
     }
+
+    try {
+      const shouldProcess = await claimGooglePlayRtdnEvent(messageId, notification);
+      if (!shouldProcess) {
+        return NextResponse.json({ received: true, duplicate: true }, { status: 200 });
+      }
+
+      // Refund decisions have financial and user-access consequences, so keep
+      // the signed notification durably available for an operator instead of
+      // automatically granting or denying the requested chargeback.
+      console.error("Google Play RTDN refund review requires manual action within 24 hours.", {
+        messageId,
+        refundReason: pendingRefund.refundReason ?? null,
+      });
+      // Keep processed_at null and put the event into an explicit durable
+      // operator queue. The claim helper recognizes this marker so Pub/Sub
+      // duplicate deliveries do not re-queue or re-alert the same review.
+      await completeGooglePlayRtdnEvent(
+        messageId,
+        null,
+        GOOGLE_PLAY_RTDN_MANUAL_REVIEW_REQUIRED,
+      );
+      return NextResponse.json({ received: true, reviewRequired: true }, { status: 200 });
+    } catch (error) {
+      logGooglePlayError(
+        "Google Play RTDN refund-review event could not be recorded.",
+        error,
+        [idToken],
+      );
+      return NextResponse.json({ error: "Google Play RTDN processing failed." }, { status: 500 });
+    }
+  }
+
+  const voidedPurchase = notification.voidedPurchaseNotification;
+  const voidedSubscription = voidedPurchase?.productType === 1
+    ? voidedPurchase
+    : null;
+  if (voidedPurchase && !voidedSubscription) {
+    return NextResponse.json({ received: true, skipped: true }, { status: 200 });
+  }
+
+  if (voidedSubscription && (!voidedSubscription.orderId || !voidedSubscription.purchaseToken)) {
+    return NextResponse.json({ error: "Invalid voided subscription payload." }, { status: 400 });
+  }
+
+  const purchaseToken = notification.subscriptionNotification?.purchaseToken
+    ?? voidedSubscription?.purchaseToken;
+  if (!purchaseToken) {
     return NextResponse.json({ received: true, skipped: true }, { status: 200 });
   }
 
@@ -88,7 +155,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true, duplicate: true }, { status: 200 });
     }
 
-    const userId = await syncGooglePlaySubscriptionFromRtdn(purchaseToken);
+    const userId = voidedSubscription
+      ? await syncGooglePlayVoidedSubscriptionFromRtdn(
+          purchaseToken,
+          voidedSubscription.orderId!,
+          voidedSubscription.refundType ?? 0,
+        )
+      : await syncGooglePlaySubscriptionFromRtdn(purchaseToken);
     await completeGooglePlayRtdnEvent(
       messageId,
       userId,

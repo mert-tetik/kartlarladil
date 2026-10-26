@@ -96,7 +96,11 @@ export interface GooglePlaySubscriptionVerification {
 
 interface GooglePlayRtdnEventRow {
   processed_at: string | null;
+  error_message?: string | null;
 }
+
+export const GOOGLE_PLAY_RTDN_MANUAL_REVIEW_REQUIRED =
+  "manual_review_required: ReviewRefund decision required within 24 hours.";
 
 function getPackageName(): string {
   if (!PACKAGE_NAME) {
@@ -330,11 +334,19 @@ async function claimGooglePlayPurchaseToken(
 async function persistGooglePlayEntitlement(
   verification: GooglePlaySubscriptionVerification,
   userId: string,
+  entitlementOverride?: {
+    status?: SubscriptionStatus;
+    endsAt?: string | null;
+  },
 ): Promise<void> {
   await claimGooglePlayPurchaseToken(verification, userId);
 
   const supabase = createSupabaseAdminClient();
-  if (await shouldPreserveCurrentEntitlement(supabase, verification, userId)) {
+  const effectiveVerification = {
+    ...verification,
+    ...entitlementOverride,
+  };
+  if (await shouldPreserveCurrentEntitlement(supabase, effectiveVerification, userId)) {
     return;
   }
 
@@ -349,7 +361,7 @@ async function persistGooglePlayEntitlement(
     {
       user_id: userId,
       plan: verification.plan,
-      status: verification.status,
+      status: effectiveVerification.status,
       provider: "google_play" as SubscriptionProvider,
       google_play_purchase_token: verification.purchaseToken,
       google_play_subscription_id: verification.subscriptionId,
@@ -364,7 +376,7 @@ async function persistGooglePlayEntitlement(
         : null,
       auto_renew_enabled: verification.autoRenewEnabled,
       renews_at: verification.endsAt,
-      ends_at: verification.endsAt,
+      ends_at: effectiveVerification.endsAt,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },
@@ -568,6 +580,52 @@ export async function syncGooglePlaySubscriptionFromRtdn(
   return userIds[0] ?? null;
 }
 
+/**
+ * Syncs a voided subscription order without revoking a newer renewal. Google
+ * Play's subscription resource exposes the current latest order; only a full
+ * refund of that exact order ends the current entitlement immediately.
+ */
+export async function syncGooglePlayVoidedSubscriptionFromRtdn(
+  purchaseToken: string,
+  voidedOrderId: string,
+  refundType: number,
+): Promise<string | null> {
+  const publisher = getAndroidPublisher();
+  const verification = await readGooglePlaySubscription(
+    purchaseToken,
+    undefined,
+    publisher,
+  );
+  const userIds = await resolveGooglePlayPurchaseOwners(
+    verification.purchaseToken,
+    verification.linkedPurchaseToken,
+  );
+
+  if (userIds.length === 0) {
+    return null;
+  }
+
+  const voidsCurrentOrder = refundType === 1
+    && verification.orderId === voidedOrderId;
+  const entitlementOverride = voidsCurrentOrder
+    ? { status: "expired" as const, endsAt: new Date().toISOString() }
+    : undefined;
+
+  for (const userId of userIds) {
+    await persistGooglePlayEntitlement(
+      verification,
+      userId,
+      entitlementOverride,
+    );
+  }
+
+  if (!voidsCurrentOrder) {
+    await acknowledgeGooglePlaySubscription(verification, publisher);
+  }
+
+  return userIds[0] ?? null;
+}
+
 export async function claimGooglePlayRtdnEvent(
   messageId: string,
   payload: unknown,
@@ -590,11 +648,14 @@ export async function claimGooglePlayRtdnEvent(
 
   const { data, error } = await supabase
     .from("google_play_rtdn_events")
-    .select("processed_at")
+    .select("processed_at, error_message")
     .eq("message_id", messageId)
     .maybeSingle<GooglePlayRtdnEventRow>();
 
   if (error) throw error;
+  if (data?.error_message === GOOGLE_PLAY_RTDN_MANUAL_REVIEW_REQUIRED) {
+    return false;
+  }
   return !data?.processed_at;
 }
 

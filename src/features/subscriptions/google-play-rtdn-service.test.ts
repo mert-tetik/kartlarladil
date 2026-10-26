@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => {
     databaseInsert: vi.fn(),
     databaseOwnerLookup: vi.fn(),
     databaseEventLookup: vi.fn(),
+    databaseSubscriptionLookup: vi.fn(),
     databaseUpdate: vi.fn(),
     databaseUpsert: vi.fn(),
     publisherGet: vi.fn(),
@@ -24,6 +25,10 @@ vi.mock("@/lib/supabase/admin", () => ({
         eq: (_column: string, value: string) => {
           if (table === "google_play_purchase_accounts") {
             return mocks.databaseOwnerLookup(value);
+          }
+
+          if (table === "user_subscriptions") {
+            return { maybeSingle: () => mocks.databaseSubscriptionLookup(value) };
           }
 
           return {
@@ -64,7 +69,9 @@ vi.mock("googleapis", () => ({
 import {
   claimGooglePlayRtdnEvent,
   completeGooglePlayRtdnEvent,
+  GOOGLE_PLAY_RTDN_MANUAL_REVIEW_REQUIRED,
   syncGooglePlaySubscriptionFromRtdn,
+  syncGooglePlayVoidedSubscriptionFromRtdn,
   verifyGooglePlayRtdnToken,
 } from "@/features/subscriptions/google-play-service";
 
@@ -77,6 +84,7 @@ describe("Google Play RTDN service", () => {
     mocks.databaseInsert.mockResolvedValue({ error: null });
     mocks.databaseOwnerLookup.mockResolvedValue({ data: [], error: null });
     mocks.databaseEventLookup.mockResolvedValue({ data: null, error: null });
+    mocks.databaseSubscriptionLookup.mockResolvedValue({ data: null, error: null });
     mocks.databaseUpdate.mockResolvedValue({ error: null });
     mocks.databaseUpsert.mockResolvedValue({ error: null });
     mocks.publisherGet.mockResolvedValue({
@@ -172,6 +180,60 @@ describe("Google Play RTDN service", () => {
     expect(mocks.publisherAcknowledge).not.toHaveBeenCalled();
   });
 
+  it("revokes the current entitlement when its exact latest subscription order is fully voided", async () => {
+    mocks.databaseOwnerLookup.mockResolvedValue({
+      data: [{ user_id: "user-1" }],
+      error: null,
+    });
+    mocks.databaseSubscriptionLookup.mockResolvedValue({
+      data: {
+        plan: "basic",
+        status: "active",
+        provider: "google_play",
+        google_play_purchase_token: "voided-token",
+        ends_at: "2030-07-01T00:00:00.000Z",
+      },
+      error: null,
+    });
+
+    const before = Date.now();
+    await expect(
+      syncGooglePlayVoidedSubscriptionFromRtdn("voided-token", "GPA.1234", 1),
+    ).resolves.toBe("user-1");
+    const after = Date.now();
+
+    const [, savedEntitlement] = mocks.databaseUpsert.mock.calls.find(
+      ([table]) => table === "user_subscriptions",
+    ) ?? [];
+    const entitlement = savedEntitlement as {
+      status: string;
+      ends_at: string;
+      renews_at: string;
+    };
+    expect(entitlement.status).toBe("expired");
+    expect(Date.parse(entitlement.ends_at)).toBeGreaterThanOrEqual(before);
+    expect(Date.parse(entitlement.ends_at)).toBeLessThanOrEqual(after);
+    expect(entitlement.renews_at).toBe("2030-07-01T00:00:00.000Z");
+    expect(mocks.publisherAcknowledge).not.toHaveBeenCalled();
+  });
+
+  it("does not revoke a newer subscription order for a historical void", async () => {
+    mocks.databaseOwnerLookup.mockResolvedValue({
+      data: [{ user_id: "user-1" }],
+      error: null,
+    });
+
+    await expect(
+      syncGooglePlayVoidedSubscriptionFromRtdn("voided-token", "GPA.OLDER", 1),
+    ).resolves.toBe("user-1");
+
+    const [, savedEntitlement] = mocks.databaseUpsert.mock.calls.find(
+      ([table]) => table === "user_subscriptions",
+    ) ?? [];
+    expect(savedEntitlement).toMatchObject({ status: "active", ends_at: "2030-07-01T00:00:00.000Z" });
+    expect(mocks.publisherAcknowledge).toHaveBeenCalledTimes(1);
+  });
+
   it("claims new messages and retries duplicates that have not completed", async () => {
     await expect(claimGooglePlayRtdnEvent("message-new", {})).resolves.toBe(true);
 
@@ -188,6 +250,19 @@ describe("Google Play RTDN service", () => {
       error: null,
     });
     await expect(claimGooglePlayRtdnEvent("message-done", {})).resolves.toBe(false);
+  });
+
+  it("keeps pending manual refund reviews queued without reprocessing duplicate deliveries", async () => {
+    mocks.databaseInsert.mockResolvedValueOnce({ error: { code: "23505" } });
+    mocks.databaseEventLookup.mockResolvedValue({
+      data: {
+        processed_at: null,
+        error_message: GOOGLE_PLAY_RTDN_MANUAL_REVIEW_REQUIRED,
+      },
+      error: null,
+    });
+
+    await expect(claimGooglePlayRtdnEvent("refund-review-pending", {})).resolves.toBe(false);
   });
 
   it("marks successful events processed but leaves failed events retryable", async () => {
