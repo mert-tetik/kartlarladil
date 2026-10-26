@@ -20,6 +20,7 @@ import {
 } from "@/features/cards/components/card-grammar-details-overlay";
 import { generateCardRequest } from "@/features/cards/create-card-client";
 import { localCardRepository } from "@/features/cards/card-repository";
+import { segmentTextWithWordIndices } from "@/features/cards/image-text-tokenizer";
 import type {
   ImageTextMode,
   ImageTextSeparator,
@@ -149,6 +150,8 @@ export function MobileImageTextTranslateOverlay({
         confirmationCloseTimerRef.current = null;
       }
       wasOpenRef.current = false;
+      // The sheet is parent-controlled and may close through swipe/back gestures; reset its local lifecycle state on that external transition.
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- closing is an external visibility transition, not derived render state
       setMode("image");
       setAnswerQuestions(true);
       setImages([]);
@@ -1394,22 +1397,21 @@ function TokenizedText({
   activeWord: string | null;
   onWordClick: (word: string, clickedLanguage: ClickedLanguage, sentenceIndex: number, wordIndex: number) => void;
 }) {
-  let wordIndex = 0;
+  const segments = segmentTextWithWordIndices(text, language);
 
   return (
     <p className="whitespace-pre-wrap break-words text-base leading-8 text-foreground">
-      {segmentText(text, language).map((segment, index) => {
-        if (!segment.isWordLike) {
+      {segments.map((segment, index) => {
+        const wordIndex = segment.wordIndex;
+        if (!segment.isWordLike || wordIndex === null) {
           return <span key={`${segment.text}-${index}`}>{segment.text}</span>;
         }
 
-        const currentWordIndex = wordIndex;
-        wordIndex += 1;
         return (
           <button
             key={`${segment.text}-${index}`}
             type="button"
-            onClick={() => onWordClick(segment.text, clickedLanguage, sentenceIndex, currentWordIndex)}
+            onClick={() => onWordClick(segment.text, clickedLanguage, sentenceIndex, wordIndex)}
             aria-label={segment.text}
             className={cn("rounded-md px-0.5 underline decoration-dotted underline-offset-4 transition-colors hover:bg-brand/15", activeWord === segment.text && "bg-brand/20 text-brand")}
           >
@@ -1454,26 +1456,6 @@ function findCatalogWordTranslation({
 
 function getGeneratedCardTranslation(generated: GeneratedCardResponse, locale: LanguageCode) {
   return generated.translations[locale] ?? generated.translations.en ?? "";
-}
-
-function segmentText(text: string, language: LanguageCode): Array<{ text: string; isWordLike: boolean }> {
-  const Segmenter = (Intl as typeof Intl & {
-    Segmenter?: new (locale: string, options: { granularity: "word" }) => {
-      segment: (value: string) => Iterable<{ segment: string; isWordLike?: boolean }>;
-    };
-  }).Segmenter;
-
-  if (Segmenter) {
-    return Array.from(new Segmenter(language, { granularity: "word" }).segment(text)).map((part) => ({
-      text: part.segment,
-      isWordLike: part.isWordLike ?? false,
-    }));
-  }
-
-  return text.match(/\s+|[\p{L}\p{N}]+(?:[\u2019'-][\p{L}\p{N}]+)*|[^\p{L}\p{N}\s]+/gu)?.map((part) => ({
-    text: part,
-    isWordLike: /[\p{L}\p{N}]/u.test(part),
-  })) ?? [];
 }
 
 function createClientId() {
