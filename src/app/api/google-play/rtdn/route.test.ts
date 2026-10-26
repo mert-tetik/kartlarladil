@@ -76,20 +76,28 @@ describe("Google Play RTDN route", () => {
 
   it("acknowledges Google's test notification without claiming a subscription event", async () => {
     const testNotification = { testNotification: { version: "1.0" } };
-    const response = await POST(
-      makeRequest({
-        message: {
-          messageId: "test-notification-1",
-          data: Buffer.from(JSON.stringify(testNotification)).toString("base64"),
-        },
-      }),
-    );
+    const infoLog = vi.spyOn(console, "info").mockImplementation(() => {});
 
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ received: true, skipped: true });
-    expect(mockVerifyIdentity).toHaveBeenCalledWith("signed-token");
-    expect(mockClaimEvent).not.toHaveBeenCalled();
-    expect(mockSyncSubscription).not.toHaveBeenCalled();
+    try {
+      const response = await POST(
+        makeRequest({
+          message: {
+            messageId: "test-notification-1",
+            data: Buffer.from(JSON.stringify(testNotification)).toString("base64"),
+          },
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ received: true, skipped: true });
+      expect(mockVerifyIdentity).toHaveBeenCalledWith("signed-token");
+      expect(mockClaimEvent).not.toHaveBeenCalled();
+      expect(mockSyncSubscription).not.toHaveBeenCalled();
+      expect(infoLog).toHaveBeenCalledWith("Google Play RTDN test notification acknowledged.");
+      expect(JSON.stringify(infoLog.mock.calls)).not.toContain("signed-token");
+    } finally {
+      infoLog.mockRestore();
+    }
   });
 
   it("redacts the purchase token from RTDN logs and persisted processing errors", async () => {

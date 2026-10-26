@@ -24,6 +24,9 @@ interface RealTimeDeveloperNotification {
   subscriptionNotification?: {
     purchaseToken?: string;
   };
+  testNotification?: {
+    version?: string;
+  };
 }
 
 function getBearerToken(request: Request): string | null {
@@ -73,6 +76,9 @@ export async function POST(request: Request) {
 
   const purchaseToken = notification.subscriptionNotification?.purchaseToken;
   if (!purchaseToken) {
+    if (notification.testNotification) {
+      console.info("Google Play RTDN test notification acknowledged.");
+    }
     return NextResponse.json({ received: true, skipped: true }, { status: 200 });
   }
 
