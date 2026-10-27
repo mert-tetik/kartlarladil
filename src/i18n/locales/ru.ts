@@ -370,7 +370,7 @@ const dictionary = {
   "legal.contact": "Свяжитесь с нами по вопросам: {email}",
   "legal.contactEmail": "foxiesdeck@outlook.com",
   "legal.lastUpdated": "Последнее обновление",
-  "limit.activeCardLimitDescription": "Бесплатный план позволяет держать одновременно не более 20 активных карточек. Изучите текущие карточки, прежде чем добавлять новые.",
+  "limit.activeCardLimitDescription": "Бесплатный план позволяет иметь до 20 активных карточек для каждого изучаемого языка одновременно. Сначала изучите текущие карточки на этом языке, прежде чем добавлять новые.",
   "limit.activeCardLimitGroupDescription": "В вашу колоду добавлено карточек из группы: {addedCount}. Не удалось добавить {skippedCount}, потому что достигнут лимит карточек.",
   "limit.activeCardLimitLearnButton": "Учить карточки",
   "limit.activeCardLimitTitle": "Квота активных карт заполнена",

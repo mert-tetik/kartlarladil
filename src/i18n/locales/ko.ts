@@ -370,7 +370,7 @@ const dictionary = {
   "legal.contact": "질문이 있으시면 문의하세요: {email}",
   "legal.contactEmail": "foxiesdeck@outlook.com",
   "legal.lastUpdated": "마지막 업데이트",
-  "limit.activeCardLimitDescription": "무료 플랜에서는 한 번에 활성 카드를 최대 20장까지 보유할 수 있습니다. 새 카드를 추가하기 전에 현재 카드를 먼저 학습하세요.",
+  "limit.activeCardLimitDescription": "무료 플랜에서는 학습 언어별로 활성 카드를 한 번에 최대 20장까지 보유할 수 있습니다. 새 카드를 추가하기 전에 해당 언어의 카드를 먼저 학습하세요.",
   "limit.activeCardLimitGroupDescription": "그룹에서 {addedCount}장의 카드를 덱에 추가했습니다. 카드 한도에 도달하여 {skippedCount}장은 추가하지 못했습니다.",
   "limit.activeCardLimitLearnButton": "카드 학습하기",
   "limit.activeCardLimitTitle": "활성 카드 할당량이 가득 찼습니다",

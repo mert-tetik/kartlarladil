@@ -370,7 +370,7 @@ const dictionary = {
   "legal.contact": "Neem contact met ons op bij vragen: {email}",
   "legal.contactEmail": "foxiesdeck@outlook.com",
   "legal.lastUpdated": "Laatst bijgewerkt",
-  "limit.activeCardLimitDescription": "Met het gratis plan kun je maximaal 20 actieve kaarten tegelijk hebben. Leer eerst je huidige kaarten voordat je nieuwe toevoegt.",
+  "limit.activeCardLimitDescription": "Met het gratis plan kun je per leertaal maximaal 20 actieve kaarten tegelijk hebben. Leer eerst je huidige kaarten in die taal voordat je er meer toevoegt.",
   "limit.activeCardLimitGroupDescription": "{addedCount} kaarten uit de groep zijn aan je collectie toegevoegd. {skippedCount} konden niet worden toegevoegd omdat je kaartlimiet is bereikt.",
   "limit.activeCardLimitLearnButton": "Kaarten leren",
   "limit.activeCardLimitTitle": "Actieve kaartquotum vol",

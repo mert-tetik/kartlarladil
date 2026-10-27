@@ -370,7 +370,7 @@ const dictionary = {
   "legal.contact": "Soruların için bizimle iletişime geç: {email}",
   "legal.contactEmail": "foxiesdeck@outlook.com",
   "legal.lastUpdated": "Son güncelleme",
-  "limit.activeCardLimitDescription": "Free planda aynı anda en fazla 20 öğrenilecek kartın olabilir. Yeni kart eklemek için önce elindeki kartları öğren.",
+  "limit.activeCardLimitDescription": "Free planda her öğrenme dilinde aynı anda en fazla 20 öğrenilecek kartın olabilir. O dilde yeni kart eklemek için önce elindeki kartları öğren.",
   "limit.activeCardLimitGroupDescription": "Eklediğiniz gruptan {addedCount} tanesi destenize eklendi. {skippedCount} tanesi kotanız dolduğu için eklenemedi.",
   "limit.activeCardLimitLearnButton": "Kartları öğren",
   "limit.activeCardLimitTitle": "Aktif öğrenilecek kart kotan doldu",

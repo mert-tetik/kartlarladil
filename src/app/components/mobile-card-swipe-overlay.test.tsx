@@ -288,7 +288,7 @@ describe("MobileCardSwipeOverlay", () => {
   });
 
   it("opens the active card limit popup instead of swiping a card into a full deck", async () => {
-    inventoryState.cards = [{ cardId: "active-card", status: "active", correctCount: 0, addedAt: "2026-07-17T00:00:00.000Z" }];
+    inventoryState.cards = [{ cardId: "en:A1:word:active-card:noun", status: "active", correctCount: 0, addedAt: "2026-07-17T00:00:00.000Z" }];
     inventoryState.activeCardLimit = 1;
     const onSubscriptionLimitReached = vi.fn();
 

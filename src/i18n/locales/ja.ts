@@ -370,7 +370,7 @@ const dictionary = {
   "legal.contact": "質問がある場合はお問い合わせください: {email}",
   "legal.contactEmail": "foxiesdeck@outlook.com",
   "legal.lastUpdated": "最終更新日",
-  "limit.activeCardLimitDescription": "無料プランでは、一度に有効なカードを最大20枚まで保持できます。新しいカードを追加する前に、現在のカードを学習してください。",
+  "limit.activeCardLimitDescription": "無料プランでは、学習言語ごとに有効なカードを同時に最大20枚まで保持できます。その言語のカードを学習してから追加してください。",
   "limit.activeCardLimitGroupDescription": "グループの{addedCount}枚のカードをデッキに追加しました。カード上限に達したため、{skippedCount}枚は追加できませんでした。",
   "limit.activeCardLimitLearnButton": "カードを学習する",
   "limit.activeCardLimitTitle": "アクティブカードの上限に達しました",

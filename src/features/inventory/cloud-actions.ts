@@ -350,14 +350,15 @@ export async function migrateLocalInventoryToCloudAction(
       };
     }
 
-    for (const sourceKey of sourceKeys) {
-      await resolveLocalCard(supabase, sourceKey);
-    }
+    const resolvedCards = await Promise.all(
+      sourceKeys.map((sourceKey) => resolveLocalCard(supabase, sourceKey)),
+    );
+    const resolvedBySourceKey = new Map(resolvedCards.map((card) => [card.sourceKey, card]));
 
     if (entitlements.effectivePlan === "free") {
       const { data: existingRows, error: existingError } = await supabase
         .from("user_cards")
-        .select("card_source_key, status")
+        .select("card_source_key, status, language_code")
         .eq("user_id", user.id);
 
       if (existingError) {
@@ -365,21 +366,37 @@ export async function migrateLocalInventoryToCloudAction(
       }
 
       const existingMap = new Map((existingRows ?? []).map((row) => [row.card_source_key, row.status]));
-      const currentActive = [...existingMap.values()].filter((s) => s === "active").length;
+      const currentActiveByLanguage = new Map<LanguageCode, number>();
+      for (const row of existingRows ?? []) {
+        if (row.status !== "active" || !LOCALE_CODES.includes(row.language_code as LanguageCode)) continue;
+        const language = row.language_code as LanguageCode;
+        currentActiveByLanguage.set(language, (currentActiveByLanguage.get(language) ?? 0) + 1);
+      }
       const currentLearned = [...existingMap.values()].filter((s) => s === "learned").length;
 
-      const newActive = localCards.filter((c) => c.status === "active" && !existingMap.has(c.cardId)).length;
       const newLearned = localCards.filter((c) => c.status === "learned" && !existingMap.has(c.cardId)).length;
 
       const activeLimit = entitlements.limits.activeCards;
       const learnedLimit = entitlements.limits.learnedCards;
 
-      if (activeLimit !== null && currentActive + newActive > activeLimit) {
-        return {
-          status: "error",
-          message: t("limit.activeCardLimitDescription"),
-          errorCode: "free_active_card_limit",
-        };
+      if (activeLimit !== null) {
+        const newActiveByLanguage = new Map<LanguageCode, number>();
+        for (const card of localCards) {
+          if (card.status !== "active" || existingMap.has(card.cardId)) continue;
+          const language = resolvedBySourceKey.get(card.cardId)?.language;
+          if (!language) continue;
+          newActiveByLanguage.set(language, (newActiveByLanguage.get(language) ?? 0) + 1);
+        }
+
+        for (const [language, count] of newActiveByLanguage) {
+          if ((currentActiveByLanguage.get(language) ?? 0) + count > activeLimit) {
+            return {
+              status: "error",
+              message: t("limit.activeCardLimitDescription"),
+              errorCode: "free_active_card_limit",
+            };
+          }
+        }
       }
 
       if (learnedLimit !== null && currentLearned + newLearned > learnedLimit) {
@@ -534,7 +551,7 @@ export async function createCustomCardAction(input: {
     }
 
     if (entitlements.effectivePlan === "free") {
-      const activeCount = await countUserCardsByStatus(supabase, user.id, "active");
+      const activeCount = await countUserCardsByStatus(supabase, user.id, "active", input.language);
       const limitError = checkLimit(activeCount, entitlements.limits.activeCards, "free_active_card_limit");
 
       if (limitError) {
@@ -868,12 +885,19 @@ async function countUserCardsByStatus(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   userId: string,
   status: string,
+  language?: LanguageCode,
 ): Promise<number> {
-  const { count, error } = await supabase
+  let query = supabase
     .from("user_cards")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("status", status);
+
+  if (language) {
+    query = query.eq("language_code", language);
+  }
+
+  const { count, error } = await query;
 
   if (error) {
     throw error;

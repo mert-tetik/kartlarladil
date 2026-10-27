@@ -370,7 +370,7 @@ const dictionary = {
   "legal.contact": "如有疑问，请联系我们：{email}",
   "legal.contactEmail": "foxiesdeck@outlook.com",
   "legal.lastUpdated": "最后更新",
-  "limit.activeCardLimitDescription": "免费方案最多可同时拥有20张未学习卡片。请先学会现有卡片，再添加新卡。",
+  "limit.activeCardLimitDescription": "免费方案中，每种学习语言最多可同时拥有20张待学习卡片。添加新卡前，请先学会该语言的现有卡片。",
   "limit.activeCardLimitGroupDescription": "已将分组中的 {addedCount} 张卡片添加到卡组。由于已达到卡片上限，{skippedCount} 张无法添加。",
   "limit.activeCardLimitLearnButton": "学习卡片",
   "limit.activeCardLimitTitle": "活跃卡配额已满",

@@ -74,6 +74,28 @@ describe("inventory store analytics", () => {
     });
   });
 
+  it("allows a card in a different language when another language is at its active limit", async () => {
+    const englishInventoryCard = {
+      cardId: testCard.sourceKey,
+      status: "active" as const,
+      correctCount: 0,
+      addedAt: "2026-01-01T00:00:00.000Z",
+    };
+    const germanCard = VOCABULARY_CARDS.find((card) => card.language === "de")!;
+    useInventoryStore.setState({
+      cards: [englishInventoryCard],
+      activeCardLimit: 1,
+    });
+
+    const result = await useInventoryStore.getState().addCard(germanCard.sourceKey);
+
+    expect(result.ok).toBe(true);
+    expect(useInventoryStore.getState().cards.map((card) => card.cardId)).toEqual([
+      testCard.sourceKey,
+      germanCard.sourceKey,
+    ]);
+  });
+
   it("rolls back an optimistic single-card add when the server action rejects", async () => {
     const logger = vi.spyOn(console, "error").mockImplementation(() => undefined);
     vi.mocked(addCloudInventoryCardAction).mockRejectedValueOnce(new Error("temporary transport failure"));

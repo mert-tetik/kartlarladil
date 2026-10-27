@@ -7,6 +7,7 @@ import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-
 import { localCardRepository } from "@/features/cards/card-repository";
 import { cancelCardPronunciation } from "@/features/cards/card-pronunciation-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
+import { countActiveCardsForLanguage } from "@/features/inventory/active-card-limits";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
@@ -261,7 +262,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
     if (
       direction === "add" &&
       activeCardLimit !== null &&
-      inventory.filter((item) => item.status === "active").length >= activeCardLimit
+      countActiveCardsForLanguage(inventory, language) >= activeCardLimit
     ) {
       resetDrag();
       onSubscriptionLimitReached?.("free_active_card_limit");

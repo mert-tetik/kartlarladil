@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { customCardRegistry } from "@/features/cards/custom-card-registry";
 import { localCardRepository } from "@/features/cards/card-repository";
+import { countActiveCardsForLanguage, limitCardIdsByLanguage } from "@/features/inventory/active-card-limits";
 import { FIRST_CARD_ADDED_EVENT } from "@/features/push/push-client";
 import { STORAGE_KEY } from "@/lib/constants";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
@@ -390,15 +391,18 @@ export const useInventoryStore = create<InventoryState>()(
 
       async addCard(cardId) {
         const previousCount = get().cards.length;
+        const activeCardLimit = get().activeCardLimit;
+        const targetCard = localCardRepository.findById(cardId);
+
+        if (
+          activeCardLimit !== null &&
+          targetCard &&
+          countActiveCardsForLanguage(get().cards, targetCard.language) >= activeCardLimit
+        ) {
+          return { ok: false, firstCardAdded: false, limitReached: true };
+        }
 
         if (get().cloudEnabled) {
-          const { activeCardLimit } = get();
-          const activeCount = get().cards.filter((card) => card.status === "active").length;
-
-          if (activeCardLimit !== null && activeCount >= activeCardLimit) {
-            return { ok: false, firstCardAdded: false, limitReached: true };
-          }
-
           const cardWasAlreadyPresent = get().cards.some((card) => card.cardId === cardId);
           const optimisticCards = addCardToInventory(get().cards, cardId);
           set({ cards: optimisticCards });
@@ -508,12 +512,12 @@ export const useInventoryStore = create<InventoryState>()(
         if (get().cloudEnabled) {
           const existingIds = new Set(get().cards.map((card) => card.cardId));
           const newCardIds = requestedCardIds.filter((cardId) => !existingIds.has(cardId));
-          const activeCount = get().cards.filter((card) => card.status === "active").length;
           const activeCardLimit = get().activeCardLimit;
-          const availableSlots = activeCardLimit === null
-            ? newCardIds.length
-            : Math.max(0, activeCardLimit - activeCount);
-          const optimisticCardIds = newCardIds.slice(0, availableSlots);
+          const { allowedCardIds: optimisticCardIds } = limitCardIdsByLanguage(
+            newCardIds,
+            get().cards,
+            activeCardLimit,
+          );
 
           if (optimisticCardIds.length > 0) {
             set((state) => ({
@@ -622,13 +626,12 @@ export const useInventoryStore = create<InventoryState>()(
 
         const existingIds = new Set(get().cards.map((card) => card.cardId));
         const newCardIds = requestedCardIds.filter((cardId) => !existingIds.has(cardId));
-        const activeCount = get().cards.filter((card) => card.status === "active").length;
         const activeCardLimit = get().activeCardLimit;
-        const availableSlots = activeCardLimit === null
-          ? newCardIds.length
-          : Math.max(0, activeCardLimit - activeCount);
-        const addedCardIds = newCardIds.slice(0, availableSlots);
-        const remainingCardIds = newCardIds.slice(addedCardIds.length);
+        const { allowedCardIds: addedCardIds, remainingCardIds } = limitCardIdsByLanguage(
+          newCardIds,
+          get().cards,
+          activeCardLimit,
+        );
         const nextCards = addedCardIds.reduce(
           (cards, cardId) => addCardToInventory(cards, cardId),
           get().cards,

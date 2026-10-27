@@ -370,7 +370,7 @@ const dictionary = {
   "legal.contact": "اتصل بنا مع الأسئلة: {email}",
   "legal.contactEmail": "foxiesdeck@outlook.com",
   "legal.lastUpdated": "آخر تحديث",
-  "limit.activeCardLimitDescription": "تسمح الخطة المجانية بامتلاك ما يصل إلى 20 بطاقة نشطة في الوقت نفسه. تعلّم بطاقاتك الحالية قبل إضافة بطاقات جديدة.",
+  "limit.activeCardLimitDescription": "تسمح الخطة المجانية بامتلاك ما يصل إلى 20 بطاقة نشطة لكل لغة تتعلمها في الوقت نفسه. تعلّم بطاقاتك الحالية بهذه اللغة قبل إضافة المزيد.",
   "limit.activeCardLimitGroupDescription": "تمت إضافة {addedCount} بطاقة من المجموعة إلى مجموعتك. تعذّرت إضافة {skippedCount} بطاقة لأن حد البطاقات ممتلئ.",
   "limit.activeCardLimitLearnButton": "تعلّم البطاقات",
   "limit.activeCardLimitTitle": "حصة البطاقات النشطة ممتلئة",

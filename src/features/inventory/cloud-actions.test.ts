@@ -25,6 +25,10 @@ const {
   mockCreateSupabaseAdminClient: vi.fn(),
 }));
 
+const CARD_LANGUAGE_BY_SOURCE_KEY = new Map(
+  VOCABULARY_CARDS.map((card) => [card.sourceKey, card.language]),
+);
+
 let currentSupabase: ReturnType<typeof createSupabaseMock>;
 
 vi.mock("next/cache", () => ({
@@ -51,6 +55,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 interface UserCardRecord {
   user_id: string;
   card_source_key: string;
+  language_code?: string;
   status: string;
   correct_count: number;
   added_at: string;
@@ -243,12 +248,33 @@ function createSupabaseMock(state: MockState, userId = "user-1") {
           .map((row) => row.card_source_key),
       );
       const newKeys = requestedKeys.filter((key) => !existingKeys.has(key));
-      const activeCount = state.userCards.filter((row) => row.user_id === userId && row.status === "active").length;
-      const availableSlots = args.p_active_card_limit === null || args.p_active_card_limit === undefined
-        ? newKeys.length
-        : Math.max(0, args.p_active_card_limit - activeCount);
-      const addedCardIds = newKeys.slice(0, availableSlots);
-      const remainingCardIds = newKeys.slice(addedCardIds.length);
+      const languageFor = (sourceKey: string): string | undefined => {
+        const customLanguage = state.customCards.find((card) => card.source_key === sourceKey)?.language;
+        return CARD_LANGUAGE_BY_SOURCE_KEY.get(sourceKey)
+          ?? (typeof customLanguage === "string" ? customLanguage : undefined);
+      };
+      const activeCounts = new Map<string, number>();
+      for (const row of state.userCards) {
+        if (row.user_id !== userId || row.status !== "active") continue;
+        const language = languageFor(row.card_source_key);
+        if (language) activeCounts.set(language, (activeCounts.get(language) ?? 0) + 1);
+      }
+      const addedCardIds: string[] = [];
+      const remainingCardIds: string[] = [];
+      for (const sourceKey of newKeys) {
+        const language = languageFor(sourceKey);
+        const activeCount = language ? activeCounts.get(language) ?? 0 : 0;
+        if (
+          !language ||
+          (args.p_active_card_limit !== null && args.p_active_card_limit !== undefined && activeCount >= args.p_active_card_limit)
+        ) {
+          remainingCardIds.push(sourceKey);
+          continue;
+        }
+
+        addedCardIds.push(sourceKey);
+        activeCounts.set(language, activeCount + 1);
+      }
 
       state.userCards.push(
         ...addedCardIds.map((cardSourceKey) => ({
@@ -496,6 +522,30 @@ describe("cloud-actions", () => {
     expect(result.data?.cards.filter((card) => card.status === "active")).toHaveLength(20);
   });
 
+  it("gives each learning language its own twenty-card Free limit", async () => {
+    const englishCards = VOCABULARY_CARDS.filter((card) => card.language === "en").slice(0, 20);
+    const germanCard = VOCABULARY_CARDS.find((card) => card.language === "de")!;
+    const state = createState({
+      userCards: englishCards.map((card) => ({
+        user_id: "user-1",
+        card_source_key: card.sourceKey,
+        status: "active",
+        correct_count: 0,
+        added_at: "2026-01-01T00:00:00.000Z",
+        learned_at: null,
+      })),
+    });
+    currentSupabase = createSupabaseMock(state);
+    mockGetUserEntitlements.mockResolvedValue(createEntitlements("free"));
+
+    const result = await addCloudInventoryCardsAction([germanCard.sourceKey]);
+
+    expect(result.status).toBe("success");
+    expect(result.data?.addedCardIds).toEqual([germanCard.sourceKey]);
+    expect(result.data?.remainingCardIds).toEqual([]);
+    expect(state.userCards).toHaveLength(21);
+  });
+
   it("migrates local inventory directly with card_source_key rows", async () => {
     const state = createState();
     currentSupabase = createSupabaseMock(state);
@@ -523,6 +573,34 @@ describe("cloud-actions", () => {
       },
     ]);
     expect(result.data?.cards).toEqual(localCards);
+  });
+
+  it("migrates cards when another language is already at its Free active-card limit", async () => {
+    const englishCards = VOCABULARY_CARDS.filter((card) => card.language === "en").slice(0, 20);
+    const germanCard = VOCABULARY_CARDS.find((card) => card.language === "de")!;
+    const state = createState({
+      userCards: englishCards.map((card) => ({
+        user_id: "user-1",
+        card_source_key: card.sourceKey,
+        language_code: card.language,
+        status: "active",
+        correct_count: 0,
+        added_at: "2026-01-01T00:00:00.000Z",
+        learned_at: null,
+      })),
+    });
+    currentSupabase = createSupabaseMock(state);
+    mockGetUserEntitlements.mockResolvedValue(createEntitlements("free"));
+
+    const result = await migrateLocalInventoryToCloudAction([{
+      cardId: germanCard.sourceKey,
+      status: "active",
+      correctCount: 0,
+      addedAt: "2026-02-01T10:00:00.000Z",
+    }]);
+
+    expect(result.status).toBe("success");
+    expect(state.userCards).toHaveLength(21);
   });
 
   it("records practice attempts against an existing user_cards row by source key", async () => {

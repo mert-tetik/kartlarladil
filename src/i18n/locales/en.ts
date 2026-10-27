@@ -368,7 +368,7 @@ const dictionary = {
   "legal.contact": "Contact us with questions: {email}",
   "legal.contactEmail": "foxiesdeck@outlook.com",
   "legal.lastUpdated": "Last updated",
-  "limit.activeCardLimitDescription": "The free plan allows up to 20 active cards at a time. Learn your current cards before adding new ones.",
+  "limit.activeCardLimitDescription": "The free plan allows up to 20 active cards per learning language at a time. Learn your current cards in that language before adding more.",
   "limit.activeCardLimitGroupDescription": "{addedCount} cards from the group were added to your deck. {skippedCount} could not be added because your card limit was reached.",
   "limit.activeCardLimitLearnButton": "Learn cards",
   "limit.activeCardLimitTitle": "Active card quota full",

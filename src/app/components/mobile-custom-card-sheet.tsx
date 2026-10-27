@@ -19,6 +19,7 @@ import { findCustomCardMatch } from "@/features/cards/custom-card-matching";
 import { generateCardRequest } from "@/features/cards/create-card-client";
 import { localCardRepository } from "@/features/cards/card-repository";
 import { InventoryActionError, useInventoryStore } from "@/features/inventory/inventory-store";
+import { countActiveCardsForLanguage } from "@/features/inventory/active-card-limits";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn, normalizeSearch } from "@/lib/utils";
@@ -147,7 +148,7 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
     if (!preview) return;
     if (
       activeCardLimit !== null &&
-      cards.filter((card) => card.status === "active").length >= activeCardLimit
+      countActiveCardsForLanguage(cards, preview.language) >= activeCardLimit
     ) {
       onSubscriptionLimitReached?.("free_active_card_limit");
       return;

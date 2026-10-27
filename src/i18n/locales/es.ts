@@ -370,7 +370,7 @@ const dictionary = {
   "legal.contact": "Contáctanos con preguntas: {email}",
   "legal.contactEmail": "foxiesdeck@outlook.com",
   "legal.lastUpdated": "Última actualización",
-  "limit.activeCardLimitDescription": "El plan gratuito permite hasta 20 tarjetas activas a la vez. Aprende primero tus tarjetas actuales antes de agregar nuevas.",
+  "limit.activeCardLimitDescription": "El plan gratuito permite hasta 20 tarjetas activas por idioma de aprendizaje a la vez. Aprende primero las tarjetas de ese idioma antes de añadir más.",
   "limit.activeCardLimitGroupDescription": "Se añadieron {addedCount} tarjetas del grupo a tu mazo. No se pudieron añadir {skippedCount} porque alcanzaste el límite de tarjetas.",
   "limit.activeCardLimitLearnButton": "Aprender cartas",
   "limit.activeCardLimitTitle": "Cuota de tarjetas activas llena",

@@ -27,6 +27,7 @@ import {
 } from "@/features/cards/card-draw-preferences";
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
+import { countActiveCardsForLanguage } from "@/features/inventory/active-card-limits";
 import { UpgradeDialog, type UpgradeDialogErrorCode } from "@/features/subscriptions/components/upgrade-dialog";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
@@ -435,11 +436,10 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
 
       const effectivePlan = entitlements?.effectivePlan ?? "free";
       const activeLimit = PLAN_LIMITS[effectivePlan].activeCards;
+      const targetCard = localCardRepository.findById(cardId);
 
-      if (effectivePlan === "free" && typeof activeLimit === "number") {
-        const activeCount = inventoryCards.filter((card) => card.status === "active").length;
-
-        if (activeCount >= activeLimit) {
+      if (effectivePlan === "free" && typeof activeLimit === "number" && targetCard) {
+        if (countActiveCardsForLanguage(inventoryCards, targetCard.language) >= activeLimit) {
           setLimitError("free_active_card_limit");
           return;
         }
