@@ -25,6 +25,8 @@ const SCORE_GAIN_ANIMATION_MS = 700;
 const RANK_UP_TEST_PARAM = "rank-up-test";
 const RANK_UP_TEST_DELAY_MS = 1000;
 const RANK_UP_TEST_REPEAT_DELAY_MS = 2000;
+const RANK_UP_TEST_FROM_RANK = RANKS[4]!;
+const RANK_UP_TEST_TO_RANK = RANKS[6]!;
 const RANK_UP_UI_CLOSE_SEQUENCE_MS = 620;
 const RANK_UP_BACKGROUND_CLOSE_ANIMATION_MS = 520;
 
@@ -274,11 +276,12 @@ function useAnimatedScoreDisplay(stats: ProgressStats, userId?: string) {
     }
 
     const timer = window.setTimeout(() => {
-      setRankUpRank(stats.rank);
+      setRankUpPreviousRank(RANK_UP_TEST_FROM_RANK);
+      setRankUpRank(RANK_UP_TEST_TO_RANK);
     }, RANK_UP_TEST_DELAY_MS);
 
     return () => window.clearTimeout(timer);
-  }, [forceRankUpTestMode, stats.rank]);
+  }, [forceRankUpTestMode]);
 
   useEffect(() => {
     const previousStats = displayStatsRef.current;
@@ -356,8 +359,9 @@ function useAnimatedScoreDisplay(stats: ProgressStats, userId?: string) {
       }
 
       rankUpTestRepeatTimerRef.current = window.setTimeout(() => {
-      rankUpTestRepeatTimerRef.current = null;
-        setRankUpRank(stats.rank);
+        rankUpTestRepeatTimerRef.current = null;
+        setRankUpPreviousRank(RANK_UP_TEST_FROM_RANK);
+        setRankUpRank(RANK_UP_TEST_TO_RANK);
       }, RANK_UP_TEST_REPEAT_DELAY_MS);
     },
   };

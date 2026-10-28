@@ -5,7 +5,7 @@ import { RankProgressPopover } from "@/features/progress/components/rank-progres
 import { EMPTY_PROGRESS_STATS, RANKS, getNextRankProgress } from "@/features/progress/progress-stats";
 
 const MOBILE_BREAKPOINT = 1024;
-const TEST_POINTS = RANKS[4]?.minPoints ?? 0;
+const TEST_POINTS = RANKS[6]?.minPoints ?? 0;
 const TEST_STATS = {
   ...EMPTY_PROGRESS_STATS,
   totalPoints: TEST_POINTS,
