@@ -808,7 +808,10 @@ export function MobileCardPodiumOverlay({
       </button>
 
       <main
-        className="absolute inset-x-0 bottom-[max(3.75rem,env(safe-area-inset-bottom)+3rem)] z-10 flex flex-col items-center overflow-y-auto px-4"
+        className={cn(
+          "absolute inset-x-0 bottom-[max(3.75rem,env(safe-area-inset-bottom)+3rem)] z-10 flex flex-col items-center px-4",
+          isReviewMode ? "overflow-visible" : "overflow-y-auto",
+        )}
         style={{ top: "calc(env(safe-area-inset-top) + 1.5rem)" }}
         onClick={isReviewMode ? handleReviewTap : undefined}
         onPointerDown={isReviewMode ? handleReviewPressStart : undefined}
@@ -846,7 +849,10 @@ export function MobileCardPodiumOverlay({
         ) : (
           <>
         <div
-          className="relative min-h-[24rem] w-full flex-1 shrink-0 translate-y-[20px]"
+          className={cn(
+            "relative min-h-[24rem] w-full flex-1 shrink-0",
+            isReviewMode ? "-translate-y-[30px]" : "translate-y-[20px]",
+          )}
         >
           <div
             ref={podiumTrackRef}
@@ -906,7 +912,7 @@ export function MobileCardPodiumOverlay({
                           <div
                             className={cn(
                               "pointer-events-none absolute inset-x-0 z-30 flex flex-col items-center justify-center gap-1",
-                              isReviewMode ? "bottom-[calc(100%+80px)]" : "bottom-[calc(100%+20px)]",
+                              isReviewMode ? "bottom-[calc(100%+30px)]" : "bottom-[calc(100%+20px)]",
                             )}
                             data-rank-details-ui="position"
                           >
@@ -988,16 +994,19 @@ export function MobileCardPodiumOverlay({
               </button>
             </>
           ) : null}
+
+          {isReviewMode ? (
+            <p
+              className="pointer-events-none absolute inset-x-0 z-20 text-center text-4xl leading-none text-white font-super-water"
+              style={{ top: "calc(50% + min(45.333vw, 10.6667rem) + 120px)" }}
+              data-card-review-hint
+            >
+              {formatSuperWaterText(locale, t("cards.tapToContinue"))}
+            </p>
+          ) : null}
         </div>
 
-        {isReviewMode ? (
-          <p
-            className="pointer-events-none relative -top-[30px] w-full shrink-0 pb-2 pt-3 text-center text-4xl leading-none text-white font-super-water"
-            data-card-review-hint
-          >
-            {formatSuperWaterText(locale, t("cards.tapToContinue"))}
-          </p>
-        ) : (
+        {!isReviewMode ? (
           <div className="w-full shrink-0 pb-2 text-center" data-card-supporting-content data-rank-details-ui="supporting">
             <div className="mt-3 flex w-full items-center gap-2">
               <CardGrammarDetailsButton
@@ -1023,7 +1032,7 @@ export function MobileCardPodiumOverlay({
               </button>
             </div>
           </div>
-        )}
+        ) : null}
 
         {active && !isReviewMode ? (
           <div className="flex w-full shrink-0 justify-center gap-2 pb-1 pt-2" data-card-gem-actions data-rank-details-ui="actions">
@@ -1060,8 +1069,37 @@ export function MobileCardPodiumOverlay({
   );
 }
 
+const PODIUM_DEFINITION_BASE_FONT_SIZE = 14;
+const PODIUM_DEFINITION_MIN_FONT_SIZE = 10;
+const PODIUM_DEFINITION_MAX_FONT_SIZE = 24;
+const PODIUM_DEFINITION_MAX_LENGTH = 300;
+
 function PodiumDefinitionText({ text, cardId }: { text: string; cardId: string }) {
   const pathId = `podium-definition-curve-${cardId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+  const textRef = useRef<SVGTextElement | null>(null);
+  const [fontSize, setFontSize] = useState(PODIUM_DEFINITION_BASE_FONT_SIZE);
+  const [compressToLimit, setCompressToLimit] = useState(false);
+
+  useLayoutEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const measuredLength = textRef.current?.getComputedTextLength() ?? 0;
+      const naturalLength = Number.isFinite(measuredLength) && measuredLength > 0
+        ? measuredLength
+        : Math.max(text.length * 7.5, 1);
+      const nextFontSize = Math.min(
+        PODIUM_DEFINITION_MAX_FONT_SIZE,
+        Math.max(
+          PODIUM_DEFINITION_MIN_FONT_SIZE,
+          PODIUM_DEFINITION_BASE_FONT_SIZE * PODIUM_DEFINITION_MAX_LENGTH / naturalLength,
+        ),
+      );
+
+      setFontSize(nextFontSize);
+      setCompressToLimit(naturalLength > PODIUM_DEFINITION_MAX_LENGTH);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [text]);
 
   return (
     <div
@@ -1072,7 +1110,15 @@ function PodiumDefinitionText({ text, cardId }: { text: string; cardId: string }
           <defs>
             <path id={pathId} d="M 18 7 Q 176 39 334 7" />
           </defs>
-          <text fill="white" fontSize="14" fontWeight="600" textAnchor="middle">
+          <text
+            ref={textRef}
+            fill="white"
+            fontSize={fontSize}
+            fontWeight="600"
+            textAnchor="middle"
+            textLength={compressToLimit ? PODIUM_DEFINITION_MAX_LENGTH : undefined}
+            lengthAdjust={compressToLimit ? "spacingAndGlyphs" : undefined}
+          >
             <textPath href={`#${pathId}`} startOffset="50%">
               {text}
             </textPath>

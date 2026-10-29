@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { MobileLandingCardCenter } from "@/app/components/mobile-landing-card-center";
 import { VOCABULARY_CARDS } from "@/data/cards";
-import { TIER_REQUIREMENTS } from "@/data/tiers";
+import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { LOCALE_CODES } from "@/i18n/config";
 import { DICTIONARIES, translate } from "@/i18n/dictionaries";
 import { LocaleProvider } from "@/i18n/locale-provider";
@@ -35,22 +35,24 @@ const learnedCards = [{
 describe("MobileLandingCardCenter", () => {
   it("shows a localized empty message with the selected card language", () => {
     render(
-      <LocaleProvider initialLocale="tr">
-        <MobileLandingCardCenter
-          activeCards={[]}
-          learnedCards={[]}
-          selectedLanguage="en"
-          status="all"
-          isOpen
-          onStatusChange={vi.fn()}
-          onOpenChange={vi.fn()}
-          onOpenDraw={vi.fn()}
-          onOpenImageTranslate={vi.fn()}
-          onOpenCreate={vi.fn()}
-          onOpenGroups={vi.fn()}
-          showEmptyDeckPointer={false}
-        />
-      </LocaleProvider>,
+      <AuthSessionProvider user={null}>
+        <LocaleProvider initialLocale="tr">
+          <MobileLandingCardCenter
+            activeCards={[]}
+            learnedCards={[]}
+            selectedLanguage="en"
+            status="all"
+            isOpen
+            onStatusChange={vi.fn()}
+            onOpenChange={vi.fn()}
+            onOpenDraw={vi.fn()}
+            onOpenImageTranslate={vi.fn()}
+            onOpenCreate={vi.fn()}
+            onOpenGroups={vi.fn()}
+            showEmptyDeckPointer={false}
+          />
+        </LocaleProvider>
+      </AuthSessionProvider>,
     );
 
     expect(screen.getByText("İngilizce dilinde hiç kelimeniz yok.")).toBeVisible();
@@ -65,22 +67,24 @@ describe("MobileLandingCardCenter", () => {
 
   it("keeps filters directly below the mobile navbar while the landing dashboard scrolls", () => {
     render(
-      <LocaleProvider initialLocale="tr">
-        <MobileLandingCardCenter
-          activeCards={activeCards}
-          learnedCards={[]}
-          selectedLanguage="en"
-          status="all"
-          isOpen
-          onStatusChange={vi.fn()}
-          onOpenChange={vi.fn()}
-          onOpenDraw={vi.fn()}
-          onOpenImageTranslate={vi.fn()}
-          onOpenCreate={vi.fn()}
-          onOpenGroups={vi.fn()}
-          showEmptyDeckPointer={false}
-        />
-      </LocaleProvider>,
+      <AuthSessionProvider user={null}>
+        <LocaleProvider initialLocale="tr">
+          <MobileLandingCardCenter
+            activeCards={activeCards}
+            learnedCards={[]}
+            selectedLanguage="en"
+            status="all"
+            isOpen
+            onStatusChange={vi.fn()}
+            onOpenChange={vi.fn()}
+            onOpenDraw={vi.fn()}
+            onOpenImageTranslate={vi.fn()}
+            onOpenCreate={vi.fn()}
+            onOpenGroups={vi.fn()}
+            showEmptyDeckPointer={false}
+          />
+        </LocaleProvider>
+      </AuthSessionProvider>,
     );
 
     const filters = document.querySelector<HTMLElement>("[data-mobile-card-filters]");
@@ -93,43 +97,32 @@ describe("MobileLandingCardCenter", () => {
     expect(filters).not.toHaveClass("fixed");
   });
 
-  it("shows a tier progress bar under every card and completes learned cards with the reward gradient", () => {
+  it("shows one grid item for each card in the active and learned collections", () => {
     render(
-      <LocaleProvider initialLocale="tr">
-        <MobileLandingCardCenter
-          activeCards={activeCards}
-          learnedCards={learnedCards}
-          selectedLanguage="en"
-          status="all"
-          isOpen
-          onStatusChange={vi.fn()}
-          onOpenChange={vi.fn()}
-          onOpenDraw={vi.fn()}
-          onOpenImageTranslate={vi.fn()}
-          onOpenCreate={vi.fn()}
-          onOpenGroups={vi.fn()}
-          showEmptyDeckPointer={false}
-        />
-      </LocaleProvider>,
+      <AuthSessionProvider user={null}>
+        <LocaleProvider initialLocale="tr">
+          <MobileLandingCardCenter
+            activeCards={activeCards}
+            learnedCards={learnedCards}
+            selectedLanguage="en"
+            status="all"
+            isOpen
+            onStatusChange={vi.fn()}
+            onOpenChange={vi.fn()}
+            onOpenDraw={vi.fn()}
+            onOpenImageTranslate={vi.fn()}
+            onOpenCreate={vi.fn()}
+            onOpenGroups={vi.fn()}
+            showEmptyDeckPointer={false}
+          />
+        </LocaleProvider>
+      </AuthSessionProvider>,
     );
 
-    const rows = document.querySelectorAll<HTMLElement>("[data-mobile-card-row]");
-    const progressBars = document.querySelectorAll<HTMLElement>("[data-card-progress-bar]");
-    const fills = Array.from(document.querySelectorAll<HTMLElement>("[data-card-progress-fill]"));
-    const labels = Array.from(document.querySelectorAll<HTMLElement>("[data-card-progress-label]"));
-    const learnedFill = fills.find((fill) => fill.classList.contains("bg-gradient-to-r"));
-    const activeFill = fills.find((fill) => !fill.classList.contains("bg-gradient-to-r"));
-
-    expect(rows).toHaveLength(2);
-    expect(progressBars).toHaveLength(2);
-    expect(labels).toHaveLength(2);
-    expect(labels.map((label) => label.textContent)).toEqual([
-      `${TIER_REQUIREMENTS[learnedCard.tier]}/${TIER_REQUIREMENTS[learnedCard.tier]}`,
-      `0/${TIER_REQUIREMENTS[card.tier]}`,
-    ]);
-    expect(Array.from(progressBars).map((bar) => bar.getAttribute("aria-valuenow"))).toEqual(["100", "0"]);
-    expect(learnedFill).toHaveClass("bg-gradient-to-r", "from-amber-300", "to-orange-500");
-    expect(learnedFill).toHaveStyle({ width: "100%" });
-    expect(activeFill).toHaveStyle({ width: "0%" });
+    const visibleCards = Array.from(document.querySelectorAll<HTMLElement>("[data-mobile-vocabulary-card]"));
+    expect(visibleCards).toHaveLength(2);
+    expect(visibleCards.map((item) => item.getAttribute("aria-label"))).toEqual(
+      expect.arrayContaining([card.term, learnedCard.term]),
+    );
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronDown, ScanText } from "lucide-react";
 import { MobileCardPodiumOverlay } from "@/app/components/mobile-card-podium-overlay";
@@ -16,6 +16,174 @@ import type { InventoryCardView } from "@/features/inventory/inventory-selectors
 import type { LanguageCode } from "@/types/domain";
 
 type CardStatusFilter = "all" | "active" | "learned";
+
+const CARD_GRID_COLUMNS = 3;
+const CARD_GRID_OVERSCAN_ROWS = 4;
+const CARD_GRID_INITIAL_RENDER_ROWS = 12;
+const CARD_GRID_INITIAL_ROW_HEIGHT = 160;
+
+const MobileLandingCardGridItem = memo(function MobileLandingCardGridItem({
+  card,
+  inventory,
+  onSelect,
+}: {
+  card: InventoryCardView["card"];
+  inventory: InventoryCardView["inventory"];
+  onSelect: (cardId: string) => void;
+}) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={card.term}
+      data-mobile-vocabulary-card
+      onClick={() => onSelect(card.id)}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        onSelect(card.id);
+      }}
+    >
+      <VocabularyCardView
+        card={card}
+        inventory={inventory}
+        face="front"
+        showActions={false}
+        compact
+        className="aspect-[3/4] min-h-0 w-full rounded-none max-sm:aspect-[3/4] max-sm:min-h-0"
+        pronunciationMatchesTranslation
+        showGroupImage
+      />
+    </div>
+  );
+});
+
+const VirtualizedMobileLandingCardGrid = memo(function VirtualizedMobileLandingCardGrid({
+  cards,
+  onSelectCard,
+}: {
+  cards: InventoryCardView[];
+  onSelectCard: (cardId: string) => void;
+}) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  const metricsRef = useRef({
+    rowHeight: CARD_GRID_INITIAL_ROW_HEIGHT,
+    firstRow: 0,
+    lastRow: Math.min(CARD_GRID_INITIAL_RENDER_ROWS, Math.ceil(cards.length / CARD_GRID_COLUMNS)),
+  });
+  const totalRows = Math.ceil(cards.length / CARD_GRID_COLUMNS);
+  const [rowHeight, setRowHeight] = useState(CARD_GRID_INITIAL_ROW_HEIGHT);
+  const [renderedRows, setRenderedRows] = useState({
+    first: 0,
+    last: Math.min(CARD_GRID_INITIAL_RENDER_ROWS, totalRows),
+  });
+
+  const updateWindow = useCallback(() => {
+    const grid = gridRef.current;
+    if (!grid || totalRows === 0) return;
+
+    const measuredRowHeight = grid.clientWidth > 0
+      ? (grid.clientWidth / CARD_GRID_COLUMNS) * (4 / 3)
+      : metricsRef.current.rowHeight;
+    const nextRowHeight = Math.max(1, measuredRowHeight);
+    const scrollContainer = grid.closest<HTMLElement>("[data-mobile-landing-dashboard]");
+    const gridRect = grid.getBoundingClientRect();
+    const viewportRect = scrollContainer?.getBoundingClientRect();
+    const viewportTop = viewportRect ? viewportRect.top - gridRect.top : 0;
+    const viewportBottom = viewportRect
+      ? viewportRect.bottom - gridRect.top
+      : window.innerHeight - gridRect.top;
+    const firstVisibleRow = Math.floor(Math.max(0, viewportTop) / nextRowHeight);
+    const lastVisibleRow = Math.ceil(Math.max(0, viewportBottom) / nextRowHeight);
+    const firstRow = Math.max(0, Math.min(totalRows, firstVisibleRow - CARD_GRID_OVERSCAN_ROWS));
+    const lastRow = Math.max(
+      firstRow,
+      Math.min(totalRows, lastVisibleRow + CARD_GRID_OVERSCAN_ROWS),
+    );
+
+    if (Math.abs(metricsRef.current.rowHeight - nextRowHeight) > 0.5) {
+      metricsRef.current.rowHeight = nextRowHeight;
+      setRowHeight(nextRowHeight);
+    }
+    if (metricsRef.current.firstRow === firstRow && metricsRef.current.lastRow === lastRow) return;
+
+    metricsRef.current.firstRow = firstRow;
+    metricsRef.current.lastRow = lastRow;
+    setRenderedRows({ first: firstRow, last: lastRow });
+  }, [totalRows]);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    const scrollContainer = grid.closest<HTMLElement>("[data-mobile-landing-dashboard]");
+    let frame: number | null = null;
+    const scheduleUpdate = () => {
+      if (frame !== null) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = null;
+        updateWindow();
+      });
+    };
+    const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(scheduleUpdate);
+
+    resizeObserver?.observe(grid);
+    scrollContainer?.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate, { passive: true });
+    scheduleUpdate();
+
+    return () => {
+      if (frame !== null) window.cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
+      scrollContainer?.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+    };
+  }, [updateWindow]);
+
+  useEffect(() => {
+    updateWindow();
+  }, [totalRows, updateWindow]);
+
+  const firstRenderedRow = Math.min(renderedRows.first, totalRows);
+  const lastRenderedRow = Math.max(firstRenderedRow, Math.min(renderedRows.last, totalRows));
+
+  return (
+    <div
+      ref={gridRef}
+      className="relative -mx-4 bg-background-card"
+      data-mobile-card-grid
+      style={{ height: totalRows * rowHeight }}
+    >
+      {Array.from({ length: Math.max(0, lastRenderedRow - firstRenderedRow) }, (_, rowOffset) => {
+        const rowIndex = firstRenderedRow + rowOffset;
+        const firstCardIndex = rowIndex * CARD_GRID_COLUMNS;
+        const rowCards = cards.slice(firstCardIndex, firstCardIndex + CARD_GRID_COLUMNS);
+
+        return (
+          <div
+            key={`mobile-card-grid-row-${rowIndex}`}
+            className="absolute inset-x-0 top-0 grid grid-cols-3 gap-0"
+            style={{
+              height: rowHeight,
+              transform: `translate3d(0, ${rowIndex * rowHeight}px, 0)`,
+            }}
+          >
+            {rowCards.map(({ card, inventory }) => (
+              <MobileLandingCardGridItem
+                key={`${card.id}-${String(inventory.status ?? "").trim().toLowerCase()}`}
+                card={card}
+                inventory={inventory}
+                onSelect={onSelectCard}
+              />
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+});
 
 export function MobileLandingCardCenter({
   activeCards,
@@ -47,18 +215,18 @@ export function MobileLandingCardCenter({
   const { locale } = useLocale();
   const t = useT();
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [podiumOpen, setPodiumOpen] = useState(false);
   const [podiumMode, setPodiumMode] = useState<"collection" | "review">("collection");
   const drawActionRef = useRef<HTMLDivElement>(null);
   const cards = useMemo(
     () => {
       const sourceCards = status === "active" ? activeCards : status === "learned" ? learnedCards : [...activeCards, ...learnedCards];
       // Keep the optimistic and cloud-backed views in the same newest-first order.
-      return sourceCards
+      return [...sourceCards]
         .sort((left, right) => Date.parse(right.inventory.addedAt) - Date.parse(left.inventory.addedAt));
     },
     [activeCards, learnedCards, status],
   );
-  const statusLabel = t(`cards.${status === "all" ? "all" : status === "active" ? "toLearn" : "learned"}`);
 
   function handleToggle() {
     onOpenChange(!isOpen);
@@ -70,7 +238,14 @@ export function MobileLandingCardCenter({
 
     setPodiumMode("review");
     setSelectedCardId(firstCard.id);
+    setPodiumOpen(true);
   }
+
+  const handleCardSelect = useCallback((cardId: string) => {
+    setPodiumMode("collection");
+    setSelectedCardId(cardId);
+    setPodiumOpen(true);
+  }, []);
 
   return (
     <section
@@ -131,8 +306,6 @@ export function MobileLandingCardCenter({
               >
                 <LanguageFlag code={selectedLanguage} className="size-6" />
                 <span className="truncate">{formatSuperWaterText(locale, getLanguageDisplayName(selectedLanguage, locale))}</span>
-                <span className="text-white/60" aria-hidden="true">•</span>
-                <span className="min-w-0 truncate">{formatSuperWaterText(locale, statusLabel)}</span>
                 <button
                   type="button"
                   onClick={openReviewMode}
@@ -145,43 +318,15 @@ export function MobileLandingCardCenter({
               </div>
           </div>
 
-          <div className="-mx-4 grid grid-cols-3 gap-0 bg-background-card" data-mobile-card-grid>
-            {cards.length ? cards.map(({ card, inventory }) => (
-              <div
-                key={`${card.id}-${String(inventory.status ?? "").trim().toLowerCase()}-${inventory.correctCount}`}
-                role="button"
-                tabIndex={0}
-                aria-label={card.term}
-                data-mobile-vocabulary-card
-                onClick={(event) => {
-                  setPodiumMode("collection");
-                  setSelectedCardId(card.id);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter" && event.key !== " ") return;
-                  event.preventDefault();
-                  setSelectedCardId(card.id);
-                }}
-              >
-                <VocabularyCardView
-                  card={card}
-                  inventory={inventory}
-                  face="front"
-                  showActions={false}
-                  compact
-                  className="aspect-[3/4] min-h-0 w-full rounded-none max-sm:aspect-[3/4] max-sm:min-h-0"
-                  pronunciationMatchesTranslation
-                  showGroupImage
-                />
-              </div>
-            )) : (
+          {cards.length ? (
+            <VirtualizedMobileLandingCardGrid cards={cards} onSelectCard={handleCardSelect} />
+          ) : (
               <p className="col-span-3 px-4 py-10 text-center text-sm text-foreground-secondary">
                 {t("home.mobile.noWordsInLanguage", {
                   language: getLanguageDisplayName(selectedLanguage, locale),
                 })}
               </p>
-            )}
-          </div>
+          )}
         </div>
       ) : null}
       <MobileCardPodiumOverlay
@@ -189,11 +334,12 @@ export function MobileLandingCardCenter({
         reviewActiveItems={activeCards}
         reviewLearnedItems={learnedCards}
         selectedCardId={selectedCardId}
-        isOpen={selectedCardId !== null}
+        isOpen={podiumOpen}
         onSelectedCardChange={setSelectedCardId}
         onClose={() => {
-          setPodiumMode("collection");
-          setSelectedCardId(null);
+          // Keep the selected card id stable while the close animation runs.
+          // Clearing it here remounts the overlay against the first review card.
+          setPodiumOpen(false);
         }}
         mode={podiumMode}
       />
