@@ -1,6 +1,7 @@
 "use client";
 
 import { getCardTranslationMeanings } from "@/features/cards/card-localization";
+import { CARD_GROUP_IMAGE_PATHS, getCardGroupForCard } from "@/features/cards/card-groups";
 import { VocabularyCardDesign } from "@/features/cards/components/card-design-reference-preview";
 import type { CardDesignTestSample } from "@/features/cards/card-design-test-sample";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ export function AutomationVocabularyCard({
   contentScale = 1,
   className,
 }: AutomationVocabularyCardProps) {
+  const cardGroup = getCardGroupForCard(card);
   const sample: CardDesignTestSample = {
     cardId: card.id,
     learningLanguage: card.language,
@@ -36,6 +38,7 @@ export function AutomationVocabularyCard({
     partOfSpeech: card.partOfSpeech,
     pronunciation: card.pronunciation,
     example: card.examples[0]?.sentence ?? card.example,
+    groupImageSrc: cardGroup ? CARD_GROUP_IMAGE_PATHS[cardGroup.id] : undefined,
   };
 
   return (

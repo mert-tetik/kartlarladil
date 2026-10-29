@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { BookOpenText, Loader2, X } from "lucide-react";
 import { getCardExampleTranslation, getPrimaryCardTranslation, getStudyLocale } from "@/features/cards/card-localization";
 import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
@@ -45,11 +45,13 @@ export function CardGrammarDetailsButton({
   className,
   disabled = false,
   showIcon = true,
+  style,
 }: {
   onClick: () => void;
   className?: string;
   disabled?: boolean;
   showIcon?: boolean;
+  style?: CSSProperties;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -63,6 +65,7 @@ export function CardGrammarDetailsButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
+      style={style}
       className={cn(
         "inline-flex min-h-10 items-center gap-1.5 rounded-full border border-white/25 bg-black/55 px-3 text-xs font-semibold text-white shadow-sm backdrop-blur-sm transition-[background-color,transform] duration-300 hover:bg-black/75 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50",
         canUseSuperWater(locale) && "font-super-water",

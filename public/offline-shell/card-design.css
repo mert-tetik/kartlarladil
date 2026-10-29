@@ -75,6 +75,20 @@
   box-shadow: 0 0.625cqw 1.5625cqw rgb(16 89 104 / 35%);
 }
 
+.fd-card-design__group-image {
+  position: absolute;
+  z-index: 2;
+  top: calc(4% + 2.625cqw);
+  left: calc(6% + 23.125cqw - 2px);
+  width: 16cqw;
+  height: 16cqw;
+  pointer-events: none;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  filter: drop-shadow(0 0.625cqw 1.25cqw rgb(16 89 104 / 28%));
+}
+
 .fd-card-design__copy-scale {
   position: absolute;
   inset: 0;
@@ -232,6 +246,15 @@
 
 .fd-card-design__progress-circle {
   background-color: color-mix(in srgb, var(--fd-card-progress-filled-color) 34%, white);
+}
+
+.fd-card-design__learned-medal {
+  border: 0;
+  background-color: transparent;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  box-shadow: none;
 }
 
 .fd-card-design__progress-indicator {

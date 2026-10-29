@@ -24,7 +24,8 @@ import { vibrate } from "@/lib/vibration";
 import type { VocabularyCard } from "@/types/domain";
 import { canUseSuperWater, formatSuperWaterUppercaseText } from "@/lib/super-water";
 
-interface MobileCardDisplaySheetProps {
+/** Single-card preview for cards the user has not added to their collection. */
+interface MobileUnownedCardDisplaySheetProps {
   card: VocabularyCard | null;
   isOpen: boolean;
   onClose: () => void;
@@ -45,14 +46,14 @@ const TIER_COLORS: Record<VocabularyCard["tier"], string> = {
   C1: "var(--tier-c1)",
 };
 
-export function MobileCardDisplaySheet({
+export function MobileUnownedCardDisplaySheet({
   card,
   isOpen,
   onClose,
   positionClassName,
   tutorialLayer,
   sourceRect = null,
-}: MobileCardDisplaySheetProps) {
+}: MobileUnownedCardDisplaySheetProps) {
   const { locale } = useLocale();
   const t = useT();
   const { showMessage } = useAppMessage();
@@ -278,7 +279,7 @@ export function MobileCardDisplaySheet({
       aria-hidden={!isOpen}
       inert={!isOpen}
       onClick={handleBackdropClick}
-      data-mobile-card-display-sheet
+      data-mobile-unowned-card-display-sheet
       data-tutorial-layer={tutorialLayer}
       data-tutorial-layer-portal={tutorialLayer}
     >

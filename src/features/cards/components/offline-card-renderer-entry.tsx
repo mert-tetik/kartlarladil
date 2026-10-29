@@ -83,6 +83,7 @@ function OfflineSavedCards({
             isLearned,
           }}
           sample={toDesignSample(card, locale, inventory.cardId)}
+          showGroupImage={false}
         />
       </article>
     );

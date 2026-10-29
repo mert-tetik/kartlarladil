@@ -227,6 +227,8 @@ const dictionary = {
   "cards.createCard": "Woordkaart maken",
   "cards.collection": "Collectie",
   "cards.definition": "Definitie",
+  "cards.nextCard": "Volgende kaart",
+  "cards.previousCard": "Vorige kaart",
   "cards.drawFive": "5 Kaarten trekken",
   "cards.drawPromptDescription": "Klik op Trek 5 of Trek 10 om nieuwe kaarten te trekken.",
   "cards.drawPromptTitle": "Klaar om kaarten te trekken",

@@ -227,6 +227,8 @@ const dictionary = {
   "cards.createCard": "Kelime Kartı Oluştur",
   "cards.collection": "Koleksiyon",
   "cards.definition": "Tanım",
+  "cards.nextCard": "Sonraki kart",
+  "cards.previousCard": "Önceki kart",
   "cards.drawFive": "5 kart çek",
   "cards.drawPromptDescription": "Draw 5 veya Draw 10 butonuna basarak yeni kartlar çek.",
   "cards.drawPromptTitle": "Kart çekmeye hazırsın",

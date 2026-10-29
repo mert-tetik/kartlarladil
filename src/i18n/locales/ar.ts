@@ -227,6 +227,8 @@ const dictionary = {
   "cards.createCard": "إنشاء بطاقة كلمة",
   "cards.collection": "المجموعة",
   "cards.definition": "التعريف",
+  "cards.nextCard": "البطاقة التالية",
+  "cards.previousCard": "البطاقة السابقة",
   "cards.drawFive": "5 اسحب بطاقات",
   "cards.drawPromptDescription": "انقر على سحب 5 أو سحب 10 لسحب بطاقات جديدة.",
   "cards.drawPromptTitle": "هل أنت مستعد لسحب البطاقات",

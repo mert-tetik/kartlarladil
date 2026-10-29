@@ -1,10 +1,12 @@
 import { LANGUAGE_CODES } from "@/data/languages";
+import { CARD_GROUP_IMAGE_PATHS, getCardGroupForCard } from "@/features/cards/card-groups";
 import type { LanguageCode, LocaleCode, Tier, VocabularyCard } from "@/types/domain";
 
 export type CardDesignTestCardSource = Pick<
   VocabularyCard,
   "id" | "language" | "tier" | "termKind" | "term" | "partOfSpeech" | "pronunciation" | "example"
 > & {
+  englishKey?: string;
   translations: Partial<Record<LocaleCode, string>>;
   translationMeaningsByLocale: Partial<Record<LocaleCode, string[]>>;
 };
@@ -19,6 +21,7 @@ export interface CardDesignTestSample {
   partOfSpeech: string;
   pronunciation: string;
   example: string;
+  groupImageSrc?: string;
 }
 
 export interface CardDesignTestSampleExclusions {
@@ -77,6 +80,7 @@ export function createRandomCardDesignTestSample(
   const translation = card.translationMeaningsByLocale[nativeLanguage]?.[0]?.trim()
     || card.translations[nativeLanguage]?.trim()
     || "";
+  const group = card.englishKey ? getCardGroupForCard(card as Pick<VocabularyCard, "englishKey">) : undefined;
 
   return {
     cardId: card.id,
@@ -88,5 +92,6 @@ export function createRandomCardDesignTestSample(
     partOfSpeech: card.partOfSpeech,
     pronunciation: card.pronunciation,
     example: card.example,
+    groupImageSrc: group ? CARD_GROUP_IMAGE_PATHS[group.id] : undefined,
   };
 }

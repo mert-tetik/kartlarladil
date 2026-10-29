@@ -18,6 +18,9 @@ export interface VocabularyCardDesignProps {
   onSpeak?: () => void;
   backDisplayTier?: CardDesignTestSample["tier"];
   continuousFlip?: boolean;
+  disableTextFitting?: boolean;
+  pronunciationMatchesTranslation?: boolean;
+  showGroupImage?: boolean;
   learningProgress?: {
     current: number;
     required: number;
@@ -32,6 +35,7 @@ const FOX_OUTLINE = "M10 22 13 5l18 12a24 24 0 0 1 14 0L63 5l3 17c1 14-7 26-20 3
 const FOX_FACE = "M27 34h.1M49 34h.1M35 40q3 3 6 0";
 const CARD_SHELL_PATH = "M55 4C28 4 8 23 8 52v466c0 27 18 43 45 43h294c27 0 45-16 45-43V52c0-29-20-48-47-48H55Z";
 const CARD_BACK_PANEL_PATH = "M58 30C40 30 27 45 27 65v439c0 21 14 35 36 35h274c22 0 36-14 36-35V65c0-20-14-35-36-35H58Z";
+const LEARNED_CARD_MEDAL_SRC = "/card-status/kart_ogrenildi_madalyasi.png";
 const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 function GlassShellGradient({ id, palette }: { id: string; palette: CardDesignTierPalette }) {
@@ -87,6 +91,9 @@ export function VocabularyCardDesign({
   onSpeak,
   backDisplayTier,
   continuousFlip = false,
+  disableTextFitting = false,
+  pronunciationMatchesTranslation = false,
+  showGroupImage = true,
   learningProgress,
 }: VocabularyCardDesignProps) {
   const rawId = useId();
@@ -132,6 +139,8 @@ export function VocabularyCardDesign({
   }, [sample.learningLanguage, sample.term]);
 
   useIsomorphicLayoutEffect(() => {
+    if (disableTextFitting) return;
+
     const example = exampleRef.current;
     if (!example) return;
 
@@ -155,7 +164,7 @@ export function VocabularyCardDesign({
       observer?.disconnect();
       if (!observer) window.removeEventListener("resize", fit);
     };
-  }, [sample.example]);
+  }, [disableTextFitting, sample.example]);
 
   return (
     <div
@@ -218,19 +227,30 @@ export function VocabularyCardDesign({
           >
             {sample.tier}
           </div>
+          {showGroupImage && sample.groupImageSrc ? (
+            <div
+              aria-hidden="true"
+              className="fd-card-design__group-image"
+              data-card-group-image
+              style={{ backgroundImage: `url(${sample.groupImageSrc})` }}
+            />
+          ) : null}
 
           <div className="fd-card-design__copy-scale" style={scaleStyle}>
             <h3 className="fd-card-design__term" data-testid="card-term" dir="auto" lang={sample.learningLanguage}>
-              <FittedSingleLineText centered>{sample.term}</FittedSingleLineText>
+              <FittedSingleLineText centered disableFit={disableTextFitting}>{sample.term}</FittedSingleLineText>
             </h3>
             <div className="fd-card-design__translation" data-testid="card-translation" dir="auto" lang={sample.nativeLanguage}>
-              <FittedSingleLineText centered>{sample.translation}</FittedSingleLineText>
+              <FittedSingleLineText centered disableFit={disableTextFitting}>{sample.translation}</FittedSingleLineText>
             </div>
             <div
               className={`fd-card-design__pronunciation${pronunciationSpeaking ? " fd-card-design__pronunciation--speaking" : ""}`}
               data-pronunciation-speaking={pronunciationSpeaking ? "true" : "false"}
               data-testid="card-pronunciation"
-              style={{ backgroundColor: palette.label }}
+              style={{
+                backgroundColor: palette.label,
+                fontSize: pronunciationMatchesTranslation ? "9.1cqw" : undefined,
+              }}
             >
               <button
                 aria-label={`Listen to ${sample.term}`}
@@ -245,10 +265,18 @@ export function VocabularyCardDesign({
               >
                 <Volume2 aria-hidden="true" className="fd-card-design__speaker-icon" />
               </button>
-              <FittedSingleLineText className="fd-card-design__pronunciation-text">{sample.pronunciation || sample.term}</FittedSingleLineText>
+              <FittedSingleLineText disableFit={disableTextFitting} className="fd-card-design__pronunciation-text">{sample.pronunciation || sample.term}</FittedSingleLineText>
             </div>
           </div>
-          {learningProgress && progressLabel ? (
+          {learningProgress && progressLabel ? learningProgress.isLearned ? (
+            <div
+              aria-label={progressLabel}
+              className="fd-card-design__progress fd-card-design__learned-medal"
+              data-card-progress-medal
+              role="img"
+              style={{ backgroundImage: `url(${LEARNED_CARD_MEDAL_SRC})` }}
+            />
+          ) : (
             <div
               aria-label={progressLabel}
               aria-valuemax={progressRequired}

@@ -9,16 +9,23 @@ export function FittedSingleLineText({
   children,
   className,
   centered = false,
+  disableFit = false,
 }: {
   children: string;
   className?: string;
   centered?: boolean;
+  disableFit?: boolean;
 }) {
   const containerRef = useRef<HTMLSpanElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
   const [scale, setScale] = useState(1);
 
   useIsomorphicLayoutEffect(() => {
+    if (disableFit) {
+      setScale(1);
+      return;
+    }
+
     const container = containerRef.current;
     const text = textRef.current;
 
@@ -45,7 +52,7 @@ export function FittedSingleLineText({
     observer.observe(container);
 
     return () => observer.disconnect();
-  }, [children]);
+  }, [children, disableFit]);
 
   return (
     <span

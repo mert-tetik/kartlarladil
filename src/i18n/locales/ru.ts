@@ -227,6 +227,8 @@ const dictionary = {
   "cards.createCard": "Создать карточку",
   "cards.collection": "Коллекция",
   "cards.definition": "Определение",
+  "cards.nextCard": "Следующая карта",
+  "cards.previousCard": "Предыдущая карта",
   "cards.drawFive": "Тянуть 5 карт",
   "cards.drawPromptDescription": "Нажмите Вытянуть 5 или Вытянуть 10, чтобы получить новые карточки.",
   "cards.drawPromptTitle": "Готовы вытянуть карточки",

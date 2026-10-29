@@ -24,9 +24,9 @@ vi.mock("@/components/mobile-bottom-sheet-shell", () => ({
     open ? <section aria-label={title}>{children}</section> : null,
 }));
 
-vi.mock("@/app/components/mobile-card-display-sheet", () => ({
-  MobileCardDisplaySheet: ({ card, isOpen }: { card: { term: string } | null; isOpen: boolean }) =>
-    card && isOpen ? <div data-mobile-card-display-sheet>{card.term}</div> : null,
+vi.mock("@/app/components/mobile-unowned-card-display-sheet", () => ({
+  MobileUnownedCardDisplaySheet: ({ card, isOpen }: { card: { term: string } | null; isOpen: boolean }) =>
+    card && isOpen ? <div data-mobile-unowned-card-display-sheet>{card.term}</div> : null,
 }));
 
 vi.mock("@/features/inventory/inventory-store", () => ({
@@ -60,7 +60,7 @@ describe("MobileCardGroupSheet", () => {
     expect(screen.getByText("school")).toBeInTheDocument();
 
     await user.click(screen.getByText("school"));
-    const cardDisplay = document.querySelector("[data-mobile-card-display-sheet]");
+    const cardDisplay = document.querySelector("[data-mobile-unowned-card-display-sheet]");
     expect(cardDisplay).toBeInTheDocument();
     expect(cardDisplay?.parentElement).toBe(document.body);
 

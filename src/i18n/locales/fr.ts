@@ -227,6 +227,8 @@ const dictionary = {
   "cards.createCard": "Créer une carte de mots",
   "cards.collection": "Collection",
   "cards.definition": "Définition",
+  "cards.nextCard": "Carte suivante",
+  "cards.previousCard": "Carte précédente",
   "cards.drawFive": "Tirer 5 cartes",
   "cards.drawPromptDescription": "Cliquez sur Tirer 5 ou Tirer 10 pour tirer de nouvelles cartes.",
   "cards.drawPromptTitle": "Prêt à tirer des cartes",

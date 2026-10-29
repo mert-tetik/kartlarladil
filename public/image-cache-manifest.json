@@ -1,5 +1,5 @@
 {
-  "version": "8b2746fc98e944aec9a261dbbfdbb3da74a82f610af298d7b6f4ae0b56398c7f",
+  "version": "8e091b6b42b8419df4d747ec0fbb8ad75c70d59e88e1eed08e3be83a1e7290bf",
   "assets": [
     {
       "url": "/AppLogdfo.png",
@@ -484,6 +484,54 @@
     {
       "url": "/card-icons/hoporlor.png",
       "revision": "1cc4f129ac1e130c3bd58b3b073280df942e10520bf45258e75a889cbc76a362"
+    },
+    {
+      "url": "/card-podiums/a1-green-v2.png",
+      "revision": "da96f8d8cd8f865c5b88157dd835b4f11a093b99706de3aa9e2336097f173342"
+    },
+    {
+      "url": "/card-podiums/a1-green.png",
+      "revision": "da96f8d8cd8f865c5b88157dd835b4f11a093b99706de3aa9e2336097f173342"
+    },
+    {
+      "url": "/card-podiums/a2-turquoise-v2.png",
+      "revision": "a6a5d1d9da36dc2c447ab7bb028add6e7bb8601159c9a82b8affae1882bdd0e0"
+    },
+    {
+      "url": "/card-podiums/a2-turquoise.png",
+      "revision": "a6a5d1d9da36dc2c447ab7bb028add6e7bb8601159c9a82b8affae1882bdd0e0"
+    },
+    {
+      "url": "/card-podiums/b1-purple-v2.png",
+      "revision": "dd2b420cd97b49ddc9dec72749bda54b5f44aa8302b10fb3159904ac47c65c76"
+    },
+    {
+      "url": "/card-podiums/b1-purple.png",
+      "revision": "dd2b420cd97b49ddc9dec72749bda54b5f44aa8302b10fb3159904ac47c65c76"
+    },
+    {
+      "url": "/card-podiums/b2-orange-v2.png",
+      "revision": "9e0237cb9b705123c5fecd2bb6d0f974d5547a8c875eeb2cbd75aa7637720228"
+    },
+    {
+      "url": "/card-podiums/b2-orange.png",
+      "revision": "9e0237cb9b705123c5fecd2bb6d0f974d5547a8c875eeb2cbd75aa7637720228"
+    },
+    {
+      "url": "/card-podiums/c1-red-v2.png",
+      "revision": "bd752b67154d9cd7976dee08434504076fb57373131d02d4bc16bb12e09e4327"
+    },
+    {
+      "url": "/card-podiums/c1-red.png",
+      "revision": "bd752b67154d9cd7976dee08434504076fb57373131d02d4bc16bb12e09e4327"
+    },
+    {
+      "url": "/card-status/kart_ogrenildi_madalyasi.png",
+      "revision": "160416af782929ac6fbd3cd29538fb1b883fe4b0777d5c169296ece61d590cd7"
+    },
+    {
+      "url": "/card-status/kart_ogreniliyor_madalyasi.png",
+      "revision": "ab89c2bbf5033a56c18b7b10010256dfd02a4ab1d18264fdcc240df8e6f48a1f"
     },
     {
       "url": "/card-status/ogrenildi_img.png",

@@ -5527,7 +5527,7 @@ export function MobileQuizTopBar({
             {questionPromptAccent ? (
               <span className="flex size-7 shrink-0 items-center justify-center">
                 <Image
-                  src="/card-status/ogrenildi_img.png"
+                  src="/card-status/kart_ogrenildi_madalyasi.png"
                   alt=""
                   width={28}
                   height={28}

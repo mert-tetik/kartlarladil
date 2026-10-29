@@ -227,6 +227,8 @@ const dictionary = {
   "cards.createCard": "Utwórz kartę słowną",
   "cards.collection": "Kolekcja",
   "cards.definition": "Definicja",
+  "cards.nextCard": "Następna karta",
+  "cards.previousCard": "Poprzednia karta",
   "cards.drawFive": "5 Losuj karty",
   "cards.drawPromptDescription": "Kliknij Losuj 5 lub Losuj 10, aby wyciÄ…gnÄ…Ä‡ nowe karty.",
   "cards.drawPromptTitle": "Gotowy do losowania kart",

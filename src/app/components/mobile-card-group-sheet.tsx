@@ -5,7 +5,7 @@ import Image from "next/image";
 import { ChevronDown, FolderPlus } from "lucide-react";
 import { createPortal } from "react-dom";
 import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
-import { MobileCardDisplaySheet } from "@/app/components/mobile-card-display-sheet";
+import { MobileUnownedCardDisplaySheet } from "@/app/components/mobile-unowned-card-display-sheet";
 import { TIER_STYLES } from "@/data/tiers";
 import { getCardTranslation } from "@/features/cards/card-localization";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
@@ -223,7 +223,7 @@ export function MobileCardGroupSheet({
 
   const cardDisplay = typeof document !== "undefined"
     ? createPortal(
-        <MobileCardDisplaySheet
+        <MobileUnownedCardDisplaySheet
           card={selectedCard}
           isOpen={selectedCard !== null}
           sourceRect={selectedCardSourceRect}

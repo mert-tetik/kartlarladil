@@ -227,6 +227,8 @@ const dictionary = {
   "cards.createCard": "単語カードを作成",
   "cards.collection": "コレクション",
   "cards.definition": "定義",
+  "cards.nextCard": "次のカード",
+  "cards.previousCard": "前のカード",
   "cards.drawFive": "5 カードを引く",
   "cards.drawPromptDescription": "新しいカードを引くには、引く5または引く10をクリックします。",
   "cards.drawPromptTitle": "カードを引く準備ができました",

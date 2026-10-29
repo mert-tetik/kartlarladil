@@ -56,13 +56,18 @@ public final class NativeLoadingIndicatorView extends View {
         float density = getResources().getDisplayMetrics().density;
         float indicatorWidth = 90f * density;
         float left = (getWidth() - indicatorWidth) / 2f;
+        // The loader view fills the usable app area. Derive the vertical
+        // anchor from that measured height instead of a fixed top offset so
+        // the indicator remains centered on every phone and inset layout.
+        float restingCenterY = getHeight() / 2f;
+        float shadowCenterY = restingCenterY + 5f * density;
         float[] dotCenters = {20f, 45f, 70f};
 
         for (int index = 0; index < dotCenters.length; index++) {
             float phase = (animationProgress + index * 0.18f) % 1f;
             float bounce = (float) Math.sin(phase * Math.PI);
             float centerX = left + dotCenters[index] * density;
-            float centerY = (35f - 27f * bounce) * density;
+            float centerY = restingCenterY - 27f * density * bounce;
             float radius = (5f + 3f * bounce) * density;
 
             shadowPaint.setAlpha(Math.round(71f * (1f - 0.35f * bounce)));
@@ -70,9 +75,9 @@ public final class NativeLoadingIndicatorView extends View {
             float shadowRadiusY = 3f * density;
             shadowBounds.set(
                     centerX - shadowRadiusX,
-                    40f * density - shadowRadiusY,
+                    shadowCenterY - shadowRadiusY,
                     centerX + shadowRadiusX,
-                    40f * density + shadowRadiusY
+                    shadowCenterY + shadowRadiusY
             );
             canvas.drawOval(shadowBounds, shadowPaint);
 

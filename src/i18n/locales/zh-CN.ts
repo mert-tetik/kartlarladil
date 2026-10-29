@@ -227,6 +227,8 @@ const dictionary = {
   "cards.createCard": "创建单词卡片",
   "cards.collection": "收藏",
   "cards.definition": "释义",
+  "cards.nextCard": "下一张卡片",
+  "cards.previousCard": "上一张卡片",
   "cards.drawFive": "5 抽卡",
   "cards.drawPromptDescription": "点击抽取5或抽取10以拉取新卡片。",
   "cards.drawPromptTitle": "准备抽取卡片",

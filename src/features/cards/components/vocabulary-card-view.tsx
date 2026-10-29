@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, type KeyboardEvent, type MouseEvent } from "react";
+import { memo, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { Check, LoaderCircle, MessageCircleQuestion, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TIER_REQUIREMENTS } from "@/data/tiers";
 import { getCardTranslation, getCardTranslationMeanings } from "@/features/cards/card-localization";
+import { CARD_GROUP_IMAGE_PATHS, getCardGroupForCard } from "@/features/cards/card-groups";
 import { speakCardTerm } from "@/features/cards/card-speech";
 import { VocabularyCardDesign } from "@/features/cards/components/card-design-reference-preview";
 import { useCardPronunciation } from "@/features/cards/card-pronunciation-client";
@@ -43,6 +44,8 @@ interface VocabularyCardViewProps {
   compact?: boolean;
   translationLocale?: LocaleCode;
   continuousFlip?: boolean;
+  disableTextFitting?: boolean;
+  pronunciationMatchesTranslation?: boolean;
   footerProgressCount?: number;
   progressAnimationActive?: boolean;
   onClick?: () => void;
@@ -55,7 +58,7 @@ interface CardFaceState {
   isFaceUp: boolean;
 }
 
-export function VocabularyCardView({
+export const VocabularyCardView = memo(function VocabularyCardView({
   card,
   inventory,
   owned,
@@ -77,6 +80,8 @@ export function VocabularyCardView({
   compact = false,
   translationLocale,
   continuousFlip = false,
+  disableTextFitting = false,
+  pronunciationMatchesTranslation = false,
   footerProgressCount,
   progressAnimationActive = false,
   onClick,
@@ -103,6 +108,7 @@ export function VocabularyCardView({
         ? faceState.isFaceUp
         : initialFace === "front";
   const translationLanguage = translationLocale ?? locale;
+  const cardGroup = getCardGroupForCard(card);
   const meanings = translationLocale
     ? getCardTranslationMeanings(displayCard, translationLanguage).slice(0, 3)
     : getCardTranslation(displayCard, translationLanguage).split(", ");
@@ -116,6 +122,7 @@ export function VocabularyCardView({
     partOfSpeech: card.partOfSpeech,
     pronunciation: displayCard.pronunciation,
     example: card.examples[0]?.sentence ?? card.example,
+    groupImageSrc: cardGroup ? CARD_GROUP_IMAGE_PATHS[cardGroup.id] : undefined,
   };
   const requirement = TIER_REQUIREMENTS[card.tier];
   const progressCount = footerProgressCount ?? inventory?.correctCount ?? 0;
@@ -194,7 +201,9 @@ export function VocabularyCardView({
         className="h-full w-full"
         continuousFlip={continuousFlip}
         contentScale={frontContentScale}
+        disableTextFitting={disableTextFitting}
         onSpeak={() => speakCardTerm(card.term, card.language)}
+        pronunciationMatchesTranslation={pronunciationMatchesTranslation}
         sample={sample}
         showBack={!isFaceUp}
         learningProgress={isFaceUp && showProgress ? {
@@ -264,4 +273,4 @@ export function VocabularyCardView({
 
     </article>
   );
-}
+});

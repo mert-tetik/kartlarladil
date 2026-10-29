@@ -7,8 +7,8 @@ import { LOCALE_CODES } from "@/i18n/config";
 import { DICTIONARIES, translate } from "@/i18n/dictionaries";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
-vi.mock("@/app/components/mobile-card-display-sheet", () => ({
-  MobileCardDisplaySheet: () => null,
+vi.mock("@/app/components/mobile-card-podium-overlay", () => ({
+  MobileCardPodiumOverlay: () => null,
 }));
 
 const card = VOCABULARY_CARDS.find((item) => item.language === "en")!;

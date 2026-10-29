@@ -15,7 +15,7 @@ import { MobileLanguageBottomSheet } from "@/app/components/mobile-language-bott
 import { MobileLandingInfoSheet } from "@/app/components/mobile-landing-info-sheet";
 import { MobileRankInfoSheet } from "@/app/components/mobile-rank-info-sheet";
 import { MobileLockedActionSheet } from "@/app/components/mobile-locked-action-sheet";
-import { MobileCardDisplaySheet } from "@/app/components/mobile-card-display-sheet";
+import { MobileCardPodiumOverlay } from "@/app/components/mobile-card-podium-overlay";
 import { MobileLandingCardCenter } from "@/app/components/mobile-landing-card-center";
 import { MobileCardSwipeOverlay } from "@/app/components/mobile-card-swipe-overlay";
 import { MobileCustomCardSheet } from "@/app/components/mobile-custom-card-sheet";
@@ -1237,7 +1237,7 @@ export function TierDetailMenu({
   const t = useT();
   const removeCard = useInventoryStore((state) => state.removeCard);
   const pendingCardIds = useInventoryStore((state) => state.pendingCardIds);
-  const [displayCard, setDisplayCard] = useState<VocabularyCard | null>(null);
+  const [displayCardId, setDisplayCardId] = useState<string | null>(null);
 
   function handleDeleteCard(cardId: string) {
     if (pendingCardIds.has(cardId)) {
@@ -1248,8 +1248,8 @@ export function TierDetailMenu({
       return;
     }
 
-    if (displayCard?.id === cardId) {
-      setDisplayCard(null);
+    if (displayCardId === cardId) {
+      setDisplayCardId(null);
     }
 
     void removeCard(cardId);
@@ -1375,7 +1375,7 @@ export function TierDetailMenu({
                   tabIndex={0}
                   onClick={() => {
                     vibrate("tap");
-                    setDisplayCard(card);
+                    setDisplayCardId(card.id);
                   }}
                   onKeyDown={(event) => {
                     if (event.key !== "Enter" && event.key !== " ") {
@@ -1383,7 +1383,7 @@ export function TierDetailMenu({
                     }
                     event.preventDefault();
                     vibrate("tap");
-                    setDisplayCard(card);
+                    setDisplayCardId(card.id);
                   }}
                   aria-label={card.term}
                   className="relative flex flex-col overflow-hidden rounded-xl border border-white/20 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
@@ -1426,10 +1426,12 @@ export function TierDetailMenu({
     </div>
   </div>
 
-  <MobileCardDisplaySheet
-    card={displayCard}
-    isOpen={displayCard !== null}
-    onClose={() => setDisplayCard(null)}
+  <MobileCardPodiumOverlay
+    items={filteredCards}
+    selectedCardId={displayCardId}
+    isOpen={displayCardId !== null}
+    onSelectedCardChange={setDisplayCardId}
+    onClose={() => setDisplayCardId(null)}
   />
 
 </div>

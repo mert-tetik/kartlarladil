@@ -227,6 +227,8 @@ const dictionary = {
   "cards.createCard": "단어 카드 만들기",
   "cards.collection": "컬렉션",
   "cards.definition": "정의",
+  "cards.nextCard": "다음 카드",
+  "cards.previousCard": "이전 카드",
   "cards.drawFive": "5 카드 뽑기",
   "cards.drawPromptDescription": "새 카드를 뽑으려면 5장 또는 10장 뽑기를 클릭하세요.",
   "cards.drawPromptTitle": "카드 뽑기 준비 완료",

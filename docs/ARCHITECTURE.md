@@ -76,6 +76,8 @@ Navbar, account menu ve `/profile` ayni progress kaynagini kullanir.
 ## UI Boundaries
 
 - `VocabularyCardView` kartin tum fiziksel/3D gorunumunu sahiplenir.
+- Ortak `VocabularyCardDesign`, gruba ait kartlarda tier rozetinin hemen saginda `sample.groupImageSrc` ile grup gorselini gosterir. Bu gorsel kartla birlikte olceklenir ve grup bilgisi olmayan kartlarda render edilmez.
+- Offline kart renderer'i `showGroupImage={false}` kullanir; grup gorselleri offline ekranda kesinlikle gosterilmez.
 - Kart detaylari ayri bir dialog olarak sunulmaz; kart gorunumu cevirme, konusma ve Ask aksiyonlarini sahiplenir.
 - `FilterControls` ogrenme dili/tier secimini yapar; mobilde dil dropdown kullanir.
 

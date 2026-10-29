@@ -3,21 +3,16 @@
 import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronDown, Languages, ScanText } from "lucide-react";
-import { ScoreIcon } from "@/components/score-icon";
-import { MobileCardDisplaySheet } from "@/app/components/mobile-card-display-sheet";
+import { MobileCardPodiumOverlay } from "@/app/components/mobile-card-podium-overlay";
 import { MobileEmptyDeckPointer } from "@/app/components/mobile-empty-deck-pointer";
 import { MobileCardStatusArtwork } from "@/app/components/mobile-card-status-artwork";
-import { getCardTranslation } from "@/features/cards/card-localization";
-import { speakCardTerm, speakText } from "@/features/cards/card-speech";
-import { CARD_GROUP_IMAGE_PATHS, getCardGroupForCard } from "@/features/cards/card-groups";
-import { TIER_REQUIREMENTS, TIER_STYLES, TIERS } from "@/data/tiers";
-import { getPointsForTier } from "@/features/progress/progress-stats";
+import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
+import { TIER_STYLES, TIERS } from "@/data/tiers";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
-import { vibrate } from "@/lib/vibration";
 import type { InventoryCardView } from "@/features/inventory/inventory-selectors";
-import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
+import type { LanguageCode, Tier } from "@/types/domain";
 
 type CardStatusFilter = "all" | "active" | "learned";
 
@@ -51,8 +46,7 @@ export function MobileLandingCardCenter({
   const { locale } = useLocale();
   const t = useT();
   const [tier, setTier] = useState<Tier | "all">("all");
-  const [selectedCard, setSelectedCard] = useState<VocabularyCard | null>(null);
-  const [selectedCardSourceRect, setSelectedCardSourceRect] = useState<DOMRect | null>(null);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const drawActionRef = useRef<HTMLDivElement>(null);
   const cards = useMemo(
     () => {
@@ -147,20 +141,35 @@ export function MobileLandingCardCenter({
               </div>
           </div>
 
-          <div className="-mx-4 divide-y divide-border border-b border-border bg-background-card">
+          <div className="-mx-4 grid grid-cols-3 gap-0 bg-background-card" data-mobile-card-grid>
             {cards.length ? cards.map(({ card, inventory }) => (
-              <CardRow
+              <div
                 key={card.id}
-                card={card}
-                inventory={inventory}
-                locale={locale}
-                onOpen={(sourceRect) => {
-                  setSelectedCardSourceRect(sourceRect);
-                  setSelectedCard(card);
+                role="button"
+                tabIndex={0}
+                aria-label={card.term}
+                data-mobile-vocabulary-card
+                onClick={(event) => {
+                  setSelectedCardId(card.id);
                 }}
-              />
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  setSelectedCardId(card.id);
+                }}
+              >
+                <VocabularyCardView
+                  card={card}
+                  inventory={inventory}
+                  face="front"
+                  showActions={false}
+                  compact
+                  className="aspect-[3/4] min-h-0 w-full rounded-none max-sm:aspect-[3/4] max-sm:min-h-0"
+                  pronunciationMatchesTranslation
+                />
+              </div>
             )) : (
-              <p className="px-4 py-10 text-center text-sm text-foreground-secondary">
+              <p className="col-span-3 px-4 py-10 text-center text-sm text-foreground-secondary">
                 {t("home.mobile.noWordsInLanguage", {
                   language: getLanguageDisplayName(selectedLanguage, locale),
                 })}
@@ -169,110 +178,14 @@ export function MobileLandingCardCenter({
           </div>
         </div>
       ) : null}
-      <MobileCardDisplaySheet
-        card={selectedCard}
-        isOpen={selectedCard !== null}
-        sourceRect={selectedCardSourceRect}
-        onClose={() => setSelectedCard(null)}
+      <MobileCardPodiumOverlay
+        items={cards}
+        selectedCardId={selectedCardId}
+        isOpen={selectedCardId !== null}
+        onSelectedCardChange={setSelectedCardId}
+        onClose={() => setSelectedCardId(null)}
       />
     </section>
-  );
-}
-
-function CardSpeakerIcon({ className }: { className?: string }) {
-  return (
-    <span
-      className={cn("inline-block shrink-0 bg-current", className)}
-      style={{
-        maskImage: "url('/card-icons/hoporlor.png')",
-        WebkitMaskImage: "url('/card-icons/hoporlor.png')",
-        maskPosition: "center",
-        WebkitMaskPosition: "center",
-        maskRepeat: "no-repeat",
-        WebkitMaskRepeat: "no-repeat",
-        maskSize: "contain",
-        WebkitMaskSize: "contain",
-      }}
-      aria-hidden="true"
-    />
-  );
-}
-
-function CardRow({ card, inventory, locale, onOpen }: { card: VocabularyCard; inventory: InventoryCardView["inventory"]; locale: Parameters<typeof getCardTranslation>[1]; onOpen: (sourceRect: DOMRect) => void }) {
-  const t = useT();
-  const example = card.examples[0]?.sentence || card.example;
-  const style = TIER_STYLES[card.tier];
-  const isLearned = inventory.status === "learned";
-  const points = getPointsForTier(card.tier);
-  const requirement = TIER_REQUIREMENTS[card.tier];
-  const cardGroup = getCardGroupForCard(card);
-  const progressCount = isLearned ? requirement : Math.min(inventory.correctCount, requirement);
-  const progress = Math.min(100, Math.round((progressCount / requirement) * 100));
-  return (
-    <div role="button" tabIndex={0} onClick={(event) => onOpen(event.currentTarget.getBoundingClientRect())} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onOpen(event.currentTarget.getBoundingClientRect()); } }} className="relative flex cursor-pointer gap-3 pb-7 pl-14 pr-4 pt-4 text-left transition-colors hover:bg-background-muted" data-mobile-card-row>
-      <span className={cn("absolute inset-y-0 left-0 flex w-12 items-center justify-center text-lg font-bold text-white", style.accent)} aria-hidden="true">{card.tier}</span>
-      <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex items-center gap-1.5">
-          <button type="button" aria-label={`${card.term} ${t("cards.listen")}`} onClick={(event) => { event.stopPropagation(); vibrate("tap"); speakCardTerm(card.term, card.language); }} className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-brand hover:bg-brand/10">
-            <Image src="/card-icons/hoporlor.png" alt="" width={18} height={18} className="size-4 object-contain" aria-hidden="true" />
-          </button>
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <p className="min-w-0 truncate text-base font-bold text-foreground">{card.term}</p>
-            {cardGroup ? (
-              <Image
-                src={CARD_GROUP_IMAGE_PATHS[cardGroup.id]}
-                alt=""
-                width={28}
-                height={28}
-                className="size-7 shrink-0 object-contain"
-                aria-hidden="true"
-              />
-            ) : null}
-          </div>
-          <div className="ml-auto flex shrink-0 items-center gap-2">
-            <span className={cn("inline-flex items-center gap-1 text-xs font-semibold", isLearned ? "text-foreground-muted" : "text-white")}>
-              <span>{points}</span>
-              <ScoreIcon size={15} className={cn("h-4 w-auto", isLearned && "grayscale opacity-60")} />
-            </span>
-            <span
-              className="inline-flex size-6 shrink-0 items-center justify-center"
-              title={t(isLearned ? "inventory.status.learned" : "inventory.status.active")}
-              aria-label={t(isLearned ? "inventory.status.learned" : "inventory.status.active")}
-            >
-              <MobileCardStatusArtwork
-                status={isLearned ? "learned" : "active"}
-                className="size-6"
-              />
-            </span>
-          </div>
-        </div>
-        <p className="pl-[34px] text-sm text-foreground-secondary">{getCardTranslation(card, locale)}</p>
-        <div className="flex items-start gap-1.5 pl-0">
-          <button type="button" aria-label={`${example} ${t("cards.listen")}`} onClick={(event) => { event.stopPropagation(); vibrate("tap"); speakText(example, card.language); }} className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-md text-foreground-muted hover:bg-background-muted"><CardSpeakerIcon className="size-4" /></button>
-          <p className="pt-1 text-xs leading-5 text-foreground-muted">{example}</p>
-        </div>
-      </div>
-      <div className="absolute bottom-2 left-14 right-4">
-        <span className="mb-2 block text-right text-xs font-semibold leading-none text-foreground-secondary" data-card-progress-label>
-          {progressCount}/{requirement}
-        </span>
-        <div
-          className="h-1.5 overflow-hidden rounded-full bg-background-muted"
-          role="progressbar"
-          aria-label={`${card.term} ${t("cards.progress")}`}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={progress}
-          data-card-progress-bar
-        >
-          <span
-            className={cn("block h-full rounded-full transition-[width,background-color] duration-500 ease-out", isLearned ? "bg-gradient-to-r from-amber-300 to-orange-500" : style.accent)}
-            style={{ width: `${progress}%` }}
-            data-card-progress-fill
-          />
-        </div>
-      </div>
-    </div>
   );
 }
 

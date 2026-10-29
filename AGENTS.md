@@ -171,6 +171,7 @@ Ek yardımcı script'ler `scripts/` altındadır: `generate-card-seeds-from-muse
 ### UI Sorumlulukları
 
 - `VocabularyCardView` kartın tüm fiziksel/3D görünümünü sahiplenir.
+- Landing koleksiyonundaki sahip olunan kartlar `MobileCardPodiumOverlay` ile gösterilir: rütbe detayları benzeri tam ekran swipe carousel'i vardır ve podyum, `public/card-podiums/` içindeki A1–C1 tier görsellerinden seçilir; üst-sol başlığı bulunmaz ve arka planı tier renginin `%50` karartılmış tonudur. Tier görseli `MobileCardPodiumOverlay` üzerinden kart tier'ına göre eşlenir. Alttaki tier glowu doğrudan tier renginde, tam opak başlar; `%70` noktasında karartılmış tier tonuna geçer ve üstte aynı karartılmış tonun üzerine şeffaflaşır. Bu overlay yalnızca koleksiyonda bulunan kartlar içindir; koleksiyona henüz eklenmemiş kartların (örn. toplu grup ekleme önizlemesi) tek-kart görünümü `MobileUnownedCardDisplaySheet` olarak kalır. İki kullanım birbirine karıştırılmamalıdır.
 - Kart detayları ayrı bir dialog olarak sunulmaz; kart görünümü yalnızca çevirme, konuşma ve Ask aksiyonlarını barındırır.
 - `FilterControls` öğrenme dili/tier seçimini yapar; mobilde dil dropdown kullanır.
 - `CardDrawWorkbench` kart çekme arayüzünü sahiplenir; mobil alt barda "Draw Cards" ve kırmızı "Create Card" butonları yan yana bulunur.
