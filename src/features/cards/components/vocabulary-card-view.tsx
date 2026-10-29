@@ -12,6 +12,7 @@ import { useCardPronunciation } from "@/features/cards/card-pronunciation-client
 import { useAskOverlay } from "@/features/ask/components/ask-overlay-provider";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { getCardDesignTierPalette } from "@/features/cards/card-design-tier-palette";
+import { isLearnedInventoryCard } from "@/features/inventory/inventory-selectors";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { vibrate } from "@/lib/vibration";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,7 @@ interface VocabularyCardViewProps {
   continuousFlip?: boolean;
   disableTextFitting?: boolean;
   pronunciationMatchesTranslation?: boolean;
+  showGroupImage?: boolean;
   footerProgressCount?: number;
   progressAnimationActive?: boolean;
   onClick?: () => void;
@@ -82,6 +84,7 @@ export const VocabularyCardView = memo(function VocabularyCardView({
   continuousFlip = false,
   disableTextFitting = false,
   pronunciationMatchesTranslation = false,
+  showGroupImage = true,
   footerProgressCount,
   progressAnimationActive = false,
   onClick,
@@ -125,8 +128,11 @@ export const VocabularyCardView = memo(function VocabularyCardView({
     groupImageSrc: cardGroup ? CARD_GROUP_IMAGE_PATHS[cardGroup.id] : undefined,
   };
   const requirement = TIER_REQUIREMENTS[card.tier];
+  const isLearned = isLearnedInventoryCard(inventory) || (
+    inventory !== undefined && inventory.correctCount >= requirement
+  );
   const progressCount = footerProgressCount ?? inventory?.correctCount ?? 0;
-  const progress = inventory?.status === "learned"
+  const progress = isLearned
     ? requirement
     : Math.min(requirement, Math.max(0, progressCount));
   const showProgress = inventory !== undefined || footerProgressCount !== undefined;
@@ -185,6 +191,7 @@ export const VocabularyCardView = memo(function VocabularyCardView({
     <article
       aria-label={card.term}
       data-card-face={isFaceUp ? "front" : "back"}
+      data-card-learning-status={isLearned ? "learned" : inventory ? "active" : "unowned"}
       data-theme="default"
       {...flipRoleProps}
       onClick={handleCardClick}
@@ -205,12 +212,13 @@ export const VocabularyCardView = memo(function VocabularyCardView({
         onSpeak={() => speakCardTerm(card.term, card.language)}
         pronunciationMatchesTranslation={pronunciationMatchesTranslation}
         sample={sample}
+        showGroupImage={showGroupImage}
         showBack={!isFaceUp}
         learningProgress={isFaceUp && showProgress ? {
           current: progress,
           required: requirement,
           progressLabel: t("cards.progress"),
-          isLearned: inventory?.status === "learned",
+          isLearned,
           animationActive: progressAnimationActive,
         } : undefined}
       />

@@ -6,6 +6,10 @@ export interface InventoryCardView {
   card: VocabularyCard;
 }
 
+export function isLearnedInventoryCard(inventory?: Pick<InventoryCard, "status">) {
+  return typeof inventory?.status === "string" && inventory.status.trim().toLowerCase() === "learned";
+}
+
 export function joinInventoryCards(cards: InventoryCard[]): InventoryCardView[] {
   const cardById = new Map(
     customCardRegistry
@@ -29,7 +33,8 @@ export function filterInventoryCards(input: {
 }) {
   return joinInventoryCards(input.cards).filter(({ inventory, card }) => {
     const languageMatches = !input.language || input.language === "all" || card.language === input.language;
-    const statusMatches = !input.status || input.status === "all" || inventory.status === input.status;
+    const normalizedStatus = typeof inventory.status === "string" ? inventory.status.trim().toLowerCase() : "";
+    const statusMatches = !input.status || input.status === "all" || normalizedStatus === input.status;
 
     return languageMatches && statusMatches;
   });

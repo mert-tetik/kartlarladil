@@ -1006,7 +1006,7 @@ const dictionary = {
   "tutorial.next": "下一步",
   "tutorial.addCards": "添加卡片",
   "tutorial.understood": "明白了",
-  "cards.centerTitle": "卡片", "cards.all": "全部卡片", "cards.toLearn": "待学习", "cards.listen": "朗读", "cards.addToDeck": "加入卡片", "cards.swipeHint": "向左滑动跳过，向右滑动加入收藏。", "cards.createCustom": "创建自定义卡片",
+  "cards.centerTitle": "卡片", "cards.all": "全部卡片", "cards.toLearn": "待学习", "cards.review": "复习", "cards.tapToContinue": "点击屏幕", "cards.reviewToLearnIntro": "待学习卡片", "cards.reviewLearnedIntro": "已学会的卡片", "cards.addedToday": "今天添加", "cards.addedDayAgo": "1天前添加", "cards.addedDaysAgo": "{count}天前添加", "cards.listen": "朗读", "cards.addToDeck": "加入卡片", "cards.swipeHint": "向左滑动跳过，向右滑动加入收藏。", "cards.createCustom": "创建自定义卡片",
   "cards.groups.title": "卡片分组",
   "cards.groups.description": "按主题一次性将卡片加入卡组。",
   "cards.groups.groupDescription": "关于{group}的词汇",

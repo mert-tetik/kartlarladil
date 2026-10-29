@@ -2,17 +2,18 @@
 
 import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { ChevronDown, Languages, ScanText } from "lucide-react";
+import { ChevronDown, ScanText } from "lucide-react";
 import { MobileCardPodiumOverlay } from "@/app/components/mobile-card-podium-overlay";
 import { MobileEmptyDeckPointer } from "@/app/components/mobile-empty-deck-pointer";
 import { MobileCardStatusArtwork } from "@/app/components/mobile-card-status-artwork";
+import { LanguageFlag } from "@/components/language-flag";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
-import { TIER_STYLES, TIERS } from "@/data/tiers";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import type { InventoryCardView } from "@/features/inventory/inventory-selectors";
-import type { LanguageCode, Tier } from "@/types/domain";
+import type { LanguageCode } from "@/types/domain";
 
 type CardStatusFilter = "all" | "active" | "learned";
 
@@ -45,23 +46,30 @@ export function MobileLandingCardCenter({
 }) {
   const { locale } = useLocale();
   const t = useT();
-  const [tier, setTier] = useState<Tier | "all">("all");
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [podiumMode, setPodiumMode] = useState<"collection" | "review">("collection");
   const drawActionRef = useRef<HTMLDivElement>(null);
   const cards = useMemo(
     () => {
       const sourceCards = status === "active" ? activeCards : status === "learned" ? learnedCards : [...activeCards, ...learnedCards];
       // Keep the optimistic and cloud-backed views in the same newest-first order.
       return sourceCards
-        .filter(({ card }) => tier === "all" || card.tier === tier)
         .sort((left, right) => Date.parse(right.inventory.addedAt) - Date.parse(left.inventory.addedAt));
     },
-    [activeCards, learnedCards, status, tier],
+    [activeCards, learnedCards, status],
   );
   const statusLabel = t(`cards.${status === "all" ? "all" : status === "active" ? "toLearn" : "learned"}`);
 
   function handleToggle() {
     onOpenChange(!isOpen);
+  }
+
+  function openReviewMode() {
+    const firstCard = activeCards[0]?.card;
+    if (!firstCard) return;
+
+    setPodiumMode("review");
+    setSelectedCardId(firstCard.id);
   }
 
   return (
@@ -115,41 +123,38 @@ export function MobileLandingCardCenter({
                   </button>
                 ))}
               </div>
-              <div className="grid w-full grid-cols-[1.4fr_repeat(5,minmax(0,1fr))] px-1">
-                <FilterChip label={t("home.mobile.allTiers")} selected={tier === "all"} onClick={() => setTier("all")} />
-                {TIERS.map((item) => (
-                  <FilterChip
-                    key={item}
-                    label={item}
-                    selected={tier === item}
-                    onClick={() => setTier(item)}
-                    className={TIER_STYLES[item].text}
-                    selectedClassName={cn(TIER_STYLES[item].accent, item === "B2" ? "text-black" : "text-white")}
-                  />
-                ))}
-              </div>
               <div
                 className={cn(
-                  "flex h-8 items-center gap-2 rounded-md px-3 text-xs font-semibold text-white transition-colors duration-300 ease-out",
+                  "flex h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-white transition-colors duration-300 ease-out font-super-water",
                   status === "all" ? "bg-black" : status === "active" ? "bg-action-learn" : "bg-action-learned",
                 )}
               >
-                <Languages className="size-3.5 shrink-0" aria-hidden="true" />
-                <span className="truncate">{getLanguageDisplayName(selectedLanguage, locale)}</span>
+                <LanguageFlag code={selectedLanguage} className="size-6" />
+                <span className="truncate">{formatSuperWaterText(locale, getLanguageDisplayName(selectedLanguage, locale))}</span>
                 <span className="text-white/60" aria-hidden="true">•</span>
-                <span className="truncate">{statusLabel}</span>
+                <span className="min-w-0 truncate">{formatSuperWaterText(locale, statusLabel)}</span>
+                <button
+                  type="button"
+                  onClick={openReviewMode}
+                  disabled={activeCards.length === 0}
+                  aria-label={t("cards.review")}
+                  className="ml-auto inline-flex h-8 shrink-0 items-center rounded-full bg-white/95 px-3 text-xs font-semibold leading-none text-black transition-transform active:scale-95 disabled:pointer-events-none disabled:opacity-40"
+                >
+                  {formatSuperWaterText(locale, t("cards.review"))}
+                </button>
               </div>
           </div>
 
           <div className="-mx-4 grid grid-cols-3 gap-0 bg-background-card" data-mobile-card-grid>
             {cards.length ? cards.map(({ card, inventory }) => (
               <div
-                key={card.id}
+                key={`${card.id}-${String(inventory.status ?? "").trim().toLowerCase()}-${inventory.correctCount}`}
                 role="button"
                 tabIndex={0}
                 aria-label={card.term}
                 data-mobile-vocabulary-card
                 onClick={(event) => {
+                  setPodiumMode("collection");
                   setSelectedCardId(card.id);
                 }}
                 onKeyDown={(event) => {
@@ -166,6 +171,7 @@ export function MobileLandingCardCenter({
                   compact
                   className="aspect-[3/4] min-h-0 w-full rounded-none max-sm:aspect-[3/4] max-sm:min-h-0"
                   pronunciationMatchesTranslation
+                  showGroupImage
                 />
               </div>
             )) : (
@@ -180,15 +186,17 @@ export function MobileLandingCardCenter({
       ) : null}
       <MobileCardPodiumOverlay
         items={cards}
+        reviewActiveItems={activeCards}
+        reviewLearnedItems={learnedCards}
         selectedCardId={selectedCardId}
         isOpen={selectedCardId !== null}
         onSelectedCardChange={setSelectedCardId}
-        onClose={() => setSelectedCardId(null)}
+        onClose={() => {
+          setPodiumMode("collection");
+          setSelectedCardId(null);
+        }}
+        mode={podiumMode}
       />
     </section>
   );
-}
-
-function FilterChip({ label, selected, onClick, className, selectedClassName }: { label: string; selected: boolean; onClick: () => void; className?: string; selectedClassName?: string }) {
-  return <button type="button" onClick={onClick} className={cn("h-8 min-w-0 w-full rounded-none border-0 px-1 text-center text-[11px] font-semibold leading-tight transition-colors first:rounded-l-md last:rounded-r-md", selected ? cn("bg-foreground text-background", selectedClassName) : cn("bg-background-card text-foreground-secondary", className))}>{label}</button>;
 }

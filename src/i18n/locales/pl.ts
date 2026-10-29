@@ -1006,7 +1006,7 @@ const dictionary = {
   "tutorial.next": "Dalej",
   "tutorial.addCards": "Dodaj karty",
   "tutorial.understood": "Rozumiem",
-  "cards.centerTitle": "Karty", "cards.all": "Wszystkie", "cards.toLearn": "Do nauki", "cards.listen": "Odsłuchaj", "cards.addToDeck": "Dodaj do kart", "cards.swipeHint": "Przesuń w lewo, aby pominąć, lub w prawo, aby dodać do kolekcji.", "cards.createCustom": "Utwórz własną kartę",
+  "cards.centerTitle": "Karty", "cards.all": "Wszystkie", "cards.toLearn": "Do nauki", "cards.review": "Powtórz", "cards.tapToContinue": "Dotknij ekranu", "cards.reviewToLearnIntro": "Karty do nauki", "cards.reviewLearnedIntro": "Karty, których się nauczyłeś", "cards.addedToday": "Dodano dzisiaj", "cards.addedDayAgo": "Dodano 1 dzień temu", "cards.addedDaysAgo": "Dodano {count} dni temu", "cards.listen": "Odsłuchaj", "cards.addToDeck": "Dodaj do kart", "cards.swipeHint": "Przesuń w lewo, aby pominąć, lub w prawo, aby dodać do kolekcji.", "cards.createCustom": "Utwórz własną kartę",
   "cards.groups.title": "Grupy kart",
   "cards.groups.description": "Dodawaj karty według tematu za jednym razem.",
   "cards.groups.groupDescription": "Słowa na temat: {group}",

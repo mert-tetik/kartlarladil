@@ -1006,7 +1006,7 @@ const dictionary = {
   "tutorial.next": "التالي",
   "tutorial.addCards": "أضف بطاقات",
   "tutorial.understood": "فهمت",
-  "cards.centerTitle": "البطاقات", "cards.all": "كل البطاقات", "cards.toLearn": "للتعلّم", "cards.listen": "استمع", "cards.addToDeck": "أضف إلى البطاقات", "cards.swipeHint": "اسحب لليسار للتخطي أو لليمين لإضافة البطاقة إلى مجموعتك.", "cards.createCustom": "إنشاء بطاقة مخصصة",
+  "cards.centerTitle": "البطاقات", "cards.all": "كل البطاقات", "cards.toLearn": "للتعلّم", "cards.review": "مراجعة", "cards.tapToContinue": "اضغط على الشاشة", "cards.reviewToLearnIntro": "بطاقات للتعلّم", "cards.reviewLearnedIntro": "البطاقات التي تعلّمتها", "cards.addedToday": "أُضيفت اليوم", "cards.addedDayAgo": "أُضيفت قبل يوم واحد", "cards.addedDaysAgo": "أُضيفت قبل {count} يومًا", "cards.listen": "استمع", "cards.addToDeck": "أضف إلى البطاقات", "cards.swipeHint": "اسحب لليسار للتخطي أو لليمين لإضافة البطاقة إلى مجموعتك.", "cards.createCustom": "إنشاء بطاقة مخصصة",
   "cards.groups.title": "مجموعات البطاقات",
   "cards.groups.description": "أضف البطاقات حسب الموضوع دفعة واحدة.",
   "cards.groups.groupDescription": "كلمات عن {group}",

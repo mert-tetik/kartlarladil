@@ -1006,7 +1006,7 @@ const dictionary = {
   "tutorial.next": "Volgende",
   "tutorial.addCards": "Kaarten toevoegen",
   "tutorial.understood": "Begrepen",
-  "cards.centerTitle": "Kaarten", "cards.all": "Alle kaarten", "cards.toLearn": "Te leren", "cards.listen": "Luisteren", "cards.addToDeck": "Aan kaarten toevoegen", "cards.swipeHint": "Veeg links om over te slaan of rechts om aan je collectie toe te voegen.", "cards.createCustom": "Eigen kaart maken",
+  "cards.centerTitle": "Kaarten", "cards.all": "Alle kaarten", "cards.toLearn": "Te leren", "cards.review": "Herhalen", "cards.tapToContinue": "Tik op het scherm", "cards.reviewToLearnIntro": "Kaarten om te leren", "cards.reviewLearnedIntro": "Kaarten die je hebt geleerd", "cards.addedToday": "Vandaag toegevoegd", "cards.addedDayAgo": "1 dag geleden toegevoegd", "cards.addedDaysAgo": "{count} dagen geleden toegevoegd", "cards.listen": "Luisteren", "cards.addToDeck": "Aan kaarten toevoegen", "cards.swipeHint": "Veeg links om over te slaan of rechts om aan je collectie toe te voegen.", "cards.createCustom": "Eigen kaart maken",
   "cards.groups.title": "Kaartgroepen",
   "cards.groups.description": "Voeg kaarten per onderwerp in één keer toe.",
   "cards.groups.groupDescription": "Woorden over {group}",

@@ -106,7 +106,7 @@ export function VocabularyCardDesign({
   const progressCurrent = learningProgress?.isLearned
     ? progressRequired
     : Math.min(progressRequired, Math.max(0, Math.floor(learningProgress?.current ?? 0)));
-  const progressLabel = learningProgress?.progressLabel;
+  const progressLabel = learningProgress?.progressLabel || "Progress";
   const progressFilledColor = `color-mix(in srgb, ${palette.label} 82%, #000)`;
   const progressEmptyColor = `color-mix(in srgb, ${palette.label} 34%, #fff)`;
   const [pronunciationSpeaking, setPronunciationSpeaking] = useState(false);
@@ -228,11 +228,24 @@ export function VocabularyCardDesign({
             {sample.tier}
           </div>
           {showGroupImage && sample.groupImageSrc ? (
-            <div
+            <img
               aria-hidden="true"
+              alt=""
               className="fd-card-design__group-image"
               data-card-group-image
-              style={{ backgroundImage: `url(${sample.groupImageSrc})` }}
+              draggable={false}
+              src={sample.groupImageSrc}
+              style={{
+                height: "16cqw",
+                left: "calc(6% + 23.125cqw - 2px)",
+                maxHeight: "16%",
+                maxWidth: "16%",
+                objectFit: "contain",
+                position: "absolute",
+                top: "calc(4% + 2.625cqw)",
+                width: "16cqw",
+                zIndex: 2,
+              }}
             />
           ) : null}
 
@@ -245,6 +258,7 @@ export function VocabularyCardDesign({
             </div>
             <div
               className={`fd-card-design__pronunciation${pronunciationSpeaking ? " fd-card-design__pronunciation--speaking" : ""}`}
+              data-pronunciation-matches-translation={pronunciationMatchesTranslation ? "true" : "false"}
               data-pronunciation-speaking={pronunciationSpeaking ? "true" : "false"}
               data-testid="card-pronunciation"
               style={{
@@ -268,13 +282,29 @@ export function VocabularyCardDesign({
               <FittedSingleLineText disableFit={disableTextFitting} className="fd-card-design__pronunciation-text">{sample.pronunciation || sample.term}</FittedSingleLineText>
             </div>
           </div>
-          {learningProgress && progressLabel ? learningProgress.isLearned ? (
-            <div
+          {learningProgress ? learningProgress.isLearned ? (
+            <img
               aria-label={progressLabel}
-              className="fd-card-design__progress fd-card-design__learned-medal"
+              alt={progressLabel}
+              className="fd-card-design__learned-medal"
               data-card-progress-medal
+              decoding="async"
+              draggable={false}
+              loading="eager"
               role="img"
-              style={{ backgroundImage: `url(${LEARNED_CARD_MEDAL_SRC})` }}
+              src={LEARNED_CARD_MEDAL_SRC}
+              style={{
+                display: "block",
+                height: "21.25cqw",
+                opacity: 1,
+                objectFit: "contain",
+                position: "absolute",
+                right: "6%",
+                top: "4%",
+                visibility: "visible",
+                width: "21.25cqw",
+                zIndex: 2,
+              }}
             />
           ) : (
             <div

@@ -80,12 +80,11 @@
   z-index: 2;
   top: calc(4% + 2.625cqw);
   left: calc(6% + 23.125cqw - 2px);
+  display: block;
   width: 16cqw;
   height: 16cqw;
   pointer-events: none;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
+  object-fit: contain;
   filter: drop-shadow(0 0.625cqw 1.25cqw rgb(16 89 104 / 28%));
 }
 
@@ -176,6 +175,11 @@
   box-shadow: inset 0 0.3125cqw 0.3125cqw rgb(255 255 255 / 30%);
 }
 
+.fd-card-design__pronunciation[data-pronunciation-matches-translation="true"] {
+  height: calc(7.5% + 2px);
+  min-height: calc(7.5cqw + 2px);
+}
+
 .fd-card-design__pronunciation--speaking {
   animation: fd-card-pronunciation-wiggle 280ms ease-in-out infinite alternate;
   transform-origin: center;
@@ -209,6 +213,11 @@
   width: 5cqw;
   height: 5cqw;
   fill: currentColor;
+}
+
+.fd-card-design__pronunciation[data-pronunciation-matches-translation="true"] .fd-card-design__speaker-icon {
+  width: 6.25cqw;
+  height: 6.25cqw;
 }
 
 .fd-card-design__speaker-icon path:not(:first-child) { fill: none; }
@@ -249,11 +258,24 @@
 }
 
 .fd-card-design__learned-medal {
+  position: absolute;
+  z-index: 2;
+  top: 4%;
+  right: 6%;
+  display: block;
+  width: 21.25cqw;
+  height: 21.25cqw;
+  pointer-events: none;
+  overflow: visible;
+  opacity: 1;
+  visibility: visible;
   border: 0;
+  border-radius: 0;
   background-color: transparent;
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
+  object-fit: contain;
   box-shadow: none;
 }
 

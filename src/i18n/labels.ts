@@ -83,6 +83,20 @@ export function formatCards(locale: LocaleCode, value: number) {
   return translate(locale, "common.cardsWithCount", { count: formatNumber(locale, value) });
 }
 
+export function formatAddedAt(locale: LocaleCode, value: string) {
+  const addedAt = new Date(value);
+  if (Number.isNaN(addedAt.getTime())) return "";
+
+  const now = new Date();
+  const todayStart = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const addedAtStart = Date.UTC(addedAt.getFullYear(), addedAt.getMonth(), addedAt.getDate());
+  const daysAgo = Math.max(0, Math.floor((todayStart - addedAtStart) / 86_400_000));
+
+  if (daysAgo === 0) return translate(locale, "cards.addedToday");
+  if (daysAgo === 1) return translate(locale, "cards.addedDayAgo");
+  return translate(locale, "cards.addedDaysAgo", { count: formatNumber(locale, daysAgo) });
+}
+
 export function toIntlLocale(locale: LocaleCode) {
   return locale === "zh-CN" ? "zh-CN" : locale;
 }

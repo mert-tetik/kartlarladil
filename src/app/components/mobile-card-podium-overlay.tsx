@@ -22,7 +22,7 @@ import { markCardLearnedWithGemAction, removeCardWithGemAction } from "@/feature
 import { GEM_ASSETS, GEM_COSTS, getMarkLearnedGemCost, type GemType } from "@/features/gems/gem-types";
 import { getCardDesignTierPalette } from "@/features/cards/card-design-tier-palette";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
-import { formatNumber } from "@/i18n/labels";
+import { formatAddedAt, formatNumber } from "@/i18n/labels";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { cn } from "@/lib/utils";
@@ -55,6 +55,8 @@ const CARD_STATUS_BADGE_BY_STATUS = {
   learned: "/card-status/kart_ogrenildi_madalyasi.png",
 } as const;
 
+type ReviewSection = "active" | "learned";
+
 interface CardPointerDrag {
   pointerId: number;
   startX: number;
@@ -66,6 +68,17 @@ interface PodiumBackgroundPalette {
   backdrop: string;
 }
 
+const REVIEW_BACKGROUND_BY_SECTION: Record<ReviewSection, PodiumBackgroundPalette> = {
+  active: {
+    shellEnd: "#10b981",
+    backdrop: "#064e3b",
+  },
+  learned: {
+    shellEnd: "#0ea5e9",
+    backdrop: "#0c4a6e",
+  },
+};
+
 interface PodiumBackgroundTransition {
   from: PodiumBackgroundPalette;
   to: PodiumBackgroundPalette;
@@ -74,10 +87,13 @@ interface PodiumBackgroundTransition {
 
 interface MobileCardPodiumOverlayProps {
   items: InventoryCardView[];
+  reviewActiveItems?: InventoryCardView[];
+  reviewLearnedItems?: InventoryCardView[];
   selectedCardId: string | null;
   isOpen: boolean;
   onSelectedCardChange: (cardId: string) => void;
   onClose: () => void;
+  mode?: "collection" | "review";
 }
 
 function hexToRgba(hex: string, alpha: number) {
@@ -128,11 +144,14 @@ function tierBackdropHex(hex: string) {
 }
 
 export function MobileCardPodiumOverlay({
-  items,
+  items: collectionItems,
+  reviewActiveItems = [],
+  reviewLearnedItems = [],
   selectedCardId,
   isOpen,
   onSelectedCardChange,
   onClose,
+  mode = "collection",
 }: MobileCardPodiumOverlayProps) {
   const { locale } = useLocale();
   const t = useT();
@@ -175,6 +194,12 @@ export function MobileCardPodiumOverlay({
   const [backgroundTargetIndex, setBackgroundTargetIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [statusBadgeVisible, setStatusBadgeVisible] = useState(false);
+  const isReviewMode = mode === "review";
+  const [reviewSection, setReviewSection] = useState<ReviewSection>("active");
+  const [reviewIntro, setReviewIntro] = useState(false);
+  const [isReviewPressed, setIsReviewPressed] = useState(false);
+  const reviewItems = reviewSection === "active" ? reviewActiveItems : reviewLearnedItems;
+  const items = isReviewMode ? reviewItems : collectionItems;
 
   useEffect(() => {
     if (isOpen) {
@@ -182,6 +207,12 @@ export function MobileCardPodiumOverlay({
       pointerDragRef.current = null;
       setIsDragging(false);
       setStatusBadgeVisible(false);
+      if (isReviewMode) {
+        setReviewSection(reviewActiveItems.length > 0 ? "active" : "learned");
+        setReviewIntro(true);
+      } else {
+        setReviewIntro(false);
+      }
 
       let openFrame: number | null = null;
       let introTimer: number | null = null;
@@ -216,7 +247,7 @@ export function MobileCardPodiumOverlay({
       window.cancelAnimationFrame(closeFrame);
       window.clearTimeout(closeTimer);
     };
-  }, [isOpen]);
+  }, [isOpen, isReviewMode, reviewActiveItems.length]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -237,7 +268,8 @@ export function MobileCardPodiumOverlay({
   const palette = currentCard ? getCardDesignTierPalette(currentCard.tier) : null;
   const backgroundItem = items[Math.max(0, Math.min(backgroundTargetIndex, items.length - 1))];
   const backgroundCard = backgroundItem?.card ?? currentCard;
-  const backgroundPalette = backgroundCard ? getCardDesignTierPalette(backgroundCard.tier) : palette;
+  const tierBackgroundPalette = backgroundCard ? getCardDesignTierPalette(backgroundCard.tier) : palette;
+  const backgroundPalette = isReviewMode ? REVIEW_BACKGROUND_BY_SECTION[reviewSection] : tierBackgroundPalette;
   const backgroundShellEnd = backgroundPalette?.shellEnd ?? null;
   const backgroundBackdrop = backgroundShellEnd ? tierBackdropHex(backgroundShellEnd) : null;
   const canNavigate = items.length > 1;
@@ -248,7 +280,7 @@ export function MobileCardPodiumOverlay({
       backgroundTransitionTimerRef.current = null;
     }
 
-    if (!isOpen || !backgroundShellEnd || !backgroundBackdrop) {
+    if (!isOpen || !backgroundShellEnd || !backgroundBackdrop || isReviewMode) {
       previousBackgroundRef.current = null;
       setBackgroundTransition(null);
       return;
@@ -285,7 +317,7 @@ export function MobileCardPodiumOverlay({
         backgroundTransitionTimerRef.current = null;
       }
     };
-  }, [backgroundBackdrop, backgroundShellEnd, isOpen]);
+  }, [backgroundBackdrop, backgroundShellEnd, isOpen, isReviewMode]);
 
   const getTrackWidth = useCallback(() => {
     const track = podiumTrackRef.current;
@@ -348,7 +380,7 @@ export function MobileCardPodiumOverlay({
     cancelSnap();
     const nextIndex = Math.max(0, Math.min(items.length - 1, targetIndex));
     const current = currentIndexRef.current;
-    const offset = nextIndex === current ? 0 : nextIndex > current ? 1 : -1;
+    const offset = nextIndex - current;
     const targetTransform = -trackWidth * (PODIUM_CENTER_SLOT_INDEX + offset);
     pendingSnapIndexRef.current = nextIndex;
     setBackgroundTargetIndex(nextIndex);
@@ -388,8 +420,11 @@ export function MobileCardPodiumOverlay({
   const move = useCallback((direction: -1 | 1) => {
     const pendingIndex = pendingSnapIndexRef.current;
     if (pendingIndex !== null) {
+      const current = currentIndexRef.current;
       const nextIndex = Math.max(0, Math.min(items.length - 1, pendingIndex + direction));
-      rebasePendingSnap();
+      if (Math.abs(nextIndex - current) > PODIUM_CENTER_SLOT_INDEX) {
+        rebasePendingSnap();
+      }
       snapToCard(nextIndex);
       return;
     }
@@ -424,17 +459,88 @@ export function MobileCardPodiumOverlay({
     if (!isOpen) return;
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
-      else if (event.key === "ArrowLeft") {
+      else if (!isReviewMode && event.key === "ArrowLeft") {
         event.preventDefault();
         move(-1);
-      } else if (event.key === "ArrowRight") {
+      } else if (!isReviewMode && event.key === "ArrowRight") {
         event.preventDefault();
         move(1);
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, move, onClose]);
+  }, [isOpen, isReviewMode, move, onClose]);
+
+  function startReviewSection(nextSection: ReviewSection) {
+    const nextItems = nextSection === "active" ? reviewActiveItems : reviewLearnedItems;
+    const firstCard = nextItems[0]?.card;
+    if (!firstCard) return;
+
+    cancelSnap();
+    currentIndexRef.current = 0;
+    setIndex(0);
+    setBackgroundTargetIndex(0);
+    setFace("front");
+    setGrammarDetailsOpen(false);
+    setConfirmation(null);
+    setStatusBadgeVisible(false);
+    setReviewSection(nextSection);
+    setReviewIntro(true);
+    onSelectedCardChange(firstCard.id);
+  }
+
+  function revealReviewCards() {
+    setReviewIntro(false);
+    setStatusBadgeVisible(true);
+  }
+
+  function advanceReviewImmediately() {
+    cancelSnap();
+
+    const nextIndex = Math.max(0, Math.min(items.length - 1, currentIndexRef.current + 1));
+    if (nextIndex === currentIndexRef.current) return;
+
+    currentIndexRef.current = nextIndex;
+    setIndex(nextIndex);
+    setBackgroundTargetIndex(nextIndex);
+    setFace("front");
+    setGrammarDetailsOpen(false);
+    setConfirmation(null);
+
+    const nextCard = items[nextIndex]?.card;
+    if (nextCard) onSelectedCardChange(nextCard.id);
+  }
+
+  function handleReviewTap(event: ReactMouseEvent<HTMLElement>) {
+    if (!isReviewMode || (event.target as HTMLElement).closest("button, a, input, textarea, select")) return;
+    vibrate("tutorial-next");
+    playSoundEffect("rank-highlight");
+
+    if (reviewIntro) {
+      revealReviewCards();
+      return;
+    }
+
+    if (reviewSection === "active" && currentIndexRef.current >= items.length - 1 && reviewLearnedItems.length > 0) {
+      startReviewSection("learned");
+      return;
+    }
+
+    advanceReviewImmediately();
+  }
+
+  function handleReviewPressStart(event: ReactPointerEvent<HTMLElement>) {
+    if (!isReviewMode || (event.target as HTMLElement).closest("button, a, input, textarea, select")) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setIsReviewPressed(true);
+  }
+
+  function handleReviewPressEnd(event: ReactPointerEvent<HTMLElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    setIsReviewPressed(false);
+  }
 
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.pointerType === "mouse" && event.button !== 0) return;
@@ -611,7 +717,7 @@ export function MobileCardPodiumOverlay({
       data-mobile-card-podium-overlay
       style={{
         backgroundColor: statusBackdrop,
-        transition: "background-color 420ms cubic-bezier(0.22, 0.7, 0.24, 1)",
+        transition: isReviewMode ? "none" : "background-color 420ms cubic-bezier(0.22, 0.7, 0.24, 1)",
       }}
     >
       <div
@@ -646,43 +752,48 @@ export function MobileCardPodiumOverlay({
         )}
       </div>
 
-      <div
-        className="absolute left-3 top-[max(0.5rem,env(safe-area-inset-top))] z-40"
-        data-card-status-badge
-        data-rank-details-ui="status"
-      >
-        <div className="flex translate-x-[30px] translate-y-[30px] flex-col items-center">
-          <div
-            data-card-status-badge-content
-            data-card-status-badge-visible={statusBadgeVisible ? "true" : "false"}
-          >
-            <Image
-              src={statusBadgeSrc}
-              alt=""
-              aria-hidden="true"
-              width={400}
-              height={400}
-              sizes="80px"
-              className="size-20 shrink-0 object-contain"
-            />
-            <span
-              className={cn(
-            "relative left-[10px] mt-[-2px] inline-block origin-top whitespace-nowrap text-[24px] font-semibold leading-none",
-            canUseSuperWater(locale) && "font-super-water",
-          )}
-          data-card-status-badge-text
-          style={{
-            color: active ? "#ADF460" : "#059AF8",
-            display: "inline-block",
-            transform: "rotate(-12deg)",
-            transformOrigin: "top center",
-          }}
+      {!isReviewMode && !reviewIntro ? (
+        <div
+          className="absolute left-3 top-[max(0.5rem,env(safe-area-inset-top))] z-40"
+          data-card-status-badge
+          data-rank-details-ui="status"
         >
-              {formatSuperWaterText(locale, statusLabel)}
-            </span>
+          <div className="flex translate-x-[30px] translate-y-[30px] flex-col items-center">
+            <div
+              key={`${currentCard.id}-${statusBadgeVisible ? "visible" : "hidden"}`}
+              data-card-status-badge-content
+              data-card-status-badge-visible={statusBadgeVisible ? "true" : "false"}
+              data-card-status-badge-instant={isReviewMode ? "true" : "false"}
+            >
+              <Image
+                src={statusBadgeSrc}
+                alt=""
+                aria-hidden="true"
+                width={400}
+                height={400}
+                sizes="80px"
+                className="size-20 shrink-0 object-contain"
+              />
+              <span
+                className={cn(
+                  "relative left-[10px] mt-[-2px] inline-block origin-top whitespace-nowrap text-[24px] font-semibold leading-none",
+                  canUseSuperWater(locale) && "font-super-water",
+                )}
+                data-card-status-badge-text
+                style={{
+                  color: active ? "#ADF460" : "#059AF8",
+                  display: "inline-block",
+                  top: active ? "-5px" : undefined,
+                  transform: "rotate(-12deg)",
+                  transformOrigin: "top center",
+                }}
+              >
+                {formatSuperWaterText(locale, statusLabel)}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
 
       <button
         type="button"
@@ -699,24 +810,59 @@ export function MobileCardPodiumOverlay({
       <main
         className="absolute inset-x-0 bottom-[max(3.75rem,env(safe-area-inset-bottom)+3rem)] z-10 flex flex-col items-center overflow-y-auto px-4"
         style={{ top: "calc(env(safe-area-inset-top) + 1.5rem)" }}
+        onClick={isReviewMode ? handleReviewTap : undefined}
+        onPointerDown={isReviewMode ? handleReviewPressStart : undefined}
+        onPointerUp={isReviewMode ? handleReviewPressEnd : undefined}
+        onPointerCancel={isReviewMode ? handleReviewPressEnd : undefined}
       >
+        {isReviewMode && reviewIntro ? (
+          <div
+            key={`review-intro-${reviewSection}`}
+            className="flex min-h-[28rem] w-full flex-1 shrink-0 flex-col items-center justify-center gap-4 text-center"
+            data-card-review-intro
+            data-card-review-intro-instant="true"
+            data-card-review-pressed={isReviewPressed ? "true" : "false"}
+            style={{
+              transform: isReviewPressed ? "scale(0.94)" : "scale(1)",
+              transition: "transform 150ms cubic-bezier(0.22, 1, 0.36, 1)",
+            }}
+          >
+            <Image
+              src={statusBadgeSrc}
+              alt=""
+              aria-hidden="true"
+              width={400}
+              height={400}
+              sizes="224px"
+              className="size-56 shrink-0 object-contain"
+            />
+            <p className="font-super-water text-3xl font-semibold leading-none text-white">
+              {formatSuperWaterText(locale, reviewSection === "active" ? t("cards.reviewToLearnIntro") : t("cards.reviewLearnedIntro"))}
+            </p>
+            <p className="mt-2 font-super-water text-2xl font-semibold leading-none text-white/90">
+              {formatSuperWaterText(locale, t("cards.tapToContinue"))}
+            </p>
+          </div>
+        ) : (
+          <>
         <div
           className="relative min-h-[24rem] w-full flex-1 shrink-0 translate-y-[20px]"
         >
           <div
             ref={podiumTrackRef}
             className={cn(
-              "absolute inset-0 z-10 flex w-full overflow-hidden overscroll-x-none select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden touch-none",
+              "absolute inset-0 z-10 flex w-full overflow-hidden overscroll-x-none select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+              isReviewMode ? "touch-manipulation" : "touch-none",
               isDragging ? "cursor-grabbing" : "cursor-grab",
             )}
             data-mobile-card-podium-scroll
             data-mobile-card-podium-dragging={isDragging ? "true" : "false"}
             aria-label={t("cards.centerTitle")}
             tabIndex={0}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerCancel}
+            onPointerDown={isReviewMode ? undefined : handlePointerDown}
+            onPointerMove={isReviewMode ? undefined : handlePointerMove}
+            onPointerUp={isReviewMode ? undefined : handlePointerUp}
+            onPointerCancel={isReviewMode ? undefined : handlePointerCancel}
           >
             <div
               ref={podiumTrackContentRef}
@@ -748,6 +894,7 @@ export function MobileCardPodiumOverlay({
                         <div
                           className="relative top-[40px] z-10 w-[min(68vw,16rem)] max-w-full"
                           onClick={(event: ReactMouseEvent<HTMLDivElement>) => {
+                            if (isReviewMode) return;
                             if (itemIndex !== currentIndex || (event.target as HTMLElement).closest("button")) return;
                             if (didSwipeRef.current) {
                               didSwipeRef.current = false;
@@ -757,38 +904,55 @@ export function MobileCardPodiumOverlay({
                           }}
                         >
                           <div
-                            className="pointer-events-none absolute inset-x-0 bottom-[calc(100%+20px)] z-30 flex justify-center"
+                            className={cn(
+                              "pointer-events-none absolute inset-x-0 z-30 flex flex-col items-center justify-center gap-1",
+                              isReviewMode ? "bottom-[calc(100%+80px)]" : "bottom-[calc(100%+20px)]",
+                            )}
                             data-rank-details-ui="position"
                           >
                             <p className="text-4xl font-semibold leading-none text-white" aria-live="polite" data-rank-details-position>
                               {formatNumber(locale, itemIndex + 1)} / {formatNumber(locale, items.length)}
                             </p>
+                            {isReviewMode ? (
+                              <p className="mt-1 font-super-water text-2xl font-semibold leading-none text-white/90" data-card-added-at>
+                              {formatAddedAt(locale, slideInventory.addedAt)}
+                            </p>
+                          ) : null}
                           </div>
 
-                          <VocabularyCardView
-                            card={slideCard}
-                            inventory={slideInventory}
-                            owned
-                            face={isHighlighted ? face : "front"}
-                            initialFace="front"
-                            flippable={false}
-                            showActions={false}
-                            frontFit
-                            className="relative z-10 mx-auto aspect-[3/4] w-full max-w-[16rem]"
-                          />
+                          <div
+                            data-card-review-pressed={isReviewMode && isReviewPressed && isHighlighted ? "true" : "false"}
+                            className="relative"
+                            style={{
+                              transform: isReviewMode && isReviewPressed && isHighlighted ? "scale(0.94)" : "scale(1)",
+                              transition: "transform 150ms cubic-bezier(0.22, 1, 0.36, 1)",
+                            }}
+                          >
+                            <VocabularyCardView
+                              card={slideCard}
+                              inventory={slideInventory}
+                              owned
+                              face={isHighlighted ? face : "front"}
+                              initialFace="front"
+                              flippable={false}
+                              showActions={false}
+                              frontFit
+                              className="relative z-10 mx-auto aspect-[3/4] w-full max-w-[16rem]"
+                            />
 
-                          <Image
-                            src={PODIUM_IMAGE_BY_TIER[slideCard.tier]}
-                            alt=""
-                            aria-hidden="true"
-                            width={1600}
-                            height={520}
-                            sizes="352px"
-                            draggable={false}
-                            className="pointer-events-none absolute left-1/2 top-[calc(100%-40px)] z-0 h-auto w-[22rem] max-w-none -translate-x-1/2 select-none object-contain"
-                          />
+                            <Image
+                              src={PODIUM_IMAGE_BY_TIER[slideCard.tier]}
+                              alt=""
+                              aria-hidden="true"
+                              width={1600}
+                              height={520}
+                              sizes="352px"
+                              draggable={false}
+                              className="pointer-events-none absolute left-1/2 top-[calc(100%-40px)] z-0 h-auto w-[22rem] max-w-none -translate-x-1/2 select-none object-contain"
+                            />
 
-                          {slideDefinition ? <PodiumDefinitionText text={slideDefinition} cardId={slideCard.id} /> : null}
+                            {slideDefinition ? <PodiumDefinitionText text={slideDefinition} cardId={slideCard.id} /> : null}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -798,7 +962,7 @@ export function MobileCardPodiumOverlay({
             </div>
           </div>
 
-          {canNavigate ? (
+          {canNavigate && !isReviewMode ? (
             <>
               <button
                 type="button"
@@ -826,38 +990,49 @@ export function MobileCardPodiumOverlay({
           ) : null}
         </div>
 
-        <div className="w-full shrink-0 pb-2 text-center" data-card-supporting-content data-rank-details-ui="supporting">
-          <div className="mt-3 flex w-full items-center gap-2">
-            <CardGrammarDetailsButton
-              onClick={() => setGrammarDetailsOpen(true)}
-              showIcon={false}
-              className="h-[46px] min-w-0 flex-1 justify-center border-transparent bg-white text-sm leading-none hover:bg-white/90"
-              style={{
-                color: backgroundShellEnd,
-                transition: "color 420ms cubic-bezier(0.22, 0.7, 0.24, 1)",
-              }}
-            />
-            <button
-              type="button"
-              onClick={handleAskClick}
-              aria-label={`${currentCard.term} ${t("cards.ask")}`}
-              className="inline-flex size-[46px] shrink-0 items-center justify-center rounded-full bg-white transition-colors hover:bg-white/90"
-              style={{
-                color: backgroundShellEnd,
-                transition: "color 420ms cubic-bezier(0.22, 0.7, 0.24, 1)",
-              }}
-            >
-              <MessageCircleQuestion className="size-5" aria-hidden="true" />
-            </button>
+        {isReviewMode ? (
+          <p
+            className="pointer-events-none relative -top-[30px] w-full shrink-0 pb-2 pt-3 text-center text-4xl leading-none text-white font-super-water"
+            data-card-review-hint
+          >
+            {formatSuperWaterText(locale, t("cards.tapToContinue"))}
+          </p>
+        ) : (
+          <div className="w-full shrink-0 pb-2 text-center" data-card-supporting-content data-rank-details-ui="supporting">
+            <div className="mt-3 flex w-full items-center gap-2">
+              <CardGrammarDetailsButton
+                onClick={() => setGrammarDetailsOpen(true)}
+                showIcon={false}
+                className="h-[46px] min-w-0 flex-1 justify-center border-transparent bg-white text-base leading-none hover:bg-white/90"
+                style={{
+                  color: backgroundShellEnd,
+                  transition: "color 420ms cubic-bezier(0.22, 0.7, 0.24, 1)",
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleAskClick}
+                aria-label={`${currentCard.term} ${t("cards.ask")}`}
+                className="inline-flex size-[46px] shrink-0 items-center justify-center rounded-full bg-white transition-colors hover:bg-white/90"
+                style={{
+                  color: backgroundShellEnd,
+                  transition: "color 420ms cubic-bezier(0.22, 0.7, 0.24, 1)",
+                }}
+              >
+                <MessageCircleQuestion className="size-5" aria-hidden="true" />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
-        {active ? (
+        {active && !isReviewMode ? (
           <div className="flex w-full shrink-0 justify-center gap-2 pb-1 pt-2" data-card-gem-actions data-rank-details-ui="actions">
             <GemCardAction type="blue" cost={removeCardCost} disabled={!user || blueBalance < removeCardCost || busy} label={t("gems.removeCard")} onClick={() => requestGemAction("blue")} />
             <GemCardAction type="purple" cost={markLearnedCost} disabled={!user || purpleBalance < markLearnedCost || busy} label={t("gems.markLearned")} onClick={() => requestGemAction("purple")} />
           </div>
         ) : null}
+          </>
+        )}
       </main>
 
       {confirmation ? (

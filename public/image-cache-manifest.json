@@ -1,5 +1,5 @@
 {
-  "version": "8e091b6b42b8419df4d747ec0fbb8ad75c70d59e88e1eed08e3be83a1e7290bf",
+  "version": "80ae057da8c9ad3dd13fae9f9c5fc058be49a9c2effa5b2e1c3d675f557c60dd",
   "assets": [
     {
       "url": "/AppLogdfo.png",
@@ -267,203 +267,203 @@
     },
     {
       "url": "/card-groups/adjectives.webp",
-      "revision": "4b0d618f4d243ac90f9f6091c6d5586b2446f10b07cccc588e51eeb8bb3b45f9"
+      "revision": "528b0bb2ee235d63ae72febba1deb176eab67978b9b47637135ce996ebffb914"
     },
     {
       "url": "/card-groups/advancedVerbs.webp",
-      "revision": "32f7824feb98902d94d428ff6fe6581aeb9430480ad47a45d1b61d103b860ec9"
+      "revision": "3ef03f04119eb512815dc524fc5601b1c1c43a36e0eecf636c6be83390747e1e"
     },
     {
       "url": "/card-groups/animals.webp",
-      "revision": "6777354fd69cff0e4693422c500e0eb395edf0f6bb2ac1d0482f4457bec916e5"
+      "revision": "ee1f070d65b25b96561afa2d415637b3af6d91e3c53784bffc4533a93e8cd5c8"
     },
     {
       "url": "/card-groups/appearance.webp",
-      "revision": "6310a88877189fab55849c27b4c0228c0be66c3d2aa418346bafe77191fc7170"
+      "revision": "dc9d726f40ca5d5028d3cdcac72a1210f372db719c29c2127dd2414a109d46be"
     },
     {
       "url": "/card-groups/body.webp",
-      "revision": "f9f38fbe5bb419f68e960a01b251ac697aae4a9651660a60806613b38e336309"
+      "revision": "58fce76a28919a195be21080e3ad363d5e014dde01054da5cc4409d6df55b454"
     },
     {
       "url": "/card-groups/buildings.webp",
-      "revision": "e2e8e3391e8da48fcb844c290edf7bec6c141dfa71da04d369f1f548e6310939"
+      "revision": "25444b81f6cf73682aa88a18712a7ca8ea74250b87d10f2c002650943c259efb"
     },
     {
       "url": "/card-groups/business.webp",
-      "revision": "492f9ee2f7a21000fcc9db122af907a2ff71ad4ab5a0b634371ac8dca2d4825b"
+      "revision": "f6a349b90d10980a84d477d11675680dbe0110e023b9f0a681a7220a7b629016"
     },
     {
       "url": "/card-groups/cityPlaces.webp",
-      "revision": "0ed9764dcb8d6195a671bac5b2befd76308f100db7d9e70cc215539a1411b1ec"
+      "revision": "2972ee6a1454c74e4ff307568fcaecc470719d78f18530a80ff97c38e14f55e2"
     },
     {
       "url": "/card-groups/clothes.webp",
-      "revision": "a638f552c783b4ddf0efcc20ae3b623fd1b8fb0f57844fb7606f0c93f56ff40f"
+      "revision": "6342760bb135553691250abbbb7c31db47f2131d156bbf75f98dcf6e94f1ec01"
     },
     {
       "url": "/card-groups/colorsShapes.webp",
-      "revision": "f1095d1ead03bbbd943bd6ab5ba58c29dfb211818ecb64a4b802873e18fb9a90"
+      "revision": "a0d7994949a85437dfa90dea64d80075146f63e21d2c313a1a36fba412fcaa77"
     },
     {
       "url": "/card-groups/commonVerbs.webp",
-      "revision": "5e3cd63fe022c31a2ffe10e7c7794a695cacff90ec6d5d49f1b2bc7a5bc458ba"
+      "revision": "93ea756daa5d0f801c45c63a2b35fb48c8453a412f08a09fb878487cebfdfad4"
     },
     {
       "url": "/card-groups/communication.webp",
-      "revision": "c2340f385bf4b09c5dfb26e9a875d254b85197be53114e96a1e7589297fbe1ba"
+      "revision": "41a025810d3b734b757b347ae3c81173f588a255214fa79ad0b824879f1b8ad9"
     },
     {
       "url": "/card-groups/cooking.webp",
-      "revision": "2b96ab52c4e796bba68ecd37a6212a5b122464caf2cc8c531cffb324d474f8ac"
+      "revision": "2432906b02d2bf032a0c593a5ca572445c41de37006cddc0042048f9ebd491f4"
     },
     {
       "url": "/card-groups/desserts.webp",
-      "revision": "f4c46e26b09b1129f54228d16506bd265b0091c645882c72acbecfd3429d025f"
+      "revision": "cf9f6894ca06d2fed9453933bde40e729f40317fca470d319db4c6ec6a4fa2bb"
     },
     {
       "url": "/card-groups/directions.webp",
-      "revision": "d08b918c927ea6c3b0f23ae622aa87b4b31d0f35b19dcbf0fdd07225ddaa4b9f"
+      "revision": "5cdf7f0fc75dea0b91e3a63cdb5a5bcaa8b4dbbd3bf7e9b9544b6be8aa52f9c7"
     },
     {
       "url": "/card-groups/drinks.webp",
-      "revision": "c112cf2c62d09cf2bd173ae05b3deea4bda368297c20a8029616dc00e0a9bbfa"
+      "revision": "b11e8b7ab5101e2cb91120112810b5b7a9cab1b240acac1e9fedc23097c75120"
     },
     {
       "url": "/card-groups/emergency.webp",
-      "revision": "8da3e31257a034945611cd62bd95de10521ccdd80b4574812ecc2fad65cf29be"
+      "revision": "1965e079f3c0ef30f98110d6d56432947ae4d332ef2ec51856a957541a8adfda"
     },
     {
       "url": "/card-groups/emotions.webp",
-      "revision": "2e2a24f6172ae13bc12067e337089fdebd56ab93d3d713dd99c8131bbc3bb0d4"
+      "revision": "ac01ea52214f71975a08c1005cae54a9a2d33de084cdb0515bb4e9386081fb00"
     },
     {
       "url": "/card-groups/family.webp",
-      "revision": "26a5a7b8bc603e919986a048e696bb0e3e623c88361fa552e0c140c8652cc6ee"
+      "revision": "c7b1468ccbf7d117f812cdd3e844f4bf62e70bf7c1ebd4a019aa0a66676046d9"
     },
     {
       "url": "/card-groups/fruits.webp",
-      "revision": "f800cfec0bf4fad038df5fbc96470cd9893d85f653e8ca1972dca7e94a570181"
+      "revision": "bab555bd7f158b885036274de6503f3af6cf528bbd3a58ccd65383dd167655aa"
     },
     {
       "url": "/card-groups/geography.webp",
-      "revision": "360ebcfddc29ad0501fdd43747e21b0cfe6d9f68461963464dca068bbba3c692"
+      "revision": "db1659c73a4075df00f239e9f0a8b983f9bdd2aed6e65d72c11b6efb1cf775fb"
     },
     {
       "url": "/card-groups/grainsLegumes.webp",
-      "revision": "6bb6ed8f59d9d4801e82c2cfa780b544f5f767418d2746dc62e6cc93b867f234"
+      "revision": "ba3d4fc59a4819f8f7c1043c6ee18f9dd7084d7ffc74ca6d6c7373fda53d8530"
     },
     {
       "url": "/card-groups/health.webp",
-      "revision": "e489d1c7792de68463f4a3978925864092fed550e845c37a69f9693cdfb2e6b9"
+      "revision": "416841b7b5faad53e757afa61ba9ccc594d5074298472eb3db257c051122dd3a"
     },
     {
       "url": "/card-groups/hobbies.webp",
-      "revision": "cda044ee94dfa461fee9ea29c654f163487b5f6415eeec9e61f42f8b2d41733e"
+      "revision": "31a9eb218ea7b56c0428a73bba85d6883d39953e34c687f80053e25b2843d4d3"
     },
     {
       "url": "/card-groups/home.webp",
-      "revision": "2f226e10c0e5bbc7178c1c2e9da696b1885f45c9a23cea9ff11485064c336ac3"
+      "revision": "fba1a730d47b5ab3652fff81cebe043c6ed781d987af6186b91483f277bc8ca2"
     },
     {
       "url": "/card-groups/householdItems.webp",
-      "revision": "3457bd8b964c3629317cf2d989a9c5df60f6b6b1444324b4fe87a6893d971b16"
+      "revision": "6825a12a39630c51af3f30ec6a4fc9726c4e49baeb8f82c04f53c17f1b742e8e"
     },
     {
       "url": "/card-groups/internetSocialMedia.webp",
-      "revision": "275d58c9e5d30a64471d65b398597339443426d5012c99ceead5c648aba4b4ab"
+      "revision": "c19a154d5ca8b4c8a0cbdccd6ff9c5daa9625511cc74075d80112e79c44ccf21"
     },
     {
       "url": "/card-groups/jobs.webp",
-      "revision": "b195fdb8316f80a5daf448435dda92915a8a724461be9a04b1e1a3d7ce3eb4ab"
+      "revision": "6c7b845d2ecf1959cbcc21632084fb0b7d91250f50d43697bb82ff4fb51b30ee"
     },
     {
       "url": "/card-groups/kitchenUtensils.webp",
-      "revision": "c325fa4fffb6dcd659f44efc00695262444dbfbaa497ff5b8cd8bee841bde7b2"
+      "revision": "afb6267565472cebc5e78fe1a8542e27d66b3055bd464766f0eef1a85ac863d6"
     },
     {
       "url": "/card-groups/months.webp",
-      "revision": "2d2cf5419c4e3249b9051b0533112a076dfd2affbd81a1ebfcc2005f722739aa"
+      "revision": "7e3beb9c17b702ce56b4638eecca2c517c80fc7ea07e69ca394c28c5ddb29ee4"
     },
     {
       "url": "/card-groups/musicMovies.webp",
-      "revision": "f3f4c143ade906ec3c9782dd76da298bd3aea64aad5ed15dd1d62b119caa48e9"
+      "revision": "2a510238b5be8dcc70a624f2e2ecdd62ab6d89dfaf0722c81791ca9292bfc707"
     },
     {
       "url": "/card-groups/nature.webp",
-      "revision": "a607d464825e14805d5b020ff5174f13c4d77d9aa8bfe39c022700ba2d57ab01"
+      "revision": "3a21e45769f2e97aca6509ca2d23fe420f40732d5580ffd09f68e582dd4168dc"
     },
     {
       "url": "/card-groups/numbersTime.webp",
-      "revision": "1461563740ce338079d71223821585a70d7480837fae03101f688a64d9cf9d20"
+      "revision": "501e66863e3938947a7c4079c4aeee5dc1237b198c750836140f98420146f7df"
     },
     {
       "url": "/card-groups/nutsSeeds.webp",
-      "revision": "3b0b6a7597d8ad181504ffbd36e25afb71d4c6d743d9b6104031ce24fc416dc7"
+      "revision": "120c6ac2c329a5268cce3131e26e65f2632642e48df230ed2c6f7501e1b2ee29"
     },
     {
       "url": "/card-groups/personality.webp",
-      "revision": "71179944adcae8e4202181d9ae4c256af89797713becbfacbc70d6dbe37f5515"
+      "revision": "9d42cfd23cb677d9fbb601a840317eef4f15fe65cbbeccf6eceed21a655c5238"
     },
     {
       "url": "/card-groups/pharmacyMedicine.webp",
-      "revision": "6e66bb50359a7ba66bc0b19ebf47ff216394c7777ccfde7fcfc106b6437da061"
+      "revision": "1783872c75783b59ff75969b3fc96edbddc740209f16cb060af41ae30540b2a5"
     },
     {
       "url": "/card-groups/restaurant.webp",
-      "revision": "10137799c892dafe032607882658969e42381076348257e377ccc6b1bc44622e"
+      "revision": "91793d7f34df13653f46fcaef3bdc024bfc8365b66db9cf3080bcd41fb07c42d"
     },
     {
       "url": "/card-groups/roomsFurniture.webp",
-      "revision": "ebcb2c21fb8994e2a9722a64e8274755708ac9c09a89f7f888d7fc2efff249b9"
+      "revision": "f0f07b5145f25bf30c455a9e23d0a7b3c74ca87d694577cbd88a14207d500a5b"
     },
     {
       "url": "/card-groups/routines.webp",
-      "revision": "4dfa00bb1aeec741e7296420b3989898410b7dc165088621bfa721880ff4f968"
+      "revision": "3c8f2d78ae538dfcc42bb632aa79d75eee420f41f690e4dd20f240a6bbe8e03d"
     },
     {
       "url": "/card-groups/school.webp",
-      "revision": "ce111740b3be34a6dff9f6ce072bad846c047e593bb79cfad3328f6eab95c190"
+      "revision": "f486f8df379d3dff471a035c1c973dee76daf1793affd2e3985293553e51cbd4"
     },
     {
       "url": "/card-groups/shopping.webp",
-      "revision": "a5858500577875a77cd94711a304f3f1b28d68b95e55861d43aa29cc4c93570e"
+      "revision": "306cdb2f74def59d3031bf437435b99174c3f50b951752b505bab4fbfbea7eda"
     },
     {
       "url": "/card-groups/social.webp",
-      "revision": "8afc23ed37c2c3bab477e06ff9d4d959857b794159234cd4516d3b980a19a9bf"
+      "revision": "72a6d7204feb6ddac229300f864a8d2857225ff99e02ae5f692ebe6eb24e66e3"
     },
     {
       "url": "/card-groups/sports.webp",
-      "revision": "4ebbc57f6042a6bf6e7f8ed69a0ac6d013173a6f2853c039ab3faa0e1c8c7597"
+      "revision": "aa388aab4579d6f3b5d1c42772b266632fc7dc3fc4557e4a130125adb6e874a9"
     },
     {
       "url": "/card-groups/technology.webp",
-      "revision": "c521608541f6c017342423256f9a474d3a5da9b9676bd98b355f748868b34927"
+      "revision": "8557e6f087316fe4ceb16389c5a39dccb2e3075fc649f748f6404312104a67db"
     },
     {
       "url": "/card-groups/technologyDevices.webp",
-      "revision": "2778c66b4848186a3120b048e9a56e52448260f4fdef320dc87683bc8850fb28"
+      "revision": "1398514f3a87f8502da0d1ffbff7f7823616d01792dbc0815bc31d7710ea3391"
     },
     {
       "url": "/card-groups/transport.webp",
-      "revision": "f2353e53e8392ac6960e2afb26a72f1c6e4d32ecdc73e455ea5fa770affb02ba"
+      "revision": "c57479f873cb7a1f41a39c902e9b74fb107ec782f7fc7d54b3e2e2d1c7721763"
     },
     {
       "url": "/card-groups/transportVehicles.webp",
-      "revision": "6ade18338acd6b92e6171779c9c4be0fc513c9bad2cb1a0c5fa02ffbfa2a1293"
+      "revision": "ff6ac882f367eefac19d70d25f3aa1ef2fe3bb7e4da10c56dcb512531c724bc6"
     },
     {
       "url": "/card-groups/travel.webp",
-      "revision": "b08a327b53ad199db65d2179197fa73dac4ae83e372c11b3bb00935704bfd552"
+      "revision": "f1182b9dc91164822aa8dd9b1ea408fc429b7c4607f517c433474bc82946f2e9"
     },
     {
       "url": "/card-groups/vegetables.webp",
-      "revision": "ca5e4c4b71544719476db5102c16bcc3ca096abdb342896ffcaeda2e3ca7c922"
+      "revision": "5e265f6caa910599625708a31b115f9ef8824eb51cf812f2be5128288c46c926"
     },
     {
       "url": "/card-groups/weather.webp",
-      "revision": "5c95baca4af93cb852fbc3e53b1113bb45de90eea13730683690292e53889742"
+      "revision": "b2a654ae70fd3877550eb960c258271e922797741d5f71f4e14111f944baf791"
     },
     {
       "url": "/card-icons/add_cards_with_groups.png",

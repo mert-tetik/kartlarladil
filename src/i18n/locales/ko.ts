@@ -1006,7 +1006,7 @@ const dictionary = {
   "tutorial.next": "다음",
   "tutorial.addCards": "카드 추가",
   "tutorial.understood": "알겠어요",
-  "cards.centerTitle": "카드", "cards.all": "모든 카드", "cards.toLearn": "학습할 카드", "cards.listen": "듣기", "cards.addToDeck": "카드에 추가", "cards.swipeHint": "왼쪽으로 밀면 건너뛰고 오른쪽으로 밀면 컬렉션에 추가합니다.", "cards.createCustom": "맞춤 카드 만들기",
+  "cards.centerTitle": "카드", "cards.all": "모든 카드", "cards.toLearn": "학습할 카드", "cards.review": "복습", "cards.tapToContinue": "화면을 누르세요", "cards.reviewToLearnIntro": "학습할 카드", "cards.reviewLearnedIntro": "학습한 카드", "cards.addedToday": "오늘 추가됨", "cards.addedDayAgo": "1일 전에 추가됨", "cards.addedDaysAgo": "{count}일 전에 추가됨", "cards.listen": "듣기", "cards.addToDeck": "카드에 추가", "cards.swipeHint": "왼쪽으로 밀면 건너뛰고 오른쪽으로 밀면 컬렉션에 추가합니다.", "cards.createCustom": "맞춤 카드 만들기",
   "cards.groups.title": "카드 그룹",
   "cards.groups.description": "주제별 카드를 한 번에 덱에 추가하세요.",
   "cards.groups.groupDescription": "{group} 관련 단어",
