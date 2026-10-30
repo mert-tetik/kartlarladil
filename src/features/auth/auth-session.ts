@@ -238,7 +238,11 @@ export async function getCurrentAuthUser(): Promise<AuthShellUser | null> {
     return null;
   }
 
-  const profile = normalizeProfile(await readProfile(supabase, user.id));
+  // The native OAuth deep-link callback exchanges the code in the existing
+  // WebView, so it does not pass through /auth/callback. Bootstrap the profile
+  // here as the shared server-side session boundary instead of relying on one
+  // particular OAuth callback route to create it.
+  const { profile } = await ensureUserProfile(supabase, user);
 
   return {
     id: user.id,

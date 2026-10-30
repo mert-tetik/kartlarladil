@@ -1,6 +1,5 @@
 import OpenAI from "openai";
 import {
-  AI_PRACTICE_DEFAULT_MODEL,
   createAiPracticeSafetyIdentifier,
   extractResponseOutputText,
 } from "@/features/ai-practice/ai-practice-openai";
@@ -10,10 +9,12 @@ import {
   isSupportedCreateCardDirection,
   matchesRequestedTargetLanguage,
   matchesRequestedTargetWritingSystem,
+  normalizeGeneratedCardPayload,
   shouldRetryForDictionaryLemma,
 } from "@/features/cards/create-card-schema";
 import { buildCreateCardInput, buildCreateCardInstructions } from "@/features/cards/create-card-prompts";
 import { CUSTOM_CARD_RESPONSE_FORMAT } from "@/features/cards/create-card-openai-format";
+import { CUSTOM_CARD_REASONING_EFFORT, getCustomCardModel } from "@/features/cards/custom-card-ai";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
 
 export const runtime = "nodejs";
@@ -45,113 +46,52 @@ export async function POST(request: Request) {
   }
 
   const openai = new OpenAI({ apiKey });
-  const model = process.env.OPENAI_AI_PRACTICE_MODEL?.trim() || AI_PRACTICE_DEFAULT_MODEL;
   const instructions = buildCreateCardInstructions({
     locale: parsed.data.locale,
     targetLanguage: parsed.data.targetLanguage,
     direction: parsed.data.direction,
   });
-  const input = buildCreateCardInput(parsed.data);
-
-  let rawText = "";
 
   try {
     const response = await openai.responses.create({
-      model,
+      model: getCustomCardModel(),
       instructions,
-      input,
+      input: buildCreateCardInput(parsed.data),
       max_output_tokens: MAX_OUTPUT_TOKENS,
-      reasoning: { effort: "minimal" },
+      reasoning: { effort: CUSTOM_CARD_REASONING_EFFORT },
       stream: false,
       store: false,
       text: { format: CUSTOM_CARD_RESPONSE_FORMAT, verbosity: "low" },
       truncation: "auto",
       safety_identifier: createAiPracticeSafetyIdentifier(user.id),
     });
-    rawText = extractResponseOutputText(response) ?? "";
-  } catch {
-    return Response.json({ errorCode: "upstream_error" }, { status: 502 });
-  }
 
-  let generated = parseGeneratedCard(rawText);
-  let previousResponse = rawText;
-  let correctionAttempt = 0;
+    const rawText = extractResponseOutputText(response) ?? "";
+    const generated = parseGeneratedCard(rawText);
 
-  while (
-    correctionAttempt < 2 &&
-    (
+    if (
       !generated ||
       !matchesRequestedTargetLanguage(generated, parsed.data.targetLanguage) ||
       !matchesRequestedTargetWritingSystem(generated, parsed.data.targetLanguage) ||
       shouldRetryForDictionaryLemma(generated, parsed.data.term, parsed.data.targetLanguage)
-    )
-  ) {
-    correctionAttempt += 1;
-    const correctionInput = buildCorrectionInput({
-      originalInput: input,
-      previousResponse,
-      targetLanguage: parsed.data.targetLanguage,
-    });
-
-    try {
-      const correctionResponse = await openai.responses.create({
-        model,
-        instructions: `${instructions}\n\nThis is dictionary-form correction attempt ${correctionAttempt}. The previous draft failed validation or returned the inflected surface form. The exact user input is ${JSON.stringify(parsed.data.term)}. Rebuild the complete card and obey every rule, especially canonical target-script spelling, dictionary lemma/citation form, and lexical granularity. If the input is one token, termKind MUST be \"word\" and term MUST be exactly one target-language dictionary headword: perform the morphology analysis privately, then output the infinitive/citation form, never the surface form. For example, Spanish \"hablando\" must become \"hablar\", Portuguese \"falando\" must become \"falar\", and Russian \"slu\u015fayu\" must become \"\u0441\u043b\u0443\u0448\u0430\u0442\u044c\". Do not repeat a rejected surface form. If the previous term was already the correct lemma, preserve it; otherwise normalize the input to the dictionary lemma.`,
-        input: correctionInput,
-        max_output_tokens: MAX_OUTPUT_TOKENS,
-        reasoning: { effort: "minimal" },
-        stream: false,
-        store: false,
-        text: { format: CUSTOM_CARD_RESPONSE_FORMAT, verbosity: "low" },
-        truncation: "auto",
-        safety_identifier: createAiPracticeSafetyIdentifier(user.id),
-      });
-      const correctionText = extractResponseOutputText(correctionResponse) ?? "";
-      previousResponse = correctionText;
-      generated = parseGeneratedCard(correctionText);
-    } catch {
-      generated = null;
-      previousResponse = "";
+    ) {
+      return Response.json({ errorCode: "upstream_error" }, { status: 502 });
     }
-  }
 
-  if (
-    !generated ||
-    !matchesRequestedTargetLanguage(generated, parsed.data.targetLanguage) ||
-    !matchesRequestedTargetWritingSystem(generated, parsed.data.targetLanguage) ||
-    shouldRetryForDictionaryLemma(generated, parsed.data.term, parsed.data.targetLanguage)
-  ) {
+    return Response.json(generated, {
+      headers: { "Cache-Control": "no-store" },
+    });
+  } catch {
     return Response.json({ errorCode: "upstream_error" }, { status: 502 });
   }
-
-  return Response.json(generated, {
-    headers: { "Cache-Control": "no-store" },
-  });
 }
 
 function parseGeneratedCard(rawText: string) {
   try {
-    const parsedJson = JSON.parse(rawText);
+    const parsedJson = normalizeGeneratedCardPayload(JSON.parse(rawText));
     const generated = generatedCardSchema.safeParse(parsedJson);
     return generated.success ? generated.data : null;
   } catch {
     return null;
   }
-}
-
-function buildCorrectionInput({
-  originalInput,
-  previousResponse,
-  targetLanguage,
-}: {
-  originalInput: string;
-  previousResponse: string;
-  targetLanguage?: string;
-}) {
-  return `${originalInput}
-
-The previous draft is invalid. Correct it and return a complete replacement:
-${previousResponse.slice(0, 12000)}
-
-${targetLanguage ? `The target language is exactly ${targetLanguage}. If the input was Latin transliteration, the term must use the native script for ${targetLanguage}; pronunciation is the only place for Latin phonetics.` : "Preserve the requested target language and canonical spelling."}`;
 }

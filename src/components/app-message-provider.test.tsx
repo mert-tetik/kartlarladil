@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppMessageProvider, useAppMessage } from "@/components/app-message-provider";
+import { INVENTORY_BACKGROUND_ERROR_EVENT } from "@/features/inventory/inventory-events";
 
 function MessageTrigger() {
   const { showMessage } = useAppMessage();
@@ -98,6 +99,19 @@ describe("AppMessageProvider", () => {
     });
 
     expect(screen.getByRole("alert")).toHaveTextContent("Still offline");
+  });
+
+  it("shows background inventory errors without showing a success message", () => {
+    render(<AppMessageProvider><div /></AppMessageProvider>);
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent(INVENTORY_BACKGROUND_ERROR_EVENT, {
+        detail: { operation: "add card", message: "Kart arka planda kaydedilemedi." },
+      }));
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Kart arka planda kaydedilemedi.");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("ignores messages from another origin", () => {

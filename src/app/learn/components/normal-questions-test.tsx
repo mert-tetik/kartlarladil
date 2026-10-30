@@ -275,6 +275,14 @@ export function NormalQuestionsTest() {
       data-normal-test-kind={question.questionType}
       data-normal-test-index={questionIndex}
     >
+      <MobileQuizFeedback
+        isOpen={showingAnswer && answerAccepted !== null}
+        isCorrect={answerAccepted ?? false}
+        forceMascotAnimation
+        correctAnswer={getCorrectAnswer(question)}
+        onNext={handleNext}
+        showNextButton
+      />
       <MobileQuizTopBar
         currentIndex={questionIndex}
         total={Math.max(questions.length, 1)}
@@ -287,9 +295,10 @@ export function NormalQuestionsTest() {
       >
         <div
           className={cn(
-            "flex w-full max-w-md flex-col justify-center gap-3 lg:order-1 lg:col-start-1 lg:row-start-1 lg:max-w-none lg:gap-4",
+            "relative z-50 isolate flex w-full max-w-md flex-col justify-center gap-3 lg:order-1 lg:col-start-1 lg:row-start-1 lg:max-w-none lg:gap-4",
             isCardFirstQuestion ? "order-3 max-lg:pb-3" : "order-1",
           )}
+          style={{ zIndex: 50 }}
           data-quiz-mobile-question
         >
           <div className="flex flex-1 flex-col justify-center">
@@ -346,14 +355,6 @@ export function NormalQuestionsTest() {
           </div>
         </div>
       </div>
-      <MobileQuizFeedback
-        isOpen={showingAnswer && answerAccepted !== null}
-        isCorrect={answerAccepted ?? false}
-        forceMascotAnimation
-        correctAnswer={getCorrectAnswer(question)}
-        onNext={handleNext}
-        showNextButton
-      />
     </div>
   );
 }

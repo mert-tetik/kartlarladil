@@ -319,6 +319,12 @@ export function AuthSessionProvider({
       }
     });
 
+    void client.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        void syncUserFromSession(session.user);
+      }
+    });
+
     return () => {
       subscription.unsubscribe();
     };

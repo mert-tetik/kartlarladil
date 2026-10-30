@@ -303,6 +303,10 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
       setSwipeFeedback(null);
     });
 
+    if (addedCardId) {
+      scheduleCardAddInBackground(addedCardId);
+    }
+
     // The new keyed card must first be laid out at its lower, transparent pose.
     // Without this forced style calculation, mobile WebViews can merge the two
     // states and skip the entry transition entirely.
@@ -319,9 +323,6 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
         setIncomingDirection(null);
         swipeAnimationActiveRef.current = false;
         setLocked(false);
-        if (addedCardId) {
-          scheduleCardAddInBackground(addedCardId);
-        }
       }, INCOMING_ENTRY_DURATION);
     });
   }
@@ -362,30 +363,13 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
   }
 
   function scheduleCardAddInBackground(cardId: string) {
-    const run = () => {
-      if (swipeAnimationActiveRef.current || swipeInteractionActiveRef.current) {
-        window.setTimeout(run, 160);
-        return;
-      }
-
-      void Promise.resolve(addCard(cardId))
-        .then((result) => {
-          if (result.limitReached) {
-            onSubscriptionLimitReached?.("free_active_card_limit");
-          }
-        })
-        .catch(() => undefined);
-    };
-    const browserWindow = window as typeof window & {
-      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
-    };
-
-    if (browserWindow.requestIdleCallback) {
-      browserWindow.requestIdleCallback(run, { timeout: 1200 });
-      return;
-    }
-
-    window.setTimeout(run, 0);
+    void Promise.resolve(addCard(cardId))
+      .then((result) => {
+        if (result.limitReached) {
+          onSubscriptionLimitReached?.("free_active_card_limit");
+        }
+      })
+      .catch(() => undefined);
   }
 
   function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {

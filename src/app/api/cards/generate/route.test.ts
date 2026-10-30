@@ -88,18 +88,29 @@ describe("POST /api/cards/generate", () => {
     expect(mockCreate).toHaveBeenCalledTimes(1);
   });
 
-  it("retries a generated card when its example ignores the target writing system", async () => {
+  it("returns an upstream error without a correction call when the first card is invalid", async () => {
     const invalidCard = makeCardResponse();
     invalidCard.examples[0]!.sentence = "I enjoy listening to music.";
-    mockCreate
-      .mockResolvedValueOnce(makeOpenAiResponse(invalidCard))
-      .mockResolvedValueOnce(makeOpenAiResponse(makeCardResponse()));
+    mockCreate.mockResolvedValueOnce(makeOpenAiResponse(invalidCard));
 
     const response = await POST(makeRequest());
     const payload = await response.json();
 
+    expect(response.status).toBe(502);
+    expect(payload).toEqual({ errorCode: "upstream_error" });
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it("normalizes a harmless model accent in pronunciation locally", async () => {
+    const responseCard = makeCardResponse();
+    responseCard.pronunciation = "slush\u00e1t";
+    mockCreate.mockResolvedValueOnce(makeOpenAiResponse(responseCard));
+
+    const response = await POST(makeRequest());
+    const payload = await response.json() as { pronunciation?: string };
+
     expect(response.status).toBe(200);
-    expect(payload).toMatchObject({ language: "ru", term: makeCardResponse().term });
-    expect(mockCreate).toHaveBeenCalledTimes(2);
+    expect(payload.pronunciation).toBe("slushat");
+    expect(mockCreate).toHaveBeenCalledTimes(1);
   });
 });

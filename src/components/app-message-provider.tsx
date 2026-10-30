@@ -3,6 +3,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { CheckCircle2, CircleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  INVENTORY_BACKGROUND_ERROR_EVENT,
+  type InventoryBackgroundErrorDetail,
+} from "@/features/inventory/inventory-events";
 
 export type AppMessageTone = "success" | "error";
 
@@ -179,6 +183,17 @@ export function AppMessageProvider({ children }: { children: ReactNode }) {
 
     window.addEventListener("message", handleOfflineShellMessage);
     return () => window.removeEventListener("message", handleOfflineShellMessage);
+  }, [showMessage]);
+
+  useEffect(() => {
+    const handleInventoryBackgroundError = (event: Event) => {
+      const detail = (event as CustomEvent<InventoryBackgroundErrorDetail>).detail;
+      if (!detail || typeof detail.message !== "string") return;
+      showMessage(detail.message, "error");
+    };
+
+    window.addEventListener(INVENTORY_BACKGROUND_ERROR_EVENT, handleInventoryBackgroundError);
+    return () => window.removeEventListener(INVENTORY_BACKGROUND_ERROR_EVENT, handleInventoryBackgroundError);
   }, [showMessage]);
 
   return (

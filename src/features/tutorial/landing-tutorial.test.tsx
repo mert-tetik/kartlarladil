@@ -167,7 +167,7 @@ describe("LandingTutorial", () => {
       expect(decodeURIComponent(document.querySelector("[data-tutorial-welcome-last-frame]")?.getAttribute("src") ?? "")).toContain("tutorial-welcome/last-frame.png?v=20261024-png-frames-2");
       expect(document.querySelector("[data-tutorial-welcome-fallback-animation]")).not.toBeInTheDocument();
       expect(document.querySelector("[data-tutorial-welcome-video-poster]")).not.toBeInTheDocument();
-      expect(document.querySelector("[data-tutorial-welcome-video]")).toHaveClass("opacity-0");
+    expect(document.querySelector("[data-tutorial-welcome-video]")).not.toHaveClass("opacity-0");
     }, { timeout: 3_000 });
     expect(mediaPause).toHaveBeenCalled();
 

@@ -13,6 +13,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { TwaAnalyticsProvider } from "@/components/twa-analytics-provider";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { MobileAuthGateway } from "@/features/auth/components/mobile-auth-gateway";
+import { NativeGoogleAuthCallback } from "@/features/auth/components/native-google-auth-callback";
 import { PostPracticeLeaderboardConsentGate } from "@/features/leaderboard/components/post-practice-leaderboard-consent-gate";
 import { LeaderboardOverlayProvider } from "@/features/leaderboard/components/leaderboard-overlay-provider";
 import { AskOverlayProvider } from "@/features/ask/components/ask-overlay-provider";
@@ -33,6 +34,7 @@ import { OfflineNotesConversionOverlay } from "@/features/inventory/components/o
 import { OfflineRouteOverlay } from "@/app/offline/offline-route-overlay";
 import { SlowConnectionMonitor } from "@/components/slow-connection-monitor";
 import { MobileBackNavigation } from "@/components/mobile-back-navigation";
+import { DevelopmentServiceWorkerCleanup } from "@/components/development-service-worker-cleanup";
 
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { LocaleCode } from "@/types/domain";
@@ -52,6 +54,7 @@ export function AppShell({
 }) {
   return (
     <LocaleProvider initialLocale={locale}>
+      <DevelopmentServiceWorkerCleanup />
       <AppMessageProvider>
         <BodyScrollLock />
         <MobileBackNavigation />
@@ -76,6 +79,7 @@ export function AppShell({
                               {user ? null : <RankUpTestOverlay />}
                               <ChestOpeningTestOverlay />
                               <MobileAuthGateway countryCode={onboardingCountryCode} />
+                              <NativeGoogleAuthCallback />
                               <PostPracticeLeaderboardConsentGate />
                               <RouteAwareShell>{children}</RouteAwareShell>
                               <GameLaunchCover />

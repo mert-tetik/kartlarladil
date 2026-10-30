@@ -1,12 +1,14 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { signInWithGoogleAction } from "@/features/auth/actions";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
 import { AuthConsentText } from "@/features/auth/components/auth-consent-text";
 import { FormMessage } from "@/features/auth/components/form-message";
 import { clearGoogleAuthPending, markGoogleAuthPending } from "@/features/auth/google-auth-flow";
+import { getGoogleOAuthRedirectTo } from "@/features/auth/google-oauth-redirects";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
 import { useT } from "@/i18n/locale-provider";
 
 interface GoogleSignInButtonProps {
@@ -17,6 +19,17 @@ interface GoogleSignInButtonProps {
 
 const MOBILE_LOGIN_TUTORIAL_RESET_KEY = "foxiesdeck:mobile-login-tutorial-reset-requested";
 
+function isNativeTwaRuntime() {
+  if (typeof window === "undefined") return false;
+
+  if (window.FoxiesDeckNativeBilling) return true;
+
+  // LauncherActivity appends this marker before the WebView starts. Keep it as
+  // a fallback because the JavaScript bridge can become visible one frame
+  // after the first interactive render.
+  return new URLSearchParams(window.location.search).get("native") === "1";
+}
+
 export function setNativeTwaFormField(form: HTMLFormElement, nativeBridge: unknown) {
   const nativeTwaField = form.elements.namedItem("nativeTwa");
   if (nativeTwaField instanceof HTMLInputElement) {
@@ -25,34 +38,74 @@ export function setNativeTwaFormField(form: HTMLFormElement, nativeBridge: unkno
 }
 
 export function GoogleSignInButton({ nextPath, label, showConsent = true }: GoogleSignInButtonProps) {
-  const [state, formAction, isPending] = useActionState(signInWithGoogleAction, AUTH_ACTION_IDLE_STATE);
+  const [isPending, setIsPending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const t = useT();
 
-  useEffect(() => {
-    if (state.status === "error") {
-      clearGoogleAuthPending();
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (isPending) return;
+
+    setIsPending(true);
+    setErrorMessage("");
+    const nativeTwa = isNativeTwaRuntime();
+    setNativeTwaFormField(event.currentTarget, nativeTwa);
+
+    if (!hasSupabaseBrowserConfig()) {
+      setIsPending(false);
+      setErrorMessage(t("auth.message.notConfigured"));
+      return;
     }
-  }, [state.status]);
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: getGoogleOAuthRedirectTo(window.location.origin, nextPath, nativeTwa),
+          queryParams: {
+            prompt: "select_account",
+          },
+          // Fetch the provider URL in the browser, then navigate explicitly.
+          // This avoids waiting on a Next.js server action before Google opens.
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error || !data.url) {
+        clearGoogleAuthPending();
+        setIsPending(false);
+        setErrorMessage(error ? t("auth.message.googleFailed") : t("auth.message.googleNoUrl"));
+        return;
+      }
+
+      // Keep this marker for the callback/bootstrap handoff, but only after
+      // the provider URL is ready so it cannot cover the initial OAuth wait.
+      if (window.innerWidth < 1024) {
+        markGoogleAuthPending();
+
+        if (nextPath.includes("showOffer=1")) {
+          window.sessionStorage.setItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY, "1");
+        }
+      }
+      window.location.assign(data.url);
+    } catch {
+      clearGoogleAuthPending();
+      setIsPending(false);
+      setErrorMessage(t("auth.message.googleFailed"));
+    }
+  };
 
   return (
     <form
-      action={formAction}
       className="w-full"
-      onSubmit={(event) => {
-        setNativeTwaFormField(event.currentTarget, window.FoxiesDeckNativeBilling);
-
-        if (typeof window !== "undefined" && window.innerWidth < 1024) {
-          markGoogleAuthPending();
-
-          if (nextPath.includes("showOffer=1")) {
-            window.sessionStorage.setItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY, "1");
-          }
-        }
-      }}
+      onSubmit={handleSubmit}
     >
       <input type="hidden" name="next" value={nextPath} />
       <input type="hidden" name="nativeTwa" defaultValue="0" />
-      <FormMessage state={state} />
+      <FormMessage
+        state={errorMessage ? { status: "error", message: errorMessage } : AUTH_ACTION_IDLE_STATE}
+      />
       <Button
         type="submit"
         className="flex w-full items-center justify-center gap-2 bg-foreground text-background hover:opacity-90"

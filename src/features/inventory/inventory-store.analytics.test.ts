@@ -101,14 +101,19 @@ describe("inventory store analytics", () => {
     vi.mocked(addCloudInventoryCardAction).mockRejectedValueOnce(new Error("temporary transport failure"));
     useInventoryStore.setState({ cloudEnabled: true, ownerUserId: "user-1" });
 
-    const result = await useInventoryStore.getState().addCard(testCard.id);
+    const addition = useInventoryStore.getState().addCard(testCard.id);
+    expect(useInventoryStore.getState().cards).toEqual([
+      expect.objectContaining({ cardId: testCard.id, status: "active" }),
+    ]);
+    const result = await addition;
+    await waitForBackgroundSync();
     const state = useInventoryStore.getState();
 
-    expect(result).toEqual({ ok: false, firstCardAdded: false });
+    expect(result).toEqual({ ok: true, firstCardAdded: true });
     expect(state.cards).toEqual([]);
     expect(state.pendingCardIds.size).toBe(0);
     expect(state.cloudLoading).toBe(false);
-    expect(state.cloudError).toBe("The card action could not be completed right now. Please try again.");
+    expect(state.cloudError).toBe("");
     expect(logger).toHaveBeenCalledWith(
       "[FoxiesDeck inventory] Cloud action rejected unexpectedly.",
       expect.objectContaining({ operation: "add card" }),
@@ -123,18 +128,24 @@ describe("inventory store analytics", () => {
     vi.mocked(addCloudInventoryCardsAction).mockRejectedValueOnce(new Error("temporary transport failure"));
     useInventoryStore.setState({ cloudEnabled: true, ownerUserId: "user-1" });
 
-    const result = await useInventoryStore.getState().addCards([testCard.id, secondCard.id]);
+    const addition = useInventoryStore.getState().addCards([testCard.id, secondCard.id]);
+    expect(useInventoryStore.getState().cards.map((card) => card.cardId)).toEqual([
+      testCard.id,
+      secondCard.id,
+    ]);
+    const result = await addition;
+    await waitForBackgroundSync();
     const state = useInventoryStore.getState();
 
     expect(result).toMatchObject({
-      ok: false,
-      addedCardIds: [],
-      remainingCardIds: [testCard.id, secondCard.id],
+      ok: true,
+      addedCardIds: [testCard.id, secondCard.id],
+      remainingCardIds: [],
     });
     expect(state.cards).toEqual([]);
     expect(state.pendingCardIds.size).toBe(0);
     expect(state.cloudLoading).toBe(false);
-    expect(state.cloudError).toBe("The card action could not be completed right now. Please try again.");
+    expect(state.cloudError).toBe("");
   });
 
   it("restores the previous card and attempts when a cloud removal action rejects", async () => {
@@ -198,8 +209,9 @@ describe("inventory store analytics", () => {
       },
     });
     await firstAdd;
+    await waitForBackgroundSync();
 
-    expect(useInventoryStore.getState().cards.map((card) => card.cardId)).toEqual([secondCard.id, testCard.id]);
+    expect(useInventoryStore.getState().cards.map((card) => card.cardId)).toEqual([testCard.id, secondCard.id]);
 
     await waitForQueuedCloudAdd();
     resolveSecondAdd({
@@ -214,6 +226,7 @@ describe("inventory store analytics", () => {
       },
     });
     await secondAdd;
+    await waitForBackgroundSync();
 
     expect(useInventoryStore.getState().cards.map((card) => card.cardId)).toEqual([testCard.id, secondCard.id]);
   });
@@ -233,6 +246,7 @@ describe("inventory store analytics", () => {
       expect.objectContaining({ cardId: testCard.id, status: "active", correctCount: 0 }),
     ]);
     expect(useInventoryStore.getState().pendingCardIds.has(testCard.id)).toBe(true);
+    await expect(addition).resolves.toMatchObject({ ok: true, addedCardIds: [testCard.id] });
 
     await waitForQueuedCloudAdd();
     resolveBatchAdd({
@@ -245,7 +259,7 @@ describe("inventory store analytics", () => {
         remainingCardIds: [],
       },
     });
-    await addition;
+    await waitForBackgroundSync();
 
     expect(useInventoryStore.getState().pendingCardIds.has(testCard.id)).toBe(false);
   });
@@ -517,6 +531,8 @@ describe("inventory store analytics", () => {
     ]);
     expect(localCardRepository.findById(optimisticCard.sourceKey)).toEqual(optimisticCard);
 
+    await creation;
+
     resolveCreation({
       status: "success",
       message: "",
@@ -530,7 +546,7 @@ describe("inventory store analytics", () => {
         vocabularyCard: savedCard,
       },
     });
-    await creation;
+    await waitForBackgroundSync();
 
     expect(useInventoryStore.getState().cards).toEqual([
       expect.objectContaining({ cardId: savedCard.sourceKey, status: "active" }),
@@ -574,8 +590,8 @@ describe("inventory store analytics", () => {
       optimisticCard,
     });
 
-    await expect(creation).rejects.toEqual(expect.any(InventoryActionError));
-    await expect(creation).rejects.toMatchObject({ errorCode: "free_active_card_limit" });
+    await creation;
+    await waitForBackgroundSync();
     expect(useInventoryStore.getState().cards).toEqual([]);
   });
 
@@ -629,7 +645,8 @@ describe("inventory store analytics", () => {
     expect(useInventoryStore.getState().cards).toEqual([
       expect.objectContaining({ cardId: optimisticCard.sourceKey, status: "active" }),
     ]);
-    await expect(creation).rejects.toThrow("Failed to fetch");
+    await creation;
+    await waitForBackgroundSync();
 
     expect(useInventoryStore.getState().cards).toEqual([]);
     expect(useInventoryStore.getState().pendingCardIds.has(optimisticCard.sourceKey)).toBe(false);
@@ -672,7 +689,8 @@ describe("inventory store analytics", () => {
       },
     });
 
-    await expect(creation).rejects.toMatchObject({ name: "InventoryActionError" });
+    await creation;
+    await waitForBackgroundSync();
     expect(useInventoryStore.getState().cards).toEqual([]);
     expect(useInventoryStore.getState().cloudLoading).toBe(false);
     expect(localCardRepository.findById(optimisticCard.sourceKey)).toBeUndefined();
@@ -680,5 +698,9 @@ describe("inventory store analytics", () => {
 });
 
 function waitForQueuedCloudAdd() {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+}
+
+function waitForBackgroundSync() {
   return new Promise<void>((resolve) => window.setTimeout(resolve, 0));
 }

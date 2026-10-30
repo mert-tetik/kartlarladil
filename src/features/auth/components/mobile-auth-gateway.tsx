@@ -367,6 +367,8 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     pathname === "/login" &&
     (loginMessage.includes("code verifier") || loginMessage.includes("pkce"));
   const shouldOpenMobileGatewayLogin = searchParams.get(MOBILE_GATEWAY_LOGIN_PARAM) === "1";
+  const hasNativeGoogleAuthCallback =
+    searchParams.has("nativeAuthCode") || searchParams.has("nativeAuthError");
 
   useEffect(() => {
     if (!mounted || !user || needsOnboarding) return;
@@ -448,6 +450,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     gatewayExitPending ||
     (isMobileViewport && (
       isGoogleAuthCompleting ||
+      hasNativeGoogleAuthCallback ||
       needsAuth ||
       needsOnboarding ||
       shouldRefreshLoginLanguages ||
@@ -553,7 +556,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     !isRankUpTestMode &&
     (!isSeriousLearnerTestMode || seriousLearnerTestOpen)
   ) {
-    if (isGoogleAuthCompleting && needsAuth) {
+    if ((isGoogleAuthCompleting || hasNativeGoogleAuthCallback) && needsAuth) {
       gateway = (
         <GatewayShell
           centered

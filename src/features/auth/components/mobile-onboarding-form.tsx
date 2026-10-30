@@ -206,12 +206,6 @@ export function MobileOnboardingForm({
 
     loginLanguageSubmitStartedRef.current = true;
     const formData = new FormData(form);
-    let savePromise: ReturnType<typeof updateMobileLoginLanguagePreferencesAction>;
-    try {
-      savePromise = updateMobileLoginLanguagePreferencesAction(AUTH_ACTION_IDLE_STATE, formData);
-    } catch (error) {
-      savePromise = Promise.reject(error);
-    }
 
     // These preferences are already stored locally; update the in-memory profile and continue
     // without waiting for the profile write to round-trip to Supabase.
@@ -220,20 +214,32 @@ export function MobileOnboardingForm({
     updateProfileField({ preferredLanguageCode, preferredUiLocale });
     onComplete?.();
 
-    void savePromise
-      .then((result) => {
-        if (result.status === "success") {
-          void refreshProfile().catch(() => undefined);
-          return;
-        }
+    // Let the gateway render its next screen before starting the network write.
+    // The local profile is already updated, so this action is deliberately
+    // fire-and-forget from the navigation flow's point of view.
+    window.setTimeout(() => {
+      let savePromise: ReturnType<typeof updateMobileLoginLanguagePreferencesAction>;
+      try {
+        savePromise = updateMobileLoginLanguagePreferencesAction(AUTH_ACTION_IDLE_STATE, formData);
+      } catch (error) {
+        savePromise = Promise.reject(error);
+      }
 
-        loginLanguageSubmitStartedRef.current = false;
-        showMessage(result.message || t("auth.message.onboardingSaveFailed"), "error");
-      })
-      .catch(() => {
-        loginLanguageSubmitStartedRef.current = false;
-        showMessage(t("auth.message.onboardingSaveFailed"), "error");
-      });
+      void savePromise
+        .then((result) => {
+          if (result.status === "success") {
+            void refreshProfile().catch(() => undefined);
+            return;
+          }
+
+          loginLanguageSubmitStartedRef.current = false;
+          showMessage(result.message || t("auth.message.onboardingSaveFailed"), "error");
+        })
+        .catch(() => {
+          loginLanguageSubmitStartedRef.current = false;
+          showMessage(t("auth.message.onboardingSaveFailed"), "error");
+        });
+    }, 0);
   }
 
   function handleLoginLanguageRefreshSubmit(event: FormEvent<HTMLFormElement>) {

@@ -29,6 +29,7 @@ import android.webkit.PermissionRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.ValueCallback;
+import org.json.JSONObject;
 
 import com.google.android.play.core.appupdate.AppUpdateInfo;
 import com.google.android.play.core.appupdate.AppUpdateManager;
@@ -487,7 +488,7 @@ public class LauncherActivity extends Activity {
     private void loadStartUrl(Intent intent) {
         Uri requested = intent == null ? null : intent.getData();
         Uri base = requested != null && isNativeAuthCallbackUrl(requested)
-                ? toWebAuthCallbackUrl(requested)
+                ? toWebNativeAuthLandingUrl(requested)
                 : requested != null && isAppUrl(requested)
                 ? requested
                 : Uri.parse(getString(R.string.launchUrl));
@@ -537,9 +538,11 @@ public class LauncherActivity extends Activity {
             pendingLaunchIntent = intent;
             return;
         }
-        if (intent != null
-                && intent.getData() != null
-                && (isAppUrl(intent.getData()) || isNativeAuthCallbackUrl(intent.getData()))) {
+        if (intent != null && isNativeAuthCallbackUrl(intent.getData())) {
+            dispatchNativeGoogleAuthCallback(intent.getData());
+            return;
+        }
+        if (intent != null && intent.getData() != null && isAppUrl(intent.getData())) {
             loadStartUrl(intent);
         }
     }
@@ -551,23 +554,57 @@ public class LauncherActivity extends Activity {
                 && "/callback".equals(uri.getPath());
     }
 
-    private static Uri toWebAuthCallbackUrl(Uri nativeCallback) {
+    private void dispatchNativeGoogleAuthCallback(Uri nativeCallback) {
+        if (webView == null || nativeCallback == null) return;
+
+        String code = nativeCallback.getQueryParameter("code");
+        String next = nativeCallback.getQueryParameter("next");
+        String error = nativeCallback.getQueryParameter("error");
+        String errorDescription = nativeCallback.getQueryParameter("error_description");
+        String payload = "{"
+                + "code:" + quoteForJavaScript(code) + ","
+                + "next:" + quoteForJavaScript(next) + ","
+                + "error:" + quoteForJavaScript(error) + ","
+                + "errorDescription:" + quoteForJavaScript(errorDescription)
+                + "}";
+        String script = "(function(){"
+                + "var payload=" + payload + ";"
+                + "window.__foxiesdeckNativeGoogleAuthQueue="
+                + "window.__foxiesdeckNativeGoogleAuthQueue||[];"
+                + "window.__foxiesdeckNativeGoogleAuthQueue.push(payload);"
+                + "if(typeof window.FoxiesDeckNativeGoogleAuthCallback==='function')"
+                + "{window.FoxiesDeckNativeGoogleAuthCallback();}"
+                + "window.dispatchEvent(new CustomEvent('foxiesdeck:native-google-auth-callback'));"
+                + "})();";
+        webView.post(() -> webView.evaluateJavascript(script, null));
+    }
+
+    private static String quoteForJavaScript(String value) {
+        return JSONObject.quote(value == null ? "" : value);
+    }
+
+    private static Uri toWebNativeAuthLandingUrl(Uri nativeCallback) {
         Uri.Builder webCallback = new Uri.Builder()
                 .scheme("https")
                 .authority("www.foxiesdeck.com")
-                .path("/auth/callback")
-                .appendQueryParameter("nativeHandoff", "1");
-        String[] allowedParameters = {
-                "code", "next", "error", "error_code", "error_description"
-        };
+                .path("/");
 
-        for (String parameter : allowedParameters) {
-            for (String value : nativeCallback.getQueryParameters(parameter)) {
-                webCallback.appendQueryParameter(parameter, value);
-            }
-        }
+        appendQueryParameterIfPresent(webCallback, "nativeAuthCode", nativeCallback.getQueryParameter("code"));
+        appendQueryParameterIfPresent(webCallback, "nativeAuthNext", nativeCallback.getQueryParameter("next"));
+        appendQueryParameterIfPresent(webCallback, "nativeAuthError", nativeCallback.getQueryParameter("error"));
+        appendQueryParameterIfPresent(
+                webCallback,
+                "nativeAuthErrorDescription",
+                nativeCallback.getQueryParameter("error_description")
+        );
 
         return webCallback.build();
+    }
+
+    private static void appendQueryParameterIfPresent(Uri.Builder builder, String key, String value) {
+        if (value != null && !value.isEmpty()) {
+            builder.appendQueryParameter(key, value);
+        }
     }
 
     @Override

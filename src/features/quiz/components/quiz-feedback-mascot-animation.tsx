@@ -38,7 +38,7 @@ export const BONUS_QUIZ_FEEDBACK_MASCOT: QuizFeedbackMascotAnimation = {
   height: 640,
 };
 
-export const QUIZ_FEEDBACK_MASCOT_CHANCE = 1 / 7;
+export const QUIZ_FEEDBACK_MASCOT_CHANCE = 1 / 5;
 
 const mascotVideoPreloadCache = new Map<string, Promise<void>>();
 const preloadedMascotVideos = new Map<string, HTMLVideoElement>();
@@ -208,8 +208,8 @@ export function QuizFeedbackMascotAnimationView({
     >
       <video
         key={animation.id}
-        className="absolute inset-0 z-[-1] h-full w-full object-contain object-bottom"
-        style={{ opacity: ready ? 1 : 0 }}
+        className="absolute inset-0 z-0 h-full w-full object-contain object-bottom"
+        style={{ opacity: ready ? 1 : 0, zIndex: 0 }}
         src={animation.videoSrc}
         autoPlay
         muted

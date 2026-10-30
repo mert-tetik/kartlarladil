@@ -1,6 +1,5 @@
 import OpenAI from "openai";
 import {
-  AI_PRACTICE_DEFAULT_MODEL,
   createAiPracticeSafetyIdentifier,
   extractResponseOutputText,
 } from "@/features/ai-practice/ai-practice-openai";
@@ -16,6 +15,7 @@ import {
   buildCreateCardsBatchInput,
   buildCreateCardsBatchInstructions,
 } from "@/features/cards/create-card-prompts";
+import { CUSTOM_CARD_REASONING_EFFORT, getCustomCardModel } from "@/features/cards/custom-card-ai";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 
   const { cards } = parsed.data;
   const openai = new OpenAI({ apiKey });
-  const model = process.env.OPENAI_AI_PRACTICE_MODEL?.trim() || AI_PRACTICE_DEFAULT_MODEL;
+  const model = getCustomCardModel();
 
   try {
     const response = await openai.responses.create({
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       instructions: buildCreateCardsBatchInstructions(cards),
       input: buildCreateCardsBatchInput(cards),
       max_output_tokens: MAX_OUTPUT_TOKENS_PER_CARD * cards.length,
-      reasoning: { effort: "minimal" },
+      reasoning: { effort: CUSTOM_CARD_REASONING_EFFORT },
       stream: false,
       store: false,
       text: { format: createCustomCardBatchResponseFormat(cards.length), verbosity: "low" },

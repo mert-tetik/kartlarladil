@@ -1,4 +1,5 @@
 import { cardPronunciationRequestSchema, normalizeGeneratedPronunciation } from "@/features/cards/card-pronunciation";
+import { normalizeModelGeneratedPronunciation } from "@/features/cards/card-pronunciation-model";
 import { generatedCardSchema } from "@/features/cards/create-card-schema";
 import { createCardTestLocaleRecord } from "@/test/card-locale-samples";
 
@@ -11,6 +12,11 @@ describe("card pronunciation helpers", () => {
     expect(normalizeGeneratedPronunciation("[hello]")).toBeNull();
     expect(normalizeGeneratedPronunciation("bonjür")).toBeNull();
     expect(normalizeGeneratedPronunciation("")).toBeNull();
+  });
+
+  it("normalizes model accent artifacts without accepting IPA", () => {
+    expect(normalizeModelGeneratedPronunciation("fal\u00e1r")).toBe("falar");
+    expect(normalizeModelGeneratedPronunciation("/h\u0259\u02c8lo\u028a/")).toBeNull();
   });
 
   it("accepts only a bounded source key request", () => {

@@ -769,7 +769,10 @@ function WelcomeTutorialScreen({ exiting, underlay, stage, label, nextLabel, onN
     setHasFallbackAnimationFailed(true);
   }, []);
 
-  const canShowAlphaVideo = isAddCardsStage && hasVideoAlphaSupport && !usesAnimationFallback && !isPlaybackComplete;
+  // Keep the paused video visible after playback ends. The last-frame image is
+  // layered above it, but the video remains as a seamless visual fallback
+  // while that image is mounting/decoding so the mascot never flashes away.
+  const canShowAlphaVideo = isAddCardsStage && hasVideoAlphaSupport && !usesAnimationFallback;
 
   return (
     <div data-landing-tutorial data-landing-tutorial-welcome data-tutorial-welcome-underlay={underlay ? "" : undefined} role="dialog" aria-label={label} aria-modal={underlay ? undefined : "true"} aria-hidden={underlay || undefined} aria-busy={exiting} className={cn("tutorial-origin-overlay fixed inset-0 z-[1000]", exiting && "tutorial-origin-overlay--closing")}>

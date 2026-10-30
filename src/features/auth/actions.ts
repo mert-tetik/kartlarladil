@@ -416,8 +416,7 @@ export async function signInWithGoogleAction(
     options: {
       redirectTo: getGoogleOAuthRedirectTo(origin, nextPath, nativeTwa),
       queryParams: {
-        access_type: "offline",
-        prompt: "consent",
+        prompt: "select_account",
       },
     },
   });

@@ -16,15 +16,19 @@ export function QuizMobileActionPortal({
   const [isMobileViewport, setIsMobileViewport] = useState(false);
 
   useEffect(() => {
-    setIsMobileViewport(window.innerWidth < 1024);
-    setReady(true);
+    const frame = window.requestAnimationFrame(() => {
+      setIsMobileViewport(window.innerWidth < 1024);
+      setReady(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
-  if (
-    !ready ||
-    !document.querySelector("[data-learn-page]") ||
-    document.querySelector("[data-normal-test]")
-  ) {
+  if (!ready) return children;
+
+  const learnPage = document.querySelector("[data-learn-page]");
+  const normalTestHost = document.querySelector<HTMLElement>("[data-normal-test]");
+
+  if (!learnPage || normalTestHost) {
     return children;
   }
 

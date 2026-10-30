@@ -41,7 +41,7 @@ function makeCard(language: "en" | "es", term: string) {
     termKind: "word",
     term,
     partOfSpeech: "noun",
-    pronunciation: "ornek",
+    pronunciation: "or\u00e9nek",
     translations: createCardTestLocaleRecord(),
     examples: [
       { sentence: language === "es" ? `Me gusta ${term}.` : `I like ${term}.`, translation: "Example one." },
@@ -84,14 +84,17 @@ describe("POST /api/cards/generate-batch", () => {
       ["en", "serendipity"],
       ["es", "sobremesa"],
     ]);
+    expect((payload.cards?.[0] as { pronunciation?: string }).pronunciation).toBe("orenek");
     expect(mockCreate).toHaveBeenCalledTimes(1);
 
     const request = mockCreate.mock.calls[0]?.[0] as {
       max_output_tokens: number;
+      reasoning: { effort: string };
       text: { format: { schema: { properties: { cards: { minItems: number; maxItems: number } } } } };
     };
     expect(request.max_output_tokens).toBe(4_400);
     expect(request.text.format.schema.properties.cards).toMatchObject({ minItems: 2, maxItems: 2 });
+    expect(request.reasoning).toEqual({ effort: "none" });
   });
 
   it("keeps the batch atomic and fails a malformed mapping without extra GPT calls", async () => {

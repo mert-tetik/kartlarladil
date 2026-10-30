@@ -2,6 +2,7 @@ import {
   generatedCardSchema,
   matchesRequestedTargetLanguage,
   matchesRequestedTargetWritingSystem,
+  normalizeGeneratedCardPayload,
   shouldRetryForDictionaryLemma,
   type CreateCardRequest,
   type GeneratedCardResponse,
@@ -35,7 +36,7 @@ export function parseGeneratedCardBatch(
     if (cards[index as number]) return null;
 
     const request = requests[index as number]!;
-    const parsedCard = generatedCardSchema.safeParse(indexedResult.card);
+    const parsedCard = generatedCardSchema.safeParse(normalizeGeneratedCardPayload(indexedResult.card));
     if (!parsedCard.success) return null;
 
     const generated = parsedCard.data;

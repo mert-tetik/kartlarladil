@@ -300,18 +300,18 @@ export function MobileLandingCardCenter({
               </div>
               <div
                 className={cn(
-                  "flex h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-white transition-colors duration-300 ease-out font-super-water",
+                  "relative top-[2px] flex h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-white transition-colors duration-300 ease-out font-super-water",
                   status === "all" ? "bg-black" : status === "active" ? "bg-action-learn" : "bg-action-learned",
                 )}
               >
                 <LanguageFlag code={selectedLanguage} className="size-6" />
-                <span className="truncate">{formatSuperWaterText(locale, getLanguageDisplayName(selectedLanguage, locale))}</span>
+                <span className="relative left-[3px] top-[2px] truncate">{formatSuperWaterText(locale, getLanguageDisplayName(selectedLanguage, locale))}</span>
                 <button
                   type="button"
                   onClick={openReviewMode}
                   disabled={activeCards.length === 0}
                   aria-label={t("cards.review")}
-                  className="ml-auto inline-flex h-8 shrink-0 items-center rounded-full bg-white/95 px-3 text-xs font-semibold leading-none text-black transition-transform active:scale-95 disabled:pointer-events-none disabled:opacity-40"
+                  className="ml-auto inline-flex h-8 shrink-0 items-center rounded-full bg-white/95 px-3 text-sm font-semibold leading-none text-black transition-transform active:scale-95 disabled:pointer-events-none disabled:opacity-40"
                 >
                   {formatSuperWaterText(locale, t("cards.review"))}
                 </button>

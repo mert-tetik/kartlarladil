@@ -31,6 +31,7 @@ import {
 } from "@/features/quiz/quiz-engine";
 import { syncMissionsFromClientState } from "@/features/missions/mission-sync";
 import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
+import { INVENTORY_BACKGROUND_ERROR_EVENT, type InventoryBackgroundErrorDetail } from "@/features/inventory/inventory-events";
 
 interface RecordAnswerResult {
   attempt: PracticeAttempt;
@@ -121,6 +122,7 @@ interface InventoryState {
     draft: GeneratedCardDraft;
     optimisticCard?: VocabularyCard;
     idempotencyKey?: string;
+    onBackgroundError?: (error: InventoryActionError) => void;
   }) => Promise<void>;
   registerPendingCustomCard: (card: VocabularyCard) => void;
 }
@@ -403,48 +405,12 @@ export const useInventoryStore = create<InventoryState>()(
         }
 
         if (get().cloudEnabled) {
+          // Local inventory is authoritative for the user-facing add. The
+          // cloud write starts below and can reconcile or roll back later.
           const cardWasAlreadyPresent = get().cards.some((card) => card.cardId === cardId);
           const optimisticCards = addCardToInventory(get().cards, cardId);
           set({ cards: optimisticCards });
           addPendingCardId(set, cardId);
-
-          set({ cloudLoading: true, cloudError: "" });
-          const result = await runInventoryCloudAction(
-            "add card",
-            () => enqueueCloudCardAddition(get().ownerUserId, () => addCloudInventoryCardAction(cardId)),
-          );
-          removePendingCardId(set, cardId);
-
-          if (result.status === "error" || !result.data) {
-            const currentState = get();
-            set({
-              cards: cardWasAlreadyPresent
-                ? currentState.cards
-                : currentState.cards.filter((card) => card.cardId !== cardId),
-              cloudLoading: currentState.pendingCardIds.size > 0,
-              cloudError: result.message,
-            });
-            return { ok: false, firstCardAdded: false };
-          }
-
-          if (get().cards.some((card) => card.cardId === cardId)) {
-            const currentState = get();
-            set({
-              cards: mergeCloudInventoryCards(
-                result.data.cards,
-                currentState.cards,
-                currentState.pendingCardIds,
-                currentState.pendingCardMutations,
-              ),
-              attempts: result.data.attempts,
-              cloudLoading: currentState.pendingCardIds.size > 0,
-              cloudError: "",
-            });
-          } else {
-            set({ cloudLoading: get().pendingCardIds.size > 0, cloudError: "" });
-          }
-
-          const firstCardAdded = previousCount === 0 && result.data.cards.length > 0;
           const addedCard = localCardRepository.findById(cardId);
 
           if (addedCard) {
@@ -457,14 +423,48 @@ export const useInventoryStore = create<InventoryState>()(
               },
             });
           }
-          if (result.data.cards.length > 0) {
+          if (optimisticCards.length > 0) {
             sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
           }
+          const firstCardAdded = previousCount === 0 && optimisticCards.length > 0;
           if (firstCardAdded) {
             dispatchFirstCardAddedEvent();
           }
 
-          await syncMissionsFromClientState();
+          void syncMissionsFromClientState();
+
+          void (async () => {
+            const result = await runInventoryCloudAction(
+              "add card",
+              () => enqueueCloudCardAddition(get().ownerUserId, () => addCloudInventoryCardAction(cardId)),
+            );
+            removePendingCardId(set, cardId);
+
+            if (result.status === "error" || !result.data) {
+              const currentState = get();
+              set({
+                cards: cardWasAlreadyPresent
+                  ? currentState.cards
+                  : currentState.cards.filter((card) => card.cardId !== cardId),
+                cloudError: "",
+              });
+              dispatchInventoryBackgroundError("add card", result);
+              void syncMissionsFromClientState();
+              return;
+            }
+
+            const currentState = get();
+            if (currentState.cards.some((card) => card.cardId === cardId)) {
+              const cloudCard = result.data.cards.find((card) => card.cardId === cardId);
+              set({
+                cards: cloudCard
+                  ? currentState.cards.map((card) => card.cardId === cardId ? cloudCard : card)
+                  : currentState.cards,
+                cloudError: "",
+              });
+            }
+            void syncMissionsFromClientState();
+          })();
 
           return { ok: true, firstCardAdded };
         }
@@ -510,10 +510,11 @@ export const useInventoryStore = create<InventoryState>()(
         }
 
         if (get().cloudEnabled) {
+          // Batch adds follow the same local-first contract as single adds.
           const existingIds = new Set(get().cards.map((card) => card.cardId));
           const newCardIds = requestedCardIds.filter((cardId) => !existingIds.has(cardId));
           const activeCardLimit = get().activeCardLimit;
-          const { allowedCardIds: optimisticCardIds } = limitCardIdsByLanguage(
+          const { allowedCardIds: optimisticCardIds, remainingCardIds } = limitCardIdsByLanguage(
             newCardIds,
             get().cards,
             activeCardLimit,
@@ -527,70 +528,12 @@ export const useInventoryStore = create<InventoryState>()(
                 state.cards,
               ),
               pendingCardIds: new Set([...state.pendingCardIds, ...optimisticCardIds]),
-              cloudLoading: true,
               cloudError: "",
             }));
-          } else {
-            set({ cloudLoading: true, cloudError: "" });
           }
 
-          const result = await runInventoryCloudAction(
-            "add cards",
-            () => enqueueCloudCardAddition(
-              get().ownerUserId,
-              () => addCloudInventoryCardsAction(requestedCardIds),
-            ),
-          );
-
-          if (result.status === "error" || !result.data) {
-            set((state) => {
-              const optimisticCardIdSet = new Set(optimisticCardIds);
-              const pendingCardIds = new Set(state.pendingCardIds);
-              optimisticCardIds.forEach((cardId) => pendingCardIds.delete(cardId));
-
-              return {
-                ...state,
-                cards: state.cards.filter((card) => !optimisticCardIdSet.has(card.cardId)),
-                pendingCardIds,
-                cloudLoading: pendingCardIds.size > 0,
-                cloudError: result.message,
-              };
-            });
-            return {
-              ok: false,
-              firstCardAdded: false,
-              addedCardIds: [],
-              remainingCardIds: requestedCardIds,
-            };
-          }
-
-          const cloudData = result.data;
-          if (!cloudData) {
-            return {
-              ok: false,
-              firstCardAdded: false,
-              addedCardIds: [],
-              remainingCardIds: requestedCardIds,
-            };
-          }
-
-          const { addedCardIds, remainingCardIds } = cloudData;
-          set((state) => {
-            const pendingCardIds = new Set(state.pendingCardIds);
-            optimisticCardIds.forEach((cardId) => pendingCardIds.delete(cardId));
-
-            return {
-              ...state,
-              cards: cloudData.cards,
-              attempts: cloudData.attempts,
-              pendingCardIds,
-              pendingCardMutations: new Map(),
-              cloudLoading: pendingCardIds.size > 0,
-              cloudError: "",
-            };
-          });
-
-          for (const cardId of addedCardIds) {
+          const firstCardAdded = previousCount === 0 && optimisticCardIds.length > 0;
+          for (const cardId of optimisticCardIds) {
             const addedCard = localCardRepository.findById(cardId);
             if (!addedCard) continue;
 
@@ -604,21 +547,77 @@ export const useInventoryStore = create<InventoryState>()(
             });
           }
 
-          if (addedCardIds.length > 0) {
+          if (optimisticCardIds.length > 0) {
             sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
           }
-
-          const firstCardAdded = previousCount === 0 && result.data.cards.length > 0;
           if (firstCardAdded) {
             dispatchFirstCardAddedEvent();
           }
 
-          await syncMissionsFromClientState();
+          void syncMissionsFromClientState();
+
+          if (optimisticCardIds.length > 0) {
+            void (async () => {
+              const result = await runInventoryCloudAction(
+                "add cards",
+                () => enqueueCloudCardAddition(
+                  get().ownerUserId,
+                  () => addCloudInventoryCardsAction(requestedCardIds),
+                ),
+              );
+
+              if (result.status === "error" || !result.data) {
+                set((state) => {
+                  const optimisticCardIdSet = new Set(optimisticCardIds);
+                  const pendingCardIds = new Set(state.pendingCardIds);
+                  optimisticCardIds.forEach((cardId) => pendingCardIds.delete(cardId));
+
+                  return {
+                    ...state,
+                    cards: state.cards.filter((card) => !optimisticCardIdSet.has(card.cardId)),
+                    pendingCardIds,
+                    cloudError: "",
+                  };
+                });
+                dispatchInventoryBackgroundError("add cards", result);
+                void syncMissionsFromClientState();
+                return;
+              }
+
+              const cloudData = result.data;
+              set((state) => {
+                const pendingCardIds = new Set(state.pendingCardIds);
+                optimisticCardIds.forEach((cardId) => pendingCardIds.delete(cardId));
+                const cloudCardsById = new Map(cloudData.cards.map((card) => [card.cardId, card]));
+                const optimisticCardIdSet = new Set(optimisticCardIds);
+
+                return {
+                  ...state,
+                  cards: state.cards.flatMap((card) => {
+                    if (!optimisticCardIdSet.has(card.cardId)) return [card];
+                    const cloudCard = cloudCardsById.get(card.cardId);
+                    return cloudCard ? [cloudCard] : [];
+                  }),
+                  pendingCardIds,
+                  cloudError: "",
+                };
+              });
+
+              if (cloudData.remainingCardIds.length > 0) {
+                dispatchInventoryBackgroundError("add cards", {
+                  status: "error",
+                  message: getBackgroundCardLimitMessage(),
+                  errorCode: "free_active_card_limit",
+                });
+              }
+              void syncMissionsFromClientState();
+            })();
+          }
 
           return {
             ok: true,
             firstCardAdded,
-            addedCardIds,
+            addedCardIds: optimisticCardIds,
             remainingCardIds,
             limitReached: remainingCardIds.length > 0,
           };
@@ -903,81 +902,74 @@ export const useInventoryStore = create<InventoryState>()(
         };
 
         if (optimisticCard && optimisticCardId) {
+          // The preview card is usable immediately; persistence is background
+          // work and reports failures through the global inventory event.
           customCardRegistry.register(optimisticCard);
           set({
             cards: addCardToInventory(get().cards, optimisticCardId),
-            cloudLoading: true,
             cloudError: "",
           });
           addPendingCardId(set, optimisticCardId);
-        } else {
-          set({ cloudLoading: true, cloudError: "" });
         }
 
-        let result: Awaited<ReturnType<typeof createCustomCardAction>>;
-        try {
-          result = input.idempotencyKey
-            ? await createCustomCardThroughOfflineRoute(input)
-            : await createCustomCardAction(request);
-        } catch (error) {
+        void (async () => {
+          let result: Awaited<ReturnType<typeof createCustomCardAction>>;
+          try {
+            result = input.idempotencyKey
+              ? await createCustomCardThroughOfflineRoute(input)
+              : await createCustomCardAction(request);
+          } catch {
+            rollbackBackgroundCustomCard(set, optimisticCardId);
+            const backgroundError = new InventoryActionError(getBackgroundCardErrorMessage());
+            dispatchInventoryBackgroundError("create custom card", {
+              status: "error",
+              message: backgroundError.message,
+            });
+            safelyNotifyBackgroundError(input.onBackgroundError, backgroundError);
+            return;
+          }
+
+          if (result.status === "error" || !result.data) {
+            const message = getCloudActionErrorMessage(result);
+            rollbackBackgroundCustomCard(set, optimisticCardId);
+            const backgroundError = new InventoryActionError(message, result.errorCode);
+            dispatchInventoryBackgroundError("create custom card", {
+              status: "error",
+              message,
+              errorCode: result.errorCode,
+            });
+            safelyNotifyBackgroundError(input.onBackgroundError, backgroundError);
+            return;
+          }
+
+          const created = result.data;
           if (optimisticCardId) {
             customCardRegistry.unregister(optimisticCardId);
             removePendingCardId(set, optimisticCardId);
-            set({
-              cards: get().cards.filter((card) => card.cardId !== optimisticCardId),
-              cloudLoading: get().pendingCardIds.size > 0,
-              cloudError: "",
-            });
-          } else {
-            set({ cloudLoading: false, cloudError: "" });
           }
-          throw error;
-        }
+          customCardRegistry.register(created.vocabularyCard);
 
-        if (result.status === "error" || !result.data) {
-          const message = getCloudActionErrorMessage(result);
-          if (optimisticCardId) {
-            customCardRegistry.unregister(optimisticCardId);
-            removePendingCardId(set, optimisticCardId);
-            set({
-              cards: get().cards.filter((card) => card.cardId !== optimisticCardId),
-              cloudLoading: get().pendingCardIds.size > 0,
-              cloudError: input.idempotencyKey ? "" : message,
-            });
-          } else {
-            set({ cloudLoading: false, cloudError: message });
-          }
-          throw new InventoryActionError(message, result.errorCode);
-        }
+          set({
+            cards: [
+              created.card,
+              ...get().cards.filter(
+                (card) => card.cardId !== created.card.cardId && card.cardId !== optimisticCardId,
+              ),
+            ],
+            cloudError: "",
+          });
 
-        const created = result.data;
-        if (optimisticCardId) {
-          customCardRegistry.unregister(optimisticCardId);
-          removePendingCardId(set, optimisticCardId);
-        }
-        customCardRegistry.register(created.vocabularyCard);
+          sendTwaAnalyticsEvent("fd_custom_card_added", {
+            params: {
+              card_id: created.card.cardId,
+              card_language: created.vocabularyCard.language,
+              card_tier: created.vocabularyCard.tier,
+              term_kind: created.vocabularyCard.termKind,
+            },
+          });
 
-        set({
-          cards: [
-            created.card,
-            ...get().cards.filter(
-              (card) => card.cardId !== created.card.cardId && card.cardId !== optimisticCardId,
-            ),
-          ],
-          cloudLoading: false,
-          cloudError: "",
-        });
-
-        sendTwaAnalyticsEvent("fd_custom_card_added", {
-          params: {
-            card_id: created.card.cardId,
-            card_language: created.vocabularyCard.language,
-            card_tier: created.vocabularyCard.tier,
-            term_kind: created.vocabularyCard.termKind,
-          },
-        });
-
-        await syncMissionsFromClientState();
+          void syncMissionsFromClientState();
+        })();
       },
 
       registerPendingCustomCard(card) {
@@ -1020,6 +1012,68 @@ function addPendingCardId(set: (fn: (state: InventoryState) => InventoryState) =
     ...state,
     pendingCardIds: new Set(state.pendingCardIds).add(cardId),
   }));
+}
+
+function dispatchInventoryBackgroundError(
+  operation: string,
+  result: Pick<InventoryCloudActionResult<unknown>, "message" | "errorCode"> & { status?: "success" | "error" },
+) {
+  if (typeof window === "undefined") return;
+
+  const message = result.message.trim() || getBackgroundCardErrorMessage();
+  window.dispatchEvent(new CustomEvent<InventoryBackgroundErrorDetail>(INVENTORY_BACKGROUND_ERROR_EVENT, {
+    detail: {
+      operation,
+      message,
+      errorCode: result.errorCode,
+    },
+  }));
+}
+
+function rollbackBackgroundCustomCard(
+  set: (fn: (state: InventoryState) => InventoryState) => void,
+  optimisticCardId: string | undefined,
+) {
+  if (!optimisticCardId) return;
+
+  customCardRegistry.unregister(optimisticCardId);
+  removePendingCardId(set, optimisticCardId);
+  set((state) => ({
+    ...state,
+    cards: state.cards.filter((card) => card.cardId !== optimisticCardId),
+    cloudError: "",
+  }));
+}
+
+function getBackgroundCardErrorMessage() {
+  return translate(getClientLocale(), "inventory.error.operationFailed");
+}
+
+function getBackgroundCardLimitMessage() {
+  return translate(getClientLocale(), "limit.activeCardLimitDescription");
+}
+
+function safelyNotifyBackgroundError(
+  callback: ((error: InventoryActionError) => void) | undefined,
+  error: InventoryActionError,
+) {
+  if (!callback) return;
+
+  try {
+    callback(error);
+  } catch {
+    // A recovery callback must never break the background sync loop.
+  }
+}
+
+function getClientLocale() {
+  let locale = DEFAULT_LOCALE;
+  try {
+    locale = normalizeLocale(window.localStorage.getItem(LOCALE_STORAGE_KEY));
+  } catch {
+    // Keep the default locale when browser storage is unavailable.
+  }
+  return locale;
 }
 
 async function runInventoryCloudAction<T>(

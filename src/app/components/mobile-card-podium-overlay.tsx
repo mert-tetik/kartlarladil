@@ -758,7 +758,7 @@ export function MobileCardPodiumOverlay({
           data-card-status-badge
           data-rank-details-ui="status"
         >
-          <div className="flex translate-x-[30px] translate-y-[30px] flex-col items-center">
+          <div className="flex translate-x-[21px] translate-y-[30px] flex-col items-center">
             <div
               key={`${currentCard.id}-${statusBadgeVisible ? "visible" : "hidden"}`}
               data-card-status-badge-content
@@ -842,7 +842,7 @@ export function MobileCardPodiumOverlay({
             <p className="font-super-water text-3xl font-semibold leading-none text-white">
               {formatSuperWaterText(locale, reviewSection === "active" ? t("cards.reviewToLearnIntro") : t("cards.reviewLearnedIntro"))}
             </p>
-            <p className="mt-2 font-super-water text-2xl font-semibold leading-none text-white/90">
+            <p className="mt-2 font-super-water text-2xl font-semibold leading-none text-white/90" data-card-review-hint>
               {formatSuperWaterText(locale, t("cards.tapToContinue"))}
             </p>
           </div>

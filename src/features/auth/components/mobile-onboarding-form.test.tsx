@@ -172,7 +172,9 @@ describe("MobileOnboardingForm", () => {
     await user.click(container.querySelector("[data-login-language-submit]") as HTMLButtonElement);
 
     expect(onComplete).toHaveBeenCalledTimes(1);
-    expect(updateMobileLoginLanguagePreferencesAction).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(updateMobileLoginLanguagePreferencesAction).toHaveBeenCalledTimes(1);
+    });
     const submittedForm = vi.mocked(updateMobileLoginLanguagePreferencesAction).mock.calls[0][1] as FormData;
     expect(submittedForm.get("preferredUiLocale")).toBe("en");
     expect(submittedForm.get("preferredLanguageCode")).toBe("de");

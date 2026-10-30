@@ -3,14 +3,16 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useSearchParams } from "next/navigation";
-import { LoaderCircle, Plus, X } from "lucide-react";
+import { AlertTriangle, Clock3, LoaderCircle, Plus, X } from "lucide-react";
 import { useAppMessage } from "@/components/app-message-provider";
 import { LanguageFlag } from "@/components/language-flag";
+import { Button } from "@/components/ui/button";
 import { LANGUAGES } from "@/data/languages";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
 import { generatedCardSchema, type GeneratedCardResponse } from "@/features/cards/create-card-schema";
+import { getCardDesignTierPalette } from "@/features/cards/card-design-tier-palette";
 import { createDeckCardTermIndex, getDraftsNotInDeck, getGeneratedCardTermKey } from "@/features/inventory/offline-notes-card-match";
 import { InventoryActionError, useInventoryStore } from "@/features/inventory/inventory-store";
 import {
@@ -24,9 +26,7 @@ import {
   type OfflineSavedNote,
   type OfflineSavedNoteEntry,
 } from "@/features/inventory/offline-card-storage";
-import {
-  createOfflineNotesVisualTestNotes,
-} from "@/features/inventory/offline-notes-visual-test-fixtures";
+import { createOfflineNotesVisualTestNotes } from "@/features/inventory/offline-notes-visual-test-fixtures";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
@@ -209,6 +209,7 @@ function OfflineNotesConversionOverlayContent() {
   const [subscriptionRestrictionOpen, setSubscriptionRestrictionOpen] = useState(false);
   const [activeCardLimitDetails, setActiveCardLimitDetails] = useState<{ addedCount: number; skippedCount: number } | null>(null);
   const [feedback, setFeedback] = useState<"conversion" | null>(null);
+  const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
   const [visualViewportHeight, setVisualViewportHeight] = useState(0);
   const notesRef = useRef(notes);
   const draftsRef = useRef(drafts);
@@ -254,9 +255,13 @@ function OfflineNotesConversionOverlayContent() {
 
   const currentPathname = pathname ?? "";
   const isOfflineScreen = OFFLINE_PATHS.has(currentPathname);
+  const visualTestParam = searchParams.get("visualTest");
   const isOfflineVisualTest = currentPathname === "/visual-test-offline";
   const isAvailable = !isOfflineScreen && !isOfflineVisualTest;
-  const isVisualTestMode = searchParams.get("visualTest") === "offline-notes";
+  // This test must run on the real landing route. That keeps the authenticated
+  // custom-card response and the landing dashboard render path in the loop.
+  // `/visual-test-offline` intentionally remains an isolated offline screen.
+  const isVisualTestMode = visualTestParam === "offline-notes" || visualTestParam === "offline-notes-add";
   const canCheckDeck = inventoryHydrated && (!cloudEnabled || (cloudLoadComplete && !cloudLoading && !cloudError));
   const deckCardTermIndex = useMemo(() => createDeckCardTermIndex(inventoryCards), [inventoryCards]);
   const currentOwnerId = userId ?? "guest";
@@ -583,7 +588,9 @@ function OfflineNotesConversionOverlayContent() {
         ...[...draftsToDelete.values()].map((entry) => removeOfflineGeneratedDraft(entry.profileId, entry.draft.id)),
       ]);
 
-      if (isVisualTestMode) visualTestNotesRef.current = [];
+      if (isVisualTestMode) {
+        visualTestNotesRef.current = [];
+      }
       setNotes([]);
       setDrafts((current) => current.filter((entry) => queuedDraftIds.has(entry.draft.id)));
       setFeedback(null);
@@ -599,9 +606,20 @@ function OfflineNotesConversionOverlayContent() {
 
   const closeOverlay = useCallback(() => {
     dismissedRef.current = true;
+    setDiscardConfirmationOpen(false);
     setPhase((current) => current === "closed" || current === "closing" ? current : "closing");
     void discardLocalConversionData();
   }, [discardLocalConversionData]);
+
+  const closeOverlayPreservingData = useCallback(() => {
+    dismissedRef.current = true;
+    setDiscardConfirmationOpen(false);
+    setPhase((current) => current === "closed" || current === "closing" ? current : "closing");
+  }, []);
+
+  const requestDiscardConfirmation = useCallback(() => {
+    setDiscardConfirmationOpen(true);
+  }, []);
 
   useEffect(() => {
     if (
@@ -620,16 +638,18 @@ function OfflineNotesConversionOverlayContent() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         if (subscriptionRestrictionOpen) return;
-        closeOverlay();
+        if (discardConfirmationOpen) setDiscardConfirmationOpen(false);
+        else requestDiscardConfirmation();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [closeOverlay, isAvailable, phase, subscriptionRestrictionOpen]);
+  }, [discardConfirmationOpen, isAvailable, phase, requestDiscardConfirmation, subscriptionRestrictionOpen]);
 
   async function addDraftToDeck(entry: DraftEntry): Promise<"added" | "limit"> {
     try {
       const generated = entry.draft.generated;
+      const optimisticCard = buildPendingOfflineVocabularyCard(entry);
       await useInventoryStore.getState().createCustomCard({
         language: generated.language,
         tier: generated.tier,
@@ -647,8 +667,19 @@ function OfflineNotesConversionOverlayContent() {
           grammar: generated.grammar,
           termKind: generated.termKind,
         },
-        optimisticCard: buildPendingOfflineVocabularyCard(entry),
+        optimisticCard,
         idempotencyKey: entry.draft.id,
+        onBackgroundError: (error) => {
+          // The card is already visible locally. Restore the durable draft
+          // after the current queue turn so a failed background sync remains
+          // retryable instead of disappearing with the note.
+          window.setTimeout(() => {
+            void restoreDraftAfterRejectedAdd(entry);
+            if (error.errorCode === "free_active_card_limit") {
+              showActiveCardLimit(0, 1);
+            }
+          }, 0);
+        },
       });
       return "added";
     } catch (error) {
@@ -847,7 +878,7 @@ function OfflineNotesConversionOverlayContent() {
       )}
       role="presentation"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) closeOverlay();
+        if (event.target === event.currentTarget) requestDiscardConfirmation();
       }}
     >
       <section
@@ -860,10 +891,50 @@ function OfflineNotesConversionOverlayContent() {
             : "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 8rem - 100px)",
         }}
         className={cn(
-          "flex min-h-0 w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-background-card text-foreground shadow-sm transition-transform duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+          "relative flex min-h-0 w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-background-card text-foreground shadow-sm transition-transform duration-[360ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
           isTransitioning ? "translate-y-4" : "translate-y-0",
         )}
       >
+        {discardConfirmationOpen ? (
+          <>
+            <div className="absolute inset-0 z-10 bg-black/75" aria-hidden="true" />
+            <div
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="offline-notes-discard-title"
+              className="absolute left-4 right-4 top-1/2 z-20 flex max-h-[calc(100%-2rem)] -translate-y-1/2 flex-col items-center gap-5 overflow-y-auto rounded-2xl bg-red-600 px-6 py-8 text-center text-white shadow-2xl"
+            >
+              <AlertTriangle className="size-10 shrink-0" strokeWidth={2.5} aria-hidden="true" />
+              <div className="space-y-2">
+                <h2 id="offline-notes-discard-title" className="text-xl font-bold leading-tight">{t("offline.notes.discardTitle")}</h2>
+                <p className="text-sm leading-relaxed text-white/90">{t("offline.notes.discardDescription")}</p>
+              </div>
+              <div className="grid w-full max-w-sm gap-2">
+                <button
+                  type="button"
+                  onClick={closeOverlay}
+                  className="flex min-h-14 w-full items-center justify-center rounded-lg bg-black px-4 text-base font-semibold text-white transition-colors hover:bg-black/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+                >
+                  {t("offline.notes.discardContinue")}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeOverlayPreservingData}
+                  className="flex min-h-14 w-full items-center justify-center rounded-lg bg-white px-4 text-base font-semibold text-red-600 transition-colors hover:bg-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+                >
+                  {t("offline.notes.discardLater")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDiscardConfirmationOpen(false)}
+                  className="flex min-h-14 w-full items-center justify-center rounded-lg border border-white/70 bg-transparent px-4 text-base font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+                >
+                  {t("offline.notes.discardBack")}
+                </button>
+              </div>
+            </div>
+          </>
+        ) : null}
         <div className="relative flex shrink-0 items-start px-5 py-4 pr-14">
           <div className="min-w-0 flex-1">
             <h2 id="offline-notes-title" className="text-lg font-semibold leading-tight">{t("offline.notes.title")}</h2>
@@ -871,23 +942,31 @@ function OfflineNotesConversionOverlayContent() {
           <button
             type="button"
             aria-label={t("common.close")}
-            onClick={closeOverlay}
+            onClick={requestDiscardConfirmation}
             className="absolute right-3 top-3 grid size-9 place-items-center rounded-lg text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
           >
-            <X className="size-5" aria-hidden="true" />
+            <X className="size-6" strokeWidth={3} aria-hidden="true" />
           </button>
         </div>
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
           {visibleNotes.map((entry) => (
-            <article key={noteKey(entry)} data-offline-saved-note={entry.note.targetLanguage} className="rounded-lg bg-background px-3 py-3">
-              <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-foreground/65">
-                <span aria-hidden="true">
-                  <LanguageFlag code={entry.note.targetLanguage} className="h-4 w-4" imageClassName="scale-[1.35]" />
-                </span>
-                <span>{getLanguageName(entry.note.targetLanguage, locale)}</span>
+            <article
+              key={noteKey(entry)}
+              data-offline-saved-note={entry.note.targetLanguage}
+              className="flex min-w-0 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-2.5 text-black"
+            >
+              <div className="grid min-w-0 flex-1 gap-1 text-left">
+                <div className="flex min-w-0 items-center gap-2 text-sm font-bold leading-tight">
+                  <span aria-hidden="true" className="grid h-5 w-7 shrink-0 place-items-center overflow-hidden rounded-[5px]">
+                    <LanguageFlag code={entry.note.targetLanguage} className="h-full w-full" imageClassName="scale-100" />
+                  </span>
+                  <span className="min-w-0 break-words">{getLanguageName(entry.note.targetLanguage, locale)}</span>
+                </div>
+                <p dir="auto" className="min-w-0 break-words text-[18px] leading-[1.3]">
+                  {entry.note.text}
+                </p>
               </div>
-              <p dir="auto" className="break-words text-base font-semibold">{entry.note.text}</p>
             </article>
           ))}
 
@@ -905,21 +984,28 @@ function OfflineNotesConversionOverlayContent() {
                     key={`${entry.profileId}:${entry.draft.id}`}
                     data-offline-generated-draft={generated.language}
                     data-offline-draft-already-in-deck={alreadyInDeck ? "true" : "false"}
-                    className="min-w-0"
+                    className="flex min-w-0 flex-col"
                   >
                     <VocabularyCardView
                       card={card}
-                      onAdd={() => void handleAddDraft(entry)}
-                      addLabel={t("offline.notes.addToDeck")}
-                      owned={alreadyInDeck}
-                      ownedLabel={t("offline.notes.alreadyInDeck")}
-                      addLoading={adding}
-                      addLoadingLabel={t("offline.notes.addingToDeck")}
-                      addDisabled={bulkAdding || conversionBusy}
                       showActions={false}
                       translationLocale={locale}
                       className="w-full"
                     />
+                    <Button
+                      type="button"
+                      onClick={() => void handleAddDraft(entry)}
+                      disabled={!canCheckDeck || alreadyInDeck || adding || bulkAdding || conversionBusy}
+                      aria-busy={adding}
+                      className="mt-2 min-h-11 w-full rounded-lg border border-white/80 bg-white/95 px-3 text-base font-bold leading-tight hover:bg-white disabled:cursor-wait disabled:opacity-70"
+                      style={{ color: getCardDesignTierPalette(card.tier).label }}
+                    >
+                      {alreadyInDeck
+                        ? t("offline.notes.alreadyInDeck")
+                        : adding
+                          ? t("offline.notes.addingToDeck")
+                          : t("offline.notes.addToDeck")}
+                    </Button>
                   </div>
                 );
               })}
@@ -935,10 +1021,10 @@ function OfflineNotesConversionOverlayContent() {
                 type="button"
                 disabled={!canCheckDeck || conversionBusy || bulkAdding}
                 onClick={() => void handleAddAllDrafts()}
-                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-foreground transition-[filter,transform] active:translate-y-0.5 active:brightness-95 disabled:cursor-wait disabled:opacity-70"
+                className="flex min-h-14 w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 text-base font-bold leading-tight text-brand-foreground transition-[filter,transform] active:translate-y-0.5 active:brightness-95 disabled:cursor-wait disabled:opacity-70"
                 style={{ boxShadow: "0 3px 0 color-mix(in srgb, var(--brand) 72%, black)" }}
               >
-                {bulkAdding || !canCheckDeck ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : <Plus className="size-4" aria-hidden="true" />}
+                {bulkAdding || !canCheckDeck ? <LoaderCircle className="size-5 animate-spin" aria-hidden="true" /> : <Plus className="size-5" aria-hidden="true" />}
                 {bulkAdding ? t("offline.notes.addingAllToDeck") : !canCheckDeck ? t("common.loading") : t("offline.notes.addAllToDeck")}
               </button>
             ) : null}
@@ -954,6 +1040,15 @@ function OfflineNotesConversionOverlayContent() {
                 {conversionBusy ? t("offline.notes.converting") : feedback === "conversion" ? t("offline.notes.retry") : t("offline.notes.convertAll")}
               </button>
             ) : null}
+            <button
+              type="button"
+              onClick={closeOverlayPreservingData}
+              className="flex min-h-14 w-full items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 text-base font-bold leading-tight text-white transition-[filter,transform] active:translate-y-0.5 active:brightness-95 disabled:cursor-wait disabled:opacity-70"
+              style={{ boxShadow: "0 3px 0 color-mix(in srgb, #3b82f6 72%, black)" }}
+            >
+              <Clock3 className="size-5" aria-hidden="true" />
+              {t("offline.notes.later")}
+            </button>
           </div>
         ) : null}
       </section>

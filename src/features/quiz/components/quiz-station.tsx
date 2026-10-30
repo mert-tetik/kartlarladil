@@ -4056,28 +4056,49 @@ export function QuizStation({
         entryAnimated={false}
       />
       <div
-        className="quiz-transition-viewport relative mx-auto flex h-auto w-full max-w-5xl flex-col justify-center overflow-x-hidden overflow-y-hidden bg-background max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[calc(5rem+15px+env(safe-area-inset-bottom))] max-lg:top-[var(--app-header-height)] max-lg:max-w-none max-lg:justify-start max-lg:overflow-hidden max-lg:overscroll-none lg:h-full"
+        className="quiz-transition-viewport relative mx-auto flex h-auto w-full max-w-5xl flex-col justify-center overflow-x-hidden overflow-y-hidden bg-transparent max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[calc(5rem+15px+env(safe-area-inset-bottom))] max-lg:top-[var(--app-header-height)] max-lg:max-w-none max-lg:justify-start max-lg:overflow-hidden max-lg:overscroll-none lg:h-full"
         data-learn-quiz-page="quiz"
         style={{
           "--quiz-correct-animation-duration": `${correctAnswerAnimationDurationMs}ms`,
         } as CSSProperties}
       >
+        <MobileQuizFeedback
+          isOpen={
+            showingAnswer &&
+            lastAnswerCorrect !== null &&
+            !lastAnswerCorrect
+          }
+          isCorrect={lastAnswerCorrect ?? false}
+          isBonus={isBonusQuizItem(item)}
+          isText={item.questionType === "text"}
+          correctAnswer={
+            item.questionType === "group"
+              ? item.question.options.find(
+                  (option) => option.card.id === item.question.correctOptionId,
+                )?.card.term
+              : getFeedbackCorrectAnswer(item)
+          }
+          onNext={handleNext}
+          showNextButton={!pendingStreak && !bonusFlightActive}
+        />
         <div
           key={`quiz-flow-${currentIndex}-${isBonusQuizItem(item) ? item.bonusId : item.card.id}`}
           className={cn(
             useCssQuizTransition && "quiz-flow-enter-right",
-            "flex min-h-full w-full flex-col items-center justify-center gap-3 px-4 py-4 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-6 lg:px-0 lg:py-0",
+            "relative z-[100] isolate flex min-h-full w-full flex-col items-center justify-center gap-3 px-4 py-4 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-6 lg:px-0 lg:py-0",
             mobileQuestionPrompt && "max-lg:pt-[3.5rem]",
           )}
+          style={{ zIndex: 100 }}
           data-quiz-mobile-layout={item.questionType}
         >
           <div
             className={cn(
-              "flex w-full max-w-md flex-col justify-center gap-3 lg:order-1 lg:col-start-1 lg:row-start-1 lg:max-w-none lg:gap-4",
+              "relative z-50 isolate flex w-full max-w-md flex-col justify-center gap-3 lg:order-1 lg:col-start-1 lg:row-start-1 lg:max-w-none lg:gap-4",
               isBonusQuizItem(item)
                 ? "order-1 max-lg:min-h-0 max-lg:flex-1 max-lg:pb-0"
                 : cn(isCardFirstQuestion ? "order-3" : "order-1", "max-lg:pb-3"),
             )}
+            style={{ zIndex: 50 }}
             data-quiz-mobile-question
           >
             <QuizCounter currentIndex={regularProgress.current - 1} total={regularProgress.total} />
@@ -4231,7 +4252,8 @@ export function QuizStation({
         </div>
 
         <div
-          className="pointer-events-none absolute inset-0 z-50"
+          className="pointer-events-none absolute inset-0 z-[110]"
+          style={{ zIndex: 110 }}
           data-quiz-transition-action-host
         />
       </div>
@@ -4244,26 +4266,6 @@ export function QuizStation({
           onContinue={completeCardProgressReveal}
         />
       ) : null}
-
-        <MobileQuizFeedback
-          isOpen={
-            showingAnswer &&
-            lastAnswerCorrect !== null &&
-            !lastAnswerCorrect
-          }
-          isCorrect={lastAnswerCorrect ?? false}
-          isBonus={isBonusQuizItem(item)}
-          isText={item.questionType === "text"}
-          correctAnswer={
-            item.questionType === "group"
-              ? item.question.options.find(
-                  (option) => option.card.id === item.question.correctOptionId,
-                )?.card.term
-              : getFeedbackCorrectAnswer(item)
-          }
-          onNext={handleNext}
-          showNextButton={!pendingStreak && !bonusFlightActive}
-        />
 
       <UpgradeDialog
         open={limitError !== null}
@@ -6605,7 +6607,9 @@ export function MobileQuizFeedback({
   } | null>(null);
   const [mascotAnimation, setMascotAnimation] = useState<QuizFeedbackMascotAnimation | null>(null);
   const [mascotVisible, setMascotVisible] = useState(false);
+  const [mascotBottomOffset, setMascotBottomOffset] = useState<number | null>(null);
   const mascotAnimationRef = useRef<QuizFeedbackMascotAnimation | null>(null);
+  const feedbackBarRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -6642,6 +6646,32 @@ export function MobileQuizFeedback({
   }, [isOpen, isCorrect, correctAnswer]);
 
   const display = snapshot ?? { isCorrect, correctAnswer: correctAnswer ?? "" };
+
+  useLayoutEffect(() => {
+    const feedbackBar = feedbackBarRef.current;
+    if (!feedbackBar || typeof window === "undefined") return;
+
+    const updateMascotPosition = () => {
+      const viewportHeight = window.innerHeight;
+      const barRect = feedbackBar.getBoundingClientRect();
+      const barBottomGap = Math.max(0, viewportHeight - barRect.bottom);
+      setMascotBottomOffset(Math.ceil(barRect.height + barBottomGap));
+    };
+
+    updateMascotPosition();
+
+    const observer = typeof ResizeObserver !== "undefined"
+      ? new ResizeObserver(updateMascotPosition)
+      : null;
+    observer?.observe(feedbackBar);
+    window.addEventListener("resize", updateMascotPosition);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", updateMascotPosition);
+    };
+  }, [display.isCorrect, display.correctAnswer, isOpen]);
+
   const feedbackText = display.isCorrect
     ? t("quiz.congratulations")
     : t("quiz.wrongAnswer");
@@ -6650,69 +6680,83 @@ export function MobileQuizFeedback({
   const feedbackButtonVisible = isOpen && !feedbackButtonDisabled;
 
   return (
-    <div
-      className={cn(
-        "fixed inset-0 z-[70] flex flex-col justify-end transition-opacity duration-300 max-lg:flex lg:hidden",
-        isOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
-      )}
-      aria-hidden={!isOpen}
-      inert={!isOpen || undefined}
-      data-quiz-mobile-feedback
-    >
+    <>
       <div
         className={cn(
-          "relative flex w-full items-center justify-between gap-4 rounded-t-2xl p-5 shadow-lg transition-transform duration-300",
-          display.isCorrect ? "min-h-24" : "min-h-32",
-          display.isCorrect ? "bg-emerald-500" : "bg-rose-500",
-          isOpen ? "translate-y-0" : "translate-y-full",
-          canUseSuperWater(locale) && "font-super-water",
+          "pointer-events-none fixed inset-0 z-[200] flex flex-col justify-end transition-opacity duration-300 max-lg:flex lg:hidden",
+          isOpen ? "opacity-100" : "opacity-0",
         )}
+        style={{ zIndex: 200 }}
+        aria-hidden={!isOpen}
+        inert={!isOpen || undefined}
+        data-quiz-mobile-feedback
       >
-        {mascotAnimation && mascotVisible ? (
-          <div className="pointer-events-none absolute bottom-full left-2 z-0">
-            <QuizFeedbackMascotAnimationView animation={mascotAnimation} />
-          </div>
-        ) : null}
         <div
           className={cn(
-            "relative z-10 flex min-w-0 gap-3",
-            display.isCorrect || !display.correctAnswer ? "items-center" : "items-start",
+            "pointer-events-auto relative flex w-full items-center justify-between gap-4 rounded-t-2xl p-5 shadow-lg transition-transform duration-300",
+          display.isCorrect ? "min-h-24" : "min-h-32",
+          display.isCorrect ? "bg-emerald-500" : "bg-rose-500",
+            isOpen ? "translate-y-0" : "translate-y-full",
+          canUseSuperWater(locale) && "font-super-water",
           )}
+          ref={feedbackBarRef}
         >
-          <QuizFeedbackStatusIcon isCorrect={display.isCorrect} />
-          <div className="min-w-0">
-            <p className={cn(
-              "font-bold text-white",
-              display.isCorrect ? "text-base" : "text-xl",
-            )}>
-              {formatSuperWaterText(locale, feedbackText)}
-            </p>
-            {!display.isCorrect && display.correctAnswer ? (
-              <div className="mt-2 flex flex-col text-base leading-tight text-white/95">
-                <span className="font-semibold">
-                  {formatSuperWaterText(locale, correctAnswerLabel)}
-                </span>
-                <span className="mt-0 break-words text-2xl font-bold leading-tight sm:text-3xl">
-                  {` ${formatSuperWaterText(locale, display.correctAnswer)}`}
-                </span>
-              </div>
-            ) : null}
+          <div
+            className={cn(
+              "relative z-10 flex min-w-0 gap-3",
+              display.isCorrect || !display.correctAnswer ? "items-center" : "items-start",
+            )}
+          >
+            <QuizFeedbackStatusIcon isCorrect={display.isCorrect} />
+            <div className="min-w-0">
+              <p className={cn(
+                "font-bold text-white",
+                display.isCorrect ? "text-base" : "text-xl",
+              )}>
+                {formatSuperWaterText(locale, feedbackText)}
+              </p>
+              {!display.isCorrect && display.correctAnswer ? (
+                <div className="mt-2 flex flex-col text-base leading-tight text-white/95">
+                  <span className="font-semibold">
+                    {formatSuperWaterText(locale, correctAnswerLabel)}
+                  </span>
+                  <span className="mt-0 break-words text-2xl font-bold leading-tight sm:text-3xl">
+                    {` ${formatSuperWaterText(locale, display.correctAnswer)}`}
+                  </span>
+                </div>
+              ) : null}
+            </div>
           </div>
+          <Button
+            className={cn(
+              "relative z-10 shrink-0 touch-manipulation rounded-full bg-white px-5 text-base font-bold transition-none hover:bg-white/90",
+              display.isCorrect ? "text-emerald-600" : "text-rose-600",
+              !feedbackButtonVisible && "invisible pointer-events-none",
+            )}
+            onClick={onNext}
+            data-quiz-mobile-feedback-next
+            disabled={feedbackButtonDisabled}
+          >
+            {formatSuperWaterText(locale, t("quiz.feedbackContinue"))}
+          </Button>
         </div>
-        <Button
-          className={cn(
-            "relative z-10 shrink-0 touch-manipulation rounded-full bg-white px-5 text-base font-bold transition-none hover:bg-white/90",
-            display.isCorrect ? "text-emerald-600" : "text-rose-600",
-            !feedbackButtonVisible && "invisible pointer-events-none",
-          )}
-          onClick={onNext}
-          data-quiz-mobile-feedback-next
-          disabled={feedbackButtonDisabled}
-        >
-          {formatSuperWaterText(locale, t("quiz.feedbackContinue"))}
-        </Button>
       </div>
-    </div>
+      {mascotAnimation && mascotVisible ? (
+        <div
+          className={cn(
+            "pointer-events-none fixed left-2 z-0 transition-[opacity,transform] duration-300 lg:hidden",
+            isOpen ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0",
+          )}
+          style={{
+            bottom: mascotBottomOffset === null ? "-100vh" : `${mascotBottomOffset}px`,
+            zIndex: 0,
+          }}
+          data-quiz-feedback-mascot-layer
+        >
+          <QuizFeedbackMascotAnimationView animation={mascotAnimation} />
+        </div>
+      ) : null}
+    </>
   );
 }
 

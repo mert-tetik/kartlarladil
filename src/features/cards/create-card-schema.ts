@@ -2,6 +2,7 @@ import { z } from "zod";
 import { LANGUAGE_CODES, LOCALE_CODES } from "@/data/languages";
 import { TIERS } from "@/data/tiers";
 import { normalizeGeneratedPronunciation } from "@/features/cards/card-pronunciation";
+import { normalizeModelGeneratedPronunciation } from "@/features/cards/card-pronunciation-model";
 import {
   containsRequiredTargetScript,
   requiresNativeWritingSystem,
@@ -114,6 +115,21 @@ export const generatedCardSchema = z.object({
 }));
 
 export type GeneratedCardResponse = z.infer<typeof generatedCardSchema>;
+
+/**
+ * Applies only safe, local model-output normalization before strict parsing.
+ * This avoids a second model call for harmless accent-mark artifacts while
+ * leaving the public schema validator strict for all other invalid values.
+ */
+export function normalizeGeneratedCardPayload(value: unknown): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+
+  const record = value as Record<string, unknown>;
+  const pronunciation = normalizeModelGeneratedPronunciation(record.pronunciation);
+  if (!pronunciation || pronunciation === record.pronunciation) return value;
+
+  return { ...record, pronunciation };
+}
 
 export function matchesRequestedTargetLanguage(
   card: Pick<GeneratedCardResponse, "language">,

@@ -127,10 +127,10 @@ export default function CreateCardPage() {
         setGrammarDetailsOpen(false);
         setTerm("");
         setIsExiting(false);
-        showMessage(t("createCard.success.addedWithLanguage", { language: getLanguageDisplayName(aiResponse.language, locale) }), "success");
       };
 
       void createCustomCardFromGenerated(aiResponse, createCustomCard).then(() => {
+        showMessage(t("createCard.success.addedWithLanguage", { language: getLanguageDisplayName(aiResponse.language, locale) }), "success");
         window.setTimeout(complete, CREATE_CARD_PREVIEW_EXIT_DURATION_MS);
       }).catch(() => {
         setFoundCard(null);
@@ -152,6 +152,8 @@ export default function CreateCardPage() {
         throw new Error(result.limitReached ? "free_active_card_limit" : "unknown");
       }
 
+      showMessage(t("createCard.success.addedWithLanguage", { language: getLanguageDisplayName(foundCard.language, locale) }), "success");
+
       setIsExiting(true);
       window.setTimeout(() => {
         setFoundCard(null);
@@ -159,7 +161,6 @@ export default function CreateCardPage() {
         setGrammarDetailsOpen(false);
         setTerm("");
         setIsExiting(false);
-        showMessage(t("createCard.success.addedWithLanguage", { language: getLanguageDisplayName(foundCard.language, locale) }), "success");
       }, CREATE_CARD_PREVIEW_EXIT_DURATION_MS);
     } catch {
       setIsExiting(true);

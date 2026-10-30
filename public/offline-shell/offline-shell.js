@@ -716,7 +716,7 @@
     element("note-input").dir = state.learningLanguage === "ar" ? "rtl" : "auto";
     text(element("status-label"), strings.status);
     heading(element("offline-title"), strings.title, userLocale);
-    text(element("reconnect-label"), strings.reconnect);
+    heading(element("reconnect-label"), strings.reconnect, userLocale);
     heading(element("deck-title"), strings.deck, userLocale);
     heading(element("notes-title"), strings.notes, userLocale);
     text(element("note-label"), strings.notePlaceholder);
@@ -981,16 +981,21 @@
     }
     function renderNotes() {
       const root = element("notes-list"); root.replaceChildren();
-      const notes = notesForSelectedLanguage();
+      const notes = allNotes();
       if (notes.length) {
         notes.forEach(function (note) {
           const row = document.createElement("div"); row.className = "note-row";
           row.dataset.targetLanguage = note.targetLanguage;
           const content = document.createElement("div"); content.className = "note-content";
-          const language = document.createElement("span"); language.className = "note-language"; language.textContent = languageDisplayName(note.targetLanguage, userLocale);
+          const language = document.createElement("span"); language.className = "note-language";
+          const languageFlag = document.createElement("span"); languageFlag.className = "note-language-flag"; languageFlag.setAttribute("aria-hidden", "true");
+          renderLanguageFlag(languageFlag, note.targetLanguage);
+          const languageName = document.createElement("span"); languageName.className = "note-language-name"; languageName.textContent = languageDisplayName(note.targetLanguage, userLocale);
+          language.append(languageFlag, languageName);
           const noteText = document.createElement("span"); noteText.className = "note-text"; noteText.textContent = note.text;
           content.append(language, noteText);
-          const remove = document.createElement("button"); remove.className = "remove-note"; remove.type = "button"; remove.textContent = "×"; remove.setAttribute("aria-label", strings.close);
+          const remove = document.createElement("button"); remove.className = "remove-note"; remove.type = "button"; remove.setAttribute("aria-label", strings.close);
+          remove.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
           remove.addEventListener("click", async function () {
             if (!testMode) {
               try { await storageApi.removeNote(storageProfileForNote(note), note.id); }
@@ -1105,7 +1110,7 @@
 
     element("reconnect").addEventListener("click", async function () {
       const button = element("reconnect"); button.disabled = true;
-      text(element("reconnect-label"), strings.reconnecting);
+      heading(element("reconnect-label"), strings.reconnecting, userLocale);
       let leavingOfflineScreen = false;
       try {
         const connected = await probeSite();
@@ -1122,7 +1127,7 @@
       } finally {
         if (!leavingOfflineScreen) {
           button.disabled = false;
-          text(element("reconnect-label"), strings.reconnect);
+          heading(element("reconnect-label"), strings.reconnect, userLocale);
         }
       }
     });
