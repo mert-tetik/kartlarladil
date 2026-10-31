@@ -21,6 +21,14 @@ const mockUpdate = vi.hoisted(() => vi.fn());
 const mockEq = vi.hoisted(() => vi.fn());
 const mockSelect = vi.hoisted(() => vi.fn());
 const mockMaybeSingle = vi.hoisted(() => vi.fn());
+const mockCookieStore = vi.hoisted(() => ({
+  getAll: vi.fn(),
+  delete: vi.fn(),
+}));
+
+vi.mock("next/headers", () => ({
+  cookies: vi.fn(() => Promise.resolve(mockCookieStore)),
+}));
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -38,6 +46,10 @@ vi.mock("@/i18n/server", () => ({
 
 vi.mock("@/lib/supabase/config", () => ({
   hasSupabaseBrowserConfig: vi.fn(() => true),
+  getSupabaseBrowserConfig: vi.fn(() => ({
+    url: "https://foxiesdeck.supabase.co",
+    publishableKey: "test-publishable-key",
+  })),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -70,6 +82,11 @@ describe("logoutAction", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockSignOut.mockResolvedValue({ error: null });
+    mockCookieStore.getAll.mockReturnValue([
+      { name: "sb-foxiesdeck-auth-token.0" },
+      { name: "sb-foxiesdeck-auth-token.1" },
+      { name: "unrelated-cookie" },
+    ]);
   });
 
   it("returns mobile navbar logout to the forced mobile login gateway", async () => {
@@ -81,7 +98,43 @@ describe("logoutAction", () => {
     );
 
     expect(mockSignOut).toHaveBeenCalledOnce();
+    expect(mockSignOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(mockCookieStore.delete).toHaveBeenCalledWith("sb-foxiesdeck-auth-token.0");
+    expect(mockCookieStore.delete).toHaveBeenCalledWith("sb-foxiesdeck-auth-token.1");
     expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith("/", "layout");
+  });
+
+  it("clears the local session cookies even if Supabase sign-out fails", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mockSignOut.mockResolvedValue({ error: new Error("Auth API unavailable") });
+    const formData = new FormData();
+    formData.set("mobileLogout", "1");
+
+    await expect(logoutAction(formData)).rejects.toThrow(
+      "NEXT_REDIRECT:/?mobile-gateway-login=1",
+    );
+
+    expect(mockCookieStore.delete).toHaveBeenCalledWith("sb-foxiesdeck-auth-token.0");
+    expect(mockCookieStore.delete).toHaveBeenCalledWith("sb-foxiesdeck-auth-token.1");
+    expect(mockCookieStore.delete).not.toHaveBeenCalledWith("unrelated-cookie");
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it("clears the local session cookies if the Supabase sign-out request throws", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mockSignOut.mockRejectedValue(new Error("Network unavailable"));
+    const formData = new FormData();
+    formData.set("mobileLogout", "1");
+
+    await expect(logoutAction(formData)).rejects.toThrow(
+      "NEXT_REDIRECT:/?mobile-gateway-login=1",
+    );
+
+    expect(mockCookieStore.delete).toHaveBeenCalledWith("sb-foxiesdeck-auth-token.0");
+    expect(mockCookieStore.delete).toHaveBeenCalledWith("sb-foxiesdeck-auth-token.1");
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 
   it("keeps desktop logout on the normal home route", async () => {

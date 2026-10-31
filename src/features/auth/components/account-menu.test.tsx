@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
-import { AuthSessionProvider } from "@/features/auth/auth-client";
+import { AuthSessionProvider, useAuthSession } from "@/features/auth/auth-client";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import { AccountMenu } from "@/features/auth/components/account-menu";
 import { LocaleProvider } from "@/i18n/locale-provider";
@@ -74,6 +74,11 @@ const testUser: AuthShellUser = {
   },
 };
 
+function AuthSessionProbe() {
+  const { user } = useAuthSession();
+  return <span data-testid="auth-session-user">{user?.id ?? "signed-out"}</span>;
+}
+
 describe("AccountMenu", () => {
   it("centers account identity and omits rank, profile, theme, and subscription links", async () => {
     const user = userEvent.setup();
@@ -116,6 +121,7 @@ describe("AccountMenu", () => {
     render(
       <AuthSessionProvider user={testUser}>
         <LocaleProvider initialLocale="tr">
+          <AuthSessionProbe />
           <AccountMenu user={testUser} navbar />
         </LocaleProvider>
       </AuthSessionProvider>,
@@ -127,6 +133,7 @@ describe("AccountMenu", () => {
 
     expect(screen.getByRole("menu").querySelector('input[name="mobileLogout"]')).toHaveValue("1");
     expect(window.sessionStorage.getItem("foxiesdeck:mobile-logout-auth")).toBe("1");
+    expect(screen.getByTestId("auth-session-user")).toHaveTextContent("user-1");
     expect(dispatchEvent).toHaveBeenCalledWith(
       expect.objectContaining({ type: "foxiesdeck:mobile-logout-auth-requested" }),
     );

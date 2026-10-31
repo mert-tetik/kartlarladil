@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { AuthActionState } from "@/features/auth/auth-types";
 import {
@@ -25,7 +26,7 @@ import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
 import { getUserEntitlementsOrNull } from "@/features/subscriptions/subscription-service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
+import { getSupabaseBrowserConfig, hasSupabaseBrowserConfig } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabasePasswordRecoveryClient } from "@/lib/supabase/password-recovery";
 import { THEMES, isThemePaid } from "@/lib/themes";
@@ -514,7 +515,27 @@ export async function logoutAction(formData: FormData) {
   const supabase = await createActionSupabaseClient();
 
   if (supabase) {
-    await supabase.auth.signOut();
+    try {
+      const { error } = await supabase.auth.signOut({ scope: "local" });
+      if (error) {
+        console.error("[auth] Supabase local sign-out failed; clearing the local auth cookie.", error.message);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown Supabase sign-out error.";
+      console.error("[auth] Supabase local sign-out threw; clearing the local auth cookie.", message);
+    }
+
+    // Server-side auth cookies are HttpOnly, so the browser cannot reliably
+    // remove them when the Auth API is unavailable. Clear this project's
+    // chunked session cookie locally as a guaranteed logout fallback.
+    const projectRef = new URL(getSupabaseBrowserConfig().url).hostname.split(".")[0];
+    const sessionCookieName = `sb-${projectRef}-auth-token`;
+    const cookieStore = await cookies();
+    for (const cookie of cookieStore.getAll()) {
+      if (cookie.name === sessionCookieName || cookie.name.startsWith(`${sessionCookieName}.`)) {
+        cookieStore.delete(cookie.name);
+      }
+    }
   }
 
   revalidatePath("/", "layout");

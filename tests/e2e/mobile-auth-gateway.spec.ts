@@ -42,6 +42,25 @@ test.describe("mobile auth gateway", () => {
     await expect(page.locator("[data-google-auth-loading]")).toBeHidden();
   });
 
+  test("opens login and removes the tutorial overlay when mobile logout is requested", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.sessionStorage.setItem("foxiesdeck:google-auth-pending", String(Date.now()));
+      window.localStorage.setItem("foxiesdeck:tutorial", JSON.stringify({
+        state: { active: true, completed: false, introSeen: false, step: 0 },
+        version: 2,
+      }));
+    });
+    await page.goto("/?mobile-gateway-login=1&tutorial-test=1");
+    await expect(page.locator("[data-mobile-auth-gateway]")).toBeVisible();
+    await page.evaluate(() => {
+      window.dispatchEvent(new Event("foxiesdeck:mobile-logout-auth-requested"));
+    });
+
+    await expect(page.getByRole("button", { name: /Sign in with Google/i })).toBeVisible();
+    await expect(page.locator("[data-landing-tutorial]")).toHaveCount(0);
+    await expect(page.locator("[data-google-auth-loading]")).toHaveCount(0);
+  });
+
   test("toggles the email form and switches login/register", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: /Continue on web/i }).click();

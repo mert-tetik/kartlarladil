@@ -319,7 +319,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       window.removeEventListener("resize", handleResize);
       window.removeEventListener(LOGOUT_AUTH_EVENT, handleLogoutAuthRequested);
     };
-  }, []);
+  }, [deactivateTutorial]);
 
   useEffect(() => {
     if (!mounted) return;

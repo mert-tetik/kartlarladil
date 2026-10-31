@@ -171,5 +171,6 @@ describe("MobileAuthGateway returning-login flow", () => {
     expect(await screen.findByTestId("mobile-auth-screen")).toBeInTheDocument();
     expect(screen.queryByTestId("mobile-google-auth-loading")).not.toBeInTheDocument();
     expect(window.sessionStorage.getItem("foxiesdeck:google-auth-pending")).toBeNull();
+    expect(mocks.deactivateTutorial).toHaveBeenCalled();
   });
 });

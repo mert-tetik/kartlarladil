@@ -56,7 +56,7 @@ export const useTutorialStore = create<TutorialState>()(
         }),
       reset: () => set({ active: false, completed: false, introSeen: false, step: 0 }),
       activate: () => set({ active: true }),
-      deactivate: () => set({ active: false }),
+      deactivate: () => set({ active: false, testMode: false }),
       enableTestMode: () => set({ testMode: true }),
       disableTestMode: () => set({ testMode: false }),
     }),

@@ -107,6 +107,15 @@ describe("useTutorialStore", () => {
     expect(useTutorialStore.getState().testMode).toBe(false);
   });
 
+  it("fully hides the tutorial, including its debug overlay, when deactivated", () => {
+    useTutorialStore.setState({ active: true, testMode: true });
+
+    useTutorialStore.getState().deactivate();
+
+    expect(useTutorialStore.getState().active).toBe(false);
+    expect(useTutorialStore.getState().testMode).toBe(false);
+  });
+
   it("writes a terminal state when the tutorial is completed", () => {
     useTutorialStore.setState({
       active: true,

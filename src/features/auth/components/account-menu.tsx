@@ -6,7 +6,6 @@ import Link from "next/link";
 import { BarChart3, CreditCard, LogOut, MessageCircle, Palette, Settings, Shield, UserRound, Vibrate } from "lucide-react";
 import { TIER_STYLES } from "@/data/tiers";
 import { logoutAction } from "@/features/auth/actions";
-import { useAuthSession } from "@/features/auth/auth-client";
 import { getAccountLabel } from "@/features/auth/account-display";
 import { ProfilePicture } from "@/features/auth/components/profile-picture";
 import { ProfilePicturePickerDialog } from "@/features/auth/components/profile-picture-picker-dialog";
@@ -74,7 +73,6 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
   const [profilePictureOpen, setProfilePictureOpen] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const { clearUser } = useAuthSession();
   const { stats } = useProgressStats();
   const { locale } = useLocale();
   const t = useT();
@@ -291,7 +289,6 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
                   window.sessionStorage.setItem(MOBILE_LOGOUT_AUTH_KEY, "1");
                   window.dispatchEvent(new Event(MOBILE_LOGOUT_AUTH_EVENT));
                 }
-                clearUser();
               }}
               className="mt-1 flex w-full items-center gap-3 rounded-md bg-red-600 px-3 py-2 text-left font-semibold text-foreground-inverse transition-colors hover:bg-red-700 focus-visible:outline-none"
             >
