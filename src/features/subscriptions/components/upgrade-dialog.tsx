@@ -231,12 +231,12 @@ function SubscriptionDetailsRestrictionCta({
     <div className="mobile-primary-action-depth mobile-subscription-action-depth mt-6 w-full rounded-xl">
       <svg
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-[-28px] z-0 h-10 w-full overflow-visible"
+        className="pointer-events-none absolute inset-x-0 top-[-25px] z-0 h-9 w-full overflow-visible"
         viewBox="0 0 100 40"
         preserveAspectRatio="none"
       >
         <path
-          d="M8 24H22C29 24 32 16 35 8C36 3 39 0 44 0H56C61 0 64 3 65 8C68 16 71 24 78 24H92C96.42 24 100 27.58 100 32V40H0V32C0 27.58 3.58 24 8 24Z"
+          d="M12 26H22C29 26 32 16 35 8C36 3 39 0 44 0H56C61 0 64 3 65 8C68 16 71 26 78 26H88C92.42 26 96 29.58 96 34V40H4V34C4 29.58 7.58 26 12 26Z"
           fill="white"
         />
       </svg>
@@ -245,7 +245,7 @@ function SubscriptionDetailsRestrictionCta({
         alt=""
         width={planImage.width}
         height={planImage.height}
-        className="pointer-events-none absolute left-1/2 top-[-22px] z-[2] h-5 w-16 -translate-x-1/2 object-contain"
+        className="pointer-events-none absolute left-1/2 top-[-20px] z-[2] h-4 w-14 -translate-x-1/2 object-contain"
       />
       <Button
         type="button"
