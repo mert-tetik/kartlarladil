@@ -141,4 +141,13 @@ describe("MobileAuthGateway returning-login flow", () => {
     await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/"));
     expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
   });
+
+  it("opens the mobile login screen when the logout redirect marker is present", async () => {
+    window.history.replaceState({}, "", "/?mobile-gateway-login=1");
+
+    render(<MobileAuthGateway countryCode="US" />);
+
+    expect(await screen.findByTestId("mobile-auth-screen")).toBeInTheDocument();
+    expect(screen.queryByTestId("mobile-app-choice")).not.toBeInTheDocument();
+  });
 });

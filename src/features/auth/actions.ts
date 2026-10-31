@@ -20,6 +20,7 @@ import { DEFAULT_AUTH_REDIRECT, getSafeNextPath } from "@/features/auth/auth-red
 import { ensureUserProfile, getRequestOrigin } from "@/features/auth/auth-session";
 import { getGoogleOAuthRedirectTo } from "@/features/auth/google-oauth-redirects";
 import { recordAppLogin } from "@/features/auth/login-events";
+import { MOBILE_GATEWAY_LOGIN_HREF } from "@/features/auth/mobile-auth-paths";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
 import { getUserEntitlementsOrNull } from "@/features/subscriptions/subscription-service";
@@ -509,7 +510,7 @@ export async function updateThemeAction(themeId: string): Promise<AuthActionStat
   };
 }
 
-export async function logoutAction() {
+export async function logoutAction(formData: FormData) {
   const supabase = await createActionSupabaseClient();
 
   if (supabase) {
@@ -517,7 +518,7 @@ export async function logoutAction() {
   }
 
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect(getFormString(formData, "mobileLogout") === "1" ? MOBILE_GATEWAY_LOGIN_HREF : "/");
 }
 
 export async function completeOnboardingAction(

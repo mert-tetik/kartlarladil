@@ -1,5 +1,6 @@
 import {
   deleteAccountAction,
+  logoutAction,
   signInWithGoogleAction,
   updateLanguagePreferenceAction,
   updateMobileLoginLanguagePreferencesAction,
@@ -13,6 +14,7 @@ const mockGetUser = vi.hoisted(() => vi.fn());
 const mockDeleteUser = vi.hoisted(() => vi.fn());
 const mockGetUserEntitlements = vi.hoisted(() => vi.fn());
 const mockSignInWithOAuth = vi.hoisted(() => vi.fn());
+const mockSignOut = vi.hoisted(() => vi.fn());
 const mockCreateSupabaseAdminClient = vi.hoisted(() => vi.fn());
 const mockFrom = vi.hoisted(() => vi.fn());
 const mockUpdate = vi.hoisted(() => vi.fn());
@@ -44,7 +46,7 @@ vi.mock("@/lib/supabase/server", () => ({
       auth: {
         getUser: mockGetUser,
         signInWithOAuth: mockSignInWithOAuth,
-        signOut: vi.fn(),
+        signOut: mockSignOut,
       },
       from: mockFrom,
     }),
@@ -63,6 +65,32 @@ vi.mock("@/features/auth/auth-session", () => ({
   ensureUserProfile: vi.fn(),
   getRequestOrigin: vi.fn(() => Promise.resolve("https://www.foxiesdeck.com")),
 }));
+
+describe("logoutAction", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockSignOut.mockResolvedValue({ error: null });
+  });
+
+  it("returns mobile navbar logout to the forced mobile login gateway", async () => {
+    const formData = new FormData();
+    formData.set("mobileLogout", "1");
+
+    await expect(logoutAction(formData)).rejects.toThrow(
+      "NEXT_REDIRECT:/?mobile-gateway-login=1",
+    );
+
+    expect(mockSignOut).toHaveBeenCalledOnce();
+    expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith("/", "layout");
+  });
+
+  it("keeps desktop logout on the normal home route", async () => {
+    const formData = new FormData();
+    formData.set("mobileLogout", "0");
+
+    await expect(logoutAction(formData)).rejects.toThrow("NEXT_REDIRECT:/");
+  });
+});
 
 describe("signInWithGoogleAction", () => {
   beforeEach(() => {

@@ -18,6 +18,7 @@ import {
   type GatewayFlowPhase,
 } from "@/features/auth/components/gateway-flow-transition";
 import { useAuthSession } from "@/features/auth/auth-client";
+import { MOBILE_GATEWAY_LOGIN_PARAM } from "@/features/auth/mobile-auth-paths";
 import {
   clearGoogleAuthPending,
   GOOGLE_AUTH_PENDING_EVENT,
@@ -219,7 +220,6 @@ const SERIOUS_LEARNER_TEST_PARAM = "serious-learner-test";
 const MOBILE_RESET_PASSWORD_PATH = "/reset-password";
 const MOBILE_UPDATE_PASSWORD_PATH = "/account/update-password";
 const MOBILE_PASSWORD_RECOVERY_PATH = "/auth/recovery";
-const MOBILE_GATEWAY_LOGIN_PARAM = "mobile-gateway-login";
 
 function getIsMobileViewport() {
   if (typeof window === "undefined") return false;
@@ -288,11 +288,17 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     function handleLogoutAuthRequested() {
       deactivateTutorial();
       setHasChosenWeb(true);
+      setMobileAuthMode("google");
       setOfferActive(false);
       setOfferTriggered(false);
       setOfferSeen(false);
+      setGatewayExitPending(false);
       setOnboardingCompletedInSession(false);
       setNeedsLoginLanguageRefresh(false);
+      if (gatewayExitTimerRef.current !== null) {
+        window.clearTimeout(gatewayExitTimerRef.current);
+        gatewayExitTimerRef.current = null;
+      }
       window.sessionStorage.removeItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY);
     }
 

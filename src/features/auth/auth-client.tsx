@@ -138,6 +138,8 @@ export function AuthSessionProvider({
     [isRecoveryPath],
   );
   const activeUserIdRef = useRef<string | null>(initialUser?.id ?? null);
+  const sessionSyncGenerationRef = useRef(0);
+  const locallySignedOutRef = useRef(false);
   const gemLedgerRef = useRef(new GemOptimisticLedger(getGemBalances(initialUser?.profile)));
   const previousInitialUserRef = useRef(initialUser);
 
@@ -172,6 +174,10 @@ export function AuthSessionProvider({
 
     if (!serverUserChanged) return;
 
+    sessionSyncGenerationRef.current += 1;
+    if (initialUser) {
+      locallySignedOutRef.current = false;
+    }
     activeUserIdRef.current = initialUser?.id ?? null;
     gemLedgerRef.current.reset(getGemBalances(initialUser?.profile));
     setUser(initialUser);
@@ -257,8 +263,17 @@ export function AuthSessionProvider({
     );
   }, [client, user, getVisibleGemBalances]);
 
-  const syncUserFromSession = useCallback(async (sessionUser: { id: string; email?: string | null }) => {
-    if (!client || !sessionUser.email || activeUserIdRef.current === sessionUser.id) {
+  const syncUserFromSession = useCallback(async (
+    sessionUser: { id: string; email?: string | null },
+    generation: number,
+  ) => {
+    if (
+      !client ||
+      !sessionUser.email ||
+      locallySignedOutRef.current ||
+      sessionSyncGenerationRef.current !== generation ||
+      activeUserIdRef.current === sessionUser.id
+    ) {
       return;
     }
 
@@ -276,7 +291,12 @@ export function AuthSessionProvider({
         .maybeSingle());
     }
 
-    if (error || !data) {
+    if (
+      error ||
+      !data ||
+      locallySignedOutRef.current ||
+      sessionSyncGenerationRef.current !== generation
+    ) {
       return;
     }
 
@@ -306,6 +326,8 @@ export function AuthSessionProvider({
       data: { subscription },
     } = client.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT") {
+        sessionSyncGenerationRef.current += 1;
+        locallySignedOutRef.current = true;
         activeUserIdRef.current = null;
         gemLedgerRef.current.reset();
         setUser(null);
@@ -313,15 +335,21 @@ export function AuthSessionProvider({
       }
 
       if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user) {
+        if (event === "SIGNED_IN") {
+          locallySignedOutRef.current = false;
+          sessionSyncGenerationRef.current += 1;
+        }
+        const generation = sessionSyncGenerationRef.current;
         window.setTimeout(() => {
-          void syncUserFromSession(session.user);
+          void syncUserFromSession(session.user, generation);
         }, 0);
       }
     });
 
+    const initialSyncGeneration = sessionSyncGenerationRef.current;
     void client.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        void syncUserFromSession(session.user);
+        void syncUserFromSession(session.user, initialSyncGeneration);
       }
     });
 
@@ -366,6 +394,8 @@ export function AuthSessionProvider({
   }, [getVisibleGemBalances]);
 
   const clearUser = useCallback(() => {
+    sessionSyncGenerationRef.current += 1;
+    locallySignedOutRef.current = true;
     activeUserIdRef.current = null;
     gemLedgerRef.current.reset();
     setUser(null);

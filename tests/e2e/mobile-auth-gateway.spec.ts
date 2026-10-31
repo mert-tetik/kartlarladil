@@ -30,6 +30,14 @@ test.describe("mobile auth gateway", () => {
     });
   });
 
+  test("shows the login screen after the mobile logout redirect", async ({ page }) => {
+    await page.goto("/?mobile-gateway-login=1");
+
+    await expect(page.getByRole("button", { name: /Sign in with Google/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Use email instead/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Continue on web/i })).toBeHidden();
+  });
+
   test("toggles the email form and switches login/register", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: /Continue on web/i }).click();

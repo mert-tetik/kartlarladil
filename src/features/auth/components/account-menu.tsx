@@ -282,6 +282,7 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
             </button>
           ) : null}
           <form action={logoutAction}>
+            <input type="hidden" name="mobileLogout" value={isMobileMenu ? "1" : "0"} />
             <button
               type="submit"
               role="menuitem"

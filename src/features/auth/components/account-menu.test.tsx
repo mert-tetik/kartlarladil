@@ -105,18 +105,26 @@ describe("AccountMenu", () => {
 
   it("requests mobile auth immediately when logout is clicked", async () => {
     const user = userEvent.setup();
+    const matchMedia = vi.fn().mockReturnValue({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+    Object.defineProperty(window, "matchMedia", { configurable: true, value: matchMedia });
 
     render(
       <AuthSessionProvider user={testUser}>
         <LocaleProvider initialLocale="tr">
-          <AccountMenu user={testUser} />
+          <AccountMenu user={testUser} navbar />
         </LocaleProvider>
       </AuthSessionProvider>,
     );
 
+    await waitFor(() => expect(matchMedia).toHaveBeenCalled());
     await user.click(screen.getByRole("button", { name: /hesap menüsü/i }));
     await user.click(screen.getByRole("menuitem", { name: /çıkış yap/i }));
 
+    expect(screen.getByRole("menu").querySelector('input[name="mobileLogout"]')).toHaveValue("1");
     expect(window.sessionStorage.getItem("foxiesdeck:mobile-logout-auth")).toBe("1");
   });
 
