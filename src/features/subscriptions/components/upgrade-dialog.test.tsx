@@ -187,6 +187,7 @@ describe("UpgradeDialog", () => {
     const onDetailsPurchaseSuccess = subscriptionMocks.openSubscriptionDetails.mock.calls[0]?.[1]?.onPurchaseSuccess;
     expect(onDetailsPurchaseSuccess).toBeTypeOf("function");
     onDetailsPurchaseSuccess?.();
+    expect(billingMocks.showMessage).toHaveBeenCalledWith(expect.any(String), "success");
     expect(onOpenChange).toHaveBeenCalledWith(false);
     await waitFor(() => expect(onPurchaseSuccess).toHaveBeenCalledOnce());
   });

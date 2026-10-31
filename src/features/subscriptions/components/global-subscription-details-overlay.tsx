@@ -120,10 +120,8 @@ export function GlobalSubscriptionDetailsOverlay({
     if (isClosingRef.current || (purchaseLoading && !purchased)) return;
     isClosingRef.current = true;
     setIsClosing(true);
-    closeTimerRef.current = window.setTimeout(() => {
-      onClose();
-      if (!purchased) return;
 
+    if (purchased) {
       try {
         const pendingSuccess = onPurchaseSuccess?.();
         if (pendingSuccess && typeof (pendingSuccess as Promise<void>).catch === "function") {
@@ -136,6 +134,10 @@ export function GlobalSubscriptionDetailsOverlay({
       }
 
       if (!onPurchaseSuccess) onPresentPurchaseSuccess();
+    }
+
+    closeTimerRef.current = window.setTimeout(() => {
+      onClose();
     }, 300);
   }, [onClose, onPresentPurchaseSuccess, onPurchaseSuccess, purchaseLoading]);
 
@@ -204,8 +206,10 @@ export function GlobalSubscriptionDetailsOverlay({
       aria-labelledby="pricing-subscription-details-title"
       data-pricing-subscription-details
       data-tutorial-subscription-overlay
+      aria-hidden={isClosing}
       className={cn(
         "subscription-details-overlay fixed inset-0 z-[10001] isolate overflow-hidden overscroll-none text-white",
+        isClosing && "pointer-events-none",
         isClosing && "subscription-details-overlay--closing",
       )}
     >

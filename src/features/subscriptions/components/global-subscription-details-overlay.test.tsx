@@ -32,8 +32,12 @@ it("purchases from the global details overlay, closes it, and hands success to t
   });
 
   const purchase = vi.fn(async () => ({ status: "success" }));
-  const onClose = vi.fn();
-  const onPurchaseSuccess = vi.fn();
+  const events: string[] = [];
+  const onClose = vi.fn(() => events.push("close-details"));
+  const onPurchaseSuccess = vi.fn(() => {
+    events.push("close-restriction-and-show-success");
+    messageMocks.showMessage("Subscription activated.", "success");
+  });
   const onPresentPurchaseSuccess = vi.fn();
 
   render(
@@ -61,8 +65,12 @@ it("purchases from the global details overlay, closes it, and hands success to t
   fireEvent.click(screen.getByRole("button", { name: /ABONE OL/i }));
 
   await waitFor(() => expect(purchase).toHaveBeenCalledWith("basic_monthly"));
+  await waitFor(() => expect(details).toHaveAttribute("aria-hidden", "true"));
+  expect(details).toHaveClass("pointer-events-none");
   await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
 
   expect(onPurchaseSuccess).toHaveBeenCalledOnce();
+  expect(events).toEqual(["close-restriction-and-show-success", "close-details"]);
+  expect(messageMocks.showMessage).toHaveBeenCalledWith("Subscription activated.", "success");
   expect(onPresentPurchaseSuccess).not.toHaveBeenCalled();
 });
