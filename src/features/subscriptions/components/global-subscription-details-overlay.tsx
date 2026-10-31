@@ -283,6 +283,7 @@ export function GlobalSubscriptionDetailsOverlay({
                   <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={890} index={5} icon={BookOpen} locale={locale} text={t("pricing.featureLearnedReview")} />
                   <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={950} index={6} icon={Palette} locale={locale} text={t("pricing.featureThemes")} />
                   <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={1010} index={7} icon={Gamepad2} locale={locale} text={t("pricing.featureGames")} />
+                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={1070} index={8} icon={MessagesSquare} locale={locale} text={t("pricing.featureAiScenarios")} />
                 </>
               ) : (
                 <>
@@ -293,7 +294,8 @@ export function GlobalSubscriptionDetailsOverlay({
                   <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={890} index={5} icon={Gamepad2} locale={locale} text={t("pricing.featureGames")} />
                   <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={950} index={6} icon={MessageCircle} locale={locale} text={t("pricing.featureAiDaily", { count: PLAN_LIMITS.basic.aiDailyMessages ?? 0 })} />
                   <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={1010} index={7} icon={MessagesSquare} locale={locale} text={t("pricing.featureAiMonthly", { count: PLAN_LIMITS.basic.aiMonthlyMessages ?? 0 })} />
-                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={1070} index={8} icon={ScanText} locale={locale} text={t("pricing.featureUnlimitedTextTranslation")} unavailable />
+                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={1070} index={8} icon={MessagesSquare} locale={locale} text={t("pricing.featureAiScenarios")} />
+                  <SubscriptionDetailsFeature introVisible={isIntroComplete} introDelay={1130} index={9} icon={ScanText} locale={locale} text={t("pricing.featureUnlimitedTextTranslation")} unavailable />
                 </>
               )}
             </ul>

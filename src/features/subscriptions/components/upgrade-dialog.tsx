@@ -120,6 +120,7 @@ export function UpgradeDialog({
           <SubscriptionDetailsRestrictionCta
             onOpenChange={onOpenChange}
             onPurchaseSuccess={onPurchaseSuccess}
+            requiresPro={activeErrorCode === "image_text_translate_limit"}
           />
         ) : null}
         {activeErrorCode === "free_active_card_limit" ? (
@@ -210,9 +211,11 @@ export function UpgradeDialog({
 function SubscriptionDetailsRestrictionCta({
   onOpenChange,
   onPurchaseSuccess,
+  requiresPro,
 }: {
   onOpenChange: (open: boolean) => void;
   onPurchaseSuccess?: () => void | Promise<void>;
+  requiresPro: boolean;
 }) {
   const t = useT();
   const { locale } = useLocale();
@@ -220,8 +223,15 @@ function SubscriptionDetailsRestrictionCta({
   const { entitlements, isLoading, openSubscriptionDetails } = useSubscription();
   const currentPlan = entitlements?.effectivePlan;
   const isPaidUser = currentPlan != null && currentPlan !== "free";
-  const plan = currentPlan === "pro" ? "pro" : "basic";
-  const buttonLabel = isPaidUser ? t("pricing.ctaManage") : t("limit.upgradeButtonFirstMonthFree");
+  const plan = requiresPro || currentPlan === "pro" ? "pro" : "basic";
+  const isPaidPlanUpgrade = currentPlan === "basic" && plan === "pro";
+  const buttonLabel = currentPlan === "pro"
+    ? t("pricing.ctaManage")
+    : isPaidPlanUpgrade
+      ? t("pricing.ctaSubscribe")
+      : isPaidUser
+        ? t("pricing.ctaManage")
+        : t("limit.upgradeButtonFirstMonthFree");
   const planImage = RESTRICTION_PLAN_IMAGE[plan];
   const planButtonClass = plan === "pro"
     ? "!bg-[#9333ea] !text-white hover:!bg-[#7e22ce] focus-visible:outline-[#c084fc]"
@@ -277,7 +287,7 @@ function SubscriptionDetailsRestrictionCta({
         }}
       >
         <span className="-space-y-1 flex min-w-0 flex-1 flex-col items-center justify-center text-center leading-tight">
-          <span className={cn("text-lg font-bold sm:text-xl", canUseSuperWater(locale) && "font-super-water")}>{formatSuperWaterUppercaseText(locale, t("limit.removeLimits"))}!</span>
+          <span className={cn("text-xl font-bold sm:text-2xl", canUseSuperWater(locale) && "font-super-water")}>{formatSuperWaterUppercaseText(locale, t("limit.removeLimits"))}!</span>
           <span className="text-base font-semibold sm:text-lg">{isLoading ? t("common.loading") : formatSuperWaterUppercaseText(locale, buttonLabel)}</span>
         </span>
       </Button>

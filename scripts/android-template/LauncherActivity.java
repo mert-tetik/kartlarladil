@@ -161,11 +161,18 @@ public class LauncherActivity extends Activity {
         // Show real catalog cards immediately. The WebView bridge may arrive
         // later on a cold or offline launch and then replaces this fallback
         // with the user's actual inventory cards.
+        String nativeLoadingLearningLanguage = getNativeLoadingPreference(NATIVE_LOADING_LEARNING_LANGUAGE, "en");
+        String nativeLoadingUiLocale = getNativeLoadingPreference(NATIVE_LOADING_UI_LOCALE, "en");
         NativeLoadingCatalog.applyFallback(
                 nativeLoadingView,
-                getNativeLoadingPreference(NATIVE_LOADING_LEARNING_LANGUAGE, "en"),
-                getNativeLoadingPreference(NATIVE_LOADING_UI_LOCALE, "en")
+                nativeLoadingLearningLanguage,
+                nativeLoadingUiLocale
         );
+        // Apply the localized Super Water title explicitly as part of the
+        // first native frame. The bridge can refine cards/statuses later, but
+        // the production loader must never briefly render a blank title.
+        nativeLoadingView.setLoadingTitle(NativeLoadingCatalog.getTitle(nativeLoadingUiLocale));
+        nativeLoadingStatuses = NativeLoadingCatalog.getStatuses(nativeLoadingUiLocale);
 
         // Give the local wordmark one rendered frame before the loader takes
         // over. This is a visual handoff only; it does not delay WebView work.

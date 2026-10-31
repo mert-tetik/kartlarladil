@@ -473,6 +473,22 @@ function buildNativeLoadingCatalogSource() {
     "오늘의 단어",
     "每日单词",
   ];
+  const statuses = [
+    ["Foxie'ler kuyruklarını esnetiyor...", "Kart mağarası uyanıyor...", "Kelime destesi karıştırılıyor...", "Tilki misafir listesi kontrol ediliyor...", "Hoş geldin kapısı açılıyor!", "Kelime kapısı açılıyor...", "Rahat çevrimdışı yoluna geçiliyor...", "Kartlar oynamaya hazır!"],
+    ["Foxies are stretching their tails...", "Waking up the card cave...", "Shuffling the word deck...", "Checking the foxie guest list...", "Opening the welcome gate!", "Opening the word door...", "Taking the cozy offline path...", "Cards are ready to play!"],
+    ["Die Foxies strecken ihre Schwänze...", "Die Kartenhöhle wacht auf...", "Das Wortdeck wird gemischt...", "Die Foxie-Gästeliste wird geprüft...", "Das Willkommenstor öffnet sich!", "Die Worttür wird geöffnet...", "Der gemütliche Offline-Weg beginnt...", "Die Karten sind spielbereit!"],
+    ["Лисички потягивают хвостики...", "Карточная пещера просыпается...", "Перемешиваем колоду слов...", "Проверяем список лисят...", "Открываем дверь гостей!", "Открываем дверь слов...", "Переходим на уютный офлайн-путь...", "Карточки готовы к игре!"],
+    ["Les renards étirent leur queue...", "La grotte des cartes se réveille...", "Le paquet de mots est mélangé...", "On vérifie la liste des renards...", "La porte de bienvenue s’ouvre !", "La porte des mots s’ouvre...", "Le chemin hors ligne se prépare...", "Les cartes sont prêtes à jouer !"],
+    ["Los zorritos estiran sus colas...", "La cueva de cartas despierta...", "Barajando el mazo de palabras...", "Comprobando la lista de zorritos...", "¡Abriendo la puerta de bienvenida!", "Abriendo la puerta de palabras...", "Tomando el camino sin conexión...", "¡Las cartas están listas para jugar!"],
+    ["Le volpi stiracchiano le code...", "La grotta delle carte si sveglia...", "Mescolando il mazzo di parole...", "Controlliamo la lista delle volpi...", "Apriamo la porta di benvenuto!", "Aprendo la porta delle parole...", "Prendendo il percorso offline...", "Le carte sono pronte per giocare!"],
+    ["As raposinhas esticam as caudas...", "A caverna das cartas está acordando...", "Embaralhando o baralho de palavras...", "Conferindo a lista das raposinhas...", "Abrindo a porta de boas-vindas!", "Abrindo a porta das palavras...", "Seguindo o caminho offline aconchegante...", "As cartas estão prontas para jogar!"],
+    ["De vosjes rekken hun staarten...", "De kaartengrot wordt wakker...", "De woordenstapel wordt geschud...", "De vossenlijst wordt gecontroleerd...", "De welkomstdeur gaat open!", "De woorddeur gaat open...", "We nemen het gezellige offline pad...", "De kaarten zijn klaar om te spelen!"],
+    ["Liski przeciągają ogonki...", "Jaskinia kart budzi się...", "Tasujemy talię słów...", "Sprawdzamy listę lisków...", "Otwieramy drzwi powitalne!", "Otwieramy drzwi słów...", "Wybieramy przytulną drogę offline...", "Karty są gotowe do gry!"],
+    ["الثعالب الصغيرة تمد ذيولها...", "كهف البطاقات يستيقظ...", "نخلط مجموعة الكلمات...", "نتفقد قائمة الثعالب...", "نفتح باب الترحيب!", "نفتح باب الكلمات...", "نسلك الطريق المريح بلا إنترنت...", "البطاقات جاهزة للعب!"],
+    ["キツネたちがしっぽを伸ばしています...", "カードの洞窟が目を覚まします...", "単語デッキをシャッフルしています...", "キツネのゲストリストを確認中...", "ようこその扉を開きます！", "ことばの扉を開いています...", "心地よいオフラインの道へ進みます...", "カードの準備ができました！"],
+    ["여우들이 꼬리를 쭉 펴고 있어요...", "카드 동굴이 깨어나고 있어요...", "단어 덱을 섞고 있어요...", "여우 손님 목록을 확인해요...", "환영의 문을 열어요!", "단어 문을 열고 있어요...", "편안한 오프라인 길로 가고 있어요...", "카드가 플레이할 준비를 마쳤어요!"],
+    ["小狐狸正在伸展尾巴...", "卡片洞穴正在苏醒...", "正在洗牌单词卡组...", "正在检查小狐狸的客人名单...", "欢迎大门打开啦！", "正在打开单词之门...", "正在走上舒适的离线路...", "卡片已经准备好玩啦！"],
+  ];
   const cardsByLanguage = languages.map((language) => {
     const languageCards = cards
       .filter((card) => card.language === language && card.termKind === "word")
@@ -508,6 +524,9 @@ final class NativeLoadingCatalog {
     private static final String[] LANGUAGES = new String[] { ${languages.map(javaString).join(", ")} };
     private static final String[] LOCALES = new String[] { ${locales.map(javaString).join(", ")} };
     private static final String[] TITLES = new String[] { ${titles.map(javaString).join(", ")} };
+    private static final String[][] STATUSES = new String[][] {
+${statuses.map((row) => `        { ${row.map(javaString).join(", ")} }`).join(",\n")}
+    };
     private static final String[][] TERMS = new String[][] {
 ${javaStringMatrixRows(terms)}
     };
@@ -541,7 +560,11 @@ ${translations.map((languageTranslations) => `        {\n${languageTranslations.
         );
     }
 
-    private static String getTitle(String uiLocale) {
+    static String[] getStatuses(String uiLocale) {
+        return STATUSES[indexOf(LOCALES, uiLocale, 1)];
+    }
+
+    static String getTitle(String uiLocale) {
         return TITLES[indexOf(LOCALES, uiLocale, 1)];
     }
 

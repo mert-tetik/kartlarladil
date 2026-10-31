@@ -39,8 +39,8 @@ const PACKAGE_ID =
   process.env.TWA_PACKAGE_ID || "com.LigidTools.Glidecore";
 const APP_VERSION_CODE = process.env.TWA_VERSION_CODE
   ? Number.parseInt(process.env.TWA_VERSION_CODE, 10)
-  : 167;
-const APP_VERSION_NAME = process.env.TWA_VERSION_NAME || "4.3.53";
+  : 168;
+const APP_VERSION_NAME = process.env.TWA_VERSION_NAME || "4.3.54";
 // This is the only signing identity allowed for FoxiesDeck Play updates.
 // Never fall back to Bubblewrap's generated com.foxiesdeck/android.keystore.
 const KEYSTORE_PATH = path.resolve("C:/Users/CASPER/user.keystore");
