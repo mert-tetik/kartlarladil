@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => {
     databaseInsert: vi.fn(),
     databaseOwnerLookup: vi.fn(),
     databaseEventLookup: vi.fn(),
+    databasePendingEventLookup: vi.fn(),
     databaseSubscriptionLookup: vi.fn(),
     databaseUpdate: vi.fn(),
     databaseUpsert: vi.fn(),
@@ -29,6 +30,21 @@ vi.mock("@/lib/supabase/admin", () => ({
 
           if (table === "user_subscriptions") {
             return { maybeSingle: () => mocks.databaseSubscriptionLookup(value) };
+          }
+
+          if (table === "google_play_rtdn_events" && _column === "error_message") {
+            return {
+              is: (processedColumn: string, processedValue: null) => ({
+                limit: (limit: number) => ({
+                  returns: () => mocks.databasePendingEventLookup(
+                    value,
+                    processedColumn,
+                    processedValue,
+                    limit,
+                  ),
+                }),
+              }),
+            };
           }
 
           return {
@@ -70,6 +86,8 @@ import {
   claimGooglePlayRtdnEvent,
   completeGooglePlayRtdnEvent,
   GOOGLE_PLAY_RTDN_MANUAL_REVIEW_REQUIRED,
+  GOOGLE_PLAY_RTDN_UNLINKED_PURCHASE,
+  replayUnlinkedGooglePlayRtdnEventsForToken,
   syncGooglePlaySubscriptionFromRtdn,
   syncGooglePlayVoidedSubscriptionFromRtdn,
   verifyGooglePlayRtdnToken,
@@ -84,6 +102,7 @@ describe("Google Play RTDN service", () => {
     mocks.databaseInsert.mockResolvedValue({ error: null });
     mocks.databaseOwnerLookup.mockResolvedValue({ data: [], error: null });
     mocks.databaseEventLookup.mockResolvedValue({ data: null, error: null });
+    mocks.databasePendingEventLookup.mockResolvedValue({ data: [], error: null });
     mocks.databaseSubscriptionLookup.mockResolvedValue({ data: null, error: null });
     mocks.databaseUpdate.mockResolvedValue({ error: null });
     mocks.databaseUpsert.mockResolvedValue({ error: null });
@@ -278,5 +297,45 @@ describe("Google Play RTDN service", () => {
       processed_at: null,
       error_message: "temporary provider failure",
     });
+  });
+
+  it("replays only unlinked RTDN events whose token was subsequently verified", async () => {
+    mocks.databasePendingEventLookup.mockResolvedValueOnce({
+      data: [
+        {
+          message_id: "now-linked-message",
+          payload: { subscriptionNotification: { purchaseToken: "linked-token" } },
+        },
+        {
+          message_id: "different-token-message",
+          payload: { subscriptionNotification: { purchaseToken: "other-token" } },
+        },
+      ],
+      error: null,
+    });
+    mocks.databaseOwnerLookup.mockResolvedValue({
+      data: [{ user_id: "user-1" }],
+      error: null,
+    });
+
+    await replayUnlinkedGooglePlayRtdnEventsForToken("linked-token");
+
+    expect(mocks.databasePendingEventLookup).toHaveBeenCalledWith(
+      GOOGLE_PLAY_RTDN_UNLINKED_PURCHASE,
+      "processed_at",
+      null,
+      100,
+    );
+    expect(mocks.publisherGet).toHaveBeenCalledOnce();
+    expect(mocks.databaseUpdate).toHaveBeenCalledWith(
+      "google_play_rtdn_events",
+      expect.objectContaining({ user_id: "user-1", error_message: null }),
+      "now-linked-message",
+    );
+    expect(mocks.databaseUpdate).not.toHaveBeenCalledWith(
+      "google_play_rtdn_events",
+      expect.anything(),
+      "different-token-message",
+    );
   });
 });

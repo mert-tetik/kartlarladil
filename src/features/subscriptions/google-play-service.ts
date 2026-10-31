@@ -101,6 +101,13 @@ interface GooglePlayRtdnEventRow {
 
 export const GOOGLE_PLAY_RTDN_MANUAL_REVIEW_REQUIRED =
   "manual_review_required: ReviewRefund decision required within 24 hours.";
+export const GOOGLE_PLAY_RTDN_UNLINKED_PURCHASE =
+  "No FoxiesDeck account is linked to this Google Play purchase token.";
+
+interface UnlinkedGooglePlayRtdnEventRow {
+  message_id: string;
+  payload: unknown;
+}
 
 function getPackageName(): string {
   if (!PACKAGE_NAME) {
@@ -489,6 +496,39 @@ export async function verifyGooglePlaySubscription(
   return verification;
 }
 
+/** Rechecks the Google Play token already linked to this authenticated account. */
+export async function refreshCurrentGooglePlaySubscriptionForUser(
+  userId: string,
+  publisher?: GooglePlayPublisher,
+): Promise<GooglePlaySubscriptionVerification | null> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("user_subscriptions")
+    .select("provider, google_play_purchase_token, google_play_subscription_id")
+    .eq("user_id", userId)
+    .maybeSingle<{
+      provider: string | null;
+      google_play_purchase_token: string | null;
+      google_play_subscription_id: string | null;
+    }>();
+
+  if (error) throw error;
+  if (
+    data?.provider !== "google_play"
+    || !data.google_play_purchase_token
+    || !data.google_play_subscription_id
+  ) {
+    return null;
+  }
+
+  return verifyGooglePlaySubscription(
+    data.google_play_purchase_token,
+    data.google_play_subscription_id,
+    userId,
+    publisher,
+  );
+}
+
 /** Cancels future renewals while preserving the user's paid access until expiry. */
 export async function cancelGooglePlaySubscription(
   userId: string,
@@ -624,6 +664,53 @@ export async function syncGooglePlayVoidedSubscriptionFromRtdn(
   }
 
   return userIds[0] ?? null;
+}
+
+/** Replays durable RTDN events after a purchase token becomes linked to an account. */
+export async function replayUnlinkedGooglePlayRtdnEventsForToken(
+  purchaseToken: string,
+): Promise<void> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("google_play_rtdn_events")
+    .select("message_id, payload")
+    .eq("error_message", GOOGLE_PLAY_RTDN_UNLINKED_PURCHASE)
+    .is("processed_at", null)
+    .limit(100)
+    .returns<UnlinkedGooglePlayRtdnEventRow[]>();
+
+  if (error) throw error;
+
+  for (const event of data ?? []) {
+    const notification = event.payload as {
+      subscriptionNotification?: { purchaseToken?: string };
+      voidedPurchaseNotification?: {
+        purchaseToken?: string;
+        orderId?: string;
+        productType?: number;
+        refundType?: number;
+      };
+    } | null;
+    const subscription = notification?.subscriptionNotification;
+    const voidedPurchase = notification?.voidedPurchaseNotification;
+    const eventPurchaseToken = subscription?.purchaseToken ?? voidedPurchase?.purchaseToken;
+    if (eventPurchaseToken !== purchaseToken) continue;
+
+    const isVoidedSubscription = voidedPurchase?.productType === 1;
+    if (isVoidedSubscription && !voidedPurchase.orderId) continue;
+
+    const userId = isVoidedSubscription
+      ? await syncGooglePlayVoidedSubscriptionFromRtdn(
+          purchaseToken,
+          voidedPurchase.orderId!,
+          voidedPurchase.refundType ?? 0,
+        )
+      : await syncGooglePlaySubscriptionFromRtdn(purchaseToken);
+
+    if (userId) {
+      await completeGooglePlayRtdnEvent(event.message_id, userId);
+    }
+  }
 }
 
 export async function claimGooglePlayRtdnEvent(

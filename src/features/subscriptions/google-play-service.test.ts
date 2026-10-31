@@ -6,6 +6,7 @@ vi.hoisted(() => {
 
 import {
   cancelGooglePlaySubscription,
+  refreshCurrentGooglePlaySubscriptionForUser,
   verifyGooglePlaySubscription,
   type GooglePlayPublisher,
 } from "@/features/subscriptions/google-play-service";
@@ -258,6 +259,58 @@ describe("verifyGooglePlaySubscription", () => {
     expect(mockUpsert.mock.calls.some(([row]) =>
       row && typeof row === "object" && "plan" in row,
     )).toBe(false);
+  });
+});
+
+describe("refreshCurrentGooglePlaySubscriptionForUser", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockInsert.mockResolvedValue({ error: null });
+    mockMaybeSingle.mockResolvedValue({
+      data: { user_id: "user-1" },
+      error: null,
+    });
+    mockUpdate.mockReturnValue({
+      eq: vi.fn(() => ({ eq: vi.fn(() => ({ error: null })) })),
+    });
+    mockUpsert.mockResolvedValue({ error: null });
+  });
+
+  it("verifies the saved Google Play token and SKU for the authenticated account", async () => {
+    mockMaybeSingle.mockResolvedValueOnce({
+      data: {
+        provider: "google_play",
+        google_play_purchase_token: "saved-purchase-token",
+        google_play_subscription_id: "basic_monthly",
+      },
+      error: null,
+    });
+    const publisher = makePublisher();
+
+    const result = await refreshCurrentGooglePlaySubscriptionForUser("user-1", publisher);
+
+    expect(publisher.purchases.subscriptionsv2.get).toHaveBeenCalledWith({
+      packageName: "com.LigidTools.Glidecore",
+      token: "saved-purchase-token",
+    });
+    expect(result).toMatchObject({ plan: "basic", status: "active" });
+  });
+
+  it("does not try Google Play when the account has no linked Play purchase", async () => {
+    mockMaybeSingle.mockResolvedValueOnce({
+      data: {
+        provider: "admin",
+        google_play_purchase_token: null,
+        google_play_subscription_id: null,
+      },
+      error: null,
+    });
+    const publisher = makePublisher();
+
+    const result = await refreshCurrentGooglePlaySubscriptionForUser("user-1", publisher);
+
+    expect(result).toBeNull();
+    expect(publisher.purchases.subscriptionsv2.get).not.toHaveBeenCalled();
   });
 });
 

@@ -8,8 +8,12 @@ import {
 const mockGetUser = vi.hoisted(() => vi.fn());
 const mockGetUserEntitlements = vi.hoisted(() => vi.fn());
 const mockVerifyGooglePlaySubscription = vi.hoisted(() => vi.fn());
+const mockRefreshCurrentGooglePlaySubscriptionForUser = vi.hoisted(() => vi.fn());
+const mockReplayUnlinkedGooglePlayRtdnEventsForToken = vi.hoisted(() => vi.fn());
 
 vi.mock("@/features/subscriptions/google-play-service", () => ({
+  replayUnlinkedGooglePlayRtdnEventsForToken: mockReplayUnlinkedGooglePlayRtdnEventsForToken,
+  refreshCurrentGooglePlaySubscriptionForUser: mockRefreshCurrentGooglePlaySubscriptionForUser,
   verifyGooglePlaySubscription: mockVerifyGooglePlaySubscription,
 }));
 
@@ -58,6 +62,8 @@ describe("Google Play subscription actions", () => {
       status: "active",
       endsAt: "2030-07-01T00:00:00.000Z",
     });
+    mockRefreshCurrentGooglePlaySubscriptionForUser.mockResolvedValue(null);
+    mockReplayUnlinkedGooglePlayRtdnEventsForToken.mockResolvedValue(undefined);
   });
 
   it("returns the Google Play subscriptions page for paid users", async () => {
@@ -152,6 +158,26 @@ describe("Google Play subscription actions", () => {
       "basic_monthly",
       "user-1",
     );
+  });
+
+  it("rechecks the account's saved Play token when the device purchase list is empty", async () => {
+    const result = await syncGooglePlayPurchasesAction([]);
+
+    expect(mockRefreshCurrentGooglePlaySubscriptionForUser).toHaveBeenCalledWith("user-1");
+    expect(mockGetUserEntitlements).toHaveBeenCalledOnce();
+    expect(result.status).toBe("success");
+  });
+
+  it("falls back to the stored entitlement snapshot if Play cannot be reached", async () => {
+    mockRefreshCurrentGooglePlaySubscriptionForUser.mockRejectedValueOnce(
+      new Error("temporary Play API failure"),
+    );
+
+    const result = await syncGooglePlayPurchasesAction([]);
+
+    expect(result.status).toBe("success");
+    expect(result.data?.effectivePlan).toBe("pro");
+    expect(mockGetUserEntitlements).toHaveBeenCalledOnce();
   });
 
   it("rejects one token claimed for conflicting products", async () => {

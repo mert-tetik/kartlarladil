@@ -8,12 +8,16 @@ const mockSyncVoidedSubscription = vi.hoisted(() => vi.fn());
 const manualReviewMarker = vi.hoisted(
   () => "manual_review_required: ReviewRefund decision required within 24 hours.",
 );
+const unlinkedPurchaseMarker = vi.hoisted(
+  () => "No FoxiesDeck account is linked to this Google Play purchase token.",
+);
 
 vi.mock("@/features/subscriptions/google-play-service", () => ({
   verifyGooglePlayRtdnToken: mockVerifyIdentity,
   claimGooglePlayRtdnEvent: mockClaimEvent,
   completeGooglePlayRtdnEvent: mockCompleteEvent,
   GOOGLE_PLAY_RTDN_MANUAL_REVIEW_REQUIRED: manualReviewMarker,
+  GOOGLE_PLAY_RTDN_UNLINKED_PURCHASE: unlinkedPurchaseMarker,
   syncGooglePlaySubscriptionFromRtdn: mockSyncSubscription,
   syncGooglePlayVoidedSubscriptionFromRtdn: mockSyncVoidedSubscription,
 }));

@@ -1,11 +1,14 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, vi } from "vitest";
+import { afterEach, beforeEach, vi } from "vitest";
 vi.unmock("@/features/subscriptions/subscription-client");
 import { SubscriptionProvider, useSubscription } from "@/features/subscriptions/subscription-client";
 import type { UserEntitlements } from "@/types/domain";
 
 const mocks = vi.hoisted(() => ({
   getUserEntitlementsAction: vi.fn(),
+  restorePurchases: vi.fn(),
+  isSupported: false,
+  isTwa: false,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -21,9 +24,12 @@ vi.mock("@/features/auth/auth-client", () => ({
   useAuthSession: () => ({ user: { id: "user-1" } }),
 }));
 vi.mock("@/features/subscriptions/use-google-play-billing", () => ({
-  useGooglePlayBilling: () => ({ isSupported: false, restorePurchases: vi.fn() }),
+  useGooglePlayBilling: () => ({
+    isSupported: mocks.isSupported,
+    restorePurchases: mocks.restorePurchases,
+  }),
 }));
-vi.mock("@/features/install-app/use-twa-mode", () => ({ useTwaMode: () => false }));
+vi.mock("@/features/install-app/use-twa-mode", () => ({ useTwaMode: () => mocks.isTwa }));
 vi.mock("@/features/subscriptions/use-google-play-pricing", () => ({ useGooglePlayPricing: () => null }));
 vi.mock("@/features/subscriptions/components/subscription-purchase-success-dialog", () => ({
   SubscriptionPurchaseSuccessDialog: () => null,
@@ -45,6 +51,8 @@ const paidEntitlements: UserEntitlements = {
   customerPortalUrl: null,
   endsAt: "2099-01-01T00:00:00.000Z",
 };
+
+let originalVisibilityStateDescriptor: PropertyDescriptor | undefined;
 
 const staleFreeEntitlements: UserEntitlements = {
   ...paidEntitlements,
@@ -82,7 +90,20 @@ function deferred<T>() {
 
 beforeEach(() => {
   window.localStorage.clear();
+  originalVisibilityStateDescriptor = Object.getOwnPropertyDescriptor(document, "visibilityState");
   mocks.getUserEntitlementsAction.mockReset();
+  mocks.restorePurchases.mockReset().mockResolvedValue(undefined);
+  mocks.isSupported = false;
+  mocks.isTwa = false;
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  if (originalVisibilityStateDescriptor) {
+    Object.defineProperty(document, "visibilityState", originalVisibilityStateDescriptor);
+  } else {
+    Reflect.deleteProperty(document, "visibilityState");
+  }
 });
 
 it("does not let an older server entitlement response overwrite a verified purchase", async () => {
@@ -110,4 +131,76 @@ it("does not let an older server entitlement response overwrite a verified purch
   expect(screen.getByTestId("effective-plan")).toHaveTextContent("pro");
   expect(JSON.parse(window.localStorage.getItem("foxiesdeck:entitlements:user-1") ?? "null"))
     .toMatchObject({ effectivePlan: "pro" });
+});
+
+it("syncs Google Play again when the TWA returns to the foreground", async () => {
+  mocks.isTwa = true;
+  mocks.isSupported = true;
+  mocks.getUserEntitlementsAction.mockResolvedValue({
+    status: "success",
+    message: "",
+    data: staleFreeEntitlements,
+  });
+  vi.useFakeTimers();
+
+  render(
+    <SubscriptionProvider>
+      <EntitlementHarness />
+    </SubscriptionProvider>,
+  );
+
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+  expect(mocks.restorePurchases).toHaveBeenCalledOnce();
+
+  Object.defineProperty(document, "visibilityState", {
+    configurable: true,
+    value: "visible",
+  });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(15_001);
+  });
+  fireEvent(document, new Event("visibilitychange"));
+  await act(async () => {
+    await Promise.resolve();
+  });
+
+  expect(mocks.restorePurchases).toHaveBeenCalledTimes(2);
+  vi.useRealTimers();
+});
+
+it("checks Google Play before changing a paid UI to Free at the saved expiry", async () => {
+  mocks.isTwa = true;
+  mocks.isSupported = true;
+  const pendingExpirySync = deferred<void>();
+  mocks.restorePurchases
+    .mockResolvedValueOnce(undefined)
+    .mockImplementationOnce(() => pendingExpirySync.promise);
+  mocks.getUserEntitlementsAction.mockResolvedValue({
+    status: "success",
+    message: "",
+    data: {
+      ...paidEntitlements,
+      endsAt: new Date(Date.now() + 100).toISOString(),
+    },
+  });
+
+  render(
+    <SubscriptionProvider>
+      <EntitlementHarness />
+    </SubscriptionProvider>,
+  );
+
+  await waitFor(() => expect(screen.getByTestId("effective-plan")).toHaveTextContent("pro"));
+  await waitFor(() => expect(mocks.restorePurchases).toHaveBeenCalledTimes(2));
+
+  expect(screen.getByTestId("effective-plan")).toHaveTextContent("pro");
+
+  await act(async () => {
+    pendingExpirySync.resolve();
+    await pendingExpirySync.promise;
+    fireEvent.click(screen.getByRole("button", { name: "Apply verified purchase" }));
+  });
 });

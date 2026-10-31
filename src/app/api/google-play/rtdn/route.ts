@@ -3,6 +3,7 @@ import {
   claimGooglePlayRtdnEvent,
   completeGooglePlayRtdnEvent,
   GOOGLE_PLAY_RTDN_MANUAL_REVIEW_REQUIRED,
+  GOOGLE_PLAY_RTDN_UNLINKED_PURCHASE,
   syncGooglePlaySubscriptionFromRtdn,
   syncGooglePlayVoidedSubscriptionFromRtdn,
   verifyGooglePlayRtdnToken,
@@ -165,7 +166,7 @@ export async function POST(request: Request) {
     await completeGooglePlayRtdnEvent(
       messageId,
       userId,
-      userId ? undefined : "No FoxiesDeck account is linked to this Google Play purchase token.",
+      userId ? undefined : GOOGLE_PLAY_RTDN_UNLINKED_PURCHASE,
     );
 
     return NextResponse.json({ received: true }, { status: 200 });

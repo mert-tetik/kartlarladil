@@ -21,7 +21,6 @@ import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-b
 import { useGooglePlayPricing } from "@/features/subscriptions/use-google-play-pricing";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import { useAuthSession } from "@/features/auth/auth-client";
-import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { isUsableEntitlementsSnapshot } from "@/features/subscriptions/subscription-entitlement";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { SubscriptionPlan, UserEntitlements } from "@/types/domain";
@@ -267,47 +266,6 @@ function SubscriptionProviderSession({
     });
   }, [isVisualTestMode, refreshEntitlements, userId]);
 
-  useEffect(() => {
-    if (!userId || !entitlements || entitlements.effectivePlan === "free") return;
-
-    const expiresAt = new Date(entitlements.endsAt ?? "").getTime();
-    let timeoutId: number | undefined;
-
-    const expireEntitlementAtDeadline = () => {
-      const remainingMs = expiresAt - Date.now();
-      if (remainingMs > 0) {
-        timeoutId = window.setTimeout(
-          expireEntitlementAtDeadline,
-          Math.min(remainingMs, 2_147_000_000),
-        );
-        return;
-      }
-
-      const latestEntitlements = entitlementsRef.current;
-      if (!latestEntitlements || latestEntitlements.effectivePlan === "free") return;
-
-      const expiredEntitlements: UserEntitlements = {
-        ...latestEntitlements,
-        effectivePlan: "free",
-        limits: PLAN_LIMITS.free,
-      };
-      entitlementRevisionRef.current += 1;
-      entitlementsRef.current = expiredEntitlements;
-      setEntitlements(expiredEntitlements);
-      writeCachedEntitlements(userId, expiredEntitlements);
-      void refreshEntitlements();
-    };
-
-    timeoutId = window.setTimeout(
-      expireEntitlementAtDeadline,
-      Math.max(0, Math.min(expiresAt - Date.now(), 2_147_000_000)),
-    );
-
-    return () => {
-      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
-    };
-  }, [entitlements, refreshEntitlements, userId]);
-
   const presentPurchaseSuccess = useCallback(() => {
     setPurchaseSuccessOpen(true);
   }, []);
@@ -351,7 +309,11 @@ function SubscriptionProviderSession({
           onPresentPurchaseSuccess={presentPurchaseSuccess}
         />
       ) : null}
-      <GooglePlayBillingSync disabled={isVisualTestMode} />
+      <GooglePlayBillingSync
+        disabled={isVisualTestMode}
+        entitlements={entitlements}
+        refreshEntitlements={refreshEntitlements}
+      />
       <SubscriptionPurchaseSuccessDialog
         open={purchaseSuccessOpen}
         onContinue={handlePurchaseSuccessContinue}
@@ -395,17 +357,118 @@ function SubscriptionDetailsHost({
   );
 }
 
-function GooglePlayBillingSync({ disabled }: { disabled: boolean }) {
+function GooglePlayBillingSync({
+  disabled,
+  entitlements,
+  refreshEntitlements,
+}: {
+  disabled: boolean;
+  entitlements: UserEntitlements | null;
+  refreshEntitlements: () => Promise<UserEntitlements | null>;
+}) {
   const isTwa = useTwaMode();
   const { isSupported, restorePurchases } = useGooglePlayBilling();
+  const syncPromiseRef = useRef<Promise<void> | null>(null);
+  const lastSyncAtRef = useRef(0);
+
+  const syncWithGooglePlay = useCallback(async (force = false) => {
+    if (disabled) return;
+
+    if (!isTwa) {
+      if (force) await refreshEntitlements();
+      return;
+    }
+
+    if (!isSupported) {
+      if (force) await refreshEntitlements();
+      return;
+    }
+
+    if (syncPromiseRef.current) {
+      await syncPromiseRef.current;
+      return;
+    }
+
+    const now = Date.now();
+    if (!force && now - lastSyncAtRef.current < 15_000) return;
+    lastSyncAtRef.current = now;
+
+    const syncPromise = (async () => {
+      try {
+        await restorePurchases();
+      } catch {
+        // The server snapshot remains the fallback during a Play/API outage.
+        await refreshEntitlements();
+      }
+    })();
+    syncPromiseRef.current = syncPromise;
+
+    try {
+      await syncPromise;
+    } finally {
+      if (syncPromiseRef.current === syncPromise) {
+        syncPromiseRef.current = null;
+      }
+    }
+  }, [disabled, isSupported, isTwa, refreshEntitlements, restorePurchases]);
 
   useEffect(() => {
-    if (!disabled && isTwa && isSupported) {
-      void restorePurchases().catch((error: unknown) => {
-        console.error("Google Play purchase restoration failed on mount:", error);
-      });
-    }
-  }, [disabled, isTwa, isSupported, restorePurchases]);
+    if (disabled || !isTwa || !isSupported) return;
+
+    void syncWithGooglePlay().catch(() => undefined);
+
+    const syncWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        void syncWithGooglePlay().catch(() => undefined);
+      }
+    };
+    const syncOnPageShow = () => void syncWithGooglePlay().catch(() => undefined);
+
+    document.addEventListener("visibilitychange", syncWhenVisible);
+    window.addEventListener("pageshow", syncOnPageShow);
+    window.addEventListener("focus", syncWhenVisible);
+
+    return () => {
+      document.removeEventListener("visibilitychange", syncWhenVisible);
+      window.removeEventListener("pageshow", syncOnPageShow);
+      window.removeEventListener("focus", syncWhenVisible);
+    };
+  }, [disabled, isSupported, isTwa, syncWithGooglePlay]);
+
+  const effectivePlan = entitlements?.effectivePlan ?? null;
+  const endsAt = entitlements?.endsAt ?? null;
+
+  useEffect(() => {
+    if (disabled || !endsAt || !effectivePlan || effectivePlan === "free") return;
+
+    const expiresAt = new Date(endsAt).getTime();
+    if (!Number.isFinite(expiresAt)) return;
+
+    let timeoutId: number | undefined;
+    const synchronizeAtDeadline = () => {
+      const remainingMs = expiresAt - Date.now();
+      if (remainingMs > 0) {
+        timeoutId = window.setTimeout(
+          synchronizeAtDeadline,
+          Math.min(remainingMs, 2_147_000_000),
+        );
+        return;
+      }
+
+      // Don't locally revoke a Play entitlement before asking Google to
+      // confirm a renewal, cancellation, or expiry. Supabase is the fallback.
+      void syncWithGooglePlay(true).catch(() => undefined);
+    };
+
+    timeoutId = window.setTimeout(
+      synchronizeAtDeadline,
+      Math.max(0, Math.min(expiresAt - Date.now(), 2_147_000_000)),
+    );
+
+    return () => {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
+  }, [disabled, effectivePlan, endsAt, syncWithGooglePlay]);
 
   return null;
 }

@@ -159,8 +159,6 @@ export function useGooglePlayBilling() {
           nativeBilling.listPurchases(),
         );
 
-        if (purchases.length === 0) return;
-
         const result = await syncGooglePlayPurchasesAction(
           purchases.map((purchase) => ({
             purchaseToken: purchase.purchaseToken,
@@ -180,8 +178,6 @@ export function useGooglePlayBilling() {
 
       const service = await getService();
       const purchases = await service.listPurchases();
-
-      if (purchases.length === 0) return;
 
       const details = purchases.map((p) => ({
         purchaseToken: p.purchaseToken,

@@ -1,6 +1,10 @@
 "use server";
 
-import { verifyGooglePlaySubscription } from "@/features/subscriptions/google-play-service";
+import {
+  replayUnlinkedGooglePlayRtdnEventsForToken,
+  refreshCurrentGooglePlaySubscriptionForUser,
+  verifyGooglePlaySubscription,
+} from "@/features/subscriptions/google-play-service";
 import { GOOGLE_PLAY_SUBSCRIPTIONS_URL } from "@/features/subscriptions/google-play-links";
 import {
   getGooglePlayErrorMessage,
@@ -133,6 +137,12 @@ export async function verifyGooglePlayPurchaseAction(
     }
 
     const verification = await verifyGooglePlaySubscription(purchaseToken, productId, user.id);
+    await replayUnlinkedGooglePlayRtdnEventsForToken(purchaseToken).catch((error: unknown) => {
+      logGooglePlayError(
+        "Previously unlinked Google Play notifications could not be reconciled.",
+        error,
+      );
+    });
     const verifiedStatusCanGrantAccess = [
       "active",
       "on_trial",
@@ -229,8 +239,20 @@ export async function syncGooglePlayPurchasesAction(
 
     for (const purchase of validPurchasesByToken.values()) {
       try {
-        await verifyGooglePlaySubscription(purchase.purchaseToken, purchase.productId, user.id);
+        const verification = await verifyGooglePlaySubscription(
+          purchase.purchaseToken,
+          purchase.productId,
+          user.id,
+        );
         verificationCount += 1;
+        await replayUnlinkedGooglePlayRtdnEventsForToken(verification.purchaseToken).catch(
+          (error: unknown) => {
+            logGooglePlayError(
+              "Previously unlinked Google Play notifications could not be reconciled.",
+              error,
+            );
+          },
+        );
       } catch (error) {
         lastError = true;
         logGooglePlayError(
@@ -239,6 +261,32 @@ export async function syncGooglePlayPurchasesAction(
           [purchase.purchaseToken],
         );
         // Continue trying the rest; a stale/expired token should not block active ones.
+      }
+    }
+
+    // A successful Play query can be empty while the server still has a
+    // previously linked token. Recheck that token with Google's API instead
+    // of treating the Supabase snapshot as the only billing state.
+    if (validPurchasesByToken.size === 0) {
+      try {
+        const verification = await refreshCurrentGooglePlaySubscriptionForUser(user.id);
+        if (verification) {
+          await replayUnlinkedGooglePlayRtdnEventsForToken(verification.purchaseToken).catch(
+            (error: unknown) => {
+              logGooglePlayError(
+                "Previously unlinked Google Play notifications could not be reconciled.",
+                error,
+              );
+            },
+          );
+        }
+      } catch (error) {
+        // Play can be temporarily unavailable. In that case the verified
+        // Supabase snapshot below remains the bounded fallback.
+        logGooglePlayError(
+          "Google Play current subscription refresh failed; using the stored verified snapshot.",
+          error,
+        );
       }
     }
 
