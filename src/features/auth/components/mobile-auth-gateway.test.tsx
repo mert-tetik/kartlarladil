@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   activateTutorial: vi.fn(),
   deactivateTutorial: vi.fn(),
   resetTutorial: vi.fn(),
+  authUser: { profile: { onboardingCompleted: true } } as { profile: { onboardingCompleted: boolean } } | null,
   router: {
     refresh: vi.fn(),
     push: vi.fn(),
@@ -29,7 +30,7 @@ vi.mock("next/image", () => ({
 
 vi.mock("@/features/auth/auth-client", () => ({
   useAuthSession: () => ({
-    user: { profile: { onboardingCompleted: true } },
+    user: mocks.authUser,
     refreshProfile: vi.fn(),
     updateProfileField: vi.fn(),
     clearUser: vi.fn(),
@@ -101,6 +102,10 @@ vi.mock("@/features/auth/components/mobile-auth-screen", () => ({
   MobileAuthScreen: () => <div data-testid="mobile-auth-screen" />,
 }));
 
+vi.mock("@/features/auth/components/mobile-google-auth-loading", () => ({
+  MobileGoogleAuthLoading: () => <div data-testid="mobile-google-auth-loading" />,
+}));
+
 describe("MobileAuthGateway returning-login flow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -108,6 +113,7 @@ describe("MobileAuthGateway returning-login flow", () => {
       window.history.replaceState({}, "", String(href));
     });
     window.sessionStorage.clear();
+    mocks.authUser = { profile: { onboardingCompleted: true } };
     window.history.replaceState({}, "", "/?mobileLanguageRefresh=1&showOffer=1");
     Object.defineProperty(window, "innerWidth", {
       configurable: true,
@@ -149,5 +155,21 @@ describe("MobileAuthGateway returning-login flow", () => {
 
     expect(await screen.findByTestId("mobile-auth-screen")).toBeInTheDocument();
     expect(screen.queryByTestId("mobile-app-choice")).not.toBeInTheDocument();
+  });
+
+  it("forces the login screen and clears a stale Google-auth loading state after logout", async () => {
+    mocks.authUser = null;
+    window.history.replaceState({}, "", "/");
+    window.sessionStorage.setItem("foxiesdeck:google-auth-pending", String(Date.now()));
+
+    render(<MobileAuthGateway countryCode="US" />);
+
+    expect(await screen.findByTestId("mobile-google-auth-loading")).toBeInTheDocument();
+
+    window.dispatchEvent(new Event("foxiesdeck:mobile-logout-auth-requested"));
+
+    expect(await screen.findByTestId("mobile-auth-screen")).toBeInTheDocument();
+    expect(screen.queryByTestId("mobile-google-auth-loading")).not.toBeInTheDocument();
+    expect(window.sessionStorage.getItem("foxiesdeck:google-auth-pending")).toBeNull();
   });
 });

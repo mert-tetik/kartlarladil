@@ -256,6 +256,8 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   const [hasChosenWeb, setHasChosenWeb] = useState(() =>
     isIosMobileTestMode() ? false : readWebChoice(),
   );
+  const [logoutLoginRequested, setLogoutLoginRequested] = useState(false);
+  const logoutLoginRequestedRef = useRef(false);
   const [onboardingCompletedInSession, setOnboardingCompletedInSession] = useState(false);
   const [needsLoginLanguageRefresh, setNeedsLoginLanguageRefresh] = useState(false);
   const [resumeLoginFlowAfterLanguageRefresh, setResumeLoginFlowAfterLanguageRefresh] = useState(false);
@@ -288,7 +290,11 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     function handleLogoutAuthRequested() {
       deactivateTutorial();
       setHasChosenWeb(true);
+      logoutLoginRequestedRef.current = true;
+      setLogoutLoginRequested(true);
       setMobileAuthMode("google");
+      clearGoogleAuthPending();
+      setIsGoogleAuthCompleting(false);
       setOfferActive(false);
       setOfferTriggered(false);
       setOfferSeen(false);
@@ -442,6 +448,13 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     }
   }, [user, offerSeen, isAlreadySubscribed, deactivateTutorial]);
 
+  useEffect(() => {
+    if (!user || !logoutLoginRequestedRef.current) return;
+
+    logoutLoginRequestedRef.current = false;
+    setLogoutLoginRequested(false);
+  }, [user]);
+
   const shouldShowOffer = isOfferEligible || offerActive;
 
   const isPublicMobilePath = PUBLIC_MOBILE_PATHS.some(
@@ -465,7 +478,8 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       isMobileUpdatePasswordPath ||
       isMobilePasswordRecoveryPath ||
       isMobilePasswordRecoveryError ||
-      shouldOpenMobileGatewayLogin
+      shouldOpenMobileGatewayLogin ||
+      logoutLoginRequested
     ));
 
   const shouldKeepBootstrapVisible = shouldKeepMobileGatewayBootstrapVisible({
@@ -571,7 +585,18 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     !isRankUpTestMode &&
     (!isSeriousLearnerTestMode || seriousLearnerTestOpen)
   ) {
-    if ((isGoogleAuthCompleting || hasNativeGoogleAuthCallback) && needsAuth) {
+    if (shouldOpenMobileGatewayLogin || logoutLoginRequested) {
+      gateway = (
+        <GatewayShell
+          centered={mobileAuthMode !== "google"}
+          isTestMode={isTestMode}
+          showBackground={mobileAuthMode === "google"}
+          transitionKey={`auth-${mobileAuthMode}`}
+        >
+          <MobileAuthScreen mode={mobileAuthMode} onModeChange={setMobileAuthMode} />
+        </GatewayShell>
+      );
+    } else if ((isGoogleAuthCompleting || hasNativeGoogleAuthCallback) && needsAuth) {
       gateway = (
         <GatewayShell
           centered
@@ -619,17 +644,6 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
             isRecoveryFlow={isRecoveryFlow}
             onBack={() => router.replace(`/?${MOBILE_GATEWAY_LOGIN_PARAM}=1`)}
           />
-        </GatewayShell>
-      );
-    } else if (shouldOpenMobileGatewayLogin) {
-      gateway = (
-        <GatewayShell
-          centered={mobileAuthMode !== "google"}
-          isTestMode={isTestMode}
-          showBackground={mobileAuthMode === "google"}
-          transitionKey={`auth-${mobileAuthMode}`}
-        >
-          <MobileAuthScreen mode={mobileAuthMode} onModeChange={setMobileAuthMode} />
         </GatewayShell>
       );
     } else if (isSeriousLearnerTestMode) {

@@ -287,7 +287,7 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
               type="submit"
               role="menuitem"
               onClick={() => {
-                if (typeof window !== "undefined") {
+                if (typeof window !== "undefined" && isMobileMenu) {
                   window.sessionStorage.setItem(MOBILE_LOGOUT_AUTH_KEY, "1");
                   window.dispatchEvent(new Event(MOBILE_LOGOUT_AUTH_EVENT));
                 }

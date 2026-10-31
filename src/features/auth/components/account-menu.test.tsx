@@ -105,6 +105,7 @@ describe("AccountMenu", () => {
 
   it("requests mobile auth immediately when logout is clicked", async () => {
     const user = userEvent.setup();
+    const dispatchEvent = vi.spyOn(window, "dispatchEvent");
     const matchMedia = vi.fn().mockReturnValue({
       matches: true,
       addEventListener: vi.fn(),
@@ -126,6 +127,9 @@ describe("AccountMenu", () => {
 
     expect(screen.getByRole("menu").querySelector('input[name="mobileLogout"]')).toHaveValue("1");
     expect(window.sessionStorage.getItem("foxiesdeck:mobile-logout-auth")).toBe("1");
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "foxiesdeck:mobile-logout-auth-requested" }),
+    );
   });
 
   it("uses a muted full-width plan color for paid account details", async () => {
