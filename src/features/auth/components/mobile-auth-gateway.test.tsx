@@ -1,4 +1,5 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileAuthGateway } from "@/features/auth/components/mobile-auth-gateway";
@@ -155,6 +156,20 @@ describe("MobileAuthGateway returning-login flow", () => {
 
     expect(await screen.findByTestId("mobile-auth-screen")).toBeInTheDocument();
     expect(screen.queryByTestId("mobile-app-choice")).not.toBeInTheDocument();
+  });
+
+  it("server-renders the logout login screen before client hydration", () => {
+    window.history.replaceState({}, "", "/?mobile-gateway-login=1");
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 1280,
+    });
+
+    const html = renderToString(<MobileAuthGateway countryCode="US" />);
+
+    expect(html).toContain("data-mobile-auth-gateway");
+    expect(html).toContain('data-testid="mobile-auth-screen"');
+    expect(html).not.toContain("data-mobile-gateway-bootstrap");
   });
 
   it("forces the login screen and clears a stale Google-auth loading state after logout", async () => {

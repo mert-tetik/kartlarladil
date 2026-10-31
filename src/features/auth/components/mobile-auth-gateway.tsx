@@ -379,6 +379,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     pathname === "/login" &&
     (loginMessage.includes("code verifier") || loginMessage.includes("pkce"));
   const shouldOpenMobileGatewayLogin = searchParams.get(MOBILE_GATEWAY_LOGIN_PARAM) === "1";
+  const isForcedMobileLogin = shouldOpenMobileGatewayLogin || logoutLoginRequested;
   const hasNativeGoogleAuthCallback =
     searchParams.has("nativeAuthCode") || searchParams.has("nativeAuthError");
 
@@ -467,6 +468,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     isTestMode ||
     isSeriousLearnerTestMode ||
     gatewayExitPending ||
+    isForcedMobileLogin ||
     (isMobileViewport && (
       isGoogleAuthCompleting ||
       hasNativeGoogleAuthCallback ||
@@ -477,9 +479,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       isMobileResetPasswordPath ||
       isMobileUpdatePasswordPath ||
       isMobilePasswordRecoveryPath ||
-      isMobilePasswordRecoveryError ||
-      shouldOpenMobileGatewayLogin ||
-      logoutLoginRequested
+      isMobilePasswordRecoveryError
     ));
 
   const shouldKeepBootstrapVisible = shouldKeepMobileGatewayBootstrapVisible({
@@ -579,13 +579,13 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   let gateway: ReactNode = null;
 
   if (
-    mounted &&
+    (mounted || shouldOpenMobileGatewayLogin) &&
     showGateway &&
     !isPublicMobilePath &&
     !isRankUpTestMode &&
     (!isSeriousLearnerTestMode || seriousLearnerTestOpen)
   ) {
-    if (shouldOpenMobileGatewayLogin || logoutLoginRequested) {
+    if (isForcedMobileLogin) {
       gateway = (
         <GatewayShell
           centered={mobileAuthMode !== "google"}
@@ -730,7 +730,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   return (
     <>
       {gateway}
-      {isPublicMobilePath || isNativeShell || bootstrapPhase === "hidden" ? null : (
+      {isPublicMobilePath || isNativeShell || isForcedMobileLogin || bootstrapPhase === "hidden" ? null : (
         <MobileGatewayBootstrap phase={bootstrapPhase} />
       )}
     </>
