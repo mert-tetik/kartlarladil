@@ -483,6 +483,7 @@ const dictionary = {
   "partOfSpeech.word": "word",
   "pricing.basic": "Basic",
   "pricing.currentSubscription": "Current subscription:",
+  "pricing.visualPreview": "Visual preview · {plan}",
   "pricing.billingMonthly": "Monthly",
   "pricing.billingYearly": "Yearly",
   "pricing.cancelAnytime": "Cancel anytime and use subscription until the paid period ends.",

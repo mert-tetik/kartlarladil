@@ -159,6 +159,7 @@ import {
 } from "@/features/quiz/quiz-answer-feedback-timing";
 import { getQuizSessionEarnedPoints } from "@/features/quiz/result-rewards";
 import { EmptyState } from "@/components/empty-state";
+import { SuperWaterText } from "@/components/super-water-text";
 import {
   ImageActionButton,
   RESULT_BUTTON_IMAGES,
@@ -3646,8 +3647,10 @@ export function QuizStation({
   if ((!hydrated || cloudLoading || !cloudInventoryReady) && !canRenderPersistedQuizSetup) {
     return (
       <EmptyState
-        title={t("quiz.loadingTitle")}
-        description={t("quiz.loadingDescription")}
+        title={formatSuperWaterText(locale, t("quiz.loadingTitle"))}
+        titleClassName={canUseSuperWater(locale) ? "font-super-water" : undefined}
+        description={formatSuperWaterText(locale, t("quiz.loadingDescription"))}
+        descriptionClassName={canUseSuperWater(locale) ? "font-super-water" : undefined}
       />
     );
   }
@@ -3715,8 +3718,10 @@ export function QuizStation({
   if (!hydrated) {
     return (
       <EmptyState
-        title={t("quiz.loadingTitle")}
-        description={t("quiz.loadingDescription")}
+        title={formatSuperWaterText(locale, t("quiz.loadingTitle"))}
+        titleClassName={canUseSuperWater(locale) ? "font-super-water" : undefined}
+        description={formatSuperWaterText(locale, t("quiz.loadingDescription"))}
+        descriptionClassName={canUseSuperWater(locale) ? "font-super-water" : undefined}
       />
     );
   }
@@ -4854,7 +4859,9 @@ export function LanguageSelection({
           ) : null}
           {locked ? (
             <p className="mt-2 text-center text-xs leading-5 text-foreground/65 max-lg:text-white/80 lg:text-sm">
-              {t("quiz.loadingDescription")}
+              <span className={cn(canUseSuperWater(locale) && "font-super-water")}>
+                {formatSuperWaterText(locale, t("quiz.loadingDescription"))}
+              </span>
             </p>
           ) : null}
 
@@ -5181,6 +5188,7 @@ export function CountSelection({
                 <p
                   className={cn(
                     "text-base font-semibold text-white/90 sm:text-xl",
+                    useSuperWater && "font-super-water",
                     introStarted && "mission-details-overlay__item",
                   )}
                   style={introStarted ? { animationDelay: "520ms" } : undefined}
@@ -5601,7 +5609,7 @@ function QuizRerollButton({
         <span className="min-w-0">{t("quiz.rerollQuestion")}</span>
         <span className="inline-flex shrink-0 items-center gap-0.5">
           <span className={cn(canUseSuperWater(locale) && "font-super-water")}>
-            {GEM_COSTS.rerollQuestion.amount}
+            {formatSuperWaterText(locale, String(GEM_COSTS.rerollQuestion.amount))}
           </span>
           <Image src={GEM_ASSETS.green} alt="" width={22} height={22} className="size-[22px] object-contain" />
         </span>
@@ -6477,7 +6485,7 @@ export function TextQuestion({
                 {isAiValidating ? (
                   <>
                     <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />
-                    {t("quiz.aiValidating")}
+                    <SuperWaterText>{t("quiz.aiValidating")}</SuperWaterText>
                   </>
                 ) : (
                   t("quiz.submitAnswer")
@@ -6875,7 +6883,7 @@ export function CelebrationView({
               valueClassName={cn("text-lg font-bold", canUseSuperWater(locale) && "font-super-water")}
               value={formatSuperWaterText(locale, formatNumber(locale, displayPoints))}
             />
-            <RewardGemHud animate superWater={canUseSuperWater(locale)} />
+            <RewardGemHud animate />
         </div>
 
         <div className="absolute inset-0 flex items-center justify-center px-4 sm:px-6">
@@ -6910,10 +6918,10 @@ export function CelebrationView({
       {rewardStarted ? (
         <RewardScatter
           points={{ amount: gainedPoints, source: cardRef, target: scoreRef, zIndex: 50 }}
-          onPointsArrive={(awardedTotal, arrivalIndex) => {
+          onPointsArrive={(awardedTotal) => {
             rewardAnimationGate.notePointsArrival();
             setDisplayPoints(basePoints + awardedTotal);
-            setScorePulse(arrivalIndex);
+            setScorePulse((current) => current + 1);
           }}
           onPointsComplete={rewardAnimationGate.markPointsScatterComplete}
         />
@@ -7687,7 +7695,7 @@ export function ResultView({
     {
       key: "points",
       label: formatSuperWaterUppercaseText(locale, t("quiz.resultTotalXp")),
-      value: formatNumber(locale, totalPointsEarned),
+      value: formatSuperWaterText(locale, formatNumber(locale, totalPointsEarned)),
       icon: Star,
       className: "border-yellow-400 bg-transparent text-yellow-300",
       headerClassName: "bg-yellow-400",
@@ -7807,7 +7815,7 @@ export function ResultView({
                       )}>
                         {label}
                       </span>
-                      <div className="flex min-h-0 flex-1 items-center justify-center gap-1 text-lg font-bold leading-none sm:text-xl">
+                      <div className={cn("flex min-h-0 flex-1 items-center justify-center gap-1 text-lg font-bold leading-none sm:text-xl", key === "points" && canUseSuperWater(locale) && "font-super-water")}>
                         <Icon className="size-5 shrink-0" strokeWidth={3} aria-hidden="true" />
                         <span>{value}</span>
                       </div>
@@ -8290,7 +8298,7 @@ export function LegacyResultView({
           >
             <span
               data-leaderboard-scope
-              className="font-super-water text-sm font-bold text-white sm:text-base"
+              className={cn("text-sm font-bold text-white sm:text-base", canUseSuperWater(locale) && "font-super-water")}
             >
               {formatResultDisplayText(t("leaderboard.scope"))}
             </span>
@@ -8301,7 +8309,9 @@ export function LegacyResultView({
                 canUseSuperWater(locale) && "font-super-water",
               )}
             >
-              {formatResultDisplayText(leaderboardStanding)}
+              {leaderboardData
+                ? formatResultDisplayText(leaderboardStanding)
+                : <SuperWaterText>{leaderboardStanding}</SuperWaterText>}
             </span>
           </button>
           <div className="relative flex h-36 w-full items-center justify-center sm:h-52">

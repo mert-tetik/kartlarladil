@@ -3,6 +3,7 @@
 import { memo, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { Check, LoaderCircle, MessageCircleQuestion, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SuperWaterText } from "@/components/super-water-text";
 import { TIER_REQUIREMENTS } from "@/data/tiers";
 import { getCardTranslation, getCardTranslationMeanings } from "@/features/cards/card-localization";
 import { CARD_GROUP_IMAGE_PATHS, getCardGroupForCard } from "@/features/cards/card-groups";
@@ -271,7 +272,7 @@ export const VocabularyCardView = memo(function VocabularyCardView({
                 {showOwnedState
                   ? ownedLabel ?? t("cards.owned")
                   : addLoading
-                    ? addLoadingLabel ?? t("common.loading")
+                    ? <SuperWaterText>{addLoadingLabel ?? t("common.loading")}</SuperWaterText>
                     : addLabel ?? t("cards.add")}
               </span>
             </Button>

@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect } from "react";
 import Link from "next/link";
+import { SuperWaterText } from "@/components/super-water-text";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { createCustomerPortalAction } from "@/features/subscriptions/subscription-actions";
 import { useT } from "@/i18n/locale-provider";
@@ -85,7 +86,7 @@ function CustomerPortalButton() {
   return (
     <form action={formAction} className="flex flex-col gap-2">
       <Button type="submit" variant="secondary" size="md" disabled={pending}>
-        {pending ? t("common.loading") : t("account.subscription.manage")}
+        {pending ? <SuperWaterText>{t("common.loading")}</SuperWaterText> : t("account.subscription.manage")}
       </Button>
     </form>
   );
@@ -120,7 +121,7 @@ function RestorePurchasesButton() {
         disabled={isLoading}
         onClick={() => void handleRestore()}
       >
-        {isLoading ? t("common.loading") : t("account.subscription.restorePurchases")}
+        {isLoading ? <SuperWaterText>{t("common.loading")}</SuperWaterText> : t("account.subscription.restorePurchases")}
       </Button>
     </div>
   );

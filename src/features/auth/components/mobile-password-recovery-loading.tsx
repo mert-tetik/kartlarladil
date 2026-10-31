@@ -1,6 +1,7 @@
 "use client";
 
 import { useT } from "@/i18n/locale-provider";
+import { SuperWaterText } from "@/components/super-water-text";
 
 export function MobilePasswordRecoveryLoading() {
   const t = useT();
@@ -12,7 +13,7 @@ export function MobilePasswordRecoveryLoading() {
         className="mb-6 size-10 animate-spin rounded-full border-4 border-border border-t-foreground"
       />
       <p data-gateway-flow-item data-gateway-flow-order="0" className="text-base font-semibold text-foreground">
-        {t("common.loading")}
+        <SuperWaterText>{t("common.loading")}</SuperWaterText>
       </p>
     </div>
   );

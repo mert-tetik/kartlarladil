@@ -125,6 +125,13 @@ describe("UpgradeDialog", () => {
     expect(screen.getByRole("button", { name: /Kartları öğren/i })).toHaveClass("bg-action-learn");
   });
 
+  it("shows the monthly price beside the first-month-free label", async () => {
+    renderDialog({ open: true, errorCode: "free_active_card_limit" });
+
+    const cta = screen.getByRole("button", { name: /ILK AY/i });
+    await waitFor(() => expect(cta.textContent).toMatch(/\/\s*.+\/ay/i));
+  });
+
   it("shows group addition counts when a group hits the active card limit", () => {
     renderDialog({
       open: true,

@@ -480,6 +480,7 @@ const dictionary = {
   "partOfSpeech.word": "mot",
   "pricing.basic": "Basique",
   "pricing.currentSubscription": "Abonnement actuel :",
+  "pricing.visualPreview": "Aperçu visuel · {plan}",
   "pricing.billingMonthly": "Mensuel",
   "pricing.billingYearly": "Annuel",
   "pricing.cancelAnytime": "Annulez à tout moment et utilisez l'abonnement jusqu'à la fin de la période payée.",

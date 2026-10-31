@@ -4,6 +4,8 @@ import type { HTMLAttributes, ReactNode, Ref } from "react";
 import { Star } from "lucide-react";
 import { MainPointsDisplayBackground } from "@/features/progress/components/main-points-display-background";
 import { ScorePulse } from "@/features/progress/components/score-pulse";
+import { useLocale } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 
 export interface MainPointsDisplayProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
@@ -30,6 +32,11 @@ export function MainPointsDisplay({
   children,
   ...attributes
 }: MainPointsDisplayProps) {
+  const { locale } = useLocale();
+  const displayValue = typeof value === "string" || typeof value === "number"
+    ? formatSuperWaterText(locale, String(value))
+    : value;
+
   return (
     <div
       {...attributes}
@@ -43,8 +50,11 @@ export function MainPointsDisplay({
       <span ref={targetRef} className="relative z-10 inline-flex items-center gap-0">
         <ScorePulse pulse={pulse} className={cn("gap-2", groupClassName)}>
           {icon}
-          <span {...valueDataAttributes} className={cn("text-lg font-bold", valueClassName)}>
-            {value}
+          <span
+            {...valueDataAttributes}
+            className={cn("text-lg font-bold", valueClassName, canUseSuperWater(locale) && "font-super-water")}
+          >
+            {displayValue}
           </span>
         </ScorePulse>
       </span>

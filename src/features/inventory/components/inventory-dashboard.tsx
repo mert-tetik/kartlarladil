@@ -15,6 +15,7 @@ import { LanguageFlag } from "@/components/language-flag";
 import { buttonClassName } from "@/components/ui/button";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import type { InventoryCardView } from "@/features/inventory/inventory-selectors";
 import type { LanguageCode } from "@/types/domain";
@@ -95,8 +96,10 @@ export function InventoryDashboard({
         showHeader={showHeader}
         learnedOnly={learnedOnly}
         pageTitle={t("page.inventory.title")}
-        title={t("inventory.loadingTitle")}
-        description={t("inventory.loadingDescription")}
+        ariaLabel={t("inventory.loadingTitle")}
+        title={formatSuperWaterText(locale, t("inventory.loadingTitle"))}
+        description={formatSuperWaterText(locale, t("inventory.loadingDescription"))}
+        useSuperWater={canUseSuperWater(locale)}
         activeTitle={t("inventory.status.active")}
         learnedTitle={t("inventory.status.learned")}
       />
@@ -266,23 +269,27 @@ function InventoryDashboardLoading({
   showHeader,
   learnedOnly,
   pageTitle,
+  ariaLabel,
   title,
   description,
+  useSuperWater,
   activeTitle,
   learnedTitle,
 }: {
   showHeader: boolean;
   learnedOnly: boolean;
   pageTitle: string;
+  ariaLabel: string;
   title: string;
   description: string;
+  useSuperWater: boolean;
   activeTitle: string;
   learnedTitle: string;
 }) {
   return (
     <div
       role="status"
-      aria-label={title}
+      aria-label={ariaLabel}
       className="max-lg:flex max-lg:min-h-0 max-lg:flex-1 max-lg:flex-col max-lg:gap-4 max-lg:overflow-hidden lg:space-y-6"
     >
       {showHeader ? (
@@ -295,8 +302,8 @@ function InventoryDashboardLoading({
       ) : null}
 
       <div className="rounded-lg border border-border bg-background-card p-5 sm:p-6">
-        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-foreground-secondary">{description}</p>
+        <h2 className={cn("text-lg font-semibold text-foreground", useSuperWater && "font-super-water")}>{title}</h2>
+        <p className={cn("mt-2 max-w-2xl text-sm leading-6 text-foreground-secondary", useSuperWater && "font-super-water")}>{description}</p>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
           {Array.from({ length: 3 }, (_, index) => (

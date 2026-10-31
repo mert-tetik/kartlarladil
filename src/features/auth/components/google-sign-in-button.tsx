@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { SuperWaterText } from "@/components/super-water-text";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
 import { AuthConsentText } from "@/features/auth/components/auth-consent-text";
 import { FormMessage } from "@/features/auth/components/form-message";
@@ -112,7 +113,7 @@ export function GoogleSignInButton({ nextPath, label, showConsent = true }: Goog
         disabled={isPending}
       >
         <GoogleLogo />
-        {isPending ? t("auth.google.pending") : label}
+        {isPending ? <SuperWaterText>{t("auth.google.pending")}</SuperWaterText> : label}
       </Button>
       {showConsent ? <AuthConsentText /> : null}
     </form>

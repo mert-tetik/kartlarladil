@@ -480,6 +480,7 @@ const dictionary = {
   "partOfSpeech.word": "كلمة",
   "pricing.basic": "أساسي",
   "pricing.currentSubscription": "الاشتراك الحالي:",
+  "pricing.visualPreview": "معاينة مرئية · {plan}",
   "pricing.billingMonthly": "شهري",
   "pricing.billingYearly": "سنوي",
   "pricing.cancelAnytime": "يمكنك الإلغاء في أي وقت واستخدام الاشتراك حتى تنتهي الفترة المدفوعة.",

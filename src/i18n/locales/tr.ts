@@ -485,6 +485,7 @@ const dictionary = {
   "partOfSpeech.word": "kelime",
   "pricing.basic": "Basic",
   "pricing.currentSubscription": "Mevcut aboneliğiniz:",
+  "pricing.visualPreview": "Görsel önizleme · {plan}",
   "pricing.billingMonthly": "Aylık",
   "pricing.billingYearly": "Yıllık",
   "pricing.cancelAnytime": "İstediğin zaman iptal et ve ödenen dönem sonuna kadar aboneliğini kullan.",

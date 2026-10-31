@@ -13,9 +13,9 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { SubscriptionPurchaseSuccessDialog } from "@/features/subscriptions/components/subscription-purchase-success-dialog";
 import {
+  GlobalSubscriptionDetailsOverlay,
   type SubscriptionDetailsSelection,
 } from "@/features/subscriptions/components/global-subscription-details-overlay";
-import dynamic from "next/dynamic";
 import { getUserEntitlementsAction } from "@/features/subscriptions/subscription-actions";
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
 import { useGooglePlayPricing } from "@/features/subscriptions/use-google-play-pricing";
@@ -29,12 +29,6 @@ import { useAppMessage } from "@/components/app-message-provider";
 import { isMissionVisualTestRoute } from "@/lib/visual-test-mode";
 
 const ENTITLEMENTS_CACHE_KEY = "foxiesdeck:entitlements";
-
-const GlobalSubscriptionDetailsOverlay = dynamic(
-  () => import("@/features/subscriptions/components/global-subscription-details-overlay")
-    .then((module) => module.GlobalSubscriptionDetailsOverlay),
-  { ssr: false, loading: () => null },
-);
 
 interface SubscriptionContextValue {
   entitlements: UserEntitlements | null;

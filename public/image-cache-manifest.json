@@ -1,5 +1,5 @@
 {
-  "version": "80ae057da8c9ad3dd13fae9f9c5fc058be49a9c2effa5b2e1c3d675f557c60dd",
+  "version": "6c4914b13f41d84280cac58d8821b66e489da0e25397f6a3a95b20a3f8d43de4",
   "assets": [
     {
       "url": "/AppLogdfo.png",
@@ -568,6 +568,174 @@
     {
       "url": "/chests/iron_chest.png",
       "revision": "c63a22984d5fd9ef905f70adced2fddad9b2e802c4e76fc5b926c2ad3580b68b"
+    },
+    {
+      "url": "/chests/opening-frames/diamond/atlas-01.webp",
+      "revision": "30b9e07e0544862575fa19d22b52e543b385d13281e02b3713ea403d6e4b26cc"
+    },
+    {
+      "url": "/chests/opening-frames/diamond/atlas-02.webp",
+      "revision": "939c83702168be1b81dd64e4e96592c7ff32b8873c3df78df433b61139dd22d7"
+    },
+    {
+      "url": "/chests/opening-frames/diamond/atlas-03.webp",
+      "revision": "4fa6ca1832853cdf1bd033e5ba6a3fb4d768552c3a1075c8284c2e5958439e25"
+    },
+    {
+      "url": "/chests/opening-frames/diamond/atlas-04.webp",
+      "revision": "015853ce985f97a086ea6b3337c10c52ddc439ee5dcefac3c0f5a29f6237a1df"
+    },
+    {
+      "url": "/chests/opening-frames/diamond/atlas-05.webp",
+      "revision": "93a9de80c9ebc8751297bdd006d3f7b7860d563b574b0ad9e87c04f4145e42da"
+    },
+    {
+      "url": "/chests/opening-frames/diamond/atlas-06.webp",
+      "revision": "1484ae0eaadf7054e95e09ceda04533182fa9ed5520c957d5c537ffc6c8516af"
+    },
+    {
+      "url": "/chests/opening-frames/diamond/atlas-07.webp",
+      "revision": "256d17fc048c5530d6a60d4ddf31e1cb9ace0fe4768e89f8abb4a6f90f31cb0d"
+    },
+    {
+      "url": "/chests/opening-frames/emerald/atlas-01.webp",
+      "revision": "94f93ce354a8d6189b399d8977967220d90c6ad1857f439a450efdf2377d7e1b"
+    },
+    {
+      "url": "/chests/opening-frames/emerald/atlas-02.webp",
+      "revision": "31c68f427bf2699c0ed6feb2c6eb48801a6cf8db00959eb62bc1051b0a051be2"
+    },
+    {
+      "url": "/chests/opening-frames/emerald/atlas-03.webp",
+      "revision": "1265bb0c246193aa7c51d966f6f70ff6912f50aadaa87d66af60e26acdbedfe9"
+    },
+    {
+      "url": "/chests/opening-frames/emerald/atlas-04.webp",
+      "revision": "32974887a6bdf19a014b0388b1a298965e6569af4bd7a22f7da72d4a1d141615"
+    },
+    {
+      "url": "/chests/opening-frames/emerald/atlas-05.webp",
+      "revision": "75857bcb1e6152d196b9917ed5167cc99158cfdd45c3faf6c3ed5b0b5bcb96a5"
+    },
+    {
+      "url": "/chests/opening-frames/emerald/atlas-06.webp",
+      "revision": "b9ee07ef00db6bd48763db7c318f4407093ad16d5ef96396a9cf9ee26ff97c0e"
+    },
+    {
+      "url": "/chests/opening-frames/emerald/atlas-07.webp",
+      "revision": "9169725bc85e1477b55e781e7babdd195c39e428de1488c2baef524e36b6da0a"
+    },
+    {
+      "url": "/chests/opening-frames/gold/atlas-01.webp",
+      "revision": "41d6e5dd064369e68085d88a2f739e9ddab226964f03112731b88b99bff4bd2c"
+    },
+    {
+      "url": "/chests/opening-frames/gold/atlas-02.webp",
+      "revision": "851c5579110a1ff8f2048fb8ff963e86db6125cc344f0a4dac28f5a7db25943e"
+    },
+    {
+      "url": "/chests/opening-frames/gold/atlas-03.webp",
+      "revision": "529e305c169e5116f2cb7e14b27fe0b8243ef55b09e6714b7fd340eceef356c3"
+    },
+    {
+      "url": "/chests/opening-frames/gold/atlas-04.webp",
+      "revision": "8c83c7d6177a7528c962a9afc8916e04f273116019f04f757e43e6f808f032d1"
+    },
+    {
+      "url": "/chests/opening-frames/gold/atlas-05.webp",
+      "revision": "d5f19ec807366dc5e47801b7832b45c3c7f778a5ba06e98e71ee030e92ed2786"
+    },
+    {
+      "url": "/chests/opening-frames/gold/atlas-06.webp",
+      "revision": "03dacd0f7bff918f861adee3ede58165ab31c1e6cd3fc7ab22c00aa994068b22"
+    },
+    {
+      "url": "/chests/opening-frames/gold/atlas-07.webp",
+      "revision": "4ed6de925b4cde8788c1a2e34c8b388d202e0d7a3f03c0ddcdabe4b3b73eee5d"
+    },
+    {
+      "url": "/chests/opening-frames/iron/atlas-01.webp",
+      "revision": "617f08608f17244afb9ed8e8da50926a5f78c09fa8976846909c8caa2e735d3d"
+    },
+    {
+      "url": "/chests/opening-frames/iron/atlas-02.webp",
+      "revision": "7f2eacbc148f0a5a6ffeb99545821597c1252e0dc731fb248bd26b2a0fc215a3"
+    },
+    {
+      "url": "/chests/opening-frames/iron/atlas-03.webp",
+      "revision": "52b877b56b5689f92893c10063f4137b90aa80ef8cb1f969970c4faef521cc63"
+    },
+    {
+      "url": "/chests/opening-frames/iron/atlas-04.webp",
+      "revision": "bd6be0e3a944e952e9494ac140fcb198c5061e1510abc2f27b7bc4fbad5ceffe"
+    },
+    {
+      "url": "/chests/opening-frames/iron/atlas-05.webp",
+      "revision": "fdf1b09019d2fdef30e9288c438cef3b49048233e3137cfe785d74f59c72aebe"
+    },
+    {
+      "url": "/chests/opening-frames/iron/atlas-06.webp",
+      "revision": "bfe751abd47c8458d56b1786367dc4afb47d42428a0376323233b6e0450bdab7"
+    },
+    {
+      "url": "/chests/opening-frames/iron/atlas-07.webp",
+      "revision": "22c9677d7269699da54a32397222a2a64039ce91b7a6196bc55d6776b4934fe5"
+    },
+    {
+      "url": "/chests/opening-frames/ruby/atlas-01.webp",
+      "revision": "05331dc17edf90bacfb6d27eecffba9d5a56fe16f5df9754130831a8ec0b9972"
+    },
+    {
+      "url": "/chests/opening-frames/ruby/atlas-02.webp",
+      "revision": "3cfb5fbd5c55421759717c69360997c2b5b62ff49bb1a8011034ec588c7a7902"
+    },
+    {
+      "url": "/chests/opening-frames/ruby/atlas-03.webp",
+      "revision": "730e19e34c4bee1e0bf0f13252bb58655bc4fed64041b908ee4ae73cca3baf19"
+    },
+    {
+      "url": "/chests/opening-frames/ruby/atlas-04.webp",
+      "revision": "c7535cab3c367535a448833e74b4ecb7753ee46807e8d200c0cef6300a10a3d0"
+    },
+    {
+      "url": "/chests/opening-frames/ruby/atlas-05.webp",
+      "revision": "7a76379a8250f0eb07ae45fe323feace2560eefb0b2f4559456d2e284152ec04"
+    },
+    {
+      "url": "/chests/opening-frames/ruby/atlas-06.webp",
+      "revision": "52912babe5cc0d9bef4b272bb924915d32938744daea5bb1932802be2f034ca8"
+    },
+    {
+      "url": "/chests/opening-frames/ruby/atlas-07.webp",
+      "revision": "cb0fa8f01db3251713b982d8f780a85366d7100eb31c444beb1b1f14e8f06fa1"
+    },
+    {
+      "url": "/chests/opening-frames/wood/atlas-01.webp",
+      "revision": "b2fd190dd439b797e7af0bbbb0ca36970e8e34a0a746937e49d3348abfc26bd9"
+    },
+    {
+      "url": "/chests/opening-frames/wood/atlas-02.webp",
+      "revision": "741c58b008460ee5368f65c714c21393c8ec99f0b65be495a7d341da31e13eda"
+    },
+    {
+      "url": "/chests/opening-frames/wood/atlas-03.webp",
+      "revision": "ace17f8068054d6384fbb0372bd1672b28b5b6322757c49cb557810d2ea07ec8"
+    },
+    {
+      "url": "/chests/opening-frames/wood/atlas-04.webp",
+      "revision": "8231889213319d35478326c5db5e1dad3766843e5a1ef156c7b736f5a6dd3be2"
+    },
+    {
+      "url": "/chests/opening-frames/wood/atlas-05.webp",
+      "revision": "81c127b909a723db5f88178ef5acd53536d2a15e3ea392f28c2c3c82b7dcf482"
+    },
+    {
+      "url": "/chests/opening-frames/wood/atlas-06.webp",
+      "revision": "002de5e7f470245b4133eb72130b41f2b8a7231914dcca9c8f3c9fe6344eecf0"
+    },
+    {
+      "url": "/chests/opening-frames/wood/atlas-07.webp",
+      "revision": "ea308ee5974b70d3f94c2802d3d34a231fd566368997146f0fac45e1dd8c5bd6"
     },
     {
       "url": "/chests/ruby_chest.png",

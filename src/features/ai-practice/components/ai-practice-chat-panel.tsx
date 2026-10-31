@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SuperWaterText } from "@/components/super-water-text";
 import { TypingIndicator } from "@/components/typing-indicator";
 import { useAutoResizeTextarea } from "@/components/use-auto-resize-textarea";
 import {
@@ -1042,7 +1043,7 @@ function TranslationView({ translation }: { translation?: ClientMessage["transla
   }
 
   if (translation.status === "loading") {
-    return <p className="mt-1.5 text-xs text-foreground-muted">{t("aiPractice.chat.translating")}</p>;
+    return <p className="mt-1.5 text-xs text-foreground-muted"><SuperWaterText>{t("aiPractice.chat.translating")}</SuperWaterText></p>;
   }
 
   if (translation.status === "error") {
@@ -1123,7 +1124,7 @@ function ScenarioHelpMenu({
           {loading ? (
             <div className="flex items-center gap-2 rounded-xl bg-background-muted px-3 py-2 text-xs text-foreground-muted">
               <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-              <span>{t("aiPractice.scenario.helpLoading")}</span>
+              <SuperWaterText>{t("aiPractice.scenario.helpLoading")}</SuperWaterText>
             </div>
           ) : suggestions.length > 0 ? (
             <div className="grid gap-1.5">
@@ -1195,7 +1196,7 @@ function ChatComposer({
   return (
     <form
       onSubmit={onSubmit}
-      className="border-t border-border bg-background-card p-2 sm:p-3"
+      className="-translate-y-[14px] border-t border-border bg-background-card p-2 sm:p-3"
       data-chat-composer="bottom"
     >
       <div className="mx-auto w-full">

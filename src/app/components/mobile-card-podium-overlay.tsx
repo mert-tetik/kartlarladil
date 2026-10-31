@@ -1056,7 +1056,9 @@ export function MobileCardPodiumOverlay({
             <div className="mt-4 flex gap-2">
               <button type="button" disabled={busy} onClick={() => setConfirmation(null)} className="min-h-11 flex-1 rounded-full bg-black px-3 py-2 text-sm font-bold text-[var(--brand)]">{t("gems.cancel")}</button>
               <button type="button" disabled={busy} onClick={() => void confirmGemAction()} className="inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-full bg-[var(--brand)] px-3 py-2 text-sm font-bold text-[var(--brand-foreground)]">
-                {t("gems.confirm")} {confirmation === "blue" ? removeCardCost : markLearnedCost}<Image src={GEM_ASSETS[confirmation]} alt="" width={20} height={20} className="size-5 object-contain" />
+                {t("gems.confirm")} <span className={cn(canUseSuperWater(locale) && "font-super-water")}>
+                  {formatSuperWaterText(locale, String(confirmation === "blue" ? removeCardCost : markLearnedCost))}
+                </span><Image src={GEM_ASSETS[confirmation]} alt="" width={20} height={20} className="size-5 object-contain" />
               </button>
             </div>
           </div>

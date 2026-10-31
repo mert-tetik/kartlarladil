@@ -596,7 +596,7 @@ export function BonusQuestionView({
   gemBalances?: GemBalances | null;
   gemPulse?: GemHudPulse | null;
   gemRewards?: GemRewards | null;
-  onGemArrive?: (type: GemType) => void;
+  onGemArrive?: (type: GemType, amountAwarded: number) => void;
   onGemFlightComplete?: () => void;
   rewardRevealVisible?: boolean;
   onRewardCollect?: () => void;
@@ -683,7 +683,6 @@ export function BonusQuestionView({
         hudRole="reward"
         balances={gemBalances}
         pulse={gemPulse}
-        superWater={canUseSuperWater(locale)}
       />
     </div>
   ) : null;
@@ -775,9 +774,9 @@ export function BonusQuestionView({
                   onPointArrive?.(awardedTotal);
                 }}
                 onPointsComplete={rewardAnimationGate.markPointsScatterComplete}
-                onGemArrive={(type) => {
+                onGemArrive={(type, amountAwarded) => {
                   rewardAnimationGate.noteGemsArrival();
-                  onGemArrive?.(type);
+                  onGemArrive?.(type, amountAwarded);
                 }}
                 onGemsComplete={rewardAnimationGate.markGemsScatterComplete}
               />

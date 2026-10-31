@@ -535,7 +535,7 @@ export function MobileRankInfoSheet({
                       )}
                       data-rank-requirement={item.id}
                     >
-                      {formatNumber(locale, item.minPoints)}
+                      {formatSuperWaterText(locale, formatNumber(locale, item.minPoints))}
                       <ScoreIcon size={27} className={cn("size-7", !achieved && "grayscale opacity-60")} />
                     </p>
                   </div>
@@ -600,7 +600,7 @@ export function MobileRankInfoSheet({
             canUseSuperWater(locale) && "font-super-water",
           )}
         >
-          {formatNumber(locale, totalPoints)}
+          {formatSuperWaterText(locale, formatNumber(locale, totalPoints))}
           <ScoreIcon size={25} className="size-6" />
         </span>
       </header>

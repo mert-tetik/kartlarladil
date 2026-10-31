@@ -270,9 +270,9 @@ export function GameResultScreen({ game, level, success, points = 0, onPrimary }
           zIndex: 112,
         }}
         onPointsStart={() => handleRewardScatterStart("points")}
-        onPointsArrive={(awardedTotal, arrivalIndex) => {
+        onPointsArrive={(awardedTotal) => {
           setDisplayPoints(basePoints + awardedTotal);
-          setScorePulse(arrivalIndex);
+          setScorePulse((current) => current + 1);
         }}
         onPointsComplete={() => {
           handleRewardScatterComplete("points");

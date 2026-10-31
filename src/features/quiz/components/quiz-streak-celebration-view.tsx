@@ -7,7 +7,7 @@ import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/component
 import type { GemBalances, GemRewards } from "@/features/gems/gem-types";
 import { MainPointsDisplay } from "@/features/progress/components/main-points-display";
 import { RewardScatter } from "@/features/progress/components/reward-scatter";
-import { formatSuperWaterText } from "@/lib/super-water";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
@@ -278,7 +278,7 @@ export function QuizStreakCelebrationView({
             targetRef={rewardTargetRef}
             pulse={scorePulse}
             className="text-center"
-            valueClassName="text-lg font-bold"
+            valueClassName={cn("text-lg font-bold", canUseSuperWater(locale) && "font-super-water")}
             value={formatSuperWaterText(locale, formatNumber(locale, displayPoints))}
           />
           <div className="mt-2 flex justify-center">
@@ -287,7 +287,6 @@ export function QuizStreakCelebrationView({
               pulse={gemPulse}
               animate
               desktopVisible
-              superWater={false}
               hudRole="reward"
             />
           </div>
@@ -319,9 +318,9 @@ export function QuizStreakCelebrationView({
             placement: { origin: "random", spreadX: 0.58, spreadY: 0.5 },
             zIndex: 71,
           }}
-          onPointsArrive={(awardedTotal, arrivalIndex) => {
+          onPointsArrive={(awardedTotal) => {
             setDisplayPoints(totalPoints + awardedTotal);
-            setScorePulse(arrivalIndex);
+            setScorePulse((current) => current + 1);
           }}
           onPointsComplete={() => {
             pointsCompleteRef.current = true;

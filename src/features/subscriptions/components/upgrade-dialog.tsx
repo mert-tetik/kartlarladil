@@ -5,9 +5,20 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { Button, buttonClassName } from "@/components/ui/button";
+import { SuperWaterText } from "@/components/super-water-text";
 import { useAppMessage } from "@/components/app-message-provider";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
+import { useTwaMode } from "@/features/install-app/use-twa-mode";
+import {
+  getGooglePlayPricingDetails,
+  useGooglePlayPricing,
+} from "@/features/subscriptions/use-google-play-pricing";
+import {
+  formatCurrency,
+  getLocalizedPrice,
+  useLocalizedPricing,
+} from "@/features/subscriptions/components/use-localized-pricing";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { vibrate } from "@/lib/vibration";
@@ -24,6 +35,7 @@ export type UpgradeDialogErrorCode =
   | "language_match_not_allowed"
   | "game_language_match_not_allowed"
   | "learned_review_subscription_required"
+  | "theme_subscription_required"
   | "game_level_locked"
   | "scenario_subscription_required";
 
@@ -221,6 +233,9 @@ function SubscriptionDetailsRestrictionCta({
   const { locale } = useLocale();
   const { showMessage } = useAppMessage();
   const { entitlements, isLoading, openSubscriptionDetails } = useSubscription();
+  const isTwa = useTwaMode();
+  const googlePlayPricing = useGooglePlayPricing();
+  const localizedPricing = useLocalizedPricing(null, isTwa);
   const currentPlan = entitlements?.effectivePlan;
   const isPaidUser = currentPlan != null && currentPlan !== "free";
   const plan = requiresPro || currentPlan === "pro" ? "pro" : "basic";
@@ -233,12 +248,24 @@ function SubscriptionDetailsRestrictionCta({
         ? t("pricing.ctaManage")
         : t("limit.upgradeButtonFirstMonthFree");
   const planImage = RESTRICTION_PLAN_IMAGE[plan];
+  const googlePlayMonthlyPrice = getGooglePlayPricingDetails(googlePlayPricing, plan, "monthly");
+  const localizedMonthlyPrice = getLocalizedPrice(localizedPricing, plan, "monthly");
+  const monthlyPrice = googlePlayMonthlyPrice
+    ? formatCurrency(
+        Number.parseFloat(googlePlayMonthlyPrice.price.value),
+        googlePlayMonthlyPrice.price.currency,
+        locale,
+      )
+    : localizedMonthlyPrice
+      ? formatCurrency(localizedMonthlyPrice.amount, localizedMonthlyPrice.currencyCode, locale)
+      : formatCurrency(plan === "pro" ? (isTwa ? 6 : 9) : (isTwa ? 2 : 3), "USD", locale);
+  const showFirstMonthFreePrice = !isPaidUser && !isPaidPlanUpgrade;
   const planButtonClass = plan === "pro"
     ? "!bg-[#9333ea] !text-white hover:!bg-[#7e22ce] focus-visible:outline-[#c084fc]"
     : "!bg-[#2563eb] !text-white hover:!bg-[#1d4ed8] focus-visible:outline-[#93c5fd]";
 
   return (
-    <div className="mobile-primary-action-depth mobile-subscription-action-depth mt-6 w-full rounded-xl">
+    <div className="mobile-primary-action-depth mobile-subscription-action-depth subscription-restriction-cta-pulse mt-6 w-full rounded-xl">
       <svg
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-[-25px] z-0 h-9 w-full overflow-visible"
@@ -286,9 +313,17 @@ function SubscriptionDetailsRestrictionCta({
           );
         }}
       >
-        <span className="-space-y-1 flex min-w-0 flex-1 flex-col items-center justify-center text-center leading-tight">
-          <span className={cn("text-xl font-bold sm:text-2xl", canUseSuperWater(locale) && "font-super-water")}>{formatSuperWaterUppercaseText(locale, t("limit.removeLimits"))}!</span>
-          <span className="text-base font-semibold sm:text-lg">{isLoading ? t("common.loading") : formatSuperWaterUppercaseText(locale, buttonLabel)}</span>
+          <span className="-space-y-1 flex min-w-0 flex-1 flex-col items-center justify-center text-center leading-tight">
+            <span className={cn("text-xl font-bold sm:text-2xl", canUseSuperWater(locale) && "font-super-water")}>{formatSuperWaterUppercaseText(locale, t("limit.removeLimits"))}!</span>
+            <span className="flex min-w-0 flex-wrap items-baseline justify-center gap-x-1 text-center leading-tight">
+            <span className="text-base font-semibold sm:text-lg">
+              {isLoading ? <SuperWaterText>{t("common.loading")}</SuperWaterText> : formatSuperWaterUppercaseText(locale, buttonLabel)}
+              {showFirstMonthFreePrice && !isLoading ? " /" : null}
+            </span>
+            {showFirstMonthFreePrice && !isLoading ? (
+              <span className="whitespace-nowrap text-xs font-medium lowercase sm:text-sm">{monthlyPrice}{t("pricing.perMonth")}</span>
+            ) : null}
+          </span>
         </span>
       </Button>
     </div>
@@ -370,6 +405,12 @@ function getLimitContent(
       return {
         title: t("limit.learnedReviewSubscriptionTitle"),
         description: t("limit.learnedReviewSubscriptionDescription"),
+        variant: "upgrade",
+      };
+    case "theme_subscription_required":
+      return {
+        title: t("theme.upgradeTitle"),
+        description: t("theme.upgradeDescription"),
         variant: "upgrade",
       };
     case "scenario_subscription_required":

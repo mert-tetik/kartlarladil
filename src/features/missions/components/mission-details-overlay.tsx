@@ -241,7 +241,7 @@ export function MissionDetailsOverlay({ mission, sourceRect, onClose, onNavigate
                     "text-4xl font-bold text-white",
                     canUseSuperWater(locale) && "font-super-water",
                   )}>
-                    ×{activeMission.reward.amount}
+                    ×{formatSuperWaterText(locale, String(activeMission.reward.amount))}
                   </p>
                 </div>
               ) : (

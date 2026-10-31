@@ -5,6 +5,7 @@ import {
   completeMissionRewardAnimation,
   enqueueMissionRewardAnimation,
   getActiveMissionRewardAnimations,
+  getMissionRewardOverlayModes,
   removeMissionRewardAnimation,
   settleMissionRewardAnimation,
 } from "./mission-reward-queue";
@@ -49,6 +50,16 @@ describe("mission reward animation queue", () => {
     expect(getActiveMissionRewardAnimations(queue)).toHaveLength(1);
   });
 
+  it("marks a gem claim settled even when the response has no balance snapshot", () => {
+    let queue = enqueueMissionRewardAnimation([], gems("gems-without-snapshot"));
+    queue = settleMissionRewardAnimation(queue, "gems-without-snapshot");
+
+    expect(queue[0]).toMatchObject({
+      claimSettled: true,
+      mode: { kind: "gems", claimSettled: true },
+    });
+  });
+
   it("keeps chest videos sequential while allowing point scatters to run beside them", () => {
     let queue = enqueueMissionRewardAnimation([], { missionId: "chest-one", kind: "chest", tier: CHEST_TIERS[0] });
     queue = enqueueMissionRewardAnimation(queue, { missionId: "chest-two", kind: "chest", tier: CHEST_TIERS[1] });
@@ -71,8 +82,13 @@ describe("mission reward animation queue", () => {
     queue = completeMissionRewardAnimation(queue, "slow-claim");
 
     expect(getActiveMissionRewardAnimations(queue).map((mode) => mode.missionId)).toEqual(["next-claim"]);
+    expect(getMissionRewardOverlayModes(queue)).toMatchObject([
+      { missionId: "slow-claim", animationComplete: true },
+      { missionId: "next-claim" },
+    ]);
     queue = settleMissionRewardAnimation(queue, "slow-claim");
     expect(queue.map((entry) => entry.mode.missionId)).toEqual(["next-claim"]);
+    expect(getMissionRewardOverlayModes(queue).map((mode) => mode.missionId)).toEqual(["next-claim"]);
   });
 
   it("removes a failed claim and lets the next stacked animation continue", () => {

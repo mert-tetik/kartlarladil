@@ -52,6 +52,7 @@ export function RankProgressPopover({
   const visibleRankUp = tutorialVisible ? null : pendingRankUp;
   const { locale } = useLocale();
   const t = useT();
+  const usesSuperWater = canUseSuperWater(locale);
 
   useEffect(() => {
     setForcedRankUpOpen(Boolean(forceRankUpRank));
@@ -112,13 +113,20 @@ export function RankProgressPopover({
               <span
                 key={scoreGain}
                 aria-live="polite"
-                className="rank-score-gain absolute left-1/2 whitespace-nowrap text-[11px] font-bold text-[var(--score-start)]"
+                className={cn(
+                  "rank-score-gain absolute left-1/2 whitespace-nowrap text-[11px] font-bold text-[var(--score-start)]",
+                  usesSuperWater && "font-super-water",
+                )}
               >
-                +{formatNumber(locale, scoreGain)}
+                +{formatSuperWaterText(locale, formatNumber(locale, scoreGain))}
               </span>
             ) : null}
-            <span className={cn("min-[390px]:hidden", navbar && "text-white")}>{formatNumber(locale, displayStats.totalPoints)}</span>
-            <span className={cn("hidden min-[390px]:inline", navbar && "text-white")}>{formatPoints(locale, displayStats.totalPoints)}</span>
+            <span className={cn("min-[390px]:hidden", navbar && "text-white", usesSuperWater && "font-super-water")}>
+              {formatSuperWaterText(locale, formatNumber(locale, displayStats.totalPoints))}
+            </span>
+            <span className={cn("hidden min-[390px]:inline", navbar && "text-white", usesSuperWater && "font-super-water")}>
+              {formatSuperWaterText(locale, formatPoints(locale, displayStats.totalPoints))}
+            </span>
           </span>
         </button>
       )}
@@ -184,8 +192,8 @@ function RankLadderDialog({ stats, onClose }: { stats: ProgressStats; onClose: (
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="px-3 py-1 text-sm font-bold text-[var(--score-start)] md:px-4 md:py-1.5 md:text-base">
-                {formatPoints(locale, stats.totalPoints)}
+              <div className={cn("px-3 py-1 text-sm font-bold text-[var(--score-start)] md:px-4 md:py-1.5 md:text-base", canUseSuperWater(locale) && "font-super-water")}>
+                {formatSuperWaterText(locale, formatPoints(locale, stats.totalPoints))}
               </div>
               <button
                 type="button"
@@ -773,8 +781,8 @@ function RankStepDesktop({
       >
         {label}
       </p>
-      <p className={cn("mt-1 text-sm font-semibold md:text-base", current ? "text-[var(--score-end)]" : "text-foreground-muted")}>
-        {formatNumber(locale, rank.minPoints)}
+      <p className={cn("mt-1 text-sm font-semibold md:text-base", current ? "text-[var(--score-end)]" : "text-foreground-muted", canUseSuperWater(locale) && "font-super-water")}>
+        {formatSuperWaterText(locale, formatNumber(locale, rank.minPoints))}
       </p>
     </li>
   );
@@ -821,7 +829,9 @@ function RankStepMobile({
           {label}
         </p>
         <p className={cn("text-base font-semibold", current ? "text-white" : "text-foreground-muted")}>
-          {formatNumber(locale, rank.minPoints)} puan
+          <span className={cn(canUseSuperWater(locale) && "font-super-water")}>
+            {formatSuperWaterText(locale, formatNumber(locale, rank.minPoints))}
+          </span>{" "}puan
         </p>
 
       </div>

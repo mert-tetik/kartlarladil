@@ -277,21 +277,9 @@ function ScenarioPracticeCard({
   const chatBackground = getAiPracticeScenarioChatBackground(scenario.id);
   const title = getScenarioTitle(scenario, locale);
   const profession = getScenarioProfession(scenario, locale);
-
-  return (
-    <Link
-      href={href}
-      aria-disabled={locked}
-      data-ai-practice-scenario-locked={locked ? "true" : "false"}
-      onClick={(event) => {
-        if (locked) {
-          event.preventDefault();
-          onLocked();
-        }
-      }}
-      aria-label={`${title}, ${getScenarioSummary(scenario, locale)}`}
-      className="group overflow-hidden rounded-lg border border-border bg-background-card transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-    >
+  const cardClassName = "group block overflow-hidden rounded-lg border border-border bg-background-card text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground";
+  const cardContent = (
+    <>
       <div
         className="relative aspect-square overflow-hidden bg-background-muted"
         style={{ backgroundImage: `${chatBackground.overlay}, url(${chatBackground.imageSrc})` }}
@@ -321,6 +309,32 @@ function ScenarioPracticeCard({
           />
         </div>
       </div>
+    </>
+  );
+
+  if (locked) {
+    return (
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-label={`${title}, ${getScenarioSummary(scenario, locale)}`}
+        data-ai-practice-scenario-locked="true"
+        onClick={onLocked}
+        className={`${cardClassName} w-full cursor-pointer p-0`}
+      >
+        {cardContent}
+      </button>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      aria-label={`${title}, ${getScenarioSummary(scenario, locale)}`}
+      data-ai-practice-scenario-locked="false"
+      className={cardClassName}
+    >
+      {cardContent}
     </Link>
   );
 }

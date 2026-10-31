@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ClipboardE
 import { BookOpen, Camera, Check, Copy, Image as ImageIcon, Loader2, ScanText, Trash2, Type, Upload, Volume2, X } from "lucide-react";
 import type { Area } from "react-easy-crop";
 import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
+import { SuperWaterText } from "@/components/super-water-text";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import { normalizeImageFile } from "@/app/components/image-file";
 import { cropImageToDataUrl } from "@/app/components/image-crop";
@@ -53,7 +54,7 @@ import type { LanguageCode, LimitErrorCode, Tier, VocabularyCard } from "@/types
 
 const MAX_UPLOAD_IMAGES = 6;
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024;
-const MAX_TEXT_LENGTH = 4000;
+const MAX_TEXT_LENGTH = 5000;
 const IMAGE_TEXT_TRANSLATE_OPENED_KEY = "foxiesdeck:image-text-translate-opened";
 const IMAGE_TEXT_TRANSLATE_TUTORIAL_EXIT_MS = 860;
 
@@ -742,7 +743,7 @@ export function MobileImageTextTranslateOverlay({
               {preparingCrop ? (
                 <div className="flex h-20 items-center justify-center gap-2 rounded-xl border-2 border-dashed border-white bg-background-card/60 px-4 text-center text-sm text-foreground-secondary" role="status" data-image-text-crop-preparing>
                   <Loader2 className="size-5 animate-spin" aria-hidden="true" />
-                  {t("imageTranslate.loadingImage")}
+                  <SuperWaterText>{t("imageTranslate.loadingImage")}</SuperWaterText>
                 </div>
               ) : images.length > 0 ? (
                 <div
@@ -789,7 +790,7 @@ export function MobileImageTextTranslateOverlay({
         <div className="mobile-primary-action-depth mobile-primary-action-depth--brand w-full rounded-xl">
           <button type="button" disabled={!hasInput || loading} onClick={handleGenerate} aria-busy={loading} aria-disabled={translationLocked} className="image-text-translate-primary-action flex h-14 w-full items-center justify-center gap-2 rounded-xl border-0 bg-[var(--brand)] px-4 text-base font-bold text-white transition-colors active:scale-[0.98] hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed">
             {loading ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : translationLocked ? null : <ScanText className="size-5" aria-hidden="true" />}
-            {loading ? t("imageTranslate.generating") : translationLocked ? t("imageTranslate.upgradeToPro") : t("imageTranslate.generate")}
+            {loading ? <SuperWaterText>{t("imageTranslate.generating")}</SuperWaterText> : translationLocked ? t("imageTranslate.upgradeToPro") : t("imageTranslate.generate")}
           </button>
         </div>
 
@@ -886,7 +887,7 @@ export function MobileImageTextTranslateOverlay({
                   className="flex min-h-16 w-full items-center gap-3 rounded-xl bg-transparent px-4 py-3 text-left text-sm font-semibold text-foreground-secondary disabled:cursor-wait"
                 >
                   <Loader2 className="size-5 shrink-0 animate-spin" aria-hidden="true" />
-                  <span>{t("imageTranslate.loadingTranslations")}</span>
+                  <SuperWaterText>{t("imageTranslate.loadingTranslations")}</SuperWaterText>
                 </button>
               ))}
             </div>
@@ -1196,7 +1197,7 @@ function WordDetailOverlay({
         </div>
         <div className="rounded-2xl bg-black/15 px-3 py-3">
           {wordStatus === "loading" ? (
-            <div className="flex items-center gap-2 py-1 text-sm text-white/80"><Loader2 className="size-5 animate-spin" aria-hidden="true" />{t("imageTranslate.translatingWord")}</div>
+            <div className="flex items-center gap-2 py-1 text-sm text-white/80"><Loader2 className="size-5 animate-spin" aria-hidden="true" /><SuperWaterText>{t("imageTranslate.translatingWord")}</SuperWaterText></div>
           ) : (
             <p className="text-base font-semibold">{wordDetail.translation}</p>
           )}

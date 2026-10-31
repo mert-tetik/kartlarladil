@@ -705,6 +705,23 @@ button:disabled,
   transform: none;
 }
 
+.subscription-restriction-cta-pulse {
+  animation: subscription-restriction-cta-pulse 1.6s ease-in-out infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@keyframes subscription-restriction-cta-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.04);
+  }
+}
+
 .mobile-main-nav-frame {
   background: var(--background-card);
   bottom: 14px;
@@ -6405,6 +6422,7 @@ body:has([data-leaderboard-overlay]) [data-mobile-main-nav-frame] {
 }
 
 body:has([data-pricing-active-subscription]) [data-mobile-main-nav-frame] {
+  bottom: 0;
   display: block !important;
 }
 

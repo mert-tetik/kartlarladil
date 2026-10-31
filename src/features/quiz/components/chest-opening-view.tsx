@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject, type SyntheticEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import Image from "next/image";
 import { ScoreIcon } from "@/components/score-icon";
 import { useLocale, useT } from "@/i18n/locale-provider";
@@ -10,14 +10,25 @@ import { vibrate } from "@/lib/vibration";
 import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import {
   CHEST_TIER_OPENING_AUDIO,
-  CHEST_TIER_OPENING_VIDEOS,
   type ChestTierDefinition,
 } from "@/features/quiz/chest-rewards";
+import {
+  CHEST_OPENING_ATLAS_COLUMNS,
+  CHEST_OPENING_ATLAS_COUNT,
+  CHEST_OPENING_DURATION_SECONDS,
+  CHEST_OPENING_FRAME_COUNT,
+  CHEST_OPENING_FRAME_HEIGHT,
+  CHEST_OPENING_FRAME_RATE,
+  CHEST_OPENING_FRAME_WIDTH,
+  CHEST_OPENING_FRAMES_PER_ATLAS,
+  getChestOpeningAtlasSource,
+  loadChestOpeningAtlasImage,
+  preloadChestOpeningFrames,
+} from "@/features/quiz/chest-opening-frames";
 import { GEM_ASSETS, type ChestRewardOutcome, type GemBalances, type GemType } from "@/features/gems/gem-types";
 import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
 import { MainPointsDisplay } from "@/features/progress/components/main-points-display";
 import { RewardScatter } from "@/features/progress/components/reward-scatter";
-import { getNativeMediaFallbackSource, isNativeMediaFallbackSource } from "@/lib/native-media-fallback";
 
 interface ChestOpeningViewProps {
   tier: ChestTierDefinition;
@@ -27,15 +38,15 @@ interface ChestOpeningViewProps {
   reward?: ChestRewardOutcome | null;
   enterWithCss?: boolean;
   autoPlay?: boolean;
-  onVideoReady?: (video: HTMLVideoElement | null) => void;
+  onOpeningReady?: (start: (() => void) | null) => void;
 }
 
 type ChestPhase = "playing" | "revealed" | "disappearing";
 type PointsPhase = "hidden" | "shown" | "flying" | "added";
 const REWARD_REVEAL_AT_SECONDS = 3;
 const REWARD_HOLD_BEFORE_FLIGHT_MS = 800;
-const VIDEO_LAST_FRAME_HOLD_MS = 2000;
-const VIDEO_AUDIO_FADE_DURATION_MS = 800;
+const ANIMATION_LAST_FRAME_HOLD_MS = 2000;
+const ANIMATION_AUDIO_FADE_DURATION_MS = 800;
 const DISAPPEAR_MS = 500;
 const DOUBLE_TAP_WINDOW_MS = 280;
 
@@ -59,7 +70,7 @@ export function ChestOpeningView({
   reward,
   enterWithCss = true,
   autoPlay = true,
-  onVideoReady,
+  onOpeningReady,
 }: ChestOpeningViewProps) {
   const t = useT();
   const { locale } = useLocale();
@@ -69,9 +80,7 @@ export function ChestOpeningView({
   const [pointsPhase, setPointsPhase] = useState<PointsPhase>("hidden");
   const [displayPoints, setDisplayPoints] = useState(stableTotalPoints);
   const [rewardOutcome, setRewardOutcome] = useState<ChestRewardOutcome | null>(reward ?? null);
-  const [videoSource, setVideoSource] = useState(CHEST_TIER_OPENING_VIDEOS[tier.tier]);
-  const [audioSource, setAudioSource] = useState(CHEST_TIER_OPENING_AUDIO[tier.tier]);
-  const [videoUnavailable, setVideoUnavailable] = useState(false);
+  const audioSource = CHEST_TIER_OPENING_AUDIO[tier.tier];
   const [rewardResolved, setRewardResolved] = useState(!onRewardReady || Boolean(reward));
   const [rewardRevealReady, setRewardRevealReady] = useState(false);
   const [pointsDisplayPulse, setPointsDisplayPulse] = useState(0);
@@ -89,10 +98,19 @@ export function ChestOpeningView({
   const rewardRevealTriggeredRef = useRef(false);
   const hasShownRewardsRef = useRef(false);
   const hasTriggeredOpenHapticRef = useRef(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioStartedRef = useRef(false);
-  const videoCompletionModeRef = useRef<"playing" | "ended" | "skipped">("playing");
+  const animationCompletionModeRef = useRef<"playing" | "ended" | "skipped">("playing");
+  const animationStartedRef = useRef(false);
+  const animationStartTimeRef = useRef<number | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const lastRequestedFrameRef = useRef<number | null>(null);
+  const lastDrawnFrameRef = useRef<number | null>(null);
+  const drawFrameRef = useRef<(frameIndex: number) => void>(() => undefined);
+  const loadedAtlasesRef = useRef(new Map<number, { drawable: CanvasImageSource; release: () => void }>());
+  const atlasPromisesRef = useRef(new Map<number, Promise<{ drawable: CanvasImageSource; release: () => void } | null>>());
+  const atlasGenerationRef = useRef(0);
   const lastTapAtRef = useRef(0);
   const rewardPromiseRef = useRef<Promise<ChestRewardOutcome | null> | null>(null);
   const totalPointsRef = useRef<HTMLSpanElement | null>(null);
@@ -101,17 +119,11 @@ export function ChestOpeningView({
   const greenGemRewardRef = useRef<HTMLDivElement | null>(null);
   const purpleGemRewardRef = useRef<HTMLDivElement | null>(null);
   const pointsTimeoutRef = useRef<number | null>(null);
-  const videoEndCloseTimeoutRef = useRef<number | null>(null);
+  const animationEndCloseTimeoutRef = useRef<number | null>(null);
   const completeTimeoutRef = useRef<number | null>(null);
-  const videoRevealTimeoutRef = useRef<number | null>(null);
   const pointsScatterCompleteRef = useRef(false);
   const gemsScatterCompleteRef = useRef(false);
   const scatterCompletionTriggeredRef = useRef(false);
-
-  const attachVideoRef = useCallback((video: HTMLVideoElement | null) => {
-    videoRef.current = video;
-    onVideoReady?.(video);
-  }, [onVideoReady]);
 
   const rewardGemSourceRefs = useMemo<Partial<Record<GemType, RefObject<HTMLElement | null>>>>(
     () => ({ blue: blueGemRewardRef, green: greenGemRewardRef, purple: purpleGemRewardRef }),
@@ -123,74 +135,11 @@ export function ChestOpeningView({
     [locale, usesSuperWater],
   );
 
-  const revealAtVideoTimestamp = useCallback(() => {
+  const revealAtAnimationTimestamp = useCallback(() => {
     if (rewardRevealTriggeredRef.current) return;
     rewardRevealTriggeredRef.current = true;
-    if (videoRevealTimeoutRef.current !== null) {
-      window.clearTimeout(videoRevealTimeoutRef.current);
-      videoRevealTimeoutRef.current = null;
-    }
     setRewardRevealReady(true);
   }, []);
-
-  const handleVideoPlay = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
-    const video = event.currentTarget;
-    video.muted = true;
-    video.volume = 0;
-    const audio = audioRef.current;
-    if (audio) {
-      audioStartedRef.current = true;
-      try {
-        audio.currentTime = video.currentTime;
-      } catch {
-        // Seeking the separate track is best effort on older WebViews.
-      }
-      const playResult = audio.play?.();
-      if (playResult && typeof playResult.catch === "function") {
-        void playResult.catch(() => undefined);
-      }
-    }
-    if (!hasTriggeredOpenHapticRef.current) {
-      hasTriggeredOpenHapticRef.current = true;
-      try {
-        vibrate("chest-open");
-      } catch {
-        // Optional audio and haptics must not block the reward flow.
-      }
-    }
-
-    if (rewardRevealTriggeredRef.current) return;
-    const remainingMs = Math.max(
-      0,
-      (REWARD_REVEAL_AT_SECONDS - event.currentTarget.currentTime) * 1000,
-    );
-    videoRevealTimeoutRef.current = window.setTimeout(revealAtVideoTimestamp, remainingMs);
-  }, [revealAtVideoTimestamp]);
-
-  const handleVideoTimeUpdate = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
-    const video = event.currentTarget;
-    const audio = audioRef.current;
-    if (audio && audioStartedRef.current) {
-      if (Math.abs(audio.currentTime - video.currentTime) > 0.16) {
-        try {
-          audio.currentTime = video.currentTime;
-        } catch {
-          // Keep the video usable if a WebView rejects a seek during startup.
-        }
-      }
-    }
-    if (Number.isFinite(video.duration) && video.duration > 0) {
-      const fadeStart = video.duration - VIDEO_AUDIO_FADE_DURATION_MS / 1000;
-      if (video.currentTime >= fadeStart) {
-        const fadeProgress = Math.max(0, Math.min(1, (video.duration - video.currentTime) / (VIDEO_AUDIO_FADE_DURATION_MS / 1000)));
-        if (audio) audio.volume = fadeProgress;
-      }
-    }
-
-    if (video.currentTime >= REWARD_REVEAL_AT_SECONDS) {
-      revealAtVideoTimestamp();
-    }
-  }, [revealAtVideoTimestamp]);
 
   const handleCollect = useCallback(() => {
     if (hasCompleted.current) return;
@@ -200,7 +149,7 @@ export function ChestOpeningView({
   }, [onComplete]);
 
   const tryCompleteAfterSkippedScatter = useCallback(() => {
-    if (videoCompletionModeRef.current !== "skipped") return;
+    if (animationCompletionModeRef.current !== "skipped") return;
     if (scatterCompletionTriggeredRef.current) return;
 
     const currentRewardPoints = rewardOutcome?.points ?? tier.points;
@@ -213,26 +162,274 @@ export function ChestOpeningView({
     handleCollect();
   }, [handleCollect, rewardOutcome, tier.points]);
 
-  const skipVideoToLastFrame = useCallback(() => {
-    if (phase !== "playing" || videoCompletionModeRef.current !== "playing") return;
+  const ensureAtlasImage = useCallback((atlasIndex: number) => {
+    const loaded = loadedAtlasesRef.current.get(atlasIndex);
+    if (loaded) return Promise.resolve(loaded);
 
-    videoCompletionModeRef.current = "skipped";
-    const video = videoRef.current;
-    if (video) {
-      video.pause();
-      video.muted = true;
-      video.volume = 0;
-      audioRef.current?.pause();
-      if (Number.isFinite(video.duration) && video.duration > 0) {
+    const pending = atlasPromisesRef.current.get(atlasIndex);
+    if (pending) return pending;
+
+    const generation = atlasGenerationRef.current;
+    const request = (async () => {
+      try {
+        const image = await loadChestOpeningAtlasImage(getChestOpeningAtlasSource(tier.tier, atlasIndex));
+
+        const loadedAtlas = { drawable: image, release: () => { image.src = "data:,"; } };
+
+        if (generation !== atlasGenerationRef.current) {
+          loadedAtlas.release();
+          return null;
+        }
+
+        const requestedFrame = lastRequestedFrameRef.current;
+        const requestedAtlasIndex = requestedFrame === null
+          ? 0
+          : Math.floor(requestedFrame / CHEST_OPENING_FRAMES_PER_ATLAS);
+        if (atlasIndex < requestedAtlasIndex || atlasIndex > requestedAtlasIndex + 1) {
+          loadedAtlas.release();
+          return null;
+        }
+
+        loadedAtlasesRef.current.set(atlasIndex, loadedAtlas);
+        if (requestedFrame !== null && Math.floor(requestedFrame / CHEST_OPENING_FRAMES_PER_ATLAS) === atlasIndex) {
+          drawFrameRef.current(requestedFrame);
+        }
+        return loadedAtlas;
+      } catch {
+        return null;
+      }
+    })();
+
+    atlasPromisesRef.current.set(atlasIndex, request);
+    return request;
+  }, [tier.tier]);
+
+  const drawFrame = useCallback((requestedFrame: number) => {
+    const frameIndex = Math.max(0, Math.min(CHEST_OPENING_FRAME_COUNT - 1, requestedFrame));
+    lastRequestedFrameRef.current = frameIndex;
+    const atlasIndex = Math.floor(frameIndex / CHEST_OPENING_FRAMES_PER_ATLAS);
+    const atlas = loadedAtlasesRef.current.get(atlasIndex);
+
+    if (!atlas && !atlasPromisesRef.current.has(atlasIndex)) {
+      void ensureAtlasImage(atlasIndex);
+    }
+    if (
+      atlasIndex + 1 < CHEST_OPENING_ATLAS_COUNT &&
+      !loadedAtlasesRef.current.has(atlasIndex + 1) &&
+      !atlasPromisesRef.current.has(atlasIndex + 1)
+    ) {
+      void ensureAtlasImage(atlasIndex + 1);
+    }
+
+    if (!atlas) return;
+
+    for (const [loadedIndex, loadedAtlas] of loadedAtlasesRef.current) {
+      if (loadedIndex === atlasIndex || loadedIndex === atlasIndex + 1) continue;
+      loadedAtlas.release();
+      loadedAtlasesRef.current.delete(loadedIndex);
+      atlasPromisesRef.current.delete(loadedIndex);
+    }
+
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d", { alpha: false, desynchronized: true });
+    if (!canvas || !context) return;
+
+    const width = canvas.clientWidth || window.innerWidth;
+    const height = canvas.clientHeight || window.innerHeight;
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+    const pixelWidth = Math.max(1, Math.round(width * pixelRatio));
+    const pixelHeight = Math.max(1, Math.round(height * pixelRatio));
+    if (
+      lastDrawnFrameRef.current === frameIndex &&
+      canvas.width === pixelWidth &&
+      canvas.height === pixelHeight
+    ) {
+      return;
+    }
+    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+    }
+
+    context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+
+    const scale = Math.max(width / CHEST_OPENING_FRAME_WIDTH, height / CHEST_OPENING_FRAME_HEIGHT);
+    const drawWidth = CHEST_OPENING_FRAME_WIDTH * scale;
+    const drawHeight = CHEST_OPENING_FRAME_HEIGHT * scale;
+    const drawX = (width - drawWidth) / 2;
+    const drawY = (height - drawHeight) / 2;
+    const atlasFrame = frameIndex % CHEST_OPENING_FRAMES_PER_ATLAS;
+    const sourceX = (atlasFrame % CHEST_OPENING_ATLAS_COLUMNS) * CHEST_OPENING_FRAME_WIDTH;
+    const sourceY = Math.floor(atlasFrame / CHEST_OPENING_ATLAS_COLUMNS) * CHEST_OPENING_FRAME_HEIGHT;
+
+    context.clearRect(0, 0, width, height);
+    context.drawImage(
+      atlas.drawable,
+      sourceX,
+      sourceY,
+      CHEST_OPENING_FRAME_WIDTH,
+      CHEST_OPENING_FRAME_HEIGHT,
+      drawX,
+      drawY,
+      drawWidth,
+      drawHeight,
+    );
+    lastDrawnFrameRef.current = frameIndex;
+  }, [ensureAtlasImage]);
+
+  const finishAnimation = useCallback(() => {
+    if (animationCompletionModeRef.current !== "playing") return;
+    animationCompletionModeRef.current = "ended";
+    animationStartedRef.current = false;
+    animationFrameRef.current = null;
+    drawFrameRef.current(CHEST_OPENING_FRAME_COUNT - 1);
+
+    const audio = audioRef.current;
+    if (audio) {
+      audio.volume = 0;
+      audio.pause();
+    }
+
+    revealAtAnimationTimestamp();
+    if (animationEndCloseTimeoutRef.current !== null) {
+      window.clearTimeout(animationEndCloseTimeoutRef.current);
+    }
+    animationEndCloseTimeoutRef.current = window.setTimeout(handleCollect, ANIMATION_LAST_FRAME_HOLD_MS);
+  }, [handleCollect, revealAtAnimationTimestamp]);
+
+  const animateOpening = useCallback((timestamp: number) => {
+    const startedAt = animationStartTimeRef.current;
+    if (startedAt === null || !animationStartedRef.current) return;
+
+    const elapsed = Math.max(0, (timestamp - startedAt) / 1000);
+    const animationTime = Math.min(elapsed, CHEST_OPENING_DURATION_SECONDS);
+    const frameIndex = Math.min(
+      CHEST_OPENING_FRAME_COUNT - 1,
+      Math.floor(animationTime * CHEST_OPENING_FRAME_RATE),
+    );
+    drawFrameRef.current(frameIndex);
+
+    if (elapsed >= REWARD_REVEAL_AT_SECONDS) {
+      revealAtAnimationTimestamp();
+    }
+
+    const audio = audioRef.current;
+    if (audio) {
+      const fadeStart = CHEST_OPENING_DURATION_SECONDS - ANIMATION_AUDIO_FADE_DURATION_MS / 1000;
+      audio.volume = animationTime >= fadeStart
+        ? Math.max(0, (CHEST_OPENING_DURATION_SECONDS - animationTime) / (ANIMATION_AUDIO_FADE_DURATION_MS / 1000))
+        : 1;
+
+      if (audioStartedRef.current && !audio.paused && Math.abs(audio.currentTime - animationTime) > 0.16) {
         try {
-          video.currentTime = video.duration;
+          audio.currentTime = animationTime;
         } catch {
-          // Some browsers reject seeking while the media element is still loading.
+          // Keep the frame animation moving if a WebView rejects an audio seek.
         }
       }
     }
-    revealAtVideoTimestamp();
-  }, [phase, revealAtVideoTimestamp]);
+
+    if (elapsed >= CHEST_OPENING_DURATION_SECONDS) {
+      finishAnimation();
+      return;
+    }
+
+    animationFrameRef.current = window.requestAnimationFrame(animateOpening);
+  }, [finishAnimation, revealAtAnimationTimestamp]);
+
+  const startOpening = useCallback(() => {
+    if (animationStartedRef.current || animationCompletionModeRef.current !== "playing") return;
+    animationStartedRef.current = true;
+    animationStartTimeRef.current = window.performance.now();
+    audioStartedRef.current = false;
+    drawFrameRef.current(0);
+
+    const audio = audioRef.current;
+    if (audio) {
+      audio.volume = 1;
+      try {
+        audio.currentTime = 0;
+        const playResult = audio.play?.();
+        if (playResult && typeof playResult.then === "function") {
+          void playResult.then(() => {
+            audioStartedRef.current = true;
+          }).catch(() => {
+            audioStartedRef.current = false;
+          });
+        } else {
+          audioStartedRef.current = true;
+        }
+      } catch {
+        audioStartedRef.current = false;
+      }
+    }
+
+    if (!hasTriggeredOpenHapticRef.current) {
+      hasTriggeredOpenHapticRef.current = true;
+      try {
+        vibrate("chest-open");
+      } catch {
+        // Optional haptics must not block the reward flow.
+      }
+    }
+
+    animationFrameRef.current = window.requestAnimationFrame(animateOpening);
+  }, [animateOpening]);
+
+  const attachCanvasRef = useCallback((canvas: HTMLCanvasElement | null) => {
+    canvasRef.current = canvas;
+    onOpeningReady?.(canvas ? startOpening : null);
+  }, [onOpeningReady, startOpening]);
+
+  useEffect(() => {
+    drawFrameRef.current = drawFrame;
+  }, [drawFrame]);
+
+  useEffect(() => {
+    const generation = ++atlasGenerationRef.current;
+    void ensureAtlasImage(0);
+    void ensureAtlasImage(1);
+    if (autoPlay) {
+      void preloadChestOpeningFrames(tier.tier, 2).catch(() => undefined);
+    }
+
+    return () => {
+      if (atlasGenerationRef.current === generation) atlasGenerationRef.current += 1;
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      animationStartedRef.current = false;
+      for (const atlas of loadedAtlasesRef.current.values()) atlas.release();
+      loadedAtlasesRef.current.clear();
+      atlasPromisesRef.current.clear();
+      audioRef.current?.pause();
+    };
+  }, [autoPlay, ensureAtlasImage, tier.tier]);
+
+  useEffect(() => {
+    if (autoPlay) startOpening();
+  }, [autoPlay, startOpening]);
+
+  const skipOpeningToLastFrame = useCallback(() => {
+    if (phase !== "playing" || animationCompletionModeRef.current !== "playing") return;
+
+    animationCompletionModeRef.current = "skipped";
+    animationStartedRef.current = false;
+    if (animationFrameRef.current !== null) {
+      window.cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    const audio = audioRef.current;
+    if (audio) {
+      audio.volume = 0;
+      audio.pause();
+    }
+    drawFrameRef.current(CHEST_OPENING_FRAME_COUNT - 1);
+    revealAtAnimationTimestamp();
+  }, [phase, revealAtAnimationTimestamp]);
 
   const handleSurfacePointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.pointerType === "mouse") return;
@@ -240,50 +437,11 @@ export function ChestOpeningView({
     const now = Date.now();
     if (now - lastTapAtRef.current <= DOUBLE_TAP_WINDOW_MS) {
       lastTapAtRef.current = 0;
-      skipVideoToLastFrame();
+      skipOpeningToLastFrame();
       return;
     }
     lastTapAtRef.current = now;
-  }, [skipVideoToLastFrame]);
-
-  const handleVideoEnded = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
-    event.currentTarget.muted = true;
-    event.currentTarget.volume = 0;
-    audioRef.current?.pause();
-    if (videoCompletionModeRef.current === "skipped") {
-      event.currentTarget.pause();
-      revealAtVideoTimestamp();
-      return;
-    }
-
-    videoCompletionModeRef.current = "ended";
-    revealAtVideoTimestamp();
-    if (videoEndCloseTimeoutRef.current !== null) {
-      window.clearTimeout(videoEndCloseTimeoutRef.current);
-    }
-    videoEndCloseTimeoutRef.current = window.setTimeout(handleCollect, VIDEO_LAST_FRAME_HOLD_MS);
-  }, [handleCollect, revealAtVideoTimestamp]);
-
-  const handleVideoError = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
-    if (!isNativeMediaFallbackSource(videoSource)) {
-      setVideoSource(getNativeMediaFallbackSource(videoSource));
-      return;
-    }
-
-    setVideoUnavailable(true);
-    handleVideoEnded(event);
-  }, [handleVideoEnded, videoSource]);
-
-  useEffect(() => {
-    // The media element must be reset synchronously when a different chest tier is mounted.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setVideoSource(CHEST_TIER_OPENING_VIDEOS[tier.tier]);
-    setAudioSource(CHEST_TIER_OPENING_AUDIO[tier.tier]);
-    setVideoUnavailable(false);
-    videoCompletionModeRef.current = "playing";
-    lastTapAtRef.current = 0;
-    audioStartedRef.current = false;
-  }, [tier.tier]);
+  }, [skipOpeningToLastFrame]);
 
   useEffect(() => {
     if (reward) {
@@ -336,9 +494,9 @@ export function ChestOpeningView({
     const audio = audioRef.current;
     return () => {
       if (pointsTimeoutRef.current !== null) window.clearTimeout(pointsTimeoutRef.current);
-      if (videoEndCloseTimeoutRef.current !== null) window.clearTimeout(videoEndCloseTimeoutRef.current);
+      if (animationEndCloseTimeoutRef.current !== null) window.clearTimeout(animationEndCloseTimeoutRef.current);
       if (completeTimeoutRef.current !== null) window.clearTimeout(completeTimeoutRef.current);
-      if (videoRevealTimeoutRef.current !== null) window.clearTimeout(videoRevealTimeoutRef.current);
+      if (animationFrameRef.current !== null) window.cancelAnimationFrame(animationFrameRef.current);
       audio?.pause();
     };
   }, []);
@@ -356,7 +514,7 @@ export function ChestOpeningView({
       data-chest-opening-view
       data-chest-opening-layout
       onPointerUp={handleSurfacePointerUp}
-      onDoubleClick={skipVideoToLastFrame}
+      onDoubleClick={skipOpeningToLastFrame}
       className={cn(
         "relative flex h-full min-h-full w-full touch-manipulation items-center justify-center overflow-hidden bg-[#121212] px-4 py-6 text-center sm:px-6 sm:py-8",
         phase === "disappearing"
@@ -366,28 +524,18 @@ export function ChestOpeningView({
             : "opacity-100",
       )}
     >
-      {!videoUnavailable ? <video
-        key={videoSource}
-        ref={attachVideoRef}
-        autoPlay={autoPlay}
-        muted
-        playsInline
-        preload="auto"
+      <canvas
+        ref={attachCanvasRef}
         aria-hidden="true"
-        data-chest-opening-video
-        className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
-        onEnded={handleVideoEnded}
-        onPlay={handleVideoPlay}
-        onTimeUpdate={handleVideoTimeUpdate}
-        onError={handleVideoError}
-      >
-        <source src={videoSource} type="video/mp4" />
-      </video> : null}
+        data-chest-opening-frames
+        className="pointer-events-none absolute inset-0 z-0 h-full w-full"
+      />
       <audio
         ref={audioRef}
         src={audioSource}
         preload="auto"
         aria-hidden="true"
+        data-chest-opening-audio
       />
 
       <div className="relative z-10 flex h-full w-full max-w-5xl flex-1 flex-col">
@@ -409,7 +557,6 @@ export function ChestOpeningView({
             className="transition-[opacity,transform] duration-300 ease-out"
             balances={gemDisplayBalances}
             pulse={gemPulse}
-            superWater={usesSuperWater}
             desktopVisible
             hudRole="reward"
           />
@@ -523,9 +670,9 @@ export function ChestOpeningView({
           zIndex: 112,
         }}
         onPointsLaunch={() => setPointsSourcePulse((current) => current + 1)}
-        onPointsArrive={(awardedTotal, arrivalIndex) => {
+        onPointsArrive={(awardedTotal) => {
           setDisplayPoints(stableTotalPoints + awardedTotal);
-          setPointsDisplayPulse(arrivalIndex);
+          setPointsDisplayPulse((current) => current + 1);
         }}
         onPointsComplete={() => {
           pointsScatterCompleteRef.current = true;

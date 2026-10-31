@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
 import { useOptionalAuthSession } from "@/features/auth/auth-client";
+import { useLocale } from "@/i18n/locale-provider";
 import {
   GEM_ASSETS,
   type GemBalances,
@@ -10,6 +11,7 @@ import {
   type GemType,
   getGemBalancesBeforeRewards,
 } from "@/features/gems/gem-types";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 
 export interface GemHudPulse {
@@ -49,7 +51,6 @@ export function RewardGemHud({
   className,
   animate = false,
   size = "default",
-  superWater = false,
   desktopVisible = false,
   hudRole = "main",
   balances: providedBalances,
@@ -58,12 +59,12 @@ export function RewardGemHud({
   className?: string;
   animate?: boolean;
   size?: "default" | "large";
-  superWater?: boolean;
   desktopVisible?: boolean;
   hudRole?: "main" | "reward";
   balances?: GemBalances | null;
   pulse?: GemHudPulse | null;
 }) {
+  const { locale } = useLocale();
   const session = useOptionalAuthSession();
   const user = session?.user;
   const profileBalances = {
@@ -103,7 +104,9 @@ export function RewardGemHud({
             height={size === "large" ? 28 : 20}
             className={cn("size-5 object-contain", size === "large" && "size-7")}
           />
-          <span className={cn(superWater && "font-super-water")}>{balances[type]}</span>
+          <span className={cn(canUseSuperWater(locale) && "font-super-water")}>
+            {formatSuperWaterText(locale, String(balances[type]))}
+          </span>
         </span>
       ))}
     </div>

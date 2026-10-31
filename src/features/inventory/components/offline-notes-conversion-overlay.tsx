@@ -7,6 +7,7 @@ import { AlertTriangle, Clock3, LoaderCircle, Plus, X } from "lucide-react";
 import { useAppMessage } from "@/components/app-message-provider";
 import { LanguageFlag } from "@/components/language-flag";
 import { Button } from "@/components/ui/button";
+import { SuperWaterText } from "@/components/super-water-text";
 import { LANGUAGES } from "@/data/languages";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
@@ -1012,7 +1013,7 @@ function OfflineNotesConversionOverlayContent() {
                       {alreadyInDeck
                         ? t("offline.notes.alreadyInDeck")
                         : adding
-                          ? t("offline.notes.addingToDeck")
+                          ? <SuperWaterText>{t("offline.notes.addingToDeck")}</SuperWaterText>
                           : t("offline.notes.addToDeck")}
                     </Button>
                   </div>
@@ -1034,7 +1035,7 @@ function OfflineNotesConversionOverlayContent() {
                 style={{ boxShadow: "0 3px 0 color-mix(in srgb, var(--brand) 72%, black)" }}
               >
                 {bulkAdding || !canCheckDeck ? <LoaderCircle className="size-5 animate-spin" aria-hidden="true" /> : <Plus className="size-5" aria-hidden="true" />}
-                {bulkAdding ? t("offline.notes.addingAllToDeck") : !canCheckDeck ? t("common.loading") : t("offline.notes.addAllToDeck")}
+                {bulkAdding ? <SuperWaterText>{t("offline.notes.addingAllToDeck")}</SuperWaterText> : !canCheckDeck ? <SuperWaterText>{t("common.loading")}</SuperWaterText> : t("offline.notes.addAllToDeck")}
               </button>
             ) : null}
             {visibleNotes.length > 0 && (feedback === "conversion" || drafts.length === 0) ? (

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import { Flame, Loader2 } from "lucide-react";
+import { SuperWaterText } from "@/components/super-water-text";
 import { ScoreIcon } from "@/components/score-icon";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import { RankIcon } from "@/features/progress/rank-icons";
@@ -33,7 +34,7 @@ function LeaderboardWorldPositions({
   className?: string;
 }) {
   const pointsPosition =
-    typeof viewer?.pointsPosition === "number" ? formatNumber(locale, viewer.pointsPosition) : "—";
+    typeof viewer?.pointsPosition === "number" ? formatSuperWaterText(locale, formatNumber(locale, viewer.pointsPosition)) : "—";
   const streakPosition =
     typeof viewer?.streakPosition === "number" ? formatNumber(locale, viewer.streakPosition) : "—";
 
@@ -314,7 +315,7 @@ export function LeaderboardPageClient({
               {modeLoading ? (
                 <div className="flex h-full flex-col items-center justify-center gap-3 text-foreground-secondary">
                   <Loader2 className="size-6 animate-spin" aria-hidden="true" />
-                  <p className="text-sm font-medium">{t("common.loading")}</p>
+                  <p className="text-sm font-medium"><SuperWaterText>{t("common.loading")}</SuperWaterText></p>
                 </div>
               ) : !modeData && error ? (
                 <div className="h-full" aria-hidden="true" />
@@ -399,14 +400,12 @@ export function LeaderboardPageClient({
                           canUseSuperWater(locale) && "font-super-water",
                         )}>
                           <span>
-                            {formatNumber(
-                              locale,
-                              dataMode === "streaks"
-                                ? entry.streak
-                                : dataMode === "medals"
-                                  ? entry.medals
-                                  : entry.totalPoints,
-                            )}
+                            {dataMode === "points"
+                              ? formatSuperWaterText(locale, formatNumber(locale, entry.totalPoints))
+                              : formatNumber(
+                                  locale,
+                                  dataMode === "streaks" ? entry.streak : entry.medals,
+                                )}
                           </span>
                           {dataMode === "streaks" ? (
                             <Flame

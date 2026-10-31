@@ -1,4 +1,5 @@
-import { CHEST_TIER_ARTWORK, CHEST_TIER_OPENING_AUDIO, CHEST_TIER_OPENING_VIDEOS, type ChestTier } from "@/features/quiz/chest-rewards";
+import { CHEST_TIER_ARTWORK, CHEST_TIER_OPENING_AUDIO, type ChestTier } from "@/features/quiz/chest-rewards";
+import { preloadChestOpeningFrames } from "@/features/quiz/chest-opening-frames";
 import { RANK_ICON_ASSETS } from "@/features/progress/rank-icons";
 import { GEM_ASSETS } from "@/features/gems/gem-types";
 import { preloadSoundEffects, type SoundEffectName } from "@/lib/sound-effects";
@@ -97,7 +98,6 @@ export function preloadQuizCompletionAssets({
   if (typeof window === "undefined") return;
 
   const chestImages = chestTiers.map((tier) => CHEST_TIER_ARTWORK[tier]);
-  const chestVideos = chestTiers.map((tier) => CHEST_TIER_OPENING_VIDEOS[tier]);
   const chestAudio = chestTiers.map((tier) => CHEST_TIER_OPENING_AUDIO[tier]);
   const rankImages = rankIcons.map((icon) => RANK_ICON_ASSETS[icon]);
 
@@ -106,8 +106,12 @@ export function preloadQuizCompletionAssets({
       preloadImageSource(source);
     }
 
-    for (const source of [...COMPLETION_VIDEO_SOURCES, ...chestVideos]) {
+    for (const source of COMPLETION_VIDEO_SOURCES) {
       preloadMediaSource(source, "video");
+    }
+
+    for (const tier of chestTiers) {
+      void preloadChestOpeningFrames(tier).catch(() => undefined);
     }
 
     for (const source of [...COMPLETION_AUDIO_SOURCES, ...chestAudio]) {

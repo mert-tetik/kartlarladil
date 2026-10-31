@@ -12,6 +12,8 @@ describe("image-text translate schema", () => {
     expect(imageTextTranslateRequestSchema.safeParse({ mode: "image", locale: "tr", targetLanguage: "en", images: [] }).success).toBe(false);
     expect(imageTextTranslateRequestSchema.safeParse({ mode: "text", locale: "tr", targetLanguage: "en", text: "" }).success).toBe(false);
     expect(imageTextTranslateRequestSchema.safeParse({ mode: "text", locale: "tr", targetLanguage: "en", text: "This is a test." }).success).toBe(true);
+    expect(imageTextTranslateRequestSchema.safeParse({ mode: "text", locale: "tr", targetLanguage: "en", text: "a".repeat(5000) }).success).toBe(true);
+    expect(imageTextTranslateRequestSchema.safeParse({ mode: "text", locale: "tr", targetLanguage: "en", text: "a".repeat(5001) }).success).toBe(false);
   });
 
   it("defaults to answering questions and accepts disabling that behavior", () => {

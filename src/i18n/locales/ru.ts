@@ -480,6 +480,7 @@ const dictionary = {
   "partOfSpeech.word": "слово",
   "pricing.basic": "Базовый",
   "pricing.currentSubscription": "Текущая подписка:",
+  "pricing.visualPreview": "Визуальный предпросмотр · {plan}",
   "pricing.billingMonthly": "Ежемесячно",
   "pricing.billingYearly": "Ежегодно",
   "pricing.cancelAnytime": "Отмените в любое время и используйте подписку до окончания оплаченного периода.",

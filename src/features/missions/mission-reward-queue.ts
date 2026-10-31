@@ -4,9 +4,9 @@ import type { GemBalances, GemType } from "@/features/gems/gem-types";
 
 /** New reward animation kinds can join this FIFO without changing claim handling. */
 export type MissionRewardAnimationMode =
-  | { missionId: string; kind: "chest"; tier: ChestTierDefinition; gemReward?: ChestRewardOutcome }
-  | { missionId: string; kind: "points"; amount: number; source?: DOMRect; claimSettled?: boolean }
-  | { missionId: string; kind: "gems"; gemType: GemType; amount: number; source?: DOMRect; balances?: GemBalances };
+  | { missionId: string; kind: "chest"; tier: ChestTierDefinition; gemReward?: ChestRewardOutcome; animationComplete?: boolean }
+  | { missionId: string; kind: "points"; amount: number; source?: DOMRect; claimSettled?: boolean; animationComplete?: boolean }
+  | { missionId: string; kind: "gems"; gemType: GemType; amount: number; source?: DOMRect; balances?: GemBalances; claimSettled?: boolean; animationComplete?: boolean };
 
 export interface MissionRewardAnimationEntry {
   mode: MissionRewardAnimationMode;
@@ -35,8 +35,8 @@ export function settleMissionRewardAnimation(
 
     const mode = entry.mode.kind === "chest" && chestGemReward
       ? { ...entry.mode, gemReward: chestGemReward }
-      : entry.mode.kind === "gems" && gemBalances
-        ? { ...entry.mode, balances: gemBalances }
+      : entry.mode.kind === "gems"
+        ? { ...entry.mode, ...(gemBalances ? { balances: gemBalances } : {}), claimSettled: true }
         : entry.mode.kind === "points"
           ? { ...entry.mode, claimSettled: true }
           : entry.mode;
@@ -71,6 +71,21 @@ export function getActiveMissionRewardAnimations(
   const activeChest = queue.find((entry) => !entry.animationComplete && entry.mode.kind === "chest");
 
   return activeChest ? [...activeScatters, activeChest.mode] : activeScatters;
+}
+
+/** Includes completed scatters whose server claim is pending so their HUD total stays visible. */
+export function getMissionRewardOverlayModes(
+  queue: MissionRewardAnimationEntry[],
+): MissionRewardAnimationMode[] {
+  const scatterModes = queue
+    .filter((entry) => (
+      (entry.mode.kind === "points" || entry.mode.kind === "gems")
+      && (!entry.animationComplete || !entry.claimSettled)
+    ))
+    .map((entry) => ({ ...entry.mode, animationComplete: entry.animationComplete }));
+  const activeChest = queue.find((entry) => !entry.animationComplete && entry.mode.kind === "chest");
+
+  return activeChest ? [...scatterModes, activeChest.mode] : scatterModes;
 }
 
 function pruneCompletedAnimations(queue: MissionRewardAnimationEntry[]) {

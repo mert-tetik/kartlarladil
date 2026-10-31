@@ -229,15 +229,17 @@ export function MissionCard({
                 />
                 <span
                   data-mission-gem-amount-label
-                  className="relative -top-1 text-[2.125rem] font-bold leading-none text-white"
+                  className={cn("relative -top-1 text-[2.125rem] font-bold leading-none text-white", canUseSuperWater(locale) && "font-super-water")}
                 >
-                  +{reward.amount}
+                  +{formatSuperWaterText(locale, String(reward.amount))}
                 </span>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center gap-1">
                 <PointsRewardStack tier={getMissionPointTier(reward.amount)} className="scale-[1.15]" />
-                <span className="relative -top-2 text-xl font-bold leading-none text-white">+{reward.amount}</span>
+                <span className={cn("relative -top-2 text-xl font-bold leading-none text-white", canUseSuperWater(locale) && "font-super-water")}>
+                  +{formatSuperWaterText(locale, String(reward.amount))}
+                </span>
               </div>
             )
           ) : null}

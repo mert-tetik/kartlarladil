@@ -18,6 +18,7 @@ import { useOptionalAuthSession } from "@/features/auth/auth-client";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import type { MissionRewardAnimationMode } from "../mission-reward-queue";
+import { getMissionGemDisplayBalances, getMissionPointsDisplayTotal } from "../mission-reward-display";
 
 type MissionPointsAnimationMode = Extract<MissionRewardAnimationMode, { kind: "points" }>;
 type MissionGemsAnimationMode = Extract<MissionRewardAnimationMode, { kind: "gems" }>;
@@ -134,27 +135,15 @@ function MissionScatterFlightStack({
   const [gemPulse, setGemPulse] = useState<GemHudPulse | null>(null);
   const gemPulseKeyRef = useRef(0);
   const hasActiveModes = pointModes.length > 0 || gemModes.length > 0;
-  const pointsStillInFlight = pointModes.reduce((sum, mode) => {
-    if (!mode.claimSettled) return sum;
-    const arrived = Math.min(mode.amount, arrivedPointsByMission[mode.missionId] ?? 0);
-    return sum + Math.max(0, mode.amount - arrived);
-  }, 0);
-  const displayPoints = Math.max(0, totalPoints - pointsStillInFlight);
+  const activePointModes = pointModes.filter((mode) => !mode.animationComplete);
+  const activeGemModes = gemModes.filter((mode) => !mode.animationComplete);
+  const displayPoints = getMissionPointsDisplayTotal(totalPoints, pointModes, arrivedPointsByMission);
   const profileGemBalances: GemBalances = {
     blue: authSession?.user?.profile.blueGems ?? 0,
     green: authSession?.user?.profile.greenGems ?? 0,
     purple: authSession?.user?.profile.purpleGems ?? 0,
   };
-  const pendingGemAmounts: GemBalances = { blue: 0, green: 0, purple: 0 };
-  for (const mode of gemModes) {
-    if (!mode.balances) continue;
-    pendingGemAmounts[mode.gemType] += Math.max(0, mode.amount - (arrivedGemsByMission[mode.missionId] ?? 0));
-  }
-  const displayGemBalances: GemBalances = {
-    blue: Math.max(0, profileGemBalances.blue - pendingGemAmounts.blue),
-    green: Math.max(0, profileGemBalances.green - pendingGemAmounts.green),
-    purple: Math.max(0, profileGemBalances.purple - pendingGemAmounts.purple),
-  };
+  const displayGemBalances = getMissionGemDisplayBalances(profileGemBalances, gemModes, arrivedGemsByMission);
 
   useEffect(() => {
     if (visibilityTimerRef.current !== null) {
@@ -187,8 +176,8 @@ function MissionScatterFlightStack({
   return createPortal(<>
     <div
       data-mission-points-flight-stack
-      data-active-point-reward-count={pointModes.length}
-      data-active-gem-reward-count={gemModes.length}
+      data-active-point-reward-count={activePointModes.length}
+      data-active-gem-reward-count={activeGemModes.length}
       className={cn("pointer-events-none fixed left-1/2 top-3 z-[70] -translate-x-1/2 transition-all duration-300", visible ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0")}
     >
       <MainPointsDisplay
@@ -201,7 +190,7 @@ function MissionScatterFlightStack({
         <RewardGemHud className="mt-2" animate pulse={gemPulse} balances={displayGemBalances} />
       </div>
     </div>
-    {pointModes.map((mode) => (
+    {activePointModes.map((mode) => (
       <RewardScatter
         key={mode.missionId}
         points={{
@@ -221,12 +210,14 @@ function MissionScatterFlightStack({
           setPulse((current) => current + 1);
         }}
         onPointsComplete={() => {
-          setArrivedPointsByMission((current) => removeMissionAmount(current, mode.missionId));
+          if (mode.claimSettled) {
+            setArrivedPointsByMission((current) => removeMissionAmount(current, mode.missionId));
+          }
           onComplete(mode.missionId);
         }}
       />
     ))}
-    {gemModes.map((mode) => (
+    {activeGemModes.map((mode) => (
       <RewardScatter
         key={mode.missionId}
         gems={{
@@ -247,7 +238,9 @@ function MissionScatterFlightStack({
           setGemPulse({ type, key: gemPulseKeyRef.current });
         }}
         onGemsComplete={() => {
-          setArrivedGemsByMission((current) => removeMissionAmount(current, mode.missionId));
+          if (mode.claimSettled) {
+            setArrivedGemsByMission((current) => removeMissionAmount(current, mode.missionId));
+          }
           onComplete(mode.missionId);
         }}
       />
@@ -325,10 +318,10 @@ function MissionPointsCelebration({
         >
           {bonusPhase === "dropping" ? (
             <span
-              className="animate-mission-points-fall-far pointer-events-none absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 text-4xl font-bold text-amber-100 drop-shadow-[0_10px_30px_rgba(255,255,255,0.25)] sm:text-5xl"
+              className={cn("animate-mission-points-fall-far pointer-events-none absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 text-4xl font-bold text-amber-100 drop-shadow-[0_10px_30px_rgba(255,255,255,0.25)] sm:text-5xl", canUseSuperWater(locale) && "font-super-water")}
               onAnimationEnd={handleAnimationEnd}
             >
-              <span>{amount}</span>
+              <span>{formatSuperWaterText(locale, formatNumber(locale, amount))}</span>
               <ScoreIcon size={32} className="size-8 sm:size-10" />
             </span>
           ) : null}

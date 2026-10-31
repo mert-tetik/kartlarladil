@@ -480,6 +480,7 @@ const dictionary = {
   "partOfSpeech.word": "单词",
   "pricing.basic": "基础",
   "pricing.currentSubscription": "当前订阅：",
+  "pricing.visualPreview": "视觉预览 · {plan}",
   "pricing.billingMonthly": "每月",
   "pricing.billingYearly": "每年",
   "pricing.cancelAnytime": "随时取消并在付费期结束前使用订阅。",

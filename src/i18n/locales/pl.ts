@@ -480,6 +480,7 @@ const dictionary = {
   "partOfSpeech.word": "sÅ‚owo",
   "pricing.basic": "Podstawowy",
   "pricing.currentSubscription": "Obecna subskrypcja:",
+  "pricing.visualPreview": "Podgląd wizualny · {plan}",
   "pricing.billingMonthly": "MiesiÄ™cznie",
   "pricing.billingYearly": "Rocznie",
   "pricing.cancelAnytime": "MoÅ¼esz anulowaÄ‡ w dowolnym momencie i korzystaÄ‡ z subskrypcji do koÅ„ca opÅ‚aconego okresu.",

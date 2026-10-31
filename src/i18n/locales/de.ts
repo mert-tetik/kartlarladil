@@ -479,6 +479,7 @@ const dictionary = {
   "partOfSpeech.word": "Wort",
   "pricing.basic": "Basis",
   "pricing.currentSubscription": "Aktuelles Abonnement:",
+  "pricing.visualPreview": "Visuelle Vorschau · {plan}",
   "pricing.billingMonthly": "Monatlich",
   "pricing.billingYearly": "Jährlich",
   "pricing.cancelAnytime": "Jederzeit kündigen und das Abonnement bis zum Ende des bezahlten Zeitraums nutzen.",

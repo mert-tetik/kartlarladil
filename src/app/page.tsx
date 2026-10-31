@@ -25,6 +25,7 @@ import { createTranslator } from "@/i18n/dictionaries";
 import { formatNumber, formatPoints, getRankLabel, getTierLabel } from "@/i18n/labels";
 import { getServerLocale } from "@/i18n/server";
 import { APP_NAME } from "@/lib/constants";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { createOrganizationSchema, createWebSiteSchema } from "@/lib/seo/schema";
 import type { LanguageCode, Tier, VocabularyCard } from "@/types/domain";
@@ -277,7 +278,9 @@ export default async function Home({ searchParams }: HomeProps) {
                     <span className={`text-sm font-semibold ${TIER_STYLES[tier].text}`}>{tier}</span>
                     <span className={`size-2.5 rounded-full ${TIER_STYLES[tier].accent}`} aria-hidden="true" />
                   </div>
-                  <p className="mt-3 text-lg font-semibold text-slate-950 dark:text-white">{formatPoints(locale, TIER_POINTS[tier])}</p>
+                  <p className={cn("mt-3 text-lg font-semibold text-slate-950 dark:text-white", canUseSuperWater(locale) && "font-super-water")}>
+                    {formatSuperWaterText(locale, formatPoints(locale, TIER_POINTS[tier]))}
+                  </p>
                   <p className="mt-1 text-xs text-slate-500 dark:text-foreground-muted">{getTierLabel(tier, locale)}</p>
                 </div>
               ))}
@@ -297,7 +300,9 @@ export default async function Home({ searchParams }: HomeProps) {
                   >
                     {getRankLabel(rank, locale)}
                   </p>
-                  <p className="text-sm font-medium text-slate-500 dark:text-foreground-muted">{formatNumber(locale, rank.minPoints)}</p>
+                  <p className={cn("text-sm font-medium text-slate-500 dark:text-foreground-muted", canUseSuperWater(locale) && "font-super-water")}>
+                    {formatSuperWaterText(locale, formatNumber(locale, rank.minPoints))}
+                  </p>
                 </div>
               ))}
             </div>

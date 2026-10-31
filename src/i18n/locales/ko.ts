@@ -480,6 +480,7 @@ const dictionary = {
   "partOfSpeech.word": "단어",
   "pricing.basic": "기본",
   "pricing.currentSubscription": "현재 구독:",
+  "pricing.visualPreview": "시각적 미리보기 · {plan}",
   "pricing.billingMonthly": "월간",
   "pricing.billingYearly": "연간",
   "pricing.cancelAnytime": "언제든지 취소할 수 있으며, 유료 기간이 끝날 때까지 구독을 사용할 수 있습니다.",

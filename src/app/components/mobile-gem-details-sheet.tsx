@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { X } from "lucide-react";
 import { useAuthSession } from "@/features/auth/auth-client";
@@ -45,6 +45,10 @@ interface MobileGemDetailsSheetProps {
   open: boolean;
   onClose: () => void;
   sourceRect?: DOMRect | null;
+  onPointsFlightStart?: (id: number, amount: number) => void;
+  onPointsFlightArrive?: (id: number, amountAwarded: number) => void;
+  onPointsFlightComplete?: (id: number) => void;
+  onPointsFlightCancel?: (id: number) => void;
 }
 
 const CONTENT_ENTER_DELAY_MS = 520;
@@ -63,6 +67,10 @@ export function MobileGemDetailsSheet({
   open,
   onClose,
   sourceRect = null,
+  onPointsFlightStart,
+  onPointsFlightArrive,
+  onPointsFlightComplete,
+  onPointsFlightCancel,
 }: MobileGemDetailsSheetProps) {
   const { locale } = useLocale();
   const t = useT();
@@ -90,6 +98,12 @@ export function MobileGemDetailsSheet({
   const gemPointsRef = useRef(0);
   const flightIdRef = useRef(0);
   const selectedType = type ?? displayedType;
+  const handleClose = useCallback(() => {
+    const flightIds = new Set(flights.map(({ id }) => id));
+    flightIds.forEach((id) => onPointsFlightCancel?.(id));
+    setFlights((current) => current.filter((flight) => !flightIds.has(flight.id)));
+    onClose();
+  }, [flights, onClose, onPointsFlightCancel]);
   const balanceForType = selectedType === "blue"
     ? user?.profile.blueGems ?? 0
     : selectedType === "green"
@@ -132,7 +146,7 @@ export function MobileGemDetailsSheet({
     document.body.style.overflow = "hidden";
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") handleClose();
     }
 
     window.addEventListener("keydown", handleKeyDown);
@@ -140,7 +154,7 @@ export function MobileGemDetailsSheet({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [onClose, presented]);
+  }, [handleClose, presented]);
 
   useEffect(() => {
     gemPointsRef.current = user?.profile.gemPoints ?? 0;
@@ -198,6 +212,7 @@ export function MobileGemDetailsSheet({
         if (!user) {
           conversionQueueRef.current.forEach((item) => {
             rollbackGemSpend(item.reservation);
+            onPointsFlightCancel?.(item.id);
             removeFlight(item.id);
           });
           conversionQueueRef.current = [];
@@ -215,6 +230,7 @@ export function MobileGemDetailsSheet({
         setQueuedConversions((current) => Math.max(0, current - 1));
 
         if (!result.success || !result.balances || result.points === undefined) {
+          onPointsFlightCancel?.(pending.id);
           removeFlight(pending.id);
           rollbackGemSpend(pending.reservation);
           showMessage(result.error?.trim() || t("inventory.error.operationFailed"), "error");
@@ -271,6 +287,7 @@ export function MobileGemDetailsSheet({
     updateProfileField({ gemPoints: gemPointsRef.current });
 
     if (source) {
+      onPointsFlightStart?.(conversionId, points);
       setFlights((current) => [
         ...current,
         { id: conversionId, source, type: conversionType },
@@ -297,7 +314,7 @@ export function MobileGemDetailsSheet({
       aria-label={t("gems.detailsTitle")}
       data-mobile-gem-details
       onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget) handleClose();
       }}
     >
       <div
@@ -321,7 +338,7 @@ export function MobileGemDetailsSheet({
             1,
             <p className={cn("mt-2 w-full text-3xl font-bold leading-none", GEM_TEXT_CLASSES[selectedType], useSuperWater && "font-super-water")}>
               <span className="inline-flex items-center justify-center gap-1.5">
-                {formatNumber(locale, balance)}
+                {formatSuperWaterText(locale, formatNumber(locale, balance))}
                 <Image src={GEM_ASSETS[selectedType]} alt="" width={22} height={22} className="size-[22px] object-contain" />
               </span>
             </p>,
@@ -351,7 +368,7 @@ export function MobileGemDetailsSheet({
             >
               <span>{convertLabel}</span>
               <span className="inline-flex items-center gap-1 text-yellow-300">
-                {points}
+                {formatSuperWaterText(locale, formatNumber(locale, points))}
                 <ScoreIcon size={18} />
               </span>
             </button>,
@@ -359,7 +376,7 @@ export function MobileGemDetailsSheet({
           )}
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             aria-label={t("common.close")}
             data-mobile-back-close
             className="gem-details-overlay__item absolute right-3 top-3 z-10 inline-flex size-10 items-center justify-center text-foreground-muted transition-colors hover:bg-foreground/10 hover:text-foreground"
@@ -398,7 +415,9 @@ export function MobileGemDetailsSheet({
             iconSize: 32,
             zIndex: 100,
           }}
+          onPointsArrive={(amountAwarded) => onPointsFlightArrive?.(flight.id, amountAwarded)}
           onPointsComplete={() => {
+            onPointsFlightComplete?.(flight.id);
             setFlights((current) => current.filter((item) => item.id !== flight.id));
           }}
         />

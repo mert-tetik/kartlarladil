@@ -10,6 +10,7 @@ const SUBSCRIPTION_RESTRICTION_TEST_CODES = [
   "ai_monthly_limit",
   "game_level_locked",
   "learned_review_subscription_required",
+  "theme_subscription_required",
   "scenario_subscription_required",
   "image_text_translate_limit",
 ] as const satisfies readonly UpgradeDialogErrorCode[];

@@ -32,7 +32,7 @@ import { MissionDetailsOverlay, type MissionDetailsData } from "./mission-detail
 import {
   completeMissionRewardAnimation,
   enqueueMissionRewardAnimation,
-  getActiveMissionRewardAnimations,
+  getMissionRewardOverlayModes,
   removeMissionRewardAnimation,
   settleMissionRewardAnimation,
   type MissionRewardAnimationEntry,
@@ -70,7 +70,7 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
     sourceRect: DOMRect;
   } | null>(null);
   const hasResumedPendingClaimsRef = useRef(false);
-  const rewardModes = getActiveMissionRewardAnimations(rewardQueue);
+  const rewardModes = getMissionRewardOverlayModes(rewardQueue);
 
   function handleMissionNavigate(target: MissionNavigationTarget) {
     if (onMissionNavigate) {

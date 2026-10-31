@@ -61,7 +61,7 @@ const { locale } = useLocale();
   const [chestOpeningMotion, setChestOpeningMotion] = useState<ChestOpeningMotion | null>(null);
   const [missedClosing, setMissedClosing] = useState(false);
   const chestMotionRef = useRef<HTMLDivElement | null>(null);
-  const openingVideoRef = useRef<HTMLVideoElement | null>(null);
+  const openingStartRef = useRef<(() => void) | null>(null);
   const openingFrameRef = useRef<number | null>(null);
   const openingReadyTimeoutRef = useRef<number | null>(null);
   const missedCloseTimeoutRef = useRef<number | null>(null);
@@ -80,8 +80,8 @@ const { locale } = useLocale();
     };
   }, []);
 
-  const handleOpeningVideoReady = useCallback((video: HTMLVideoElement | null) => {
-    openingVideoRef.current = video;
+  const handleOpeningReady = useCallback((start: (() => void) | null) => {
+    openingStartRef.current = start;
   }, []);
 
   const handleOpen = () => {
@@ -100,18 +100,7 @@ const { locale } = useLocale();
       });
     }
 
-    const video = openingVideoRef.current;
-    if (video) {
-      video.muted = false;
-      video.volume = 1;
-      const playResult = video.play();
-      if (typeof playResult?.catch === "function") {
-        void playResult.catch(() => {
-          video.muted = true;
-          void video.play().catch(() => undefined);
-        });
-      }
-    }
+    openingStartRef.current?.();
 
     setOpening(true);
     setOpeningFullyVisible(false);
@@ -361,7 +350,7 @@ const { locale } = useLocale();
             enterWithCss={false}
             onComplete={onComplete}
             autoPlay={false}
-            onVideoReady={handleOpeningVideoReady}
+            onOpeningReady={handleOpeningReady}
             onRewardReady={opening ? onRewardReady : undefined}
           />
         ) : null}

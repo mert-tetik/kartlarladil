@@ -20,6 +20,7 @@ import {
   ScanText,
 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
+import { SuperWaterText } from "@/components/super-water-text";
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import { TWA_PACKAGE_NAME } from "@/features/install-app/twa-mode";
 import { useGooglePlayBilling } from "@/features/subscriptions/use-google-play-billing";
@@ -264,7 +265,7 @@ export function MobileSubscriptionOfferScreen({
               style={{ color: SERIOUS_LEARNER_BASIC_COLOR }}
             >
               {isLoading ? (
-                t("common.loading")
+                <SuperWaterText>{t("common.loading")}</SuperWaterText>
               ) : (
                 <>
                   <span>{formatSuperWaterUppercaseText(locale, t("pricing.ctaStartFirstMonthFreeTrial"))}</span>

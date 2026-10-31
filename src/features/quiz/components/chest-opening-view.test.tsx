@@ -13,8 +13,16 @@ vi.mock("@/lib/vibration", () => ({
 }));
 
 describe("ChestOpeningView", () => {
+  let queuedAnimationFrame: FrameRequestCallback | null = null;
+
   beforeEach(() => {
     vi.useFakeTimers();
+    queuedAnimationFrame = null;
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      queuedAnimationFrame = callback;
+      return 1;
+    });
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
     vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
     vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(() => Promise.resolve());
   });
@@ -24,7 +32,13 @@ describe("ChestOpeningView", () => {
     vi.useRealTimers();
   });
 
-  it("plays the tier opening video and reveals reward boxes at the video's 3-second mark", () => {
+  function advanceOpeningTo(timestamp: number) {
+    const callback = queuedAnimationFrame;
+    queuedAnimationFrame = null;
+    if (callback) act(() => callback(timestamp));
+  }
+
+  it("plays tier frames with their audio and reveals rewards at the 3-second mark", () => {
     const onComplete = vi.fn();
     const reward = {
       points: 20,
@@ -46,28 +60,19 @@ describe("ChestOpeningView", () => {
       </LocaleProvider>,
     );
 
-    const video = document.querySelector("[data-chest-opening-video]");
-    expect(video).toBeInTheDocument();
-    expect(video).toHaveProperty("muted", true);
-    expect(video?.querySelector("source")).toHaveAttribute(
-      "src",
-      "/chests/openings/wood_chest_opening_v2.mp4?v=20261007-2",
-    );
+    expect(document.querySelector("[data-chest-opening-frames]")).toBeInTheDocument();
+    expect(document.querySelector("video")).not.toBeInTheDocument();
     expect(document.querySelector("audio")).toHaveAttribute(
       "src",
       "/chests/openings/wood_chest_opening_v2.m4a?v=20261007-2",
     );
     expect(document.querySelector("[data-chest-reward-sources]")).not.toBeInTheDocument();
 
-    fireEvent.play(video!);
-    act(() => {
-      vi.advanceTimersByTime(2999);
-    });
+    const startTime = window.performance.now();
+    advanceOpeningTo(startTime + 2999);
     expect(document.querySelector("[data-chest-reward-sources]")).not.toBeInTheDocument();
 
-    act(() => {
-      vi.advanceTimersByTime(1);
-    });
+    advanceOpeningTo(startTime + 3000);
 
     expect(document.querySelector("[data-chest-reward-sources]")).toBeInTheDocument();
     expect(document.querySelector("[data-chest-reward-heading]")).toHaveTextContent("YOUR REWARDS");
@@ -79,7 +84,32 @@ describe("ChestOpeningView", () => {
     expect(onComplete).not.toHaveBeenCalled();
   });
 
-  it("holds the ending frame for two seconds before starting the smooth close", () => {
+  it("starts the frame-and-audio timeline from the external chest-open click", () => {
+    let startOpening: (() => void) | null = null;
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <ChestOpeningView
+          tier={CHEST_TIERS[0]}
+          totalPoints={0}
+          autoPlay={false}
+          onOpeningReady={(start) => {
+            startOpening = start;
+          }}
+          onComplete={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+    expect(startOpening).toEqual(expect.any(Function));
+
+    act(() => startOpening?.());
+
+    expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
+  });
+
+  it("holds the final frame for two seconds before starting the smooth close", () => {
     const onComplete = vi.fn();
     render(
       <LocaleProvider initialLocale="en">
@@ -87,13 +117,10 @@ describe("ChestOpeningView", () => {
       </LocaleProvider>,
     );
 
-    const video = document.querySelector("[data-chest-opening-video]");
-    fireEvent.play(video!);
-    act(() => {
-      fireEvent.ended(video!);
-    });
+    const startTime = window.performance.now();
+    advanceOpeningTo(startTime + 4042);
 
-    expect(document.querySelector("[data-chest-opening-video]")).toBeInTheDocument();
+    expect(document.querySelector("[data-chest-opening-frames]")).toBeInTheDocument();
     expect(document.querySelector("[data-chest-opening-view]")).not.toHaveClass("animate-chest-screen-close");
 
     act(() => {
@@ -113,7 +140,7 @@ describe("ChestOpeningView", () => {
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
-  it("skips the opening video on a touch double tap and reveals the rewards immediately", () => {
+  it("skips the opening frames on a touch double tap and reveals the rewards immediately", () => {
     const onComplete = vi.fn();
     const reward = {
       points: 20,
@@ -133,11 +160,8 @@ describe("ChestOpeningView", () => {
     );
 
     const view = document.querySelector("[data-chest-opening-view]");
-    const video = document.querySelector<HTMLVideoElement>("[data-chest-opening-video]");
     expect(view).toBeInTheDocument();
-    expect(video).toBeInTheDocument();
-    Object.defineProperty(video, "duration", { configurable: true, value: 5 });
-    Object.defineProperty(video, "currentTime", { configurable: true, writable: true, value: 1 });
+    expect(document.querySelector("[data-chest-opening-frames]")).toBeInTheDocument();
 
     act(() => {
       fireEvent.pointerUp(view!, { pointerType: "touch" });
@@ -145,9 +169,8 @@ describe("ChestOpeningView", () => {
       fireEvent.pointerUp(view!, { pointerType: "touch" });
     });
 
-    expect(video).toHaveProperty("currentTime", 5);
     expect(document.querySelector("[data-chest-reward-sources]")).toBeInTheDocument();
-    expect(document.querySelector("[data-chest-opening-video]")).toBeInTheDocument();
+    expect(document.querySelector("[data-chest-opening-frames]")).toBeInTheDocument();
     expect(document.querySelector("[data-chest-opening-view]")).not.toHaveClass("animate-chest-screen-close");
     expect(onComplete).not.toHaveBeenCalled();
   });

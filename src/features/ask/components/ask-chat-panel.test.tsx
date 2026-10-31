@@ -94,6 +94,7 @@ describe("AskChatPanel", () => {
     renderPanel({ initialTerm: "", contextLanguage: undefined, nativeLocale: "tr" });
 
     expect(screen.getByText("Foxy'e istedigin soruyu sor!")).toBeVisible();
+    expect(document.querySelector('img[src="/mascots/mascot16.webp"]')).not.toBeInTheDocument();
 
     const suggestion = await screen.findByRole("button", {
       name: "Almanca dilinde 5 ileri seviye cümle örneği ver.",

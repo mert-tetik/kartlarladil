@@ -10,7 +10,7 @@ import { createMissionTestViewModels, type MissionTestViewModel } from "../missi
 import {
   completeMissionRewardAnimation,
   enqueueMissionRewardAnimation,
-  getActiveMissionRewardAnimations,
+  getMissionRewardOverlayModes,
   type MissionRewardAnimationEntry,
   type MissionRewardAnimationMode,
 } from "../mission-reward-queue";
@@ -24,7 +24,7 @@ export function MissionTestList({ seed }: { seed: number }) {
     mission: MissionDetailsData;
     sourceRect: DOMRect;
   } | null>(null);
-  const rewardModes = getActiveMissionRewardAnimations(rewardQueue);
+  const rewardModes = getMissionRewardOverlayModes(rewardQueue);
 
   const handleClaim = useCallback((missionId: string, source?: DOMRect) => {
     if (pendingMissionIdsRef.current.has(missionId)) return;

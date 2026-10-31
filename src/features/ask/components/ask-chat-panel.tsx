@@ -19,6 +19,7 @@ import {
   Volume2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SuperWaterText } from "@/components/super-water-text";
 import { TypingIndicator } from "@/components/typing-indicator";
 import { useAutoResizeTextarea } from "@/components/use-auto-resize-textarea";
 import { readLandingCardLanguage, subscribeLandingCardLanguage } from "@/app/components/landing-card-language";
@@ -611,10 +612,7 @@ function MessageList({
     >
       {messages.length === 0 ? (
         <div className="mx-auto flex min-h-full max-w-lg flex-col items-center justify-center text-center">
-          <div className="relative size-24">
-            <Image src="/mascots/mascot16.webp" alt="" fill sizes="96px" className="object-contain" />
-          </div>
-          <h2 className={cn("mt-5 text-xl font-semibold text-foreground", canUseSuperWater(locale) && "font-super-water")}>
+          <h2 className={cn("text-xl font-semibold text-foreground", canUseSuperWater(locale) && "font-super-water")}>
             {formatSuperWaterText(locale, t("page.ask.emptyTitle"))}
           </h2>
           <p className="mt-2 text-sm leading-6 text-foreground-secondary">{t("page.ask.description")}</p>
@@ -742,7 +740,7 @@ function TranslationView({ translation }: { translation?: ClientMessage["transla
   }
 
   if (translation.status === "loading") {
-    return <p className="mt-1.5 text-xs text-foreground-muted">{t("ask.translating")}</p>;
+    return <p className="mt-1.5 text-xs text-foreground-muted"><SuperWaterText>{t("ask.translating")}</SuperWaterText></p>;
   }
 
   if (translation.status === "error") {
@@ -791,7 +789,7 @@ function ChatComposer({
   return (
     <form
       onSubmit={onSubmit}
-      className="border-t border-border bg-background-card p-2 sm:p-3"
+      className="-translate-y-[14px] border-t border-border bg-background-card p-2 sm:p-3"
       data-chat-composer="bottom"
       data-route-transition-surface
     >

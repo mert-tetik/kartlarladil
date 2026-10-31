@@ -641,7 +641,7 @@ export function QuizStreakRewardView({
             value={formatSuperWaterText(locale, formatNumber(locale, displayPoints))}
           />
           <div className="mt-2 flex justify-center">
-            <RewardGemHud balances={gemDisplayBalances} pulse={gemPulse} animate superWater={canUseSuperWater(locale)} hudRole="reward" />
+            <RewardGemHud balances={gemDisplayBalances} pulse={gemPulse} animate hudRole="reward" />
           </div>
         </div>
         <div ref={rewardRef} className={cn(
@@ -679,10 +679,10 @@ export function QuizStreakRewardView({
             placement: { origin: "random", spreadX: 0.55, spreadY: 0.35 },
             zIndex: 112,
           }}
-          onPointsArrive={(awardedTotal, arrivalIndex) => {
+          onPointsArrive={(awardedTotal) => {
             rewardAnimationGate.notePointsArrival();
             setDisplayPoints(totalPoints + awardedTotal);
-            setScorePulse(arrivalIndex);
+            setScorePulse((current) => current + 1);
           }}
           onPointsComplete={rewardAnimationGate.markPointsScatterComplete}
           onGemArrive={(type, amountAwarded) => {

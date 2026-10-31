@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
+import { SuperWaterText } from "@/components/super-water-text";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import { createCustomerPortalAction } from "@/features/subscriptions/subscription-actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
@@ -159,7 +160,11 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
   const localizedPricing = useLocalizedPricing(currencyCode, isTwa);
   const googlePlayPricing = useGooglePlayPricing();
   const plans = isTwa ? TWA_PLANS : PLANS;
-  const forceFreePricing = searchParams.get("pricing-test") === "free";
+  const pricingTestPlan = searchParams.get("pricing-test");
+  const visualPreviewPlan = pricingTestPlan === "basic" || pricingTestPlan === "pro"
+    ? pricingTestPlan
+    : null;
+  const forceFreePricing = pricingTestPlan === "free";
   const pricingEntitlements = forceFreePricing ? null : entitlements;
   const handleRequestCheckout = useCallback((selection: CheckoutSelection) => {
     openSubscriptionDetails(selection, {
@@ -168,8 +173,8 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
     });
   }, [currencyCode, openSubscriptionDetails, pricingEntitlements?.effectivePlan]);
   const paidPlan = pricingEntitlements?.effectivePlan === "basic" || pricingEntitlements?.effectivePlan === "pro"
-    ? pricingEntitlements.effectivePlan
-    : null;
+    ? visualPreviewPlan ?? pricingEntitlements.effectivePlan
+    : visualPreviewPlan;
 
   useLayoutEffect(() => {
     if (paidPlan || typeof window === "undefined") return;
@@ -274,7 +279,11 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
         </div>
       ) : null}
       {paidPlan ? (
-        <ActiveSubscriptionPricingView plan={paidPlan} locale={locale} />
+        <ActiveSubscriptionPricingView
+          plan={paidPlan}
+          locale={locale}
+          isVisualPreview={visualPreviewPlan !== null}
+        />
       ) : (
         <>
           <div className="h-full lg:hidden">
@@ -335,9 +344,11 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
 function ActiveSubscriptionPricingView({
   plan,
   locale,
+  isVisualPreview,
 }: {
   plan: Exclude<SubscriptionPlan, "free">;
   locale: LocaleCode;
+  isVisualPreview: boolean;
 }) {
   const t = useT();
   const planImage = plan === "basic"
@@ -348,9 +359,15 @@ function ActiveSubscriptionPricingView({
   return (
     <section
       data-pricing-active-subscription
+      data-pricing-preview-plan={isVisualPreview ? plan : undefined}
       className="relative z-10 flex min-h-[calc(100dvh-var(--app-header-height))] items-center justify-center px-4 pb-[calc(var(--mobile-nav-bar-height)+2.5rem)] pt-10 text-center text-white lg:min-h-[calc(100vh-var(--app-header-height))] lg:py-10"
     >
       <div className="flex w-full max-w-xl flex-col items-center">
+        {isVisualPreview ? (
+          <p className="mb-3 rounded-full border border-white/30 px-3 py-1 text-sm text-white/80">
+            {t("pricing.visualPreview", { plan: t(`pricing.${plan}`) })}
+          </p>
+        ) : null}
         <p className={cn("font-display text-4xl font-semibold sm:text-5xl", usesSuperWater && "font-super-water")}>
           {formatSuperWaterText(locale, t("pricing.currentSubscription"))}
         </p>
@@ -361,7 +378,22 @@ function ActiveSubscriptionPricingView({
           height={planImage.height}
           className="mt-8 h-28 w-auto max-w-[82vw] object-contain sm:h-36"
         />
-        <ManageSubscriptionButton locale={locale} plan={plan} />
+        {isVisualPreview ? (
+          <Button
+            type="button"
+            variant="primary"
+            disabled
+            className={cn(
+              "mt-8 h-14 w-full max-w-xs rounded-full border-0 text-xl disabled:cursor-default disabled:opacity-100",
+              ACTIVE_SUBSCRIPTION_BUTTON_CLASS[plan],
+              usesSuperWater && "font-super-water",
+            )}
+          >
+            {formatSuperWaterText(locale, t("pricing.ctaManage"))}
+          </Button>
+        ) : (
+          <ManageSubscriptionButton locale={locale} plan={plan} />
+        )}
       </div>
     </section>
   );
@@ -1062,7 +1094,7 @@ function GooglePlayCheckoutButton({
         {!summaryCta ? <PricingPlanCtaBackground plan={plan} /> : null}
         <span className="relative z-10" style={{ color: summaryCta ? SUBSCRIPTION_PLAN_COLOR[plan] : undefined }}>
           {isLoading
-            ? t("common.loading")
+            ? <SuperWaterText>{t("common.loading")}</SuperWaterText>
             : typeof ctaContent === "string"
               ? formatPricingCtaText(locale, ctaContent)
               : ctaContent ?? formatPricingCtaText(locale, buttonLabel)}

@@ -22,7 +22,7 @@ import { GEM_ASSETS, GEM_COSTS, getMarkLearnedGemCost, type GemType } from "@/fe
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import type { VocabularyCard } from "@/types/domain";
-import { canUseSuperWater, formatSuperWaterUppercaseText } from "@/lib/super-water";
+import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
 
 /** Single-card preview for cards the user has not added to their collection. */
 interface MobileUnownedCardDisplaySheetProps {
@@ -396,7 +396,9 @@ export function MobileUnownedCardDisplaySheet({
             <div className="mt-4 flex gap-2">
               <button type="button" disabled={busy || confirmationClosing} onClick={() => closeConfirmation()} className="min-h-11 flex-1 rounded-full bg-black px-3 py-2 text-sm font-bold text-[var(--brand)] disabled:opacity-50">{t("gems.cancel")}</button>
               <button type="button" disabled={busy || confirmationClosing} onClick={() => void confirmGemAction()} className="inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-full bg-[var(--brand)] px-3 py-2 text-sm font-bold text-[var(--brand-foreground)] disabled:opacity-50">
-                {t("gems.confirm")} {confirmation === "blue" ? removeCardCost : markLearnedCost}<Image src={GEM_ASSETS[confirmation]} alt="" width={20} height={20} className="size-5 object-contain" />
+                {t("gems.confirm")} <span className={cn(canUseSuperWater(locale) && "font-super-water")}>
+                  {formatSuperWaterText(locale, String(confirmation === "blue" ? removeCardCost : markLearnedCost))}
+                </span><Image src={GEM_ASSETS[confirmation]} alt="" width={20} height={20} className="size-5 object-contain" />
               </button>
             </div>
           </div>
@@ -416,11 +418,15 @@ export function MobileUnownedCardDisplaySheet({
 }
 
 function GemCardAction({ type, cost, disabled, label, onClick }: { type: GemType; cost: number; disabled: boolean; label: string; onClick: (event: ReactMouseEvent<HTMLButtonElement>) => void }) {
+  const { locale } = useLocale();
+
   return (
     <button type="button" disabled={disabled} onClick={onClick} className={cn("flex min-h-11 w-[calc(100%+1rem)] max-w-[calc(100vw-2rem)] items-center gap-2 self-center rounded-2xl px-3 py-2 text-left text-sm font-bold text-white transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-100 disabled:[&_span]:opacity-67 disabled:[&_img]:opacity-67", type === "blue" ? "bg-[#268cff] disabled:bg-[#14518f]/[0.86]" : "bg-[#9b31dc] disabled:bg-[#5b1d82]/[0.86]")}>
       <span className="min-w-0 flex-1 truncate">{label}</span>
       <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap" aria-label={`${cost}`}>
-        <span>{cost}</span>
+        <span className={cn(canUseSuperWater(locale) && "font-super-water")}>
+          {formatSuperWaterText(locale, String(cost))}
+        </span>
         <Image src={GEM_ASSETS[type]} alt="" width={24} height={24} className="size-6 object-contain" />
       </span>
     </button>

@@ -27,6 +27,7 @@ import {
 import { useEffect } from "react";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { useAppMessage } from "@/components/app-message-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 
 export function ProfileDashboard({ user }: { user: AuthShellUser }) {
   const { stats, loading, error } = useProgressStats();
@@ -56,14 +57,23 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
   }, [error, showMessage]);
 
   if (loading && !canRenderCachedProgress) {
-    return <EmptyState title={t("profile.loadingTitle")} description={t("profile.loadingDescription")} />;
+    return (
+      <EmptyState
+        title={formatSuperWaterText(locale, t("profile.loadingTitle"))}
+        titleClassName={canUseSuperWater(locale) ? "font-super-water" : undefined}
+        description={formatSuperWaterText(locale, t("profile.loadingDescription"))}
+        descriptionClassName={canUseSuperWater(locale) ? "font-super-water" : undefined}
+      />
+    );
   }
 
   return (
     <div className="space-y-6">
       {loading ? (
         <div className="rounded-lg border border-[var(--accent-secondary)]/25 bg-[var(--accent-secondary)]/10 p-4 text-sm font-semibold text-[var(--accent-secondary)]">
-          {t("profile.loadingDescription")}
+          <span className={canUseSuperWater(locale) ? "font-super-water" : undefined}>
+            {formatSuperWaterText(locale, t("profile.loadingDescription"))}
+          </span>
         </div>
       ) : null}
       <section className="rounded-lg border border-border bg-background-card p-5 sm:p-6">
@@ -96,7 +106,12 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
               </Link>
             ) : null}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[520px]">
-              <StatTile icon={Trophy} label={t("profile.points")} value={formatNumber(locale, stats.totalPoints)} />
+              <StatTile
+                icon={Trophy}
+                label={t("profile.points")}
+                value={formatSuperWaterText(locale, formatNumber(locale, stats.totalPoints))}
+                valueClassName={canUseSuperWater(locale) ? "font-super-water" : undefined}
+              />
               <StatTile icon={CheckCircle2} label={t("profile.learned")} value={formatNumber(locale, stats.learnedCards)} />
               <StatTile icon={Boxes} label={t("profile.pool")} value={formatNumber(locale, stats.totalCards)} />
               <StatTile icon={BookOpen} label={t("profile.active")} value={formatNumber(locale, stats.activeCards)} />
@@ -132,7 +147,9 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
                   <span className={cn("text-sm font-bold", style.text)}>{tier.tier}</span>
                   <p className="mt-1 text-[11px] font-semibold text-foreground-muted dark:text-foreground-inverse/70">{getTierLabel(tier.tier, locale)}</p>
                   <p className="mt-3 text-2xl font-bold text-foreground">{formatNumber(locale, tier.learned)}</p>
-                  <p className="mt-1 text-[11px] font-semibold text-foreground-muted dark:text-foreground-inverse/70">{formatPoints(locale, tier.points)}</p>
+                  <p className={cn("mt-1 text-[11px] font-semibold text-foreground-muted dark:text-foreground-inverse/70", canUseSuperWater(locale) && "font-super-water")}>
+                    {formatSuperWaterText(locale, formatPoints(locale, tier.points))}
+                  </p>
                 </div>
               );
             })}
@@ -158,7 +175,9 @@ export function ProfileDashboard({ user }: { user: AuthShellUser }) {
                         })}
                       </p>
                     </div>
-                    <Badge>{formatPoints(locale, language.points)}</Badge>
+                    <Badge className={cn(canUseSuperWater(locale) && "font-super-water")}>
+                      {formatSuperWaterText(locale, formatPoints(locale, language.points))}
+                    </Badge>
                   </div>
                   <Progress value={percent} className="mt-3" />
                 </div>
@@ -229,16 +248,18 @@ function StatTile({
   icon: Icon,
   label,
   value,
+  valueClassName,
 }: {
   icon: typeof Trophy;
   label: string;
   value: string;
+  valueClassName?: string;
 }) {
   return (
     <div className="rounded-lg border border-border bg-background p-3">
       <Icon className="size-4 text-foreground-muted" aria-hidden="true" />
       <p className="mt-3 text-xs font-semibold text-foreground-muted">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-foreground">{value}</p>
+      <p className={cn("mt-1 text-2xl font-bold text-foreground", valueClassName)}>{value}</p>
     </div>
   );
 }

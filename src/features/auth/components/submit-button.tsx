@@ -3,6 +3,7 @@
 import { Loader2 } from "lucide-react";
 import { useFormStatus } from "react-dom";
 import { Button, type ButtonProps } from "@/components/ui/button";
+import { SuperWaterText } from "@/components/super-water-text";
 import { useT } from "@/i18n/locale-provider";
 
 export function SubmitButton({
@@ -21,7 +22,7 @@ export function SubmitButton({
       {pending ? (
         <>
           <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-          {pendingLabel ?? t("common.loading")}
+          <SuperWaterText>{pendingLabel ?? t("common.loading")}</SuperWaterText>
         </>
       ) : (
         children

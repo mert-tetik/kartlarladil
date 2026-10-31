@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import {
   buildFallbackCategoryBonusQuestion,
@@ -41,15 +41,16 @@ export function BonusQuestionsTest({ onlyMatching = false }: { onlyMatching?: bo
   const { locale } = useLocale();
   const { stats } = useProgressStats();
   const session = useOptionalAuthSession();
-  const [questions, setQuestions] = useState<BonusQuestion[]>([]);
-  useEffect(() => {
-    setQuestions(buildBonusTestQuestions(locale, onlyMatching));
-  }, [locale, onlyMatching]);
+  const questions = useMemo(
+    () => buildBonusTestQuestions(locale, onlyMatching),
+    [locale, onlyMatching],
+  );
   const [questionIndex, setQuestionIndex] = useState(0);
   const [showingAnswer, setShowingAnswer] = useState(false);
   const [answerAccepted, setAnswerAccepted] = useState<boolean | null>(null);
   const [wasSkipped, setWasSkipped] = useState(false);
   const [testBonusPoints, setTestBonusPoints] = useState(0);
+  const [testScorePulse, setTestScorePulse] = useState(0);
   const [testGemBalances, setTestGemBalances] = useState<GemBalances | null>(null);
   const [testGemPulse, setTestGemPulse] = useState<GemHudPulse | null>(null);
   const profileGemBalances: GemBalances = {
@@ -111,6 +112,7 @@ export function BonusQuestionsTest({ onlyMatching = false }: { onlyMatching?: bo
           rewardReady={rewardAnimationActive}
           showPointFlight={rewardAnimationActive}
           totalPoints={stats.totalPoints + testBonusPoints}
+          scorePulse={testScorePulse}
           gemRewards={rewardAnimationActive ? [
             { type: "blue", amount: 2 },
             { type: "green", amount: 1 },
@@ -120,11 +122,12 @@ export function BonusQuestionsTest({ onlyMatching = false }: { onlyMatching?: bo
           gemPulse={testGemPulse}
           onPointArrive={(points) => {
             setTestBonusPoints((current) => Math.max(current, points));
+            setTestScorePulse((current) => current + 1);
           }}
-          onGemArrive={(type) => {
+          onGemArrive={(type, amountAwarded) => {
             setTestGemBalances((current) => {
               const base = current ?? profileGemBalances;
-              return { ...base, [type]: base[type] + 1 };
+              return { ...base, [type]: base[type] + amountAwarded };
             });
             setTestGemPulse((current) => ({
               type,

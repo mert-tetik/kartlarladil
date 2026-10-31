@@ -480,6 +480,7 @@ const dictionary = {
   "partOfSpeech.word": "単語",
   "pricing.basic": "基本",
   "pricing.currentSubscription": "現在のサブスクリプション：",
+  "pricing.visualPreview": "ビジュアルプレビュー · {plan}",
   "pricing.billingMonthly": "月額",
   "pricing.billingYearly": "年額",
   "pricing.cancelAnytime": "いつでもキャンセルでき、支払い期間が終了するまでサブスクリプションを利用できます。",

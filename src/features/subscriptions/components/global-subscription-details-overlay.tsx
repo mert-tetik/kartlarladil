@@ -17,6 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
+import { SuperWaterText } from "@/components/super-water-text";
 import { useAppMessage } from "@/components/app-message-provider";
 import { getGooglePlayErrorMessage, isGooglePlayPurchaseCancellation } from "@/features/subscriptions/google-play-errors";
 import { GOOGLE_PLAY_SUBSCRIPTIONS_URL } from "@/features/subscriptions/google-play-links";
@@ -335,7 +336,7 @@ export function GlobalSubscriptionDetailsOverlay({
               >
                 <span className="relative z-10" style={{ color: planColor }}>
                   {purchaseLoading
-                    ? t("common.loading")
+                    ? <SuperWaterText>{t("common.loading")}</SuperWaterText>
                     : formatPricingCtaText(locale, currentPlan && currentPlan !== "free" ? t("pricing.ctaManage") : ctaLabel)}
                 </span>
               </Button>

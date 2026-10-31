@@ -1,15 +1,37 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LANDING_CARD_LANGUAGE_KEY } from "@/app/components/landing-card-language";
 import { AiPracticeCharacterSelection } from "@/features/ai-practice/components/ai-practice-character-selection";
 import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data";
 import { getAiPracticeScenarios } from "@/features/ai-practice/ai-practice-scenarios";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
+const subscriptionState = vi.hoisted(() => ({
+  effectivePlan: null as "free" | "basic" | "pro" | null,
+}));
+
+vi.mock("@/features/subscriptions/subscription-client", () => ({
+  useSubscription: () => ({
+    entitlements: subscriptionState.effectivePlan
+      ? { effectivePlan: subscriptionState.effectivePlan }
+      : null,
+  }),
+}));
+
+vi.mock("@/features/subscriptions/components/upgrade-dialog", () => ({
+  UpgradeDialog: ({ open, errorCode }: { open: boolean; errorCode: string | null }) => (
+    open ? <div role="dialog" data-upgrade-error-code={errorCode} /> : null
+  ),
+}));
+
 const defaultMatchMedia = window.matchMedia;
 
 describe("AiPracticeCharacterSelection", () => {
+  beforeEach(() => {
+    subscriptionState.effectivePlan = null;
+  });
+
   afterEach(() => {
     window.localStorage.clear();
     window.matchMedia = defaultMatchMedia;
@@ -109,6 +131,7 @@ describe("AiPracticeCharacterSelection", () => {
 
   it("switches to situation cards that keep their character portraits", async () => {
     const user = userEvent.setup();
+    subscriptionState.effectivePlan = "basic";
 
     render(
       <LocaleProvider initialLocale="en">
@@ -142,8 +165,31 @@ describe("AiPracticeCharacterSelection", () => {
 
     await user.click(screen.getByRole("button", { name: "Situations" }));
 
-    const scenarioLinks = screen.getAllByRole("link");
-    expect(scenarioLinks).toHaveLength(getAiPracticeScenarios().length);
-    expect(scenarioLinks.every((link) => link.getAttribute("aria-disabled") === "true")).toBe(true);
+    const scenarioCards = document.querySelectorAll("[data-ai-practice-scenario-list] button");
+    expect(scenarioCards).toHaveLength(getAiPracticeScenarios().length);
+    expect(document.querySelectorAll("[data-ai-practice-scenario-list] a")).toHaveLength(0);
+  });
+
+  it("opens the subscription restriction instead of navigating when a free user selects a situation", async () => {
+    const user = userEvent.setup();
+    subscriptionState.effectivePlan = "free";
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <AiPracticeCharacterSelection language="en" locale="en" tier="A1" />
+      </LocaleProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Situations" }));
+    const situationCard = screen.getByRole("button", { name: /Order at a restaurant/i });
+
+    expect(situationCard).toHaveAttribute("aria-haspopup", "dialog");
+    expect(situationCard).not.toHaveAttribute("href");
+    await user.click(situationCard);
+
+    expect(await screen.findByRole("dialog")).toHaveAttribute(
+      "data-upgrade-error-code",
+      "scenario_subscription_required",
+    );
   });
 });

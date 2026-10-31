@@ -49,10 +49,10 @@ export function BonusRewardTest() {
   );
 
   const handleGemArrive = useCallback(
-    (type: GemType) => {
+    (type: GemType, amountAwarded: number) => {
       setGemBalances((current) => {
         const base = current ?? profileGemBalances;
-        return { ...base, [type]: base[type] + 1 };
+        return { ...base, [type]: base[type] + amountAwarded };
       });
       setGemPulse((current) => ({ type, key: (current?.key ?? 0) + 1 }));
     },

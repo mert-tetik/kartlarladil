@@ -222,7 +222,7 @@ export function QuizContinuationMotivationView({
                     aria-label={t("common.loading")}
                   />
                 ) : (
-                  positionText
+                  formatSuperWaterText(locale, positionText)
                 )}
               </span>
             </button>

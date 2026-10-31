@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { SuperWaterText } from "@/components/super-water-text";
 import { Button } from "@/components/ui/button";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
@@ -103,7 +104,7 @@ export function LeaderboardConsentDialog({
             }}
           >
             {busy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
-            {busy ? t("common.loading") : t("leaderboard.allowConfirm")}
+            {busy ? <SuperWaterText>{t("common.loading")}</SuperWaterText> : t("leaderboard.allowConfirm")}
           </Button>
           <Button type="button" disabled={busy} onClick={onClose} className="bg-red-500 text-white hover:bg-red-600">
             {t("leaderboard.allowCancel")}

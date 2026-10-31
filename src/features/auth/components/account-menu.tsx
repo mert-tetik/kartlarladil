@@ -18,6 +18,7 @@ import { ThemePickerDialog } from "@/features/auth/components/theme-picker-dialo
 import { formatNumber, getRankLabel, getTierLabel } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { useVibration } from "@/lib/vibration";
 import type { SubscriptionPlan } from "@/types/domain";
 
@@ -195,7 +196,9 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
                   </div>
                   <div className="flex items-center gap-2 rounded-full bg-background-card px-3 py-1 text-sm font-bold text-foreground">
                     <RankIcon icon={stats.rank.icon} className={cn("size-4", getRankIconTone(stats.rank.icon))} />
-                    {formatNumber(locale, stats.totalPoints)}
+                    <span className={cn(canUseSuperWater(locale) && "font-super-water")}>
+                      {formatSuperWaterText(locale, formatNumber(locale, stats.totalPoints))}
+                    </span>
                   </div>
                 </div>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-background-card">

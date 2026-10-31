@@ -313,6 +313,7 @@ export function MobileCardGroupSheet({
                   disabled={isAdding || isComplete || addingGroupId !== null || addingCardId !== null}
                   className={cn(
                     "min-h-11 min-w-[6.5rem] shrink-0 rounded-full bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black transition-all duration-300 hover:bg-lime-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-55",
+                    usesSuperWater && "font-super-water",
                     isAdding && "animate-pulse",
                   )}
                   aria-label={`${t(definition.labelKey)} ${t(isAdding ? "cards.groups.adding" : isComplete ? "cards.groups.inDeck" : "cards.groups.add")}`}
@@ -378,6 +379,7 @@ export function MobileCardGroupSheet({
                             className={cn(
                               "min-w-[5.5rem] shrink-0 rounded-lg px-2 py-2 text-[10px] font-semibold leading-tight transition-transform duration-200 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-55",
                               "bg-background-card text-foreground",
+                              usesSuperWater && "font-super-water",
                               isAddingCard && "animate-pulse",
                             )}
                             aria-label={`${card.term} ${t(isAddingCard ? "cards.groups.adding" : "cards.addToDeck")}`}

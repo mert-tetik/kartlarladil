@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -86,6 +86,7 @@ import type {
 } from "@/types/domain";
 import type { GemType } from "@/features/gems/gem-types";
 import { RewardMedalHud } from "@/features/progress/components/reward-medal-hud";
+import { ScorePulse } from "@/features/progress/components/score-pulse";
 import { preloadQuizCountSelectionFrames } from "@/features/quiz/quiz-video-preload";
 
 function parseLandingLanguage(value: string | null): LanguageCode | null {
@@ -205,6 +206,8 @@ export function MobileLandingDashboard() {
   const [groupCardOpen, setGroupCardOpen] = useState(false);
   const [selectedGem, setSelectedGem] = useState<GemType | null>(null);
   const [selectedGemSourceRect, setSelectedGemSourceRect] = useState<DOMRect | null>(null);
+  const [gemConversionPointsInFlight, setGemConversionPointsInFlight] = useState<Record<number, number>>({});
+  const [mainPointsPulse, setMainPointsPulse] = useState(0);
   const [medalDetailsOpen, setMedalDetailsOpen] = useState(false);
   const [selectedMedalSourceRect, setSelectedMedalSourceRect] = useState<DOMRect | null>(null);
   const [cardCenterStatus, setCardCenterStatus] = useState<"all" | "active" | "learned">("all");
@@ -219,6 +222,32 @@ export function MobileLandingDashboard() {
     layer: TutorialCardLayer;
     language: LanguageCode;
   } | null>(null);
+
+  const handleGemConversionFlightStart = useCallback((id: number, amount: number) => {
+    setGemConversionPointsInFlight((current) => ({ ...current, [id]: amount }));
+  }, []);
+  const handleGemConversionFlightArrive = useCallback((id: number, amountAwarded: number) => {
+    setGemConversionPointsInFlight((current) => {
+      if (!(id in current)) return current;
+      const next = { ...current };
+      const remaining = Math.max(0, next[id] - amountAwarded);
+      if (remaining === 0) delete next[id];
+      else next[id] = remaining;
+      return next;
+    });
+    setMainPointsPulse((current) => current + 1);
+  }, []);
+  const clearGemConversionFlight = useCallback((id: number) => {
+    setGemConversionPointsInFlight((current) => {
+      if (!(id in current)) return current;
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
+  }, []);
+  const pendingGemConversionPoints = Object.values(gemConversionPointsInFlight)
+    .reduce((total, amount) => total + amount, 0);
+  const displayedMainPoints = Math.max(0, stats.totalPoints - pendingGemConversionPoints);
 
   const showSeriesPositionLoading = Boolean(user) && leaderboardLoading;
 
@@ -961,13 +990,15 @@ export function MobileLandingDashboard() {
             </h1>
             <div
               className="mt-0.5 flex items-center justify-center gap-1.5 text-[1.45rem] font-bold leading-none text-white"
-              aria-label={`${formatNumber(locale, stats.totalPoints)} ${t("home.mobile.pointsLabel")}`}
+              aria-label={`${formatNumber(locale, displayedMainPoints)} ${t("home.mobile.pointsLabel")}`}
               data-mobile-main-points
             >
-              <span className="text-[#fbbf24]">
-                {formatNumber(locale, stats.totalPoints)}
-              </span>
-              <ScoreIcon size={28} className="h-7 w-auto drop-shadow-[0_6px_16px_rgba(0,0,0,0.22)]" />
+              <ScorePulse pulse={mainPointsPulse} className="gap-1.5">
+                <span className={cn("text-[#fbbf24]", canUseSuperWater(locale) && "font-super-water")}>
+                  {formatSuperWaterText(locale, formatNumber(locale, displayedMainPoints))}
+                </span>
+                <ScoreIcon size={28} className="h-7 w-auto drop-shadow-[0_6px_16px_rgba(0,0,0,0.22)]" />
+              </ScorePulse>
             </div>
           </div>
         </div>
@@ -1110,6 +1141,10 @@ export function MobileLandingDashboard() {
         type={selectedGem}
         open={selectedGem !== null}
         sourceRect={selectedGemSourceRect}
+        onPointsFlightStart={handleGemConversionFlightStart}
+        onPointsFlightArrive={handleGemConversionFlightArrive}
+        onPointsFlightComplete={clearGemConversionFlight}
+        onPointsFlightCancel={clearGemConversionFlight}
         onClose={() => {
           setSelectedGem(null);
         }}

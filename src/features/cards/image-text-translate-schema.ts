@@ -14,7 +14,7 @@ export const imageTextTranslateRequestSchema = z.object({
   locale: z.enum(LOCALE_CODES),
   targetLanguage: z.enum(LANGUAGE_CODES),
   answerQuestions: z.boolean().default(true),
-  text: z.string().trim().max(4000).optional(),
+  text: z.string().trim().max(5000).optional(),
   images: z.array(imageDataUrlSchema).max(6).optional(),
 }).superRefine((value, context) => {
   if (value.mode === "image" && (!value.images || value.images.length === 0)) {

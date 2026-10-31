@@ -84,6 +84,30 @@ describe("createRewardScatterFlights", () => {
     }));
   });
 
+  it("assigns each arriving point and gem flight its exact reward share", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+
+    const flights = createRewardScatterFlights({
+      points: {
+        amount: 11,
+        source: { left: 10, top: 20, width: 30, height: 40 },
+        target: { left: 90, top: 100, width: 10, height: 10 },
+      },
+      gems: [{
+        type: "green",
+        amount: 40,
+        source: { left: 10, top: 20, width: 30, height: 40 },
+        target: { left: 90, top: 100, width: 10, height: 10 },
+      }],
+    });
+    const pointFlights = flights.filter((flight) => flight.channel === "points");
+    const gemFlights = flights.filter((flight) => flight.channel === "gems");
+
+    expect(pointFlights.map((flight) => flight.pointsAwarded)).toEqual([2, 4, 6, 7, 9, 11]);
+    expect(gemFlights.reduce((total, flight) => total + (flight.gemAmountAwarded ?? 0), 0)).toBe(40);
+    expect(new Set(gemFlights.map((flight) => flight.gemAmountAwarded))).toEqual(new Set([1, 2]));
+  });
+
   it("distributes large gem totals across the bounded visible flights without losing value", () => {
     const flightAwards = Array.from({ length: 25 }, (_, index) => getGemFlightAwardAtArrival(115, 25, index + 1));
 
