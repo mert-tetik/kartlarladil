@@ -758,7 +758,7 @@ export function MobileCardPodiumOverlay({
           data-card-status-badge
           data-rank-details-ui="status"
         >
-          <div className="flex translate-x-[21px] translate-y-[30px] flex-col items-center">
+          <div className="flex translate-x-[21px] translate-y-[15px] flex-col items-center">
             <div
               key={`${currentCard.id}-${statusBadgeVisible ? "visible" : "hidden"}`}
               data-card-status-badge-content
@@ -783,7 +783,7 @@ export function MobileCardPodiumOverlay({
                 style={{
                   color: active ? "#ADF460" : "#059AF8",
                   display: "inline-block",
-                  top: active ? "-5px" : undefined,
+                  top: active ? "-11px" : undefined,
                   transform: "rotate(-12deg)",
                   transformOrigin: "top center",
                 }}
@@ -851,7 +851,7 @@ export function MobileCardPodiumOverlay({
         <div
           className={cn(
             "relative min-h-[24rem] w-full flex-1 shrink-0",
-            isReviewMode ? "-translate-y-[30px]" : "translate-y-[20px]",
+            isReviewMode ? "-translate-y-[30px]" : "-translate-y-[20px]",
           )}
         >
           <div
@@ -1007,8 +1007,13 @@ export function MobileCardPodiumOverlay({
         </div>
 
         {!isReviewMode ? (
-          <div className="w-full shrink-0 pb-2 text-center" data-card-supporting-content data-rank-details-ui="supporting">
-            <div className="mt-3 flex w-full items-center gap-2">
+          <div
+            className="fixed inset-x-4 z-30 flex flex-col"
+            style={{ bottom: "max(10px, calc(env(safe-area-inset-bottom) + 10px))" }}
+            data-card-supporting-content
+            data-rank-details-ui="supporting"
+          >
+            <div className="flex w-full items-center gap-2">
               <CardGrammarDetailsButton
                 onClick={() => setGrammarDetailsOpen(true)}
                 showIcon={false}
@@ -1031,13 +1036,13 @@ export function MobileCardPodiumOverlay({
                 <MessageCircleQuestion className="size-5" aria-hidden="true" />
               </button>
             </div>
-          </div>
-        ) : null}
 
-        {active && !isReviewMode ? (
-          <div className="flex w-full shrink-0 justify-center gap-2 pb-1 pt-2" data-card-gem-actions data-rank-details-ui="actions">
-            <GemCardAction type="blue" cost={removeCardCost} disabled={!user || blueBalance < removeCardCost || busy} label={t("gems.removeCard")} onClick={() => requestGemAction("blue")} />
-            <GemCardAction type="purple" cost={markLearnedCost} disabled={!user || purpleBalance < markLearnedCost || busy} label={t("gems.markLearned")} onClick={() => requestGemAction("purple")} />
+            {active ? (
+              <div className="flex w-full justify-center gap-2 pt-2" data-card-gem-actions data-rank-details-ui="actions">
+                <GemCardAction type="blue" cost={removeCardCost} disabled={!user || blueBalance < removeCardCost || busy} label={t("gems.removeCard")} onClick={() => requestGemAction("blue")} />
+                <GemCardAction type="purple" cost={markLearnedCost} disabled={!user || purpleBalance < markLearnedCost || busy} label={t("gems.markLearned")} onClick={() => requestGemAction("purple")} />
+              </div>
+            ) : null}
           </div>
         ) : null}
           </>

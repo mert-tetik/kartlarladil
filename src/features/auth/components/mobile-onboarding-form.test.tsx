@@ -101,6 +101,31 @@ describe("MobileOnboardingForm", () => {
     });
   });
 
+  it("keeps the latest language selection visible during the step transition", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={testUser}>
+          <MobileOnboardingForm countryCode="TR" />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    const germanFlag = container.querySelector('[data-onboarding-language-flag="de"]');
+    await user.click(germanFlag?.closest("button") as HTMLButtonElement);
+    expect(germanFlag).toHaveAttribute("data-selected", "true");
+
+    const transitionContinueButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => !button.hasAttribute("aria-pressed"),
+    ) as HTMLButtonElement;
+    await user.click(transitionContinueButton);
+
+    const transition = container.querySelector('[data-gateway-flow-phase="exit"]');
+    expect(transition).toBeInTheDocument();
+    expect(transition?.querySelector('[data-onboarding-language-flag="de"]'))
+      .toHaveAttribute("data-selected", "true");
+  });
+
   it("refreshes both login languages without rendering or submitting the avatar step", async () => {
     const user = userEvent.setup();
     vi.mocked(updateLanguagePreferenceAction).mockClear();

@@ -65,6 +65,7 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
     language: getLanguageDisplayName(inputLanguage, locale),
   });
   const createCardButtonText = loading ? t("createCard.generating") : t("createCard.generate");
+  const previewIsVisible = Boolean(preview);
 
   useEffect(() => {
     if (!open) return;
@@ -191,7 +192,7 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
   const alreadyAdded = preview ? cards.some((card) => card.cardId === preview.sourceKey || card.cardId === preview.id) : false;
   const previewTarget = {
     left: Math.max(0, (sheetSize.width - 190) / 2),
-    top: 40,
+    top: -35,
     width: 190,
     height: 253,
   };
@@ -213,13 +214,17 @@ export function MobileCustomCardSheet({ open, onClose, onSubscriptionLimitReache
       onClose={handleClose}
       title={t("createCard.mobileTitle")}
       panelLabel={t("createCard.mobileTitle")}
+      titleClassName={cn(
+        "origin-center transition-[transform,opacity] duration-300 ease-out motion-reduce:transition-none",
+        previewIsVisible ? "scale-0 opacity-0" : "scale-100 opacity-100",
+      )}
       tutorialLayer="custom-card"
       showTutorialClosePointer={showTutorialClosePointer}
       tone="purple"
       panelClassName="h-[78dvh] max-h-[94dvh]"
       contentRef={setSheetElement}
       visual={<Plus className="size-[3.25rem] stroke-[3.25] text-purple-600" aria-hidden="true" />}
-      contentClassName="mobile-custom-card-content relative overflow-hidden p-5"
+      contentClassName="mobile-custom-card-content relative overflow-visible p-5"
     >
       <div className={cn("relative z-10 flex flex-1 flex-col justify-start transition-[opacity,transform] duration-300 ease-out", preview ? "pointer-events-none -translate-y-4 opacity-0" : "opacity-100")}>
         <div className="mt-3">

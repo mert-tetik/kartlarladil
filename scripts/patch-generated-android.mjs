@@ -8,7 +8,10 @@
  */
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createRequire } from "node:module";
+import { runInNewContext } from "node:vm";
 import { fileURLToPath } from "node:url";
+import { buildSync } from "esbuild";
 import { validateGoogleServicesConfig } from "./google-services-config.mjs";
 
 export { validateGoogleServicesConfig } from "./google-services-config.mjs";
@@ -16,6 +19,7 @@ export { validateGoogleServicesConfig } from "./google-services-config.mjs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const TEMPLATE_DIR = path.join(__dirname, "android-template");
+const require = createRequire(import.meta.url);
 
 export const ANDROID_TARGET_SDK = 36;
 export const ANDROID_MIN_SDK = 24;
@@ -33,6 +37,7 @@ export const ANDROID_JAVA_TEMPLATE_FILES = [
   "NativeTextToSpeechBridge.java",
   "NativeVibrationBridge.java",
   "NativeLoadingIndicatorView.java",
+  "NativeLoadingCatalog.java",
   "EventReceiverActivity.java",
 ];
 
@@ -418,6 +423,146 @@ async function copyNativeSplashAsset(projectDir) {
   await fs.copyFile(NATIVE_SPLASH_SOURCE, targetPath);
 }
 
+function loadVocabularyCardsForNativeFallback() {
+  const bundle = buildSync({
+    absWorkingDir: ROOT,
+    bundle: true,
+    entryPoints: [path.join(ROOT, "src", "data", "cards.ts")],
+    format: "cjs",
+    logLevel: "silent",
+    platform: "node",
+    target: "node20",
+    tsconfig: path.join(ROOT, "tsconfig.json"),
+    write: false,
+  });
+  const module = { exports: {} };
+  runInNewContext(bundle.outputFiles[0].text, {
+    Buffer,
+    clearTimeout,
+    console,
+    exports: module.exports,
+    module,
+    process,
+    require,
+    setTimeout,
+  });
+  return module.exports.VOCABULARY_CARDS;
+}
+
+function javaString(value) {
+  return JSON.stringify(String(value ?? ""));
+}
+
+function buildNativeLoadingCatalogSource() {
+  const cards = loadVocabularyCardsForNativeFallback();
+  const languages = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"];
+  const locales = languages;
+  const titles = [
+    "GÜNÜN KELİMELERİ",
+    "WORDS OF THE DAY",
+    "WÖRTER DES TAGES",
+    "СЛОВА ДНЯ",
+    "MOTS DU JOUR",
+    "PALABRAS DEL DÍA",
+    "PAROLE DEL GIORNO",
+    "PALAVRAS DO DIA",
+    "WOORDEN VAN DE DAG",
+    "SŁOWA DNIA",
+    "كلمات اليوم",
+    "今日の言葉",
+    "오늘의 단어",
+    "每日单词",
+  ];
+  const cardsByLanguage = languages.map((language) => {
+    const languageCards = cards
+      .filter((card) => card.language === language && card.termKind === "word")
+      .slice(0, 4)
+      .map((card) => ({
+        term: card.term,
+        pronunciation: card.pronunciation || card.term,
+        example: card.examples?.[0]?.sentence || card.example || "",
+        tier: card.tier,
+        translations: locales.map((locale) => card.translations[locale] || card.term),
+      }));
+
+    if (languageCards.length < 4) {
+      throw new Error(`The vocabulary catalog does not contain four ${language} word cards for native loading fallback.`);
+    }
+    return languageCards;
+  });
+
+  const javaStringMatrixRows = (rows) => rows
+    .map((row) => `        { ${row.map(javaString).join(", ")} }`)
+    .join(",\n");
+  const terms = cardsByLanguage.map((cardsForLanguage) => cardsForLanguage.map((card) => card.term));
+  const pronunciations = cardsByLanguage.map((cardsForLanguage) => cardsForLanguage.map((card) => card.pronunciation));
+  const examples = cardsByLanguage.map((cardsForLanguage) => cardsForLanguage.map((card) => card.example));
+  const tiers = cardsByLanguage.map((cardsForLanguage) => cardsForLanguage.map((card) => card.tier));
+  const translations = cardsByLanguage.map((cardsForLanguage) => cardsForLanguage.map((card) => card.translations));
+
+  return `package __PACKAGE__;
+
+final class NativeLoadingCatalog {
+    private NativeLoadingCatalog() {}
+
+    private static final String[] LANGUAGES = new String[] { ${languages.map(javaString).join(", ")} };
+    private static final String[] LOCALES = new String[] { ${locales.map(javaString).join(", ")} };
+    private static final String[] TITLES = new String[] { ${titles.map(javaString).join(", ")} };
+    private static final String[][] TERMS = new String[][] {
+${javaStringMatrixRows(terms)}
+    };
+    private static final String[][] PRONUNCIATIONS = new String[][] {
+${javaStringMatrixRows(pronunciations)}
+    };
+    private static final String[][] EXAMPLES = new String[][] {
+${javaStringMatrixRows(examples)}
+    };
+    private static final String[][] TIERS = new String[][] {
+${javaStringMatrixRows(tiers)}
+    };
+    private static final String[][][] TRANSLATIONS = new String[][][] {
+${translations.map((languageTranslations) => `        {\n${languageTranslations.map((cardTranslations) => `            new String[] { ${cardTranslations.map(javaString).join(", ")} }`).join(",\n")}\n        }`).join(",\n")}
+    };
+
+    static void applyFallback(NativeLoadingIndicatorView view, String learningLanguage, String uiLocale) {
+        int languageIndex = indexOf(LANGUAGES, learningLanguage, 1);
+        int localeIndex = indexOf(LOCALES, getStudyLocale(LANGUAGES[languageIndex], uiLocale), 0);
+        String[] translations = new String[4];
+        for (int index = 0; index < translations.length; index++) {
+            translations[index] = TRANSLATIONS[languageIndex][index][localeIndex];
+        }
+        view.setLoadingTitle(getTitle(uiLocale));
+        view.setLoadingCards(
+                TERMS[languageIndex],
+                translations,
+                PRONUNCIATIONS[languageIndex],
+                EXAMPLES[languageIndex],
+                TIERS[languageIndex]
+        );
+    }
+
+    private static String getTitle(String uiLocale) {
+        return TITLES[indexOf(LOCALES, uiLocale, 1)];
+    }
+
+    private static String getStudyLocale(String learningLanguage, String uiLocale) {
+        String safeUiLocale = uiLocale == null ? "en" : uiLocale;
+        if (!learningLanguage.equals(safeUiLocale)) return safeUiLocale;
+        return "en".equals(safeUiLocale) ? "tr" : "en";
+    }
+
+    private static int indexOf(String[] values, String value, int fallback) {
+        if (value != null) {
+            for (int index = 0; index < values.length; index++) {
+                if (values[index].equals(value)) return index;
+            }
+        }
+        return fallback;
+    }
+}
+`;
+}
+
 export async function patchGeneratedAndroidProject(
   projectDir = process.env.TWA_PROJECT_DIR || path.join(ROOT, "com.foxiesdeck"),
 ) {
@@ -477,6 +622,18 @@ export async function patchGeneratedAndroidProject(
     FILE_PROVIDER_PATHS,
   );
   await patchJavaTemplates(projectDir, packageName);
+  await writeText(
+    path.join(
+      projectDir,
+      "app",
+      "src",
+      "main",
+      "java",
+      packageName.split(".").join(path.sep),
+      "NativeLoadingCatalog.java",
+    ),
+    buildNativeLoadingCatalogSource().replaceAll("__PACKAGE__", packageName),
+  );
   await copyOfflineShellAssets(projectDir);
 
   const proguardPath = path.join(projectDir, "app", "proguard-rules.pro");

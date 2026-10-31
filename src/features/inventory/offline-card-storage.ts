@@ -265,7 +265,7 @@ function readFallbackNoteEntries(profileId: string): OfflineSavedNoteEntry[] {
   }
 }
 
-async function readOfflineProfileEntries<T>(storeName: "notes" | "drafts", profileId: string): Promise<T[]> {
+async function readOfflineProfileEntries<T>(storeName: "cards" | "notes" | "drafts", profileId: string): Promise<T[]> {
   const database = await openDatabase();
   try {
     const transaction = database.transaction(storeName, "readonly");
@@ -280,6 +280,60 @@ async function readOfflineProfileEntries<T>(storeName: "notes" | "drafts", profi
   } finally {
     database.close();
   }
+}
+
+function readFallbackInventoryEntries(profileId: string): OfflineInventoryEntry[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(snapshotFallbackKey(profileId)) ?? "null") as unknown;
+    if (!parsed || typeof parsed !== "object") return [];
+    const records = (parsed as { cards?: unknown }).cards;
+    if (!Array.isArray(records)) return [];
+
+    return records.flatMap((record): OfflineInventoryEntry[] => {
+      if (!record || typeof record !== "object") return [];
+      const candidate = record as { profileId?: unknown; inventory?: unknown; card?: unknown };
+      if (candidate.profileId !== undefined && candidate.profileId !== profileId) return [];
+      if (!candidate.inventory || typeof candidate.inventory !== "object") return [];
+      if (!candidate.card || typeof candidate.card !== "object") return [];
+      return [{
+        inventory: candidate.inventory as OfflineInventoryEntry["inventory"],
+        card: candidate.card as OfflineInventoryEntry["card"],
+      }];
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function listOfflineInventorySnapshot(profileId: string): Promise<OfflineInventoryEntry[] | null> {
+  let indexedDbEntries: Array<{ profileId?: string; inventory?: unknown; card?: unknown }> = [];
+  let indexedDbReadSucceeded = false;
+  try {
+    indexedDbEntries = await readOfflineProfileEntries("cards", profileId);
+    indexedDbReadSucceeded = true;
+  } catch {
+    // The localStorage snapshot is used when IndexedDB is unavailable.
+  }
+
+  const entries: Array<{ profileId?: unknown; inventory?: unknown; card?: unknown }> = [
+    ...indexedDbEntries,
+    ...readFallbackInventoryEntries(profileId),
+  ];
+  const byCardId = new Map<string, OfflineInventoryEntry>();
+  for (const entry of entries) {
+    if (entry.profileId !== undefined && entry.profileId !== profileId) continue;
+    if (!entry.inventory || typeof entry.inventory !== "object") continue;
+    if (!entry.card || typeof entry.card !== "object") continue;
+    const inventory = entry.inventory as OfflineInventoryEntry["inventory"];
+    const card = entry.card as OfflineInventoryEntry["card"];
+    const cardId = inventory.cardId;
+    if (typeof cardId !== "string" || byCardId.has(cardId)) continue;
+    byCardId.set(cardId, { inventory, card });
+  }
+
+  // null distinguishes “no snapshot exists yet” from a valid empty snapshot.
+  if (indexedDbReadSucceeded || entries.length > 0) return [...byCardId.values()];
+  return null;
 }
 
 export async function listOfflineSavedNotes(profileId: string): Promise<OfflineSavedNoteEntry[]> {

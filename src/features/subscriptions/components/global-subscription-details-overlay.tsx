@@ -261,7 +261,18 @@ export function GlobalSubscriptionDetailsOverlay({
             </p>
           </div>
 
-          <div className="relative mt-10 min-h-0 w-full max-w-xl flex-1">
+          <p
+            className={cn(
+              "subscription-details-intro-item mt-2 mb-0 w-full max-w-xl translate-y-[40px] px-4 text-center font-display text-xl font-semibold leading-tight text-white sm:text-2xl",
+              usesSuperWater && "font-super-water",
+              isIntroComplete ? "subscription-details-intro-item--enter" : "subscription-details-intro-item--pending",
+            )}
+            style={{ animationDelay: "630ms" }}
+          >
+            {formatSuperWaterText(locale, t(selection.plan === "pro" ? "pricing.subscriptionDetailsTaglinePro" : "pricing.subscriptionDetailsTagline"))}
+          </p>
+
+          <div className="relative mt-0 mb-[60px] min-h-0 w-full max-w-xl flex-1 translate-y-15">
             <ul ref={featureListRef} className="flex h-full min-h-0 w-full flex-col overscroll-contain overflow-y-auto pb-0 pr-1">
               {selection.plan === "pro" ? (
                 <>

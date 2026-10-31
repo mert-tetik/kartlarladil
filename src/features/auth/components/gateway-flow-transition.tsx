@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export const GATEWAY_FLOW_EXIT_DURATION_MS = 360;
@@ -26,16 +26,26 @@ export function GatewayFlowTransition({
   const [displayedChildren, setDisplayedChildren] = useState(children);
   const [displayedKey, setDisplayedKey] = useState(transitionKey);
   const childrenRef = useRef(children);
+  const committedChildrenRef = useRef(children);
   const onCommitRef = useRef(onCommit);
   const onPhaseChangeRef = useRef(onPhaseChange);
 
   const phase: GatewayFlowPhase = forceExit || transitionKey !== displayedKey ? "exit" : "enter";
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     childrenRef.current = children;
     onCommitRef.current = onCommit;
     onPhaseChangeRef.current = onPhaseChange;
-  }, [children, onCommit, onPhaseChange]);
+
+    // Keep the last stable screen synchronized with local selection state.
+    // Otherwise the exit animation can briefly render the first version of
+    // that screen, making a different option look selected even though the
+    // submitted value is still correct.
+    if (!forceExit && transitionKey === displayedKey && committedChildrenRef.current !== children) {
+      committedChildrenRef.current = children;
+      setDisplayedChildren(children);
+    }
+  }, [children, displayedKey, forceExit, onCommit, onPhaseChange, transitionKey]);
 
   useEffect(() => {
     if (forceExit) {
@@ -48,7 +58,9 @@ export function GatewayFlowTransition({
     onPhaseChangeRef.current("exit");
 
     const timer = window.setTimeout(() => {
-      setDisplayedChildren(childrenRef.current);
+      const nextChildren = childrenRef.current;
+      committedChildrenRef.current = nextChildren;
+      setDisplayedChildren(nextChildren);
       setDisplayedKey(transitionKey);
       onCommitRef.current();
       onPhaseChangeRef.current("enter");

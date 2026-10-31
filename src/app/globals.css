@@ -507,6 +507,22 @@ body {
   font-weight: 400;
 }
 
+html.native-loading-visual-test-active [data-route-transition-navigation],
+html.native-loading-visual-test-active [data-mobile-main-nav-frame] {
+  display: none !important;
+}
+
+html.native-loading-visual-test-active body:has([data-mobile-auth-gateway]) #main-content,
+html.native-loading-visual-test-active #main-content {
+  display: block !important;
+  padding-bottom: 0 !important;
+}
+
+html.native-loading-visual-test-active body:has([data-mobile-auth-gateway]) [data-mobile-auth-gateway],
+html.native-loading-visual-test-active [data-mobile-auth-gateway] {
+  display: none !important;
+}
+
 .slow-connection-prompt-panel {
   animation: slow-connection-prompt-enter 360ms cubic-bezier(0.85, 0, 0.15, 1) both;
 }
@@ -681,6 +697,12 @@ button:disabled,
 
 .mobile-primary-action-depth--rose-violet::after {
   background: linear-gradient(to right, var(--color-rose-500), var(--color-violet-600));
+}
+
+.mobile-subscription-action-depth::after {
+  background: transparent;
+  filter: none;
+  transform: none;
 }
 
 .mobile-main-nav-frame {

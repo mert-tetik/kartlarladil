@@ -492,7 +492,16 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     };
   }, [shouldKeepBootstrapVisible]);
 
+  useEffect(() => {
+    if (!mounted || bootstrapPhase !== "hidden") return;
+    window.FoxiesDeckNativeLoading?.setBootstrapReady?.();
+  }, [bootstrapPhase, mounted]);
+
   const isInstalled = isInstalledApp() && !isTestMode;
+  const isNativeShell =
+    mounted &&
+    typeof window !== "undefined" &&
+    Boolean((window as Window & { FoxiesDeckNativeLoading?: unknown }).FoxiesDeckNativeLoading);
 
   function handleContinueOnWeb() {
     saveWebChoice();
@@ -701,7 +710,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   return (
     <>
       {gateway}
-      {isPublicMobilePath || bootstrapPhase === "hidden" ? null : (
+      {isPublicMobilePath || isNativeShell || bootstrapPhase === "hidden" ? null : (
         <MobileGatewayBootstrap phase={bootstrapPhase} />
       )}
     </>

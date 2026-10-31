@@ -37,11 +37,26 @@ export function MemoryCard({ item, onClick, disabled, revealAll }: MemoryCardPro
         item.isMatched && "animate-memory-card-match",
         disabled && "pointer-events-none",
       )}
+      style={{ perspective: "800px" }}
       data-memory-card={item.id}
       data-card-face={isFaceUp ? "front" : "back"}
     >
-      {isFaceUp ? (
-        <span className="flex h-full w-full flex-col items-center justify-center gap-2 overflow-hidden bg-white px-2 py-3 text-center text-slate-950">
+      <span
+        aria-hidden="true"
+        className="relative block h-full w-full [transform-style:preserve-3d]"
+        style={{
+          transform: `rotateY(${isFaceUp ? 180 : 0}deg)`,
+          transition: "transform 420ms cubic-bezier(0.22, 1, 0.36, 1)",
+        }}
+      >
+        <span
+          className="absolute inset-0 block overflow-hidden bg-center bg-no-repeat [backface-visibility:hidden]"
+          style={{
+            backgroundImage: `url('${MEMORY_CARD_BACKGROUNDS[item.card.tier]}')`,
+            backgroundSize: "cover",
+          }}
+        />
+        <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 overflow-hidden bg-white px-2 py-3 text-center text-slate-950 [backface-visibility:hidden] [transform:rotateY(180deg)]">
           <span className="max-w-full break-words font-display text-xl font-semibold leading-tight max-sm:text-lg">
             {item.card.term}
           </span>
@@ -49,16 +64,7 @@ export function MemoryCard({ item, onClick, disabled, revealAll }: MemoryCardPro
             {getPrimaryCardTranslation(item.card, locale)}
           </span>
         </span>
-      ) : (
-        <span
-          aria-hidden="true"
-          className="block h-full w-full bg-center bg-no-repeat"
-          style={{
-            backgroundImage: `url('${MEMORY_CARD_BACKGROUNDS[item.card.tier]}')`,
-            backgroundSize: "cover",
-          }}
-        />
-      )}
+      </span>
     </button>
   );
 }

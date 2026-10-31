@@ -15,7 +15,6 @@ import {
   Gamepad2,
   Layers,
   MessageCircle,
-  MessagesSquare,
   Palette,
   RotateCcw,
   ScanText,
@@ -31,7 +30,6 @@ import {
   useGooglePlayPricing,
 } from "@/features/subscriptions/use-google-play-pricing";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
-import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import {
   formatCurrency,
   getLocalizedPrice,
@@ -192,20 +190,9 @@ export function MobileSubscriptionOfferScreen({
 
           </div>
 
-          <h1
-            className={cn(
-              "subscription-details-intro-item relative -top-[82px] mt-12 w-[calc(100%+4rem)] whitespace-nowrap text-center text-[clamp(1.2rem,7vw,2.25rem)] font-semibold leading-tight",
-              usesSuperWater && "font-super-water",
-              "subscription-details-intro-item--enter",
-            )}
-            style={{ animationDelay: "650ms", color: "#ffffff" }}
-          >
-            {formatSuperWaterText(locale, t("pricing.seriousLearner"))}
-          </h1>
-
           <p
             className={cn(
-              "subscription-details-intro-item relative -top-[82px] mt-1 w-[calc(100%+4rem)] whitespace-nowrap text-center text-[clamp(1.35rem,8vw,2.75rem)] font-semibold leading-tight text-white",
+              "subscription-details-intro-item relative -top-[32px] mt-1 w-[calc(100%+2rem)] whitespace-normal text-balance text-center text-[clamp(1.2rem,7vw,2.3rem)] font-semibold leading-tight text-white",
               usesSuperWater && "font-super-water",
               "subscription-details-intro-item--enter",
             )}
@@ -214,7 +201,18 @@ export function MobileSubscriptionOfferScreen({
             {formatSuperWaterText(locale, t("pricing.startWithPremium"))}
           </p>
 
-          <div className="relative -mt-24 min-h-0 w-full max-w-xl flex-1">
+          <p
+            className={cn(
+              "subscription-details-intro-item relative -top-[32px] mt-1 w-[calc(100%+2rem)] whitespace-normal text-balance text-center text-[clamp(0.8rem,4.5vw,1.35rem)] font-semibold leading-tight text-white",
+              usesSuperWater && "font-super-water",
+              "subscription-details-intro-item--enter",
+            )}
+            style={{ animationDelay: "730ms" }}
+          >
+            {formatSuperWaterText(locale, t("pricing.seriousLearnerSubtitle"))}
+          </p>
+
+          <div className="relative mt-0 min-h-0 w-full max-w-xl flex-1 -translate-y-[23px]">
             <ul
               ref={featureListRef}
               onScroll={updateFeatureScrollHint}
@@ -225,9 +223,8 @@ export function MobileSubscriptionOfferScreen({
             <SeriousLearnerOfferFeature introDelay={810} icon={RotateCcw} locale={locale} text={t("pricing.featureLearnedReview")} />
             <SeriousLearnerOfferFeature introDelay={870} icon={Palette} locale={locale} text={t("pricing.featureThemes")} />
             <SeriousLearnerOfferFeature introDelay={930} icon={Gamepad2} locale={locale} text={t("pricing.featureGames")} />
-            <SeriousLearnerOfferFeature introDelay={990} icon={MessageCircle} locale={locale} text={t("pricing.featureAiDaily", { count: PLAN_LIMITS.basic.aiDailyMessages ?? 0 })} />
-            <SeriousLearnerOfferFeature introDelay={1050} icon={MessagesSquare} locale={locale} text={t("pricing.featureAiMonthly", { count: PLAN_LIMITS.basic.aiMonthlyMessages ?? 0 })} />
-            <SeriousLearnerOfferFeature introDelay={1110} icon={ScanText} locale={locale} text={t("pricing.featureUnlimitedTextTranslation")} unavailable />
+            <SeriousLearnerOfferFeature introDelay={990} icon={MessageCircle} locale={locale} text={t("pricing.featureAiPractice")} />
+            <SeriousLearnerOfferFeature introDelay={1050} icon={ScanText} locale={locale} text={t("pricing.featureUnlimitedTextTranslation")} unavailable />
             </ul>
             {showFeatureScrollHint ? (
               <span
@@ -246,6 +243,15 @@ export function MobileSubscriptionOfferScreen({
             )}
             style={{ animationDelay: "1110ms" }}
           >
+            <p
+              data-serious-learner-price-message
+              className={cn(
+                "mb-3 w-full text-center text-[clamp(1rem,4.8vw,1.35rem)] font-semibold leading-tight text-white",
+                usesSuperWater && "font-super-water",
+              )}
+            >
+              {formatSuperWaterText(locale, t("pricing.seriousLearnerPriceMessage"))}
+            </p>
             <Button
               type="button"
               size="lg"

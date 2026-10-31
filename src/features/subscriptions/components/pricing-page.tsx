@@ -369,13 +369,17 @@ function ActiveSubscriptionPricingView({
 
 function PricingHeading({ locale }: { locale: LocaleCode }) {
   const t = useT();
+  const usesSuperWater = canUseSuperWater(locale);
 
   return (
-    <>
-      <h1 className={cn("font-display text-[clamp(2.1rem,10vw,3rem)] font-semibold leading-[0.95] text-white lg:text-5xl lg:leading-tight xl:text-6xl", canUseSuperWater(locale) && "font-super-water")}>
+    <div className="relative inline-flex -translate-y-[15px] flex-col items-center">
+      <h1 className={cn("font-display text-[clamp(1.35rem,6vw,2rem)] font-semibold leading-none text-white lg:text-3xl lg:leading-tight xl:text-4xl", usesSuperWater && "font-super-water")}>
         {formatSuperWaterText(locale, t("pricing.title"))}
       </h1>
-    </>
+      <p className={cn("absolute top-full mt-1 whitespace-nowrap font-display text-[clamp(1.8rem,9vw,3.5rem)] font-semibold leading-none text-white lg:text-5xl xl:text-6xl", usesSuperWater && "font-super-water")}>
+        {formatSuperWaterUppercaseText(locale, "SINIRLARI KALDIR")}
+      </p>
+    </div>
   );
 }
 
@@ -1545,8 +1549,8 @@ function MobileOptionPrice({
         "relative z-10 flex items-center justify-center gap-1 whitespace-nowrap font-semibold leading-none transition-[color,filter] duration-500 ease-[cubic-bezier(0.85,0,0.15,1)]",
         isSelected
           ? plan === "basic"
-            ? "text-lg text-[#60a5fa]"
-            : "text-lg text-[#c084fc]"
+            ? "text-lg text-[#93c5fd]"
+            : "text-lg text-[#d8b4fe]"
           : "text-base text-[#9ca3af] saturate-0",
       )}
       style={{

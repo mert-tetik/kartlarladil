@@ -3,12 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import Image from "next/image";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { useAppMessage } from "@/components/app-message-provider";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useLocale, useT } from "@/i18n/locale-provider";
-import { formatSuperWaterUppercaseText } from "@/lib/super-water";
+import { canUseSuperWater, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { vibrate } from "@/lib/vibration";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,11 @@ export type UpgradeDialogErrorCode =
   | "learned_review_subscription_required"
   | "game_level_locked"
   | "scenario_subscription_required";
+
+const RESTRICTION_PLAN_IMAGE = {
+  basic: { src: "/subscriptions/plan-basic-v2.png", width: 1489, height: 450 },
+  pro: { src: "/subscriptions/plan-pro-v2.png", width: 1338, height: 511 },
+} as const;
 
 interface UpgradeDialogProps {
   open: boolean;
@@ -216,39 +222,66 @@ function SubscriptionDetailsRestrictionCta({
   const isPaidUser = currentPlan != null && currentPlan !== "free";
   const plan = currentPlan === "pro" ? "pro" : "basic";
   const buttonLabel = isPaidUser ? t("pricing.ctaManage") : t("limit.upgradeButtonFirstMonthFree");
+  const planImage = RESTRICTION_PLAN_IMAGE[plan];
+  const planButtonClass = plan === "pro"
+    ? "!bg-[#9333ea] !text-white hover:!bg-[#7e22ce] focus-visible:outline-[#c084fc]"
+    : "!bg-[#2563eb] !text-white hover:!bg-[#1d4ed8] focus-visible:outline-[#93c5fd]";
 
   return (
-    <Button
-      type="button"
-      disabled={isLoading}
-      data-tutorial-pricing-link
-      data-restriction-subscription-details="basic_monthly"
-      className={buttonClassName(
-        "primary",
-        "md",
-        "h-11 w-full rounded-xl bg-gradient-to-r from-[#fdf4a5] to-[#f5ac27] text-sm font-bold text-[#552000] hover:brightness-105 focus-visible:outline-[#fdf4a5]",
-      )}
-      onClick={() => {
-        openSubscriptionDetails(
-          { plan, cycle: "monthly", ctaLabel: buttonLabel },
-          {
-            onPurchaseSuccess: () => {
-              showMessage(t("pricing.purchaseSuccessDescription"), "success");
-              onOpenChange(false);
-              if (onPurchaseSuccess) {
-                window.setTimeout(() => {
-                  void Promise.resolve(onPurchaseSuccess()).catch((error: unknown) => {
-                    console.error("Could not resume the restricted action after purchase:", error);
-                  });
-                }, 320);
-              }
+    <div className="mobile-primary-action-depth mobile-subscription-action-depth mt-6 w-full rounded-xl">
+      <svg
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-[-28px] z-0 h-10 w-full overflow-visible"
+        viewBox="0 0 100 40"
+        preserveAspectRatio="none"
+      >
+        <path
+          d="M8 24H22C29 24 32 16 35 8C36 3 39 0 44 0H56C61 0 64 3 65 8C68 16 71 24 78 24H92C96.42 24 100 27.58 100 32V40H0V32C0 27.58 3.58 24 8 24Z"
+          fill="white"
+        />
+      </svg>
+      <Image
+        src={planImage.src}
+        alt=""
+        width={planImage.width}
+        height={planImage.height}
+        className="pointer-events-none absolute left-1/2 top-[-22px] z-[2] h-5 w-16 -translate-x-1/2 object-contain"
+      />
+      <Button
+        type="button"
+        disabled={isLoading}
+        data-tutorial-pricing-link
+        data-restriction-subscription-details={`${plan}_monthly`}
+        className={buttonClassName(
+          "primary",
+          "md",
+          cn("relative z-10 h-16 w-full justify-center rounded-xl px-3 text-white", planButtonClass),
+        )}
+        onClick={() => {
+          openSubscriptionDetails(
+            { plan, cycle: "monthly", ctaLabel: buttonLabel },
+            {
+              onPurchaseSuccess: () => {
+                showMessage(t("pricing.purchaseSuccessDescription"), "success");
+                onOpenChange(false);
+                if (onPurchaseSuccess) {
+                  window.setTimeout(() => {
+                    void Promise.resolve(onPurchaseSuccess()).catch((error: unknown) => {
+                      console.error("Could not resume the restricted action after purchase:", error);
+                    });
+                  }, 320);
+                }
+              },
             },
-          },
-        );
-      }}
-    >
-      {isLoading ? t("common.loading") : formatSuperWaterUppercaseText(locale, buttonLabel)}
-    </Button>
+          );
+        }}
+      >
+        <span className="-space-y-1 flex min-w-0 flex-1 flex-col items-center justify-center text-center leading-tight">
+          <span className={cn("text-lg font-bold sm:text-xl", canUseSuperWater(locale) && "font-super-water")}>{formatSuperWaterUppercaseText(locale, t("limit.removeLimits"))}!</span>
+          <span className="text-base font-semibold sm:text-lg">{isLoading ? t("common.loading") : formatSuperWaterUppercaseText(locale, buttonLabel)}</span>
+        </span>
+      </Button>
+    </div>
   );
 }
 

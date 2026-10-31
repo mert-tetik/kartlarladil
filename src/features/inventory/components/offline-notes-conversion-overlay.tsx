@@ -827,7 +827,16 @@ function OfflineNotesConversionOverlayContent() {
       autoCloseAfterDeckAddRef.current = false;
       closeOverlay();
     }
-    if (!restoredAfterFailure && draftAddQueueRef.current.size === 0 && notes.length === 0) closeOverlay();
+    // Keep the menu open while any generated card is still waiting for the
+    // user. A single-card add must not close the conversion flow early.
+    if (
+      !restoredAfterFailure &&
+      draftAddQueueRef.current.size === 0 &&
+      notesRef.current.length === 0 &&
+      draftsRef.current.length === 0
+    ) {
+      closeOverlay();
+    }
   }
 
   useEffect(() => {

@@ -15,6 +15,7 @@ import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-
 import { AiPracticePreview } from "@/app/components/ai-practice-preview";
 import { CollectionPreviewCard } from "@/app/components/collection-preview-card";
 import { MobileLandingDashboard } from "@/app/components/mobile-landing-dashboard";
+import { NativeLoadingVisualTest } from "@/app/components/native-loading-visual-test";
 import { ReviewSection } from "@/features/reviews/components/review-section";
 import { getExistingReview } from "@/features/reviews/review-service";
 import { RANKS, TIER_POINTS } from "@/features/progress/progress-stats";
@@ -65,7 +66,17 @@ const heroBackdropCards = [
 
 const HERO_BACKDROP_SEQUENCE_REPEATS = 2;
 
-export default async function Home() {
+type HomeProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function Home({ searchParams }: HomeProps) {
+  const params = await searchParams;
+  const nativeLoadingTest = params?.["native-loading-test"];
+  if (nativeLoadingTest === "1" || nativeLoadingTest === "true") {
+    return <NativeLoadingVisualTest />;
+  }
+
   const locale = await getServerLocale();
   const t = createTranslator(locale);
   const installAppCopy = getInstallAppCopy(locale);

@@ -13,6 +13,8 @@ import android.net.NetworkCapabilities;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.view.Window;
 import android.view.WindowInsets;
@@ -29,6 +31,8 @@ import android.webkit.PermissionRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.ValueCallback;
+import android.webkit.JavascriptInterface;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.google.android.play.core.appupdate.AppUpdateInfo;
@@ -63,9 +67,25 @@ public class LauncherActivity extends Activity {
     private boolean immediateUpdateFlowActive;
     private boolean startUrlLoaded;
     private boolean backPressInFlight;
+    private boolean nativeLoadingTestMode;
+    private int nativeLoadingTestStep;
+    private boolean nativeLoadingPageCommitted;
+    private boolean nativeLoadingCardsReceived;
+    private boolean nativeLoadingBootstrapReady;
+    private String[] nativeLoadingStatuses;
+    private String nativeLoadingFallbackStatus = "Foxies are stretching their tails...";
+    private int nativeLoadingProgressPercent = 8;
+    private final Handler nativeLoadingTestHandler = new Handler(Looper.getMainLooper());
+    private final Runnable nativeLoadingTestRunnable = this::advanceNativeLoadingTest;
     private final OnBackInvokedCallback androidBackCallback = this::handleBackPressed;
+    private final NativeLoadingBridge nativeLoadingBridge = new NativeLoadingBridge();
     private static final int FILE_CHOOSER_REQUEST_CODE = 4102;
     private static final int IMMEDIATE_UPDATE_REQUEST_CODE = 4103;
+    private static final long NATIVE_LOADING_TEST_STEP_DELAY_MS = 1200L;
+    private static final String NATIVE_LOADING_TEST_PARAMETER = "native-loading-test";
+    private static final String NATIVE_LOADING_PREFERENCES = "native_loading_preferences";
+    private static final String NATIVE_LOADING_LEARNING_LANGUAGE = "learning_language";
+    private static final String NATIVE_LOADING_UI_LOCALE = "ui_locale";
     private static final AppUpdateOptions IMMEDIATE_UPDATE_OPTIONS =
             AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build();
 
@@ -74,6 +94,7 @@ public class LauncherActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         pendingLaunchIntent = getIntent();
+        nativeLoadingTestMode = isNativeLoadingTestIntent(pendingLaunchIntent);
         contentRoot = new FrameLayout(this);
         // API 35+ enforces edge-to-edge for target API 36. Keep the native
         // root black so transparent system-bar regions never inherit the
@@ -95,7 +116,9 @@ public class LauncherActivity extends Activity {
         // Let Android draw the local launch surface first. The native loader
         // then takes over before WebView and bridge setup begins, so the user
         // never depends on a WebView frame for the first loading indicator.
-        contentRoot.post(this::beginWebViewStartup);
+        contentRoot.post(nativeLoadingTestMode
+                ? this::beginNativeLoadingVisualTest
+                : this::beginWebViewStartup);
     }
 
     private FrameLayout createNativeLaunchOverlay() {
@@ -135,10 +158,67 @@ public class LauncherActivity extends Activity {
     private void beginWebViewStartup() {
         if (isFinishing() || nativeLoadingView == null) return;
 
+        // Show real catalog cards immediately. The WebView bridge may arrive
+        // later on a cold or offline launch and then replaces this fallback
+        // with the user's actual inventory cards.
+        NativeLoadingCatalog.applyFallback(
+                nativeLoadingView,
+                getNativeLoadingPreference(NATIVE_LOADING_LEARNING_LANGUAGE, "en"),
+                getNativeLoadingPreference(NATIVE_LOADING_UI_LOCALE, "en")
+        );
+
         // Give the local wordmark one rendered frame before the loader takes
         // over. This is a visual handoff only; it does not delay WebView work.
+        setNativeLoadingState("Foxies are stretching their tails...", 8);
         showNativeLoadingScreen();
         contentRoot.post(this::initializeWebView);
+    }
+
+    private void beginNativeLoadingVisualTest() {
+        if (isFinishing() || nativeLoadingView == null) return;
+
+        // The visual test runs without a WebView bridge, so provide realistic
+        // sample cards instead of exposing the renderer's placeholder values.
+        nativeLoadingView.setLoadingCards(
+                new String[]{"bacteria", "card", "efficiency", "courtesy"},
+                new String[]{"bakteri", "kart", "verimlilik", "nezaket"},
+                new String[]{"baktıriya", "kart", "ifishınsi", "körtısi"},
+                new String[]{
+                        "Soap helps kill bacteria on your hands.",
+                        "I sent a birthday card to my friend.",
+                        "The new machine improved efficiency in the workshop.",
+                        "He held the door open as a courtesy."
+                },
+                new String[]{"B2", "A1", "C1", "C1"}
+        );
+        nativeLoadingTestStep = 0;
+        showNativeLoadingScreen();
+        advanceNativeLoadingTest();
+    }
+
+    private void advanceNativeLoadingTest() {
+        if (!nativeLoadingTestMode || isFinishing() || nativeLoadingView == null) return;
+
+        String[] statuses = {
+                "Foxies are stretching their tails...",
+                "Waking up the card cave...",
+                "Shuffling the word deck...",
+                "Checking the foxie guest list...",
+                "Opening the word door...",
+                "Taking the cozy offline path...",
+                "Opening the welcome gate!",
+                "Cards are ready to play!"
+        };
+        int[] progress = {8, 24, 48, 60, 68, 76, 88, 100};
+        int lastStep = statuses.length - 1;
+        setNativeLoadingState(statuses[nativeLoadingTestStep], progress[nativeLoadingTestStep]);
+        if (nativeLoadingTestStep < lastStep) {
+            nativeLoadingTestStep += 1;
+            nativeLoadingTestHandler.postDelayed(
+                    nativeLoadingTestRunnable,
+                    NATIVE_LOADING_TEST_STEP_DELAY_MS
+            );
+        }
     }
 
     private void showNativeLoadingScreen() {
@@ -163,6 +243,8 @@ public class LauncherActivity extends Activity {
 
     private void initializeWebView() {
         if (webView != null || isFinishing()) return;
+
+        setNativeLoadingState("Waking up the card cave...", 24);
 
         webView = new WebView(this);
         WebSettings settings = webView.getSettings();
@@ -244,7 +326,7 @@ public class LauncherActivity extends Activity {
         });
 
         NativeMediaStore mediaStore = new NativeMediaStore(this);
-        webView.setWebViewClient(new LocalMediaWebViewClient(this, mediaStore, this::hideNativeLaunchOverlay));
+        webView.setWebViewClient(new LocalMediaWebViewClient(this, mediaStore, this::handleNativePageCommitVisible));
 
         billingBridge = new NativeBillingBridge(this);
         webView.addJavascriptInterface(billingBridge, "FoxiesDeckNativeBilling");
@@ -252,6 +334,7 @@ public class LauncherActivity extends Activity {
         webView.addJavascriptInterface(textToSpeechBridge, "FoxiesDeckNativeSpeech");
         vibrationBridge = new NativeVibrationBridge(this);
         webView.addJavascriptInterface(vibrationBridge, "FoxiesDeckNativeVibration");
+        webView.addJavascriptInterface(nativeLoadingBridge, "FoxiesDeckNativeLoading");
 
         contentRoot.addView(
                 webView,
@@ -264,14 +347,199 @@ public class LauncherActivity extends Activity {
 
         // The app must never wait for Play Core. The native loader can remain
         // visible while the update check runs independently in the background.
+        setNativeLoadingState("Shuffling the word deck...", 48);
         continueLaunch();
         contentRoot.post(this::checkForImmediateUpdate);
+    }
+
+    private void setNativeLoadingState(String status, int progressPercent) {
+        nativeLoadingFallbackStatus = status;
+        nativeLoadingProgressPercent = progressPercent;
+        String displayStatus = status;
+        if (nativeLoadingStatuses != null) {
+            int statusIndex = nativeLoadingStatusIndex(progressPercent);
+            if (statusIndex >= 0 && statusIndex < nativeLoadingStatuses.length
+                    && nativeLoadingStatuses[statusIndex] != null
+                    && !nativeLoadingStatuses[statusIndex].isEmpty()) {
+                displayStatus = nativeLoadingStatuses[statusIndex];
+            }
+        }
+        if (nativeLoadingView != null) {
+            nativeLoadingView.setLoadingState(displayStatus, progressPercent);
+        }
+    }
+
+    private static int nativeLoadingStatusIndex(int progressPercent) {
+        switch (progressPercent) {
+            case 8: return 0;
+            case 24: return 1;
+            case 48: return 2;
+            case 60: return 3;
+            case 68: return 4;
+            case 76: return 5;
+            case 88: return 6;
+            case 100: return 7;
+            default: return -1;
+        }
+    }
+
+    private void handleNativePageCommitVisible() {
+        nativeLoadingPageCommitted = true;
+        setNativeLoadingState("Checking the foxie guest list...", 68);
+        maybeHideNativeLaunchOverlay();
+        suppressWebBootstrapOverlay();
+        if (webView != null) {
+            webView.postDelayed(() -> {
+                if (nativeLoadingPageCommitted && !nativeLoadingCardsReceived) {
+                    nativeLoadingCardsReceived = true;
+                    maybeHideNativeLaunchOverlay();
+                }
+            }, 220L);
+        }
+    }
+
+    private void suppressWebBootstrapOverlay() {
+        if (webView == null) {
+            markNativeLoadingBootstrapReady();
+            return;
+        }
+
+        String script = "(function(){"
+                + "var styleId='foxiesdeck-native-bootstrap-suppression';"
+                + "var style=document.getElementById(styleId);"
+                + "if(!style){"
+                + "style=document.createElement('style');"
+                + "style.id=styleId;"
+                + "style.textContent='[data-mobile-gateway-bootstrap]{display:none!important;visibility:hidden!important;pointer-events:none!important;}';"
+                + "(document.head||document.documentElement).appendChild(style);"
+                + "}"
+                + "function hideBootstrap(){"
+                + "document.querySelectorAll('[data-mobile-gateway-bootstrap]').forEach(function(node){node.style.setProperty('display','none','important');});"
+                + "document.querySelectorAll('img').forEach(function(image){"
+                + "var source=image.currentSrc||image.src||'';"
+                + "if(source.indexOf('splash.png')===-1)return;"
+                + "var node=image;"
+                + "for(var index=0;index<8&&node;index++,node=node.parentElement){"
+                + "if(getComputedStyle(node).position==='fixed'){node.style.setProperty('display','none','important');break;}"
+                + "}"
+                + "});"
+                + "}"
+                + "hideBootstrap();"
+                + "if(!window.__foxiesdeckNativeBootstrapObserver){"
+                + "var observer=new MutationObserver(hideBootstrap);"
+                + "observer.observe(document.documentElement,{childList:true,subtree:true});"
+                + "window.__foxiesdeckNativeBootstrapObserver=observer;"
+                + "}"
+                + "return 'suppressed';"
+                + "})()";
+        try {
+            webView.evaluateJavascript(script, ignored -> markNativeLoadingBootstrapReady());
+        } catch (RuntimeException ignored) {
+            markNativeLoadingBootstrapReady();
+        }
+    }
+
+    private void markNativeLoadingBootstrapReady() {
+        runOnUiThread(() -> {
+            nativeLoadingBootstrapReady = true;
+            setNativeLoadingState("Opening the welcome gate!", 88);
+            maybeHideNativeLaunchOverlay();
+        });
+    }
+
+    private void maybeHideNativeLaunchOverlay() {
+        if (nativeLoadingPageCommitted && nativeLoadingCardsReceived && nativeLoadingBootstrapReady) {
+            hideNativeLaunchOverlay();
+        }
+    }
+
+    private String getNativeLoadingPreference(String key, String fallback) {
+        return getSharedPreferences(NATIVE_LOADING_PREFERENCES, MODE_PRIVATE)
+                .getString(key, fallback);
+    }
+
+    private final class NativeLoadingBridge {
+        @JavascriptInterface
+        public void setPreferences(String learningLanguage, String uiLocale) {
+            getSharedPreferences(NATIVE_LOADING_PREFERENCES, MODE_PRIVATE)
+                    .edit()
+                    .putString(NATIVE_LOADING_LEARNING_LANGUAGE, learningLanguage)
+                    .putString(NATIVE_LOADING_UI_LOCALE, uiLocale)
+                    .apply();
+        }
+
+        @JavascriptInterface
+        public void setTitle(String title) {
+            runOnUiThread(() -> {
+                if (nativeLoadingView != null) {
+                    nativeLoadingView.setLoadingTitle(title);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void setStatusTexts(String statusesJson) {
+            try {
+                JSONArray statuses = new JSONArray(statusesJson);
+                int count = Math.min(8, statuses.length());
+                String[] localizedStatuses = new String[count];
+                for (int index = 0; index < count; index++) {
+                    localizedStatuses[index] = statuses.optString(index, "");
+                }
+                runOnUiThread(() -> {
+                    nativeLoadingStatuses = localizedStatuses;
+                    setNativeLoadingState(nativeLoadingFallbackStatus, nativeLoadingProgressPercent);
+                });
+            } catch (Exception ignored) {
+                // Keep the native English fallback until a valid localized copy arrives.
+            }
+        }
+
+        @JavascriptInterface
+        public void setCards(String cardsJson) {
+            try {
+                JSONArray cards = new JSONArray(cardsJson);
+                int count = Math.min(4, cards.length());
+                String[] terms = new String[count];
+                String[] translations = new String[count];
+                String[] pronunciations = new String[count];
+                String[] examples = new String[count];
+                String[] tiers = new String[count];
+                for (int index = 0; index < count; index++) {
+                    JSONObject card = cards.optJSONObject(index);
+                    if (card == null) return;
+                    terms[index] = card.optString("term", "");
+                    translations[index] = card.optString("translation", "");
+                    pronunciations[index] = card.optString("pronunciation", terms[index]);
+                    examples[index] = card.optString("example", "");
+                    tiers[index] = card.optString("tier", "A1");
+                }
+                runOnUiThread(() -> {
+                    if (nativeLoadingView != null) {
+                        nativeLoadingView.setLoadingCards(terms, translations, pronunciations, examples, tiers);
+                    }
+                    nativeLoadingCardsReceived = true;
+                    maybeHideNativeLaunchOverlay();
+                });
+            } catch (Exception ignored) {
+                runOnUiThread(() -> {
+                    nativeLoadingCardsReceived = true;
+                    maybeHideNativeLaunchOverlay();
+                });
+            }
+        }
+
+        @JavascriptInterface
+        public void setBootstrapReady() {
+            markNativeLoadingBootstrapReady();
+        }
     }
 
     private void hideNativeLaunchOverlay() {
         if (nativeLaunchOverlay == null || contentRoot == null) return;
 
         if (nativeLoadingView != null) {
+            setNativeLoadingState("Cards are ready to play!", 100);
             nativeLoadingView.stopAnimating();
         }
 
@@ -486,6 +754,7 @@ public class LauncherActivity extends Activity {
     }
 
     private void loadStartUrl(Intent intent) {
+        setNativeLoadingState("Opening the word door...", 60);
         Uri requested = intent == null ? null : intent.getData();
         Uri base = requested != null && isNativeAuthCallbackUrl(requested)
                 ? toWebNativeAuthLandingUrl(requested)
@@ -498,6 +767,7 @@ public class LauncherActivity extends Activity {
                 .build();
 
         if (!hasValidatedInternet()) {
+            setNativeLoadingState("Taking the cozy offline path...", 76);
             Uri offline = new Uri.Builder()
                     .scheme("https")
                     .authority("www.foxiesdeck.com")
@@ -552,6 +822,15 @@ public class LauncherActivity extends Activity {
                 && "foxiesdeck".equalsIgnoreCase(uri.getScheme())
                 && "auth".equalsIgnoreCase(uri.getHost())
                 && "/callback".equals(uri.getPath());
+    }
+
+    private static boolean isNativeLoadingTestIntent(Intent intent) {
+        Uri data = intent == null ? null : intent.getData();
+        return data != null
+                && ("www.foxiesdeck.com".equalsIgnoreCase(data.getHost())
+                || "foxiesdeck.com".equalsIgnoreCase(data.getHost()))
+                && ("1".equals(data.getQueryParameter(NATIVE_LOADING_TEST_PARAMETER))
+                || "true".equalsIgnoreCase(data.getQueryParameter(NATIVE_LOADING_TEST_PARAMETER)));
     }
 
     private void dispatchNativeGoogleAuthCallback(Uri nativeCallback) {
@@ -703,6 +982,7 @@ public class LauncherActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        nativeLoadingTestHandler.removeCallbacks(nativeLoadingTestRunnable);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(androidBackCallback);
         }
@@ -722,6 +1002,7 @@ public class LauncherActivity extends Activity {
             webView.removeJavascriptInterface("FoxiesDeckNativeBilling");
             webView.removeJavascriptInterface("FoxiesDeckNativeSpeech");
             webView.removeJavascriptInterface("FoxiesDeckNativeVibration");
+            webView.removeJavascriptInterface("FoxiesDeckNativeLoading");
             webView.stopLoading();
             webView.destroy();
             webView = null;

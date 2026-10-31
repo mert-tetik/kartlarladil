@@ -161,3 +161,19 @@ describe("Android WebView file input support", () => {
     expect(patcherSource).toContain('path="camera/"');
   });
 });
+
+describe("Native loading visual test mode", () => {
+  it("keeps the loading screen visible and advances its cartoon progress states", () => {
+    const launcherSource = fs.readFileSync(
+      path.join(PROJECT_ROOT, "scripts", "android-template", "LauncherActivity.java"),
+      "utf8",
+    );
+
+    expect(launcherSource).toContain('NATIVE_LOADING_TEST_PARAMETER = "native-loading-test"');
+    expect(launcherSource).toContain("beginNativeLoadingVisualTest");
+    expect(launcherSource).toContain("NATIVE_LOADING_TEST_STEP_DELAY_MS = 1200L");
+    expect(launcherSource).toContain("Foxies are stretching their tails...");
+    expect(launcherSource).toContain("Cards are ready to play!");
+    expect(launcherSource).toContain("int[] progress = {8, 24, 48, 68, 76, 100}");
+  });
+});
