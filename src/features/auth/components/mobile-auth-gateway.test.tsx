@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   resetTutorial: vi.fn(),
   clearUser: vi.fn(),
   authUser: { profile: { onboardingCompleted: true } } as { profile: { onboardingCompleted: boolean } } | null,
+  effectivePlan: "free" as "free" | "basic",
   router: {
     refresh: vi.fn(),
     push: vi.fn(),
@@ -41,7 +42,7 @@ vi.mock("@/features/auth/auth-client", () => ({
 
 vi.mock("@/features/subscriptions/subscription-client", () => ({
   useSubscription: () => ({
-    entitlements: { effectivePlan: "free" },
+    entitlements: { effectivePlan: mocks.effectivePlan },
     isLoading: false,
     error: null,
     refreshEntitlements: vi.fn(),
@@ -116,6 +117,7 @@ describe("MobileAuthGateway returning-login flow", () => {
     });
     window.sessionStorage.clear();
     mocks.authUser = { profile: { onboardingCompleted: true } };
+    mocks.effectivePlan = "free";
     window.history.replaceState({}, "", "/?mobileLanguageRefresh=1&showOffer=1");
     Object.defineProperty(window, "innerWidth", {
       configurable: true,
@@ -151,6 +153,7 @@ describe("MobileAuthGateway returning-login flow", () => {
   });
 
   it("opens the mobile login screen when the logout redirect marker is present", async () => {
+    mocks.authUser = null;
     window.history.replaceState({}, "", "/?mobile-gateway-login=1");
 
     render(<MobileAuthGateway countryCode="US" />);
@@ -159,7 +162,60 @@ describe("MobileAuthGateway returning-login flow", () => {
     expect(screen.queryByTestId("mobile-app-choice")).not.toBeInTheDocument();
   });
 
+  it("does not let a stale logout marker override an authenticated user", async () => {
+    window.history.replaceState({}, "", "/?mobile-gateway-login=1");
+    mocks.authUser = { profile: { onboardingCompleted: false } };
+
+    render(<MobileAuthGateway countryCode="US" />);
+
+    expect(await screen.findByTestId("mobile-login-language-refresh")).toHaveAttribute(
+      "data-onboarding-mode",
+      "initial",
+    );
+    expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
+    await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/"));
+  });
+
+  it("does not render the auth gateway for a completed authenticated user with a stale marker", async () => {
+    window.history.replaceState({}, "", "/?mobile-gateway-login=1");
+
+    render(<MobileAuthGateway countryCode="US" />);
+
+    await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/"));
+    expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("mobile-login-language-refresh")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("mobile-subscription-offer")).not.toBeInTheDocument();
+  });
+
+  it("keeps the OAuth callback loader above the stale logout marker", async () => {
+    mocks.authUser = null;
+    window.history.replaceState({}, "", "/?mobile-gateway-login=1");
+    window.sessionStorage.setItem("foxiesdeck:google-auth-pending", String(Date.now()));
+
+    render(<MobileAuthGateway countryCode="US" />);
+
+    expect(await screen.findByTestId("mobile-google-auth-loading")).toBeInTheDocument();
+    expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
+  });
+
+  it("keeps the offer visible while a successful purchase refreshes entitlements during exit", async () => {
+    const user = userEvent.setup();
+    window.history.replaceState({}, "", "/?showOffer=1");
+
+    const view = render(<MobileAuthGateway countryCode="US" />);
+    await user.click(await screen.findByTestId("mobile-subscription-offer"));
+
+    mocks.effectivePlan = "basic";
+    view.rerender(<MobileAuthGateway countryCode="US" />);
+
+    expect(screen.getByTestId("mobile-subscription-offer")).toBeInTheDocument();
+    expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
+    await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/"));
+    expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
+  });
+
   it("server-renders the logout login screen before client hydration", () => {
+    mocks.authUser = null;
     window.history.replaceState({}, "", "/?mobile-gateway-login=1");
     Object.defineProperty(window, "innerWidth", {
       configurable: true,

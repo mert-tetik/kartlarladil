@@ -267,6 +267,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   const [offerTriggered, setOfferTriggered] = useState(false);
   const [offerSeen, setOfferSeen] = useState(false);
   const [offerActive, setOfferActive] = useState(false);
+  const [offerExitPending, setOfferExitPending] = useState(false);
   const [gatewayExitPending, setGatewayExitPending] = useState(false);
   const [seriousLearnerTestOpen, setSeriousLearnerTestOpen] = useState(
     isSeriousLearnerTestMode,
@@ -297,6 +298,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       clearGoogleAuthPending();
       setIsGoogleAuthCompleting(false);
       setOfferActive(false);
+      setOfferExitPending(false);
       setOfferTriggered(false);
       setOfferSeen(false);
       setGatewayExitPending(false);
@@ -380,9 +382,23 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     pathname === "/login" &&
     (loginMessage.includes("code verifier") || loginMessage.includes("pkce"));
   const shouldOpenMobileGatewayLogin = searchParams.get(MOBILE_GATEWAY_LOGIN_PARAM) === "1";
-  const isForcedMobileLogin = shouldOpenMobileGatewayLogin || logoutLoginRequested;
   const hasNativeGoogleAuthCallback =
     searchParams.has("nativeAuthCode") || searchParams.has("nativeAuthError");
+  const isGoogleAuthHandoffPending = isGoogleAuthCompleting || hasNativeGoogleAuthCallback;
+  // The logout marker can survive a native OAuth handoff in the WebView URL.
+  // It must not override an authenticated session or cover the callback loader.
+  const isForcedMobileLogin =
+    !user &&
+    !isGoogleAuthHandoffPending &&
+    (shouldOpenMobileGatewayLogin || logoutLoginRequested);
+
+  useEffect(() => {
+    if (!mounted || !user || !shouldOpenMobileGatewayLogin) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete(MOBILE_GATEWAY_LOGIN_PARAM);
+    router.replace(`${url.pathname}${url.search}${url.hash}`);
+  }, [mounted, router, shouldOpenMobileGatewayLogin, user]);
 
   useEffect(() => {
     if (!mounted || !user || needsOnboarding) return;
@@ -447,6 +463,8 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       setResumeLoginFlowAfterLanguageRefresh(false);
       setOfferTriggered(false);
       setOfferSeen(false);
+      setOfferExitPending(false);
+      setGatewayExitPending(false);
     }
   }, [user, offerSeen, isAlreadySubscribed, deactivateTutorial]);
 
@@ -458,6 +476,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   }, [user]);
 
   const shouldShowOffer = isOfferEligible || offerActive;
+  const shouldRenderOffer = Boolean(user && (shouldShowOffer || offerExitPending));
 
   const isPublicMobilePath = PUBLIC_MOBILE_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
@@ -566,12 +585,14 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
 
     activateTutorial();
     setResumeLoginFlowAfterLanguageRefresh(false);
+    setOfferExitPending(true);
     setGatewayExitPending(true);
     gatewayExitTimerRef.current = window.setTimeout(() => {
       gatewayExitTimerRef.current = null;
       setOfferSeen(true);
       setOfferActive(false);
       setOfferTriggered(false);
+      setOfferExitPending(false);
       setGatewayExitPending(false);
       router.replace("/");
     }, GATEWAY_FLOW_EXIT_DURATION_MS);
@@ -676,7 +697,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
           />
         </GatewayShell>
       );
-    } else if (shouldShowOffer) {
+    } else if (shouldRenderOffer) {
       gateway = (
         <GatewayShell
           fullBleed
@@ -714,7 +735,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
         <MobileAppChoiceScreen onContinueOnWeb={handleContinueOnWeb} />
       </GatewayShell>
       );
-    } else {
+    } else if (needsAuth) {
       gateway = (
         <GatewayShell
           isTestMode={isTestMode}
