@@ -86,11 +86,12 @@ let resolveInitialSession!: (result: {
 }) => void;
 
 function SessionStateProbe() {
-  const { user, clearUser } = useAuthSession();
+  const { user, clearUser, isSessionReady } = useAuthSession();
 
   return (
     <>
       <output data-testid="session-state">{user?.email ?? "signed-out"}</output>
+      <output data-testid="session-ready">{String(isSessionReady)}</output>
       <button type="button" onClick={clearUser}>Sign out locally</button>
     </>
   );
@@ -165,5 +166,26 @@ describe("AuthSessionProvider", () => {
     });
 
     expect(screen.getByTestId("session-state")).toHaveTextContent(initialUser.email);
+  });
+
+  it("does not mark a signed-out server snapshot ready until the browser session is restored", async () => {
+    render(
+      <AuthSessionProvider user={null}>
+        <SessionStateProbe />
+      </AuthSessionProvider>,
+    );
+
+    expect(screen.getByTestId("session-ready")).toHaveTextContent("false");
+
+    await act(async () => {
+      resolveInitialSession({
+        data: { session: { user: { id: initialUser.id, email: initialUser.email } } },
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByTestId("session-state")).toHaveTextContent(initialUser.email);
+    expect(screen.getByTestId("session-ready")).toHaveTextContent("true");
   });
 });

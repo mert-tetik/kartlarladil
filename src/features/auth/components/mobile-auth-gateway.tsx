@@ -240,7 +240,7 @@ function saveWebChoice() {
 }
 
 export function MobileAuthGateway({ countryCode }: { countryCode: string | null }) {
-  const { user, clearUser } = useAuthSession();
+  const { user, clearUser, isSessionReady } = useAuthSession();
   const { entitlements, isLoading: isEntitlementsLoading } = useSubscription();
   const activateTutorial = useTutorialStore((state) => state.activate);
   const deactivateTutorial = useTutorialStore((state) => state.deactivate);
@@ -385,9 +385,11 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   const hasNativeGoogleAuthCallback =
     searchParams.has("nativeAuthCode") || searchParams.has("nativeAuthError");
   const isGoogleAuthHandoffPending = isGoogleAuthCompleting || hasNativeGoogleAuthCallback;
+  const isAuthSessionPending = !user && !isSessionReady;
   // The logout marker can survive a native OAuth handoff in the WebView URL.
-  // It must not override an authenticated session or cover the callback loader.
+  // It must not override a session that is still being restored or cover the callback loader.
   const isForcedMobileLogin =
+    isSessionReady &&
     !user &&
     !isGoogleAuthHandoffPending &&
     (shouldOpenMobileGatewayLogin || logoutLoginRequested);
@@ -492,6 +494,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     (isMobileViewport && (
       isGoogleAuthCompleting ||
       hasNativeGoogleAuthCallback ||
+      isAuthSessionPending ||
       needsAuth ||
       needsOnboarding ||
       shouldRefreshLoginLanguages ||
@@ -618,7 +621,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
           <MobileAuthScreen mode={mobileAuthMode} onModeChange={setMobileAuthMode} />
         </GatewayShell>
       );
-    } else if ((isGoogleAuthCompleting || hasNativeGoogleAuthCallback) && needsAuth) {
+    } else if ((isGoogleAuthCompleting || hasNativeGoogleAuthCallback || isAuthSessionPending) && needsAuth) {
       gateway = (
         <GatewayShell
           centered
@@ -735,7 +738,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
         <MobileAppChoiceScreen onContinueOnWeb={handleContinueOnWeb} />
       </GatewayShell>
       );
-    } else if (needsAuth) {
+    } else if (needsAuth && isSessionReady) {
       gateway = (
         <GatewayShell
           isTestMode={isTestMode}

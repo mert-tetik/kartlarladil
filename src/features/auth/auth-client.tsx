@@ -16,6 +16,7 @@ import type { LanguageCode, LocaleCode } from "@/types/domain";
 
 interface AuthSessionContextValue {
   user: AuthShellUser | null;
+  isSessionReady: boolean;
   refreshProfile: () => Promise<void>;
   updateProfileField: (updates: Partial<AuthProfile>) => void;
   reserveGemSpend: (type: GemType, amount: number) => GemSpendReservation | null;
@@ -126,6 +127,9 @@ export function AuthSessionProvider({
   children: ReactNode;
 }) {
   const [user, setUser] = useState(initialUser);
+  const [isSessionReady, setIsSessionReady] = useState(
+    initialUser !== null || !hasSupabaseBrowserConfig(),
+  );
   const pathname = usePathname();
   const isRecoveryPath = pathname === "/auth/recovery";
   const client = useMemo(
@@ -315,6 +319,7 @@ export function AuthSessionProvider({
       activeUserIdRef.current = initialUser.id;
       gemLedgerRef.current.reset(getGemBalances(initialUser.profile));
       setUser(initialUser);
+      setIsSessionReady(true);
       return;
     }
 
@@ -327,35 +332,43 @@ export function AuthSessionProvider({
       activeUserIdRef.current = null;
       gemLedgerRef.current.reset();
       setUser(null);
+      setIsSessionReady(true);
       return;
     }
 
-    void client.auth.getSession().then(({ data: { session }, error }) => {
+    setIsSessionReady(false);
+    void client.auth.getSession().then(async ({ data: { session }, error }) => {
       if (
-        error ||
         sessionSyncGenerationRef.current !== generation ||
         locallySignedOutRef.current
       ) {
         return;
       }
 
+      if (error) {
+        setIsSessionReady(true);
+        return;
+      }
+
       if (session?.user) {
         if (activeUserIdRef.current !== session.user.id) {
-          void syncUserFromSession(session.user, generation);
+          await syncUserFromSession(session.user, generation).catch(() => undefined);
         }
+        if (sessionSyncGenerationRef.current === generation) setIsSessionReady(true);
         return;
       }
 
       activeUserIdRef.current = null;
       gemLedgerRef.current.reset();
       setUser(null);
+      setIsSessionReady(true);
+    }).catch(() => {
+      if (sessionSyncGenerationRef.current === generation) setIsSessionReady(true);
     });
   }, [client, initialUser, syncUserFromSession]);
 
   useEffect(() => {
-    if (!client) {
-      return;
-    }
+    if (!client) return;
 
     const {
       data: { subscription },
@@ -366,6 +379,7 @@ export function AuthSessionProvider({
         activeUserIdRef.current = null;
         gemLedgerRef.current.reset();
         setUser(null);
+        setIsSessionReady(true);
         return;
       }
 
@@ -373,19 +387,33 @@ export function AuthSessionProvider({
         if (event === "SIGNED_IN") {
           locallySignedOutRef.current = false;
           sessionSyncGenerationRef.current += 1;
+          setIsSessionReady(false);
         }
         const generation = sessionSyncGenerationRef.current;
         window.setTimeout(() => {
-          void syncUserFromSession(session.user, generation);
+          void syncUserFromSession(session.user, generation)
+            .catch(() => undefined)
+            .finally(() => {
+              if (sessionSyncGenerationRef.current === generation) setIsSessionReady(true);
+            });
         }, 0);
+      } else if (event === "INITIAL_SESSION") {
+        setIsSessionReady(true);
       }
     });
 
     const initialSyncGeneration = sessionSyncGenerationRef.current;
-    void client.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        void syncUserFromSession(session.user, initialSyncGeneration);
+    void client.auth.getSession().then(async ({ data: { session }, error }) => {
+      if (error) {
+        if (sessionSyncGenerationRef.current === initialSyncGeneration) setIsSessionReady(true);
+        return;
       }
+      if (session?.user) {
+        await syncUserFromSession(session.user, initialSyncGeneration).catch(() => undefined);
+      }
+      if (sessionSyncGenerationRef.current === initialSyncGeneration) setIsSessionReady(true);
+    }).catch(() => {
+      if (sessionSyncGenerationRef.current === initialSyncGeneration) setIsSessionReady(true);
     });
 
     return () => {
@@ -434,11 +462,13 @@ export function AuthSessionProvider({
     activeUserIdRef.current = null;
     gemLedgerRef.current.reset();
     setUser(null);
+    setIsSessionReady(true);
   }, []);
 
   const value = useMemo(
     () => ({
       user,
+      isSessionReady,
       refreshProfile,
       updateProfileField,
       reserveGemSpend,
@@ -446,7 +476,7 @@ export function AuthSessionProvider({
       rollbackGemSpend,
       clearUser,
     }),
-    [user, refreshProfile, updateProfileField, reserveGemSpend, settleGemSpend, rollbackGemSpend, clearUser],
+    [user, isSessionReady, refreshProfile, updateProfileField, reserveGemSpend, settleGemSpend, rollbackGemSpend, clearUser],
   );
 
   return <AuthSessionContext.Provider value={value}>{children}</AuthSessionContext.Provider>;

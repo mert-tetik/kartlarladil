@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   resetTutorial: vi.fn(),
   clearUser: vi.fn(),
   authUser: { profile: { onboardingCompleted: true } } as { profile: { onboardingCompleted: boolean } } | null,
+  isSessionReady: true,
   effectivePlan: "free" as "free" | "basic",
   router: {
     refresh: vi.fn(),
@@ -34,6 +35,7 @@ vi.mock("next/image", () => ({
 vi.mock("@/features/auth/auth-client", () => ({
   useAuthSession: () => ({
     user: mocks.authUser,
+    isSessionReady: mocks.isSessionReady,
     refreshProfile: vi.fn(),
     updateProfileField: vi.fn(),
     clearUser: mocks.clearUser,
@@ -117,6 +119,7 @@ describe("MobileAuthGateway returning-login flow", () => {
     });
     window.sessionStorage.clear();
     mocks.authUser = { profile: { onboardingCompleted: true } };
+    mocks.isSessionReady = true;
     mocks.effectivePlan = "free";
     window.history.replaceState({}, "", "/?mobileLanguageRefresh=1&showOffer=1");
     Object.defineProperty(window, "innerWidth", {
@@ -198,6 +201,27 @@ describe("MobileAuthGateway returning-login flow", () => {
     expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
   });
 
+  it("waits for session restoration before showing login over a stale logout marker", async () => {
+    window.history.replaceState({}, "", "/?mobile-gateway-login=1");
+    mocks.authUser = null;
+    mocks.isSessionReady = false;
+
+    const view = render(<MobileAuthGateway countryCode="US" />);
+
+    expect(await screen.findByTestId("mobile-google-auth-loading")).toBeInTheDocument();
+    expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
+
+    mocks.authUser = { profile: { onboardingCompleted: false } };
+    mocks.isSessionReady = true;
+    view.rerender(<MobileAuthGateway countryCode="US" />);
+
+    expect(await screen.findByTestId("mobile-login-language-refresh")).toHaveAttribute(
+      "data-onboarding-mode",
+      "initial",
+    );
+    expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
+  });
+
   it("keeps the offer visible while a successful purchase refreshes entitlements during exit", async () => {
     const user = userEvent.setup();
     window.history.replaceState({}, "", "/?showOffer=1");
@@ -211,6 +235,28 @@ describe("MobileAuthGateway returning-login flow", () => {
     expect(screen.getByTestId("mobile-subscription-offer")).toBeInTheDocument();
     expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
     await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/"));
+    expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
+  });
+
+  it("does not bounce back to login if the browser session is briefly pending after the free-offer exit", async () => {
+    const user = userEvent.setup();
+    window.history.replaceState({}, "", "/?showOffer=1");
+
+    const view = render(<MobileAuthGateway countryCode="US" />);
+    await user.click(await screen.findByTestId("mobile-subscription-offer"));
+
+    mocks.authUser = null;
+    mocks.isSessionReady = false;
+    view.rerender(<MobileAuthGateway countryCode="US" />);
+
+    expect(await screen.findByTestId("mobile-google-auth-loading")).toBeInTheDocument();
+    expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
+    await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/"));
+
+    mocks.authUser = { profile: { onboardingCompleted: true } };
+    mocks.isSessionReady = true;
+    view.rerender(<MobileAuthGateway countryCode="US" />);
+
     expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
   });
 
