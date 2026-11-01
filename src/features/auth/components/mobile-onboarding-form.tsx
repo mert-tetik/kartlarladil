@@ -84,6 +84,7 @@ export function MobileOnboardingForm({
   const { showMessage } = useAppMessage();
   const initialDefaults = getOnboardingLanguageDefaults(countryCode, detectedLocale);
   const [step, setStep] = useState<OnboardingStep>("native");
+  const [displayedStep, setDisplayedStep] = useState<OnboardingStep>("native");
   const [preferredUiLocale, setPreferredUiLocale] = useState<LocaleCode>(initialDefaults.preferredUiLocale);
   const [preferredLanguageCode, setPreferredLanguageCode] = useState<LanguageCode>(initialDefaults.preferredLanguageCode);
   const [languageOrders, setLanguageOrders] = useState(() => ({
@@ -248,6 +249,7 @@ export function MobileOnboardingForm({
   }
 
   const isLanguageStep = step === "native" || step === "learning";
+  const isStepTransitioning = step !== displayedStep;
   const heading =
     step === "native"
       ? t("auth.onboarding.nativeLanguageTitle")
@@ -256,15 +258,15 @@ export function MobileOnboardingForm({
         : t("profilePicture.title");
   const orderedLanguages = (step === "native" ? languageOrders.native : languageOrders.learning)
     .filter((language) => step !== "learning" || language.code !== preferredUiLocale);
-  const shouldSubmit = step === "picture" || (isLoginLanguageRefresh && step === "learning");
-  const actionButtonClass = step === "native"
+  const shouldSubmit = displayedStep === "picture" || (isLoginLanguageRefresh && displayedStep === "learning");
+  const actionButtonClass = displayedStep === "native"
     ? "bg-emerald-500 text-white hover:bg-emerald-600"
-    : step === "learning"
+    : displayedStep === "learning"
       ? "bg-blue-500 text-white hover:bg-blue-600"
       : "bg-red-500 text-white hover:bg-red-600";
-  const actionDepthClass = step === "native"
+  const actionDepthClass = displayedStep === "native"
     ? "mobile-primary-action-depth--emerald"
-    : step === "learning"
+    : displayedStep === "learning"
       ? "mobile-primary-action-depth--blue"
       : "mobile-primary-action-depth--red";
 
@@ -275,8 +277,9 @@ export function MobileOnboardingForm({
       onSubmit={isLoginLanguageRefresh ? handleLoginLanguageRefreshSubmit : undefined}
       data-mobile-onboarding-mode={mode}
       data-mobile-onboarding-step={step}
+      data-mobile-onboarding-visible-step={displayedStep}
       data-gateway-flow-screen
-      className="mx-auto grid h-[min(76vh,44rem)] w-full max-w-sm grid-rows-[auto_minmax(0,1fr)_auto] overflow-visible supports-[height:100dvh]:h-[min(76dvh,44rem)]"
+      className="mx-auto flex h-[min(76vh,44rem)] min-h-0 w-full max-w-sm flex-col overflow-visible supports-[height:100dvh]:h-[min(76dvh,44rem)]"
     >
       <input type="hidden" name="preferredUiLocale" value={preferredUiLocale} />
       <input type="hidden" name="preferredLanguageCode" value={preferredLanguageCode} />
@@ -289,9 +292,9 @@ export function MobileOnboardingForm({
       ) : null}
 
       <GatewayFlowTransition
-        className="contents"
+        className="flex min-h-0 flex-1 flex-col"
         transitionKey={step}
-        onCommit={() => undefined}
+        onCommit={() => setDisplayedStep(step)}
         onPhaseChange={() => undefined}
       >
         <>
@@ -313,7 +316,7 @@ export function MobileOnboardingForm({
           </div>
 
           {isLanguageStep ? (
-            <div data-gateway-flow-item data-gateway-flow-order="1" className="min-h-0 flex-1 overflow-y-auto px-1">
+            <div data-gateway-flow-item data-gateway-flow-order="1" className="relative z-0 min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-1">
               <div className="grid grid-cols-2 gap-x-2 gap-y-5 pb-3">
                 {orderedLanguages.map((language) => {
                   const selected = step === "native"
@@ -364,47 +367,49 @@ export function MobileOnboardingForm({
               </div>
             </div>
           ) : (
-            <div data-gateway-flow-item data-gateway-flow-order="1" className="min-h-0 flex-1 overflow-y-auto px-1">
+            <div data-gateway-flow-item data-gateway-flow-order="1" className="relative z-0 min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-1">
               <ProfilePictureOptionGrid selectedIndex={profilePictureIndex} onSelect={setProfilePictureIndex} className="pb-3" />
             </div>
           )}
-
-          <div data-gateway-flow-item data-gateway-flow-order="2" className="shrink-0 pt-5">
-            <FormMessage state={state} />
-            {!shouldSubmit ? (
-              <div className={cn("mobile-primary-action-depth w-full rounded-lg", actionDepthClass)}>
-                <button
-                  type="button"
-                  onClick={advanceLanguageStep}
-                  className={cn(
-                    "h-14 w-full rounded-lg px-5 text-base font-bold transition-transform active:scale-[0.99] disabled:opacity-100",
-                    actionButtonClass,
-                  )}
-                >
-                  {t("auth.onboarding.selectLanguage")}
-                </button>
-              </div>
-            ) : (
-              <div className={cn("mobile-primary-action-depth w-full rounded-md", actionDepthClass)}>
-                <SubmitButton
-                  data-login-language-submit={isLoginLanguageRefresh ? "true" : undefined}
-                  onClick={isLoginLanguageRefresh
-                    ? () => {
-                      if (formRef.current) {
-                        startLoginLanguageRefresh(formRef.current);
-                      }
-                    }
-                    : undefined}
-                  className={cn("h-14 w-full text-base font-bold disabled:opacity-100", actionButtonClass)}
-                  pendingLabel={t("auth.onboarding.pending")}
-                >
-                  {t("auth.onboarding.continue")}
-                </SubmitButton>
-              </div>
-            )}
-          </div>
         </>
       </GatewayFlowTransition>
+
+      <div data-gateway-flow-action className="relative z-10 shrink-0 pt-5">
+        <FormMessage state={state} />
+        {!shouldSubmit ? (
+          <div className={cn("mobile-primary-action-depth w-full rounded-lg", actionDepthClass)}>
+            <button
+              type="button"
+              disabled={isStepTransitioning}
+              onClick={advanceLanguageStep}
+              className={cn(
+                "h-14 w-full rounded-lg px-5 text-base font-bold transition-transform active:scale-[0.99] disabled:opacity-70",
+                actionButtonClass,
+              )}
+            >
+              {t("auth.onboarding.selectLanguage")}
+            </button>
+          </div>
+        ) : (
+          <div className={cn("mobile-primary-action-depth w-full rounded-md", actionDepthClass)}>
+            <SubmitButton
+              data-login-language-submit={isLoginLanguageRefresh ? "true" : undefined}
+              disabled={isStepTransitioning}
+              onClick={isLoginLanguageRefresh
+                ? () => {
+                  if (formRef.current) {
+                    startLoginLanguageRefresh(formRef.current);
+                  }
+                }
+                : undefined}
+              className={cn("h-14 w-full text-base font-bold disabled:opacity-70", actionButtonClass)}
+              pendingLabel={t("auth.onboarding.pending")}
+            >
+              {t("auth.onboarding.continue")}
+            </SubmitButton>
+          </div>
+        )}
+      </div>
     </form>
   );
 }

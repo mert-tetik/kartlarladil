@@ -101,6 +101,35 @@ describe("MobileOnboardingForm", () => {
     });
   });
 
+  it("keeps the primary action outside the animated content and enables it with the committed step", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={testUser}>
+          <MobileOnboardingForm countryCode="TR" />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    const form = container.querySelector("form") as HTMLFormElement;
+    const transition = form.querySelector<HTMLElement>("[data-gateway-flow-phase]");
+    const action = form.querySelector<HTMLElement>("[data-gateway-flow-action]");
+    expect(action).toBeInTheDocument();
+    expect(transition).not.toContainElement(action);
+
+    const continueButton = screen.getByRole("button", { name: "Dil seç" });
+    await user.click(continueButton);
+
+    expect(form).toHaveAttribute("data-mobile-onboarding-step", "learning");
+    expect(form).toHaveAttribute("data-mobile-onboarding-visible-step", "native");
+    expect(continueButton).toBeDisabled();
+
+    await waitFor(() => {
+      expect(form).toHaveAttribute("data-mobile-onboarding-visible-step", "learning");
+    });
+    expect(screen.getByRole("button", { name: "Dil seç" })).toBeEnabled();
+  });
+
   it("keeps the latest language selection visible during the step transition", async () => {
     const user = userEvent.setup();
     const { container } = render(
