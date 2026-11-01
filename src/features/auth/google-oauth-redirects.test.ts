@@ -6,16 +6,17 @@ import {
 } from "@/features/auth/google-oauth-redirects";
 
 describe("Google OAuth redirects", () => {
-  it("uses the native deep link so the WebView can exchange its own PKCE verifier", () => {
+  it("uses the allow-listed HTTPS callback before handing native OAuth back to the WebView", () => {
     const redirectTo = new URL(getGoogleOAuthRedirectTo(
       "https://www.foxiesdeck.com",
       "/?mobileLanguageRefresh=1&showOffer=1",
       true,
     ));
 
-    expect(redirectTo.protocol).toBe("foxiesdeck:");
-    expect(redirectTo.host).toBe("auth");
-    expect(redirectTo.pathname).toBe("/callback");
+    expect(redirectTo.protocol).toBe("https:");
+    expect(redirectTo.host).toBe("www.foxiesdeck.com");
+    expect(redirectTo.pathname).toBe("/auth/callback");
+    expect(redirectTo.searchParams.get("native")).toBe("1");
     expect(redirectTo.searchParams.get("next")).toBe("/?mobileLanguageRefresh=1&showOffer=1");
   });
 

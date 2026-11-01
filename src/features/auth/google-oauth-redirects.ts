@@ -1,14 +1,14 @@
 const NATIVE_GOOGLE_AUTH_CALLBACK = "foxiesdeck://auth/callback";
 
 export function getGoogleOAuthRedirectTo(origin: string, nextPath: string, nativeTwa: boolean): string {
-  if (nativeTwa) {
-    const callback = new URL(NATIVE_GOOGLE_AUTH_CALLBACK);
-    callback.searchParams.set("next", nextPath);
-    return callback.toString();
-  }
-
   const callback = new URL("/auth/callback", origin);
   callback.searchParams.set("next", nextPath);
+  if (nativeTwa) {
+    // Supabase only redirects to allow-listed URLs. Return to our HTTPS callback
+    // first; if its browser context lacks the WebView's PKCE verifier, the route
+    // hands the still-unused code back to the app through the native URI.
+    callback.searchParams.set("native", "1");
+  }
 
   return callback.toString();
 }

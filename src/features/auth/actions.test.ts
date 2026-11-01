@@ -165,7 +165,7 @@ describe("signInWithGoogleAction", () => {
     expect(mockSignInWithOAuth).toHaveBeenCalledWith(expect.objectContaining({
       provider: "google",
       options: expect.objectContaining({
-        redirectTo: "foxiesdeck://auth/callback?next=%2F%3FmobileLanguageRefresh%3D1%26showOffer%3D1",
+        redirectTo: "https://www.foxiesdeck.com/auth/callback?next=%2F%3FmobileLanguageRefresh%3D1%26showOffer%3D1&native=1",
       }),
     }));
   });
