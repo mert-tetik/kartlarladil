@@ -37,20 +37,14 @@ describe("Google OAuth callback", () => {
     mocks.ensureUserProfile.mockResolvedValue({ onboardingCompleted: true });
   });
 
-  it("returns native OAuth PKCE failures to the app WebView for code exchange", async () => {
-    mocks.exchangeCodeForSession.mockResolvedValue({
-      data: { user: null },
-      error: {
-        code: "pkce_code_verifier_not_found",
-        message: "PKCE code verifier not found in storage",
-      },
-    });
-
+  it("hands native OAuth codes to the app without consuming them on the server", async () => {
     const request = new NextRequest(
       "https://www.foxiesdeck.com/auth/callback?code=auth-code&native=1&next=%2F%3FmobileLanguageRefresh%3D1%26showOffer%3D1",
     );
     const response = await GET(request);
 
+    expect(mocks.exchangeCodeForSession).not.toHaveBeenCalled();
+    expect(mocks.ensureUserProfile).not.toHaveBeenCalled();
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(
       "foxiesdeck://auth/callback?code=auth-code&next=%2F%3FmobileLanguageRefresh%3D1%26showOffer%3D1",
@@ -73,7 +67,7 @@ describe("Google OAuth callback", () => {
     expect(response.headers.get("location")).toContain("/reset-password?message=");
   });
 
-  it("does not loop when the WebView still cannot find the verifier after handoff", async () => {
+  it("still hands native codes directly to the app when a legacy handoff marker is present", async () => {
     mocks.exchangeCodeForSession.mockResolvedValue({
       data: { user: null },
       error: {
@@ -87,6 +81,9 @@ describe("Google OAuth callback", () => {
     );
     const response = await GET(request);
 
-    expect(response.headers.get("location")).toContain("/login?message=");
+    expect(mocks.exchangeCodeForSession).not.toHaveBeenCalled();
+    expect(response.headers.get("location")).toBe(
+      "foxiesdeck://auth/callback?code=auth-code&next=%2F",
+    );
   });
 });

@@ -19,7 +19,6 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code");
   const nextPath = getSafeNextPath(requestUrl.searchParams.get("next"), DEFAULT_AUTH_REDIRECT);
   const isNativeGoogleAuth = requestUrl.searchParams.get("native") === "1";
-  const hasAttemptedNativeHandoff = requestUrl.searchParams.get("nativeHandoff") === "1";
   const t = createTranslator(await getServerLocale());
 
   if (!hasSupabaseBrowserConfig()) {
@@ -30,6 +29,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login?message=${encodeURIComponent(t("auth.message.callbackMissingCode"))}`);
   }
 
+  if (isNativeGoogleAuth) {
+    // The OAuth flow started inside the app WebView, where its PKCE verifier is
+    // stored. The HTTPS callback may be opened in Chrome, so exchanging here
+    // can consume the one-time code into Chrome's session instead of the app's.
+    // Return the unused code to the native app; its WebView completes the
+    // exchange using the verifier created by the original browser client.
+    return NextResponse.redirect(getNativeGoogleAuthHandoffUrl(code, nextPath));
+  }
+
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -37,16 +45,6 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    if (isNativeGoogleAuth && code && isPkceCodeVerifierError(error)) {
-      if (!hasAttemptedNativeHandoff) {
-        return NextResponse.redirect(getNativeGoogleAuthHandoffUrl(code, nextPath));
-      }
-
-      return NextResponse.redirect(
-        `${origin}/login?message=${encodeURIComponent(error.message)}`,
-      );
-    }
-
     const fallbackPath = isPkceCodeVerifierError(error) ? "/reset-password" : "/login";
     return NextResponse.redirect(`${origin}${fallbackPath}?message=${encodeURIComponent(error.message)}`);
   }

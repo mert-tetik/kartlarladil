@@ -4,9 +4,9 @@ export function getGoogleOAuthRedirectTo(origin: string, nextPath: string, nativ
   const callback = new URL("/auth/callback", origin);
   callback.searchParams.set("next", nextPath);
   if (nativeTwa) {
-    // Supabase only redirects to allow-listed URLs. Return to our HTTPS callback
-    // first; if its browser context lacks the WebView's PKCE verifier, the route
-    // hands the still-unused code back to the app through the native URI.
+    // Supabase only redirects to allow-listed URLs. The HTTPS callback then
+    // hands the unused authorization code to the app so the originating WebView
+    // can exchange it with its own PKCE verifier and persist the session there.
     callback.searchParams.set("native", "1");
   }
 
