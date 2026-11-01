@@ -1,6 +1,4 @@
-import { getSupabaseBrowserConfig } from "@/lib/supabase/config";
-
-export const DIALOGUE_BACKGROUND_BUCKET = "social-studio-assets";
+import { createSocialStudioBlobSignedUrl, SOCIAL_STUDIO_EXTERNAL_URL_SECONDS } from "@/features/twitter-automation/social-studio-blob";
 
 export const DIALOGUE_BACKGROUND_PATHS = [
   "dialogue-backgrounds/0526.mp4",
@@ -28,9 +26,12 @@ export function pickDialogueBackgroundPath(random = Math.random) {
   return DIALOGUE_BACKGROUND_PATHS[Math.floor(random() * DIALOGUE_BACKGROUND_PATHS.length)]!;
 }
 
-/** Public CDN URL for one immutable dialogue-background video. */
-export function getDialogueBackgroundPublicUrl(random = Math.random) {
-  const { url } = getSupabaseBrowserConfig();
-  const path = pickDialogueBackgroundPath(random).split("/").map(encodeURIComponent).join("/");
-  return new URL(`/storage/v1/object/public/${DIALOGUE_BACKGROUND_BUCKET}/${path}`, url).toString();
+export function isDialogueBackgroundPath(path: string) {
+  return (DIALOGUE_BACKGROUND_PATHS as readonly string[]).includes(path);
+}
+
+/** Issue a private Blob URL for the exact background path selected for a dialogue. */
+export async function getDialogueBackgroundSignedUrl(path: string) {
+  if (!isDialogueBackgroundPath(path)) throw new Error("invalid_dialogue_background");
+  return await createSocialStudioBlobSignedUrl(path, SOCIAL_STUDIO_EXTERNAL_URL_SECONDS);
 }

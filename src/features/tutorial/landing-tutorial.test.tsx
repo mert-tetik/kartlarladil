@@ -234,7 +234,7 @@ describe("LandingTutorial", () => {
     const closingChoiceScreen = document.querySelector<HTMLElement>("[data-landing-tutorial-choice-screen]");
     expect(closingChoiceScreen).toHaveClass("tutorial-origin-overlay--closing");
     expect(closingChoiceScreen?.querySelector("h2")?.style.animationDelay).toBe("0ms");
-    expect(Array.from(closingChoiceScreen?.querySelectorAll<HTMLElement>("[data-landing-tutorial-choice]") ?? []).map((item) => item.style.animationDelay)).toEqual(["70ms", "140ms", "210ms"]);
+    expect(Array.from(closingChoiceScreen?.querySelectorAll<HTMLElement>("[data-landing-tutorial-choice]") ?? []).map((item) => item.style.animationDelay)).toEqual(["110ms", "220ms", "330ms"]);
     expect(await screen.findByText("close layer", {}, { timeout: 3_500 })).toBeInTheDocument();
     expect(document.querySelector("[data-landing-tutorial-choice-screen]")).not.toBeInTheDocument();
     const layerPrompt = await screen.findByTestId("tutorial-layer-message", {}, { timeout: 2_000 });

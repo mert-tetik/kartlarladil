@@ -89,6 +89,8 @@ test("cold-starts the offline language picker from bundled assets while fully of
   await page.locator("#note-input").fill("offline note");
   await page.locator("#add-note").tap();
   await expect(page.locator("#notes-list")).toContainText("offline note");
+  await expect(page.locator(".note-language-flag").first()).toHaveCSS("top", "-6px");
+  await expect(page.locator(".note-language-flag").first()).toHaveCSS("overflow", "visible");
   await expect.poll(() => page.evaluate(() =>
     localStorage.getItem("foxiesdeck-offline-v1:fallback:notes:guest")?.includes("offline note") ?? false,
   )).toBe(true);

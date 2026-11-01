@@ -151,6 +151,16 @@ describe("VocabularyCardView", () => {
     expect(screen.getByTestId("card-reference-example")).toBeVisible();
   });
 
+  it("uses the enlarged pronunciation styling on compact landing cards", () => {
+    renderCard(
+      <VocabularyCardView card={testCard} compact pronunciationMatchesTranslation />,
+    );
+
+    const pronunciation = screen.getByTestId("card-pronunciation");
+    expect(pronunciation).toHaveAttribute("data-pronunciation-matches-translation", "true");
+    expect(pronunciation).toHaveStyle({ fontSize: "10.8cqw" });
+  });
+
   it("shows the complete shared card face and owned-card progress without a regional hide mode", () => {
     const { container } = renderCard(
       <VocabularyCardView

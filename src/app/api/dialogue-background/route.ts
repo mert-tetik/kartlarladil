@@ -1,27 +1,21 @@
-import { getSupabaseBrowserConfig } from "@/lib/supabase/config";
+import { getDialogueBackgroundSignedUrl, isDialogueBackgroundPath } from "@/features/twitter-automation/dialogue-backgrounds";
+import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 export async function GET(request: Request) {
+  if (!await hasSocialStudioSession(request.headers.get("cookie"))) return Response.json({ errorCode: "unauthorized" }, { status: 401 });
   const { searchParams } = new URL(request.url);
   const path = searchParams.get("path");
   if (!path) return new Response("missing_path", { status: 400 });
+  if (!isDialogueBackgroundPath(path)) return new Response("invalid_path", { status: 400 });
 
-  const config = getSupabaseBrowserConfig();
-  const publicUrl = new URL(`/storage/v1/object/public/social-studio-assets/${path}`, config.url).toString();
-
-  const upstream = await fetch(publicUrl);
-  if (!upstream.ok) {
-    return new Response(`upstream_failed: ${upstream.status}`, { status: 502 });
+  try {
+    const sourceUrl = await getDialogueBackgroundSignedUrl(path);
+    return Response.json({ path, sourceUrl }, { headers: { "Cache-Control": "private, no-store" } });
+  } catch {
+    return Response.json({ errorCode: "dialogue_background_unavailable" }, { status: 503 });
   }
-
-  const blob = await upstream.blob();
-  return new Response(blob, {
-    headers: {
-      "Content-Type": blob.type || "video/mp4",
-      "Cache-Control": "public, max-age=31536000, immutable",
-    },
-  });
 }

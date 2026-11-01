@@ -30,9 +30,9 @@ describe("loadCanvasSafeImage", () => {
     vi.stubGlobal("Image", MockImage);
     vi.stubGlobal("URL", { createObjectURL: createObjectUrl, revokeObjectURL: revokeObjectUrl });
 
-    const source = await loadCanvasSafeImage("https://project.supabase.co/storage/v1/object/sign/automation/poster.png");
+    const source = await loadCanvasSafeImage("https://blob.vercel-storage.com/automation/poster.png?sig=private");
 
-    expect(fetch).toHaveBeenCalledWith("https://project.supabase.co/storage/v1/object/sign/automation/poster.png");
+    expect(fetch).toHaveBeenCalledWith("https://blob.vercel-storage.com/automation/poster.png?sig=private");
     expect(createObjectUrl).toHaveBeenCalledTimes(1);
     expect(source.image.naturalWidth).toBe(900);
     source.release();
@@ -42,6 +42,6 @@ describe("loadCanvasSafeImage", () => {
   it("reports a clear image source failure before starting a video render", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
 
-    await expect(loadCanvasSafeImage("https://project.supabase.co/storage/v1/object/sign/missing.png")).rejects.toThrow("music_image_load_failed");
+    await expect(loadCanvasSafeImage("https://blob.vercel-storage.com/automation/missing.png?sig=private")).rejects.toThrow("music_image_load_failed");
   });
 });

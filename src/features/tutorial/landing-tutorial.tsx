@@ -837,7 +837,7 @@ function TutorialChoiceScreen({ exiting, entering = false, onEnterComplete, titl
           choice.key === "random" && "bg-[#f59e0b] text-[#332417]",
           choice.key === "custom" && "bg-[#c026d3] text-white",
           choice.key === "groups" && "bg-[#84cc16] text-[#202c16]",
-        )} style={{ animationDelay: exiting ? `${70 + index * 70}ms` : `${590 + index * 70}ms` }}>
+        )} style={{ animationDelay: exiting ? `${110 + index * 110}ms` : `${590 + index * 70}ms` }}>
           <Image src={choice.icon} alt="" aria-hidden="true" width={76} height={76} className="size-[clamp(3.5rem,18vw,5rem)] shrink-0 object-contain transition-transform duration-500 ease-[cubic-bezier(0.85,0,0.15,1)] group-hover:scale-105" />
           <span className="min-w-0"><span className={cn("block text-2xl font-bold leading-none", useSuperWater && "font-super-water")}>{displayText(t(choice.titleKey))}</span></span>
         </button>)}

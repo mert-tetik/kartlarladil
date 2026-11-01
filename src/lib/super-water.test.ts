@@ -27,6 +27,7 @@ describe("Super Water font helpers", () => {
     expect(formatSuperWaterText("en", "Games")).toBe("Games");
     expect(formatSuperWaterText("ru", "\u0418\u0433\u0440\u044b")).toBe("\u0418\u0433\u0440\u044b");
     expect(formatSuperWaterText("tr", "\u0130LK AY \u00dcCRETS\u0130Z")).toBe("ILK AY \u00dcCRETSIZ");
+    expect(formatSuperWaterText("tr", "G\u00dcN\u00dcN KEL\u0130MELER\u0130")).toBe("G\u00dcN\u00dcN KELIMELERI");
     expect(formatSuperWaterText("tr", "Kart Olu\u015ftur")).toBe("Kart Olustur");
   });
 

@@ -7346,6 +7346,29 @@ body:has([data-games-active]) {
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.tutorial-origin-overlay--closing[data-landing-tutorial-choice-screen] .tutorial-origin-overlay__item {
+  animation-name: tutorial-choice-item-exit;
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+}
+
+.tutorial-origin-overlay--closing[data-landing-tutorial-choice-screen] .tutorial-origin-overlay__viewport {
+  transition-delay: 680ms;
+}
+
+@keyframes tutorial-choice-item-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.52);
+  }
+}
+
 .tutorial-origin-overlay--closing [data-tutorial-welcome-content] {
   animation: none;
   opacity: 1;

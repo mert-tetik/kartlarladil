@@ -2,9 +2,16 @@ import { describe, expect, it, vi } from "vitest";
 import { cleanupAllAutomationRunData } from "@/features/twitter-automation/automation-maintenance-service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
+const blobMocks = vi.hoisted(() => ({
+  listSocialStudioBlobPathnames: vi.fn(),
+  deleteSocialStudioBlobs: vi.fn(),
+}));
+
 vi.mock("@/lib/supabase/admin", () => ({
   createSupabaseAdminClient: vi.fn(),
 }));
+
+vi.mock("@/features/twitter-automation/social-studio-blob", () => blobMocks);
 
 function makeSupabaseMock(initialPaths: string[]) {
   const files = new Set(initialPaths);
@@ -18,24 +25,13 @@ function makeSupabaseMock(initialPaths: string[]) {
   });
   const remove = vi.fn(async (paths: string[]) => {
     for (const path of paths) files.delete(path);
-    return { error: null };
+    return undefined;
   });
-  const list = vi.fn(async (directory: string, options: { limit: number; offset: number }) => {
-    if (listFailure) return { data: null, error: new Error("storage unavailable") };
-
-    const children = new Map<string, { id: string | null; name: string }>();
-
-    for (const path of files) {
-      const relativePath = directory ? path.slice(directory.length + 1) : path;
-      if (directory && !path.startsWith(`${directory}/`)) continue;
-      const [name, ...rest] = relativePath.split("/");
-      if (!name) continue;
-      children.set(name, { id: rest.length ? null : "file-id", name });
-    }
-
-    const entries = [...children.values()].sort((first, second) => first.name.localeCompare(second.name));
-    return { data: entries.slice(options.offset, options.offset + options.limit), error: null };
+  blobMocks.listSocialStudioBlobPathnames.mockImplementation(async () => {
+    if (listFailure) throw new Error("storage unavailable");
+    return [...files].filter((path) => path.startsWith("automation/"));
   });
+  blobMocks.deleteSocialStudioBlobs.mockImplementation(remove);
 
   const client = {
     from: (table: string) => ({
@@ -55,15 +51,12 @@ function makeSupabaseMock(initialPaths: string[]) {
       },
       delete: () => ({ not: deleteRunRows }),
     }),
-    storage: {
-      from: () => ({ list, remove }),
-    },
   };
 
   return {
     client,
     files,
-    list,
+    list: blobMocks.listSocialStudioBlobPathnames,
     remove,
     deleteRunRows,
     setListFailure: (value: boolean) => { listFailure = value; },
@@ -81,10 +74,9 @@ describe("cleanupAllAutomationRunData", () => {
 
     const result = await cleanupAllAutomationRunData(mock.client as unknown as ReturnType<typeof createSupabaseAdminClient>);
 
-    expect(result).toEqual({ deletedRuns: 4, deletedOutputs: 11, removedMedia: 3 });
-    expect(mock.files.size).toBe(0);
+    expect(result).toEqual({ deletedRuns: 4, deletedOutputs: 11, removedMedia: 2 });
+    expect(mock.files).toEqual(new Set(["root-orphan.png"]));
     expect(mock.remove).toHaveBeenCalledWith([
-      "root-orphan.png",
       "automation/one.webp",
       "automation/nested/two.mp4",
     ]);

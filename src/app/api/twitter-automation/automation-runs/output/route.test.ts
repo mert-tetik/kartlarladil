@@ -19,8 +19,11 @@ vi.mock("@/features/twitter-automation/automation-run-service", () => ({
 vi.mock("@/lib/supabase/admin", () => ({
   createSupabaseAdminClient: () => ({
     from: fromMock,
-    storage: { from: () => ({ remove: removeMock }) },
   }),
+}));
+
+vi.mock("@/features/twitter-automation/social-studio-blob", () => ({
+  deleteSocialStudioBlobs: removeMock,
 }));
 
 describe("automation output deletion", () => {
@@ -60,7 +63,7 @@ describe("automation output deletion", () => {
       };
       throw new Error(`Unexpected table: ${table}`);
     });
-    removeMock.mockResolvedValue({ error: null });
+    removeMock.mockResolvedValue(undefined);
     refreshRunMock.mockResolvedValue(undefined);
 
     const response = await DELETE(new NextRequest("http://localhost/api/twitter-automation/automation-runs/output", {

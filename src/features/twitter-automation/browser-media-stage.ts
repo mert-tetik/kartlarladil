@@ -1,6 +1,6 @@
 "use client";
 
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { upload } from "@vercel/blob/client";
 
 type StagedVideoPurpose = "manual-video" | "automation-video";
 type StagedVideo = {
@@ -12,30 +12,26 @@ type StagedVideo = {
 export async function stageBrowserVideo(blob: Blob, purpose: StagedVideoPurpose, outputId?: string): Promise<StagedVideo> {
   const mimeType: "video/mp4" | "video/webm" = blob.type === "video/mp4" ? "video/mp4" : "video/webm";
   if (!blob.size || blob.size > 100 * 1024 * 1024) throw new Error("video_too_large");
-
-  const createResponse = await fetch("/api/twitter-automation/media-stage", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ action: "create-upload", purpose, mimeType, ...(outputId ? { outputId } : {}) }),
-  });
-  const upload = await createResponse.json().catch(() => null) as { path?: string; token?: string } | null;
-  if (!createResponse.ok || !upload?.path || !upload.token) throw new Error("media_stage_unavailable");
-
-  const supabase = createSupabaseBrowserClient();
-  const { error } = await supabase.storage.from("social-studio-automation").uploadToSignedUrl(upload.path, upload.token, blob, {
+  const path = purpose === "automation-video"
+    ? `automation/${outputId}.${mimeType === "video/webm" ? "webm" : "mp4"}`
+    : `automation/manual/${crypto.randomUUID()}.${mimeType === "video/webm" ? "webm" : "mp4"}`;
+  const result = await upload(path, blob, {
+    access: "private",
     contentType: mimeType,
-    cacheControl: "31536000",
-  });
-  if (error) throw new Error("media_stage_upload_failed");
+    handleUploadUrl: "/api/twitter-automation/media-stage",
+    clientPayload: JSON.stringify({ purpose, outputId }),
+    multipart: blob.size > 4.5 * 1024 * 1024,
+  }).catch(() => null);
+  if (!result?.pathname) throw new Error("media_stage_upload_failed");
 
   const deliveryResponse = await fetch("/api/twitter-automation/media-stage", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ action: "create-delivery-url", path: upload.path }),
+    body: JSON.stringify({ action: "create-delivery-url", path: result.pathname }),
   });
   const delivery = await deliveryResponse.json().catch(() => null) as { sourceUrl?: string } | null;
   if (!deliveryResponse.ok || !delivery?.sourceUrl) throw new Error("media_stage_unavailable");
-  return { path: upload.path, sourceUrl: delivery.sourceUrl, mimeType };
+  return { path: result.pathname, sourceUrl: delivery.sourceUrl, mimeType };
 }
 
 type StagedImage = {
@@ -46,28 +42,21 @@ type StagedImage = {
 
 export async function stageBrowserImage(blob: Blob, outputId: string, position = 0): Promise<StagedImage> {
   if (blob.type !== "image/png" || !blob.size || blob.size > 6 * 1024 * 1024) throw new Error("image_too_large");
-
-  const createResponse = await fetch("/api/twitter-automation/media-stage", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ action: "create-upload", purpose: "automation-image", mimeType: "image/png", outputId, position }),
-  });
-  const upload = await createResponse.json().catch(() => null) as { path?: string; token?: string } | null;
-  if (!createResponse.ok || !upload?.path || !upload.token) throw new Error("media_stage_unavailable");
-
-  const supabase = createSupabaseBrowserClient();
-  const { error } = await supabase.storage.from("social-studio-automation").uploadToSignedUrl(upload.path, upload.token, blob, {
+  const path = `automation/${outputId}${position ? `-${position + 1}` : ""}.png`;
+  const result = await upload(path, blob, {
+    access: "private",
     contentType: "image/png",
-    cacheControl: "31536000",
-  });
-  if (error) throw new Error("media_stage_upload_failed");
+    handleUploadUrl: "/api/twitter-automation/media-stage",
+    clientPayload: JSON.stringify({ purpose: "automation-image", outputId, position }),
+  }).catch(() => null);
+  if (!result?.pathname) throw new Error("media_stage_upload_failed");
 
   const deliveryResponse = await fetch("/api/twitter-automation/media-stage", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ action: "create-delivery-url", path: upload.path }),
+    body: JSON.stringify({ action: "create-delivery-url", path: result.pathname }),
   });
   const delivery = await deliveryResponse.json().catch(() => null) as { sourceUrl?: string } | null;
   if (!deliveryResponse.ok || !delivery?.sourceUrl) throw new Error("media_stage_unavailable");
-  return { path: upload.path, sourceUrl: delivery.sourceUrl, mimeType: "image/png" };
+  return { path: result.pathname, sourceUrl: delivery.sourceUrl, mimeType: "image/png" };
 }

@@ -4,11 +4,11 @@ import { refreshAutomationRunStatus, type AutomationOutputRecord } from "@/featu
 import { hasSocialStudioSession } from "@/features/twitter-automation/social-studio-auth";
 import { automationOwnerKey, normalizeAutomationScope } from "@/features/twitter-automation/automation-scope";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { deleteSocialStudioBlobs } from "@/features/twitter-automation/social-studio-blob";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const BUCKET = "social-studio-automation";
 const requestSchema = z.object({
   outputId: z.string().uuid(),
   scope: z.enum(["production", "test"]).optional(),
@@ -63,13 +63,14 @@ export async function DELETE(request: NextRequest) {
 
     let cleanupPending = false;
     if (mediaPaths.length) {
-      const { error: storageError } = await supabase.storage.from(BUCKET).remove(mediaPaths);
-      if (storageError) {
+      try {
+        await deleteSocialStudioBlobs(mediaPaths);
+      } catch (storageError) {
         cleanupPending = true;
         console.error("[automation-output] Storage cleanup deferred", {
           outputId: output.id,
           mediaCount: mediaPaths.length,
-          error: storageError.message,
+          error: storageError instanceof Error ? storageError.message : "blob_delete_failed",
         });
       }
     }

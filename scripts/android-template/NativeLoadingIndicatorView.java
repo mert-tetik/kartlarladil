@@ -13,8 +13,10 @@ import android.graphics.Typeface;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * The launch loader is drawn before the remote WebView exists. Its card face
@@ -33,6 +35,7 @@ public final class NativeLoadingIndicatorView extends View {
     private ValueAnimator animator;
     private float animationProgress;
     private float loadingProgress = 0.08f;
+    private String superWaterLocale = "en";
     private String loadingTitle = "WORDS OF THE DAY";
     private String loadingStatus = "Foxies are stretching their tails...";
     private String[] loadingCardTerms = {"learn", "play", "word", "card"};
@@ -57,15 +60,91 @@ public final class NativeLoadingIndicatorView extends View {
     }
 
     public void setLoadingState(String status, int progressPercent) {
-        loadingStatus = safeText(status, "Foxies are stretching their tails...");
+        loadingStatus = formatSuperWaterText(safeText(status, "Foxies are stretching their tails..."));
         loadingProgress = Math.max(0f, Math.min(1f, progressPercent / 100f));
         setContentDescription(loadingStatus + " " + progressPercent + "%");
         postInvalidateOnAnimation();
     }
 
-    public void setLoadingTitle(String title) {
-        loadingTitle = safeText(title, "WORDS OF THE DAY");
+    public void setSuperWaterLocale(String locale) {
+        superWaterLocale = locale == null ? "" : locale.toLowerCase(Locale.ROOT);
+        loadingTitle = formatSuperWaterText(loadingTitle);
+        loadingStatus = formatSuperWaterText(loadingStatus);
+        setContentDescription(loadingStatus + " " + Math.round(loadingProgress * 100f) + "%");
         postInvalidateOnAnimation();
+    }
+
+    public void setLoadingTitle(String title) {
+        loadingTitle = formatSuperWaterText(safeText(title, "WORDS OF THE DAY"));
+        postInvalidateOnAnimation();
+    }
+
+    private String formatSuperWaterText(String value) {
+        if (!isSuperWaterLocale(superWaterLocale)) return value;
+
+        String replaced = value.replace("\u1e9e", "SS").replace("\u0130", "I");
+        StringBuilder formatted = new StringBuilder(replaced.length());
+        for (int offset = 0; offset < replaced.length();) {
+            int codePoint = replaced.codePointAt(offset);
+            offset += Character.charCount(codePoint);
+            if (hasSuperWaterGlyph(codePoint)) {
+                formatted.appendCodePoint(codePoint);
+                continue;
+            }
+
+            String decomposed = Normalizer.normalize(
+                    new String(Character.toChars(codePoint)),
+                    Normalizer.Form.NFD
+            );
+            for (int decomposedOffset = 0; decomposedOffset < decomposed.length();) {
+                int decomposedCodePoint = decomposed.codePointAt(decomposedOffset);
+                decomposedOffset += Character.charCount(decomposedCodePoint);
+                if (decomposedCodePoint < 0x0300 || decomposedCodePoint > 0x036f) {
+                    formatted.appendCodePoint(decomposedCodePoint);
+                }
+            }
+        }
+        return formatted.toString();
+    }
+
+    private static boolean isSuperWaterLocale(String locale) {
+        return "en".equals(locale)
+                || "tr".equals(locale)
+                || "de".equals(locale)
+                || "fr".equals(locale)
+                || "es".equals(locale)
+                || "it".equals(locale)
+                || "pt".equals(locale)
+                || "nl".equals(locale)
+                || "pl".equals(locale);
+    }
+
+    private static boolean hasSuperWaterGlyph(int codePoint) {
+        if (codePoint <= 0x007f) return true;
+        return codePoint >= 0x00a0 && codePoint <= 0x00ff
+                || codePoint >= 0x0110 && codePoint <= 0x0111
+                || codePoint == 0x0131
+                || codePoint >= 0x0141 && codePoint <= 0x0142
+                || codePoint >= 0x0152 && codePoint <= 0x0153
+                || codePoint >= 0x0160 && codePoint <= 0x0161
+                || codePoint == 0x0178
+                || codePoint >= 0x017d && codePoint <= 0x017e
+                || codePoint == 0x0192
+                || codePoint >= 0x02c6 && codePoint <= 0x02c7
+                || codePoint >= 0x02d8 && codePoint <= 0x02dd
+                || codePoint >= 0x2013 && codePoint <= 0x2014
+                || codePoint >= 0x2018 && codePoint <= 0x201e
+                || codePoint >= 0x2020 && codePoint <= 0x2022
+                || codePoint == 0x2026
+                || codePoint == 0x2030
+                || codePoint >= 0x2039 && codePoint <= 0x203a
+                || codePoint == 0x2044
+                || codePoint == 0x20ac
+                || codePoint == 0x2122
+                || codePoint == 0x2212
+                || codePoint == 0x2215
+                || codePoint == 0x2219
+                || codePoint >= 0xfb01 && codePoint <= 0xfb02;
     }
 
     public void setLoadingCards(

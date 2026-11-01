@@ -6,15 +6,14 @@ import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { pickSocialAudioTrack } from "@/features/twitter-automation/social-audio-tracks";
+import { readSocialStudioBlob } from "@/features/twitter-automation/social-studio-blob";
 
 const execFileAsync = promisify(execFile);
 
 export const SERVER_MUSIC_VIDEO_DURATION_SECONDS = 30;
 export const SERVER_MUSIC_VIDEO_MIME_TYPE = "video/mp4" as const;
 
-const AUTOMATION_BUCKET = "social-studio-automation";
 const MAX_SOURCE_IMAGE_BYTES = 6 * 1024 * 1024;
 const MAX_RENDERED_VIDEO_BYTES = 100 * 1024 * 1024;
 export type ServerMusicVideoResult = {
@@ -51,11 +50,10 @@ async function runFfmpeg(args: string[]) {
 }
 
 async function downloadSourceImage(imagePath: string, targetPath: string) {
-  const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase.storage.from(AUTOMATION_BUCKET).download(imagePath);
-  if (error || !data) throw new Error("server_music_video_source_read_failed");
+  const data = await readSocialStudioBlob(imagePath);
+  if (!data) throw new Error("server_music_video_source_read_failed");
 
-  const source = Buffer.from(await data.arrayBuffer());
+  const source = data.body;
   if (!source.length || source.length > MAX_SOURCE_IMAGE_BYTES) throw new Error("server_music_video_source_invalid");
   await writeFile(targetPath, source);
 }

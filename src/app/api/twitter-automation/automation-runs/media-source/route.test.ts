@@ -1,12 +1,11 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { createSignedUrlMock, fromMock, outputMaybeSingleMock, runMaybeSingleMock, storageFromMock } = vi.hoisted(() => ({
+const { createSignedUrlMock, fromMock, outputMaybeSingleMock, runMaybeSingleMock } = vi.hoisted(() => ({
   createSignedUrlMock: vi.fn(),
   fromMock: vi.fn(),
   outputMaybeSingleMock: vi.fn(),
   runMaybeSingleMock: vi.fn(),
-  storageFromMock: vi.fn(),
 }));
 
 vi.mock("@/features/twitter-automation/social-studio-auth", () => ({
@@ -17,8 +16,11 @@ vi.mock("@/features/twitter-automation/social-studio-auth", () => ({
 vi.mock("@/lib/supabase/admin", () => ({
   createSupabaseAdminClient: () => ({
     from: fromMock,
-    storage: { from: storageFromMock },
   }),
+}));
+
+vi.mock("@/features/twitter-automation/social-studio-blob", () => ({
+  createSocialStudioBlobSignedUrl: createSignedUrlMock,
 }));
 
 import { GET } from "./route";
@@ -57,8 +59,7 @@ describe("automation browser video media source", () => {
       media_path: mediaPath,
       media_type: "image",
     });
-    createSignedUrlMock.mockResolvedValue({ data: { signedUrl: "https://assets.test/fresh-image.webp" }, error: null });
-    storageFromMock.mockReturnValue({ createSignedUrl: createSignedUrlMock });
+    createSignedUrlMock.mockResolvedValue("https://assets.test/fresh-image.webp");
 
     const response = await GET(new NextRequest(`http://localhost/api/twitter-automation/automation-runs/media-source?outputId=${OUTPUT_ID}`));
 
@@ -81,6 +82,6 @@ describe("automation browser video media source", () => {
 
     expect(response.status).toBe(409);
     await expect(response.json()).resolves.toEqual({ errorCode: "browser_video_source_missing" });
-    expect(storageFromMock).not.toHaveBeenCalled();
+    expect(createSignedUrlMock).not.toHaveBeenCalled();
   });
 });

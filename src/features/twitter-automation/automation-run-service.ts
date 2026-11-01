@@ -19,11 +19,10 @@ import { AUTOMATION_SCHEDULE_MIN_LEAD_MS, isAutomationScheduleExpired, resolveAu
 import { UPLOAD_POST_REQUEST_RECHECK_DELAY_MS, UPLOAD_POST_REQUEST_UNCONFIRMED_CODE } from "@/features/twitter-automation/upload-post-schedule-constants";
 import { getAutomationScheduleFailureReason, isScheduleErrorEligible, SCHEDULE_RETRY_ERROR_OR_FILTER } from "@/features/twitter-automation/automation-schedule-errors";
 import { AUTOMATION_SCHEDULE_BATCH_SIZE } from "@/features/twitter-automation/automation-schedule-batches";
+import { createSocialStudioBlobSignedUrl, deleteSocialStudioBlobs, headSocialStudioBlob, listSocialStudioBlobPathnames, putSocialStudioBlob, readSocialStudioBlob } from "@/features/twitter-automation/social-studio-blob";
 
-const AUTOMATION_BUCKET = "social-studio-automation";
 const AUTOMATION_MEDIA_PREFIX = "automation/";
 const STAGED_MEDIA_URL_SECONDS = 24 * 60 * 60;
-const STORAGE_PAGE_SIZE = 1000;
 const SCHEDULE_OUTPUT_CONCURRENCY = 3;
 const DEFINITIVE_SCHEDULE_FAILURE_CODES = new Set([
   "account_not_found",
@@ -263,13 +262,11 @@ async function storeGeneratedImage(dataUrl: string, outputId: string, suffix?: s
   if (!image.data.length || image.data.length > MAX_STAGED_IMAGE_BYTES) throw new Error("generated_image_too_large");
   const extension = image.mimeType === "image/png" ? "png" : image.mimeType === "image/jpeg" ? "jpg" : "webp";
   const path = `${AUTOMATION_MEDIA_PREFIX}${outputId}${suffix ? `-${suffix}` : ""}.${extension}`;
-  const supabase = createSupabaseAdminClient();
-  const { error } = await supabase.storage.from(AUTOMATION_BUCKET).upload(path, image.data, {
-    contentType: image.mimeType,
-    cacheControl: "31536000",
-    upsert: true,
-  });
-  if (error) throw new Error("automation_media_store_failed");
+  try {
+    await putSocialStudioBlob(path, image.data, image.mimeType);
+  } catch {
+    throw new Error("automation_media_store_failed");
+  }
   return path;
 }
 
@@ -289,42 +286,38 @@ async function storeGeneratedVideo(sourceUrl: string, outputId: string) {
 
   const mimeType = videoMimeType(response.headers.get("content-type")?.split(";", 1)[0] ?? null, sourceUrl);
   const path = `${AUTOMATION_MEDIA_PREFIX}${outputId}.${mimeType === "video/webm" ? "webm" : "mp4"}`;
-  const supabase = createSupabaseAdminClient();
-  const { error } = await supabase.storage.from(AUTOMATION_BUCKET).upload(path, data, {
-    contentType: mimeType,
-    cacheControl: "31536000",
-    upsert: true,
-  });
-  if (error) throw new Error("automation_media_store_failed");
+  try {
+    await putSocialStudioBlob(path, data, mimeType);
+  } catch {
+    throw new Error("automation_media_store_failed");
+  }
   return { path, mimeType };
 }
 
 async function storeGeneratedVideoBuffer(data: Buffer, outputId: string) {
   if (!data.length || data.length > MAX_STAGED_VIDEO_BYTES) throw new Error("generated_video_too_large");
   const path = `${AUTOMATION_MEDIA_PREFIX}${outputId}.mp4`;
-  const supabase = createSupabaseAdminClient();
-  const { error } = await supabase.storage.from(AUTOMATION_BUCKET).upload(path, data, {
-    contentType: "video/mp4",
-    cacheControl: "31536000",
-    upsert: true,
-  });
-  if (error) throw new Error("automation_media_store_failed");
+  try {
+    await putSocialStudioBlob(path, data, "video/mp4");
+  } catch {
+    throw new Error("automation_media_store_failed");
+  }
   return { path, mimeType: "video/mp4" as const };
 }
 
 async function readStoredImage(path: string): Promise<DataUrlAsset> {
-  const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase.storage.from(AUTOMATION_BUCKET).download(path);
-  if (error || !data) throw new Error("automation_media_read_failed");
-  const mimeType = data.type === "image/png" || data.type === "image/jpeg" || data.type === "image/webp" ? data.type : "image/webp";
-  return { mimeType, dataUrl: `data:${mimeType};base64,${Buffer.from(await data.arrayBuffer()).toString("base64")}` };
+  const data = await readSocialStudioBlob(path);
+  if (!data) throw new Error("automation_media_read_failed");
+  const mimeType = data.contentType === "image/png" || data.contentType === "image/jpeg" || data.contentType === "image/webp" ? data.contentType : "image/webp";
+  return { mimeType, dataUrl: `data:${mimeType};base64,${data.body.toString("base64")}` };
 }
 
 async function createStagedVideoUrl(path: string) {
-  const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase.storage.from(AUTOMATION_BUCKET).createSignedUrl(path, STAGED_MEDIA_URL_SECONDS);
-  if (error || !data?.signedUrl) throw new Error("automation_media_url_failed");
-  return data.signedUrl;
+  try {
+    return await createSocialStudioBlobSignedUrl(path, STAGED_MEDIA_URL_SECONDS);
+  } catch {
+    throw new Error("automation_media_url_failed");
+  }
 }
 
 function asAccountIds(value: unknown) {
@@ -528,18 +521,14 @@ function hasNonEmptyCaption(caption: string | null) {
 }
 
 async function validateStoredMedia(path: string, type: "image" | "video") {
-  const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase.storage.from(AUTOMATION_BUCKET).download(path);
-  if (error || !data) {
-    const statusCode = error && typeof error === "object" && "statusCode" in error ? String(error.statusCode) : "";
-    if (statusCode === "404") throw new Error("automation_quality_media_missing");
-    throw new Error("automation_quality_storage_unavailable");
-  }
+  const data = await headSocialStudioBlob(path);
+  if (!data) throw new Error("automation_quality_media_missing");
   const size = data.size;
+  const contentType = data.contentType;
   if (!size) throw new Error("automation_quality_media_empty");
   if (type === "image") {
-    if (!data.type.startsWith("image/") || size > MAX_STAGED_IMAGE_BYTES) throw new Error("automation_quality_image_invalid");
-  } else if (!data.type.startsWith("video/") || size > MAX_STAGED_VIDEO_BYTES) {
+    if (!contentType.startsWith("image/") || size > MAX_STAGED_IMAGE_BYTES) throw new Error("automation_quality_image_invalid");
+  } else if (!contentType.startsWith("video/") || size > MAX_STAGED_VIDEO_BYTES) {
     throw new Error("automation_quality_video_invalid");
   }
 }
@@ -796,9 +785,7 @@ function isMusicVideoGenerator(generator: string) {
 async function removeStagedSourceImage(path: string, output: AutomationOutputRecord) {
   if (!path.startsWith(AUTOMATION_MEDIA_PREFIX)) return;
   try {
-    const supabase = createSupabaseAdminClient();
-    const { error } = await supabase.storage.from(AUTOMATION_BUCKET).remove([path]);
-    if (error) logAutomationOutputFailure("server_music_video_source_cleanup_failed", output, error, { path, nonBlocking: true });
+    await deleteSocialStudioBlobs(path);
   } catch (error) {
     logAutomationOutputFailure("server_music_video_source_cleanup_failed", output, error, { path, nonBlocking: true });
   }
@@ -988,9 +975,7 @@ async function resolveVideo(output: AutomationOutputRecord) {
   if (payload?.status !== "finished" || typeof payload.videoUrl !== "string" || !payload.videoUrl.startsWith("https://")) return { state: "video_pending" as const };
   const video = await storeGeneratedVideo(payload.videoUrl, output.id);
   if (output.media_path?.startsWith(AUTOMATION_MEDIA_PREFIX)) {
-    const supabase = createSupabaseAdminClient();
-    const { error } = await supabase.storage.from(AUTOMATION_BUCKET).remove([output.media_path]);
-    if (error) throw new Error("automation_media_cleanup_failed");
+    await deleteSocialStudioBlobs(output.media_path);
   }
   return { state: "video_ready" as const, path: video.path };
 }
@@ -1317,21 +1302,11 @@ function asMediaPaths(value: unknown) {
 }
 
 export async function listAutomationStoragePaths() {
-  const supabase = createSupabaseAdminClient();
-  const paths = new Set<string>();
-  for (let offset = 0; ; offset += STORAGE_PAGE_SIZE) {
-    const { data, error } = await supabase.storage.from(AUTOMATION_BUCKET).list("automation", {
-      limit: STORAGE_PAGE_SIZE,
-      offset,
-      sortBy: { column: "name", order: "asc" },
-    });
-    if (error) throw new Error("automation_storage_status_failed");
-    for (const file of data ?? []) {
-      if (file.metadata !== null) paths.add(`${AUTOMATION_MEDIA_PREFIX}${file.name}`);
-    }
-    if (!data || data.length < STORAGE_PAGE_SIZE) break;
+  try {
+    return new Set(await listSocialStudioBlobPathnames({ prefix: AUTOMATION_MEDIA_PREFIX }));
+  } catch {
+    throw new Error("automation_storage_status_failed");
   }
-  return paths;
 }
 
 /**

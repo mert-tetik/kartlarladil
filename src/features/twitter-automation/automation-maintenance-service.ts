@@ -1,49 +1,20 @@
 import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { deleteSocialStudioBlobs, listSocialStudioBlobPathnames } from "@/features/twitter-automation/social-studio-blob";
 
-const AUTOMATION_BUCKET = "social-studio-automation";
 const STORAGE_PAGE_SIZE = 1_000;
 const STORAGE_DELETE_BATCH_SIZE = 1_000;
 const MAX_PURGE_PASSES = 3;
 const ACTIVE_SCHEDULE_STALE_MS = 15 * 60_000;
 
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
-type ListedStorageEntry = {
-  id: string | null;
-  name: string;
-};
-
-async function listAllAutomationMediaPaths(supabase: AdminClient) {
-  const bucket = supabase.storage.from(AUTOMATION_BUCKET);
-  const directories = [""];
-  const visitedDirectories = new Set<string>();
-  const paths = new Set<string>();
-
-  while (directories.length) {
-    const directory = directories.pop()!;
-    if (visitedDirectories.has(directory)) continue;
-    visitedDirectories.add(directory);
-
-    for (let offset = 0; ; offset += STORAGE_PAGE_SIZE) {
-      const { data, error } = await bucket.list(directory, {
-        limit: STORAGE_PAGE_SIZE,
-        offset,
-        sortBy: { column: "name", order: "asc" },
-      });
-      if (error) throw new Error("automation_media_cleanup_list_failed");
-
-      for (const entry of (data ?? []) as ListedStorageEntry[]) {
-        const path = directory ? `${directory}/${entry.name}` : entry.name;
-        if (entry.id === null) directories.push(path);
-        else paths.add(path);
-      }
-
-      if (!data || data.length < STORAGE_PAGE_SIZE) break;
-    }
+async function listAllAutomationMediaPaths(_supabase: AdminClient) {
+  try {
+    return await listSocialStudioBlobPathnames({ prefix: "automation/" });
+  } catch {
+    throw new Error("automation_media_cleanup_list_failed");
   }
-
-  return [...paths];
 }
 
 async function deleteAllAutomationRunRows(supabase: AdminClient) {
@@ -64,13 +35,15 @@ async function getAutomationRunCounts(supabase: AdminClient) {
 }
 
 async function removeAutomationMediaPaths(supabase: AdminClient, paths: string[]) {
-  const bucket = supabase.storage.from(AUTOMATION_BUCKET);
   let removed = 0;
 
   for (let offset = 0; offset < paths.length; offset += STORAGE_DELETE_BATCH_SIZE) {
     const batch = paths.slice(offset, offset + STORAGE_DELETE_BATCH_SIZE);
-    const { error } = await bucket.remove(batch);
-    if (error) throw new Error("automation_media_cleanup_failed");
+    try {
+      await deleteSocialStudioBlobs(batch);
+    } catch {
+      throw new Error("automation_media_cleanup_failed");
+    }
     removed += batch.length;
   }
 

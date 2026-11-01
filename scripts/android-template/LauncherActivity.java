@@ -163,6 +163,7 @@ public class LauncherActivity extends Activity {
         // with the user's actual inventory cards.
         String nativeLoadingLearningLanguage = getNativeLoadingPreference(NATIVE_LOADING_LEARNING_LANGUAGE, "en");
         String nativeLoadingUiLocale = getNativeLoadingPreference(NATIVE_LOADING_UI_LOCALE, "en");
+        nativeLoadingView.setSuperWaterLocale(nativeLoadingUiLocale);
         NativeLoadingCatalog.applyFallback(
                 nativeLoadingView,
                 nativeLoadingLearningLanguage,

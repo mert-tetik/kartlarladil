@@ -15,6 +15,7 @@ import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-
 import { AiPracticePreview } from "@/app/components/ai-practice-preview";
 import { CollectionPreviewCard } from "@/app/components/collection-preview-card";
 import { MobileLandingDashboard } from "@/app/components/mobile-landing-dashboard";
+import { NativeAppLaunchContentGate } from "@/features/auth/components/native-app-launch-content-gate";
 import { NativeLoadingVisualTest } from "@/app/components/native-loading-visual-test";
 import { ReviewSection } from "@/features/reviews/components/review-section";
 import { getExistingReview } from "@/features/reviews/review-service";
@@ -73,6 +74,9 @@ type HomeProps = {
 
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
+  // Native TWA sessions are restored from browser storage after the server render.
+  // Do not expose the public landing while that client-side auth check is pending.
+  const isNativeAppLaunch = params?.native === "1";
   const nativeLoadingTest = params?.["native-loading-test"];
   if (nativeLoadingTest === "1" || nativeLoadingTest === "true") {
     return <NativeLoadingVisualTest />;
@@ -102,7 +106,7 @@ export default async function Home({ searchParams }: HomeProps) {
   ];
 
   return (
-    <>
+    <NativeAppLaunchContentGate enabled={isNativeAppLaunch}>
       <MobileLandingDashboard />
       <div className="max-lg:hidden">
         <JsonLd data={[createWebSiteSchema(), createOrganizationSchema()]} />
@@ -354,7 +358,7 @@ export default async function Home({ searchParams }: HomeProps) {
         }}
       />
       </div>
-    </>
+    </NativeAppLaunchContentGate>
   );
 }
 

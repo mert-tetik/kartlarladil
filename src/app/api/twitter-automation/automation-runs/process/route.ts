@@ -7,6 +7,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { automationOwnerKey, normalizeAutomationScope } from "@/features/twitter-automation/automation-scope";
 import { createFoxiesDeckDownloadCaption, getSocialDownloadTitle } from "@/features/twitter-automation/social-video-titles";
 import { mergeDailyAutomationOutputMetadata, readDailyAutomationOutputMetadata } from "@/features/twitter-automation/daily-automation-output";
+import { deleteSocialStudioBlobs } from "@/features/twitter-automation/social-studio-blob";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -246,8 +247,9 @@ export async function POST(request: NextRequest) {
       }
 
       if (candidate.media_path?.startsWith("automation/") && !stagedPaths.includes(candidate.media_path)) {
-        const { error: removeError } = await supabase.storage.from("social-studio-automation").remove([candidate.media_path]);
-        if (removeError) {
+        try {
+          await deleteSocialStudioBlobs(candidate.media_path);
+        } catch (removeError) {
           logAutomationOutputFailure("output_media_cleanup_failed", candidate, removeError, { path: candidate.media_path });
           throw new Error("automation_media_cleanup_failed");
         }

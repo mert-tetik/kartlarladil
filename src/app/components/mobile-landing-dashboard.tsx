@@ -994,7 +994,7 @@ export function MobileLandingDashboard() {
               data-mobile-main-points
             >
               <ScorePulse pulse={mainPointsPulse} className="gap-1.5">
-                <span className={cn("text-[#fbbf24]", canUseSuperWater(locale) && "font-super-water")}>
+                <span className={cn("relative top-[5px] text-[#fbbf24]", canUseSuperWater(locale) && "font-super-water")}>
                   {formatSuperWaterText(locale, formatNumber(locale, displayedMainPoints))}
                 </span>
                 <ScoreIcon size={28} className="h-7 w-auto drop-shadow-[0_6px_16px_rgba(0,0,0,0.22)]" />

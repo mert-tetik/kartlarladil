@@ -15,12 +15,12 @@ import {
   createRunAutomationOutputIdentity,
 } from "@/features/twitter-automation/daily-automation-output";
 import { getSocialDownloadTitle } from "@/features/twitter-automation/social-video-titles";
+import { createSocialStudioBlobSignedUrl } from "@/features/twitter-automation/social-studio-blob";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const STATE_TABLE = "social_content_automation_state";
-const AUTOMATION_BUCKET = "social-studio-automation";
 const LANGUAGE_CODES = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"] as const;
 const BROWSER_IMAGE_GENERATORS = new Set([
   "word-of-the-day",
@@ -217,9 +217,11 @@ function requiresBrowserRenderer(generator: string) {
 async function toMediaUrl(path: string | null) {
   if (!path) return null;
   if (path.startsWith("https://")) return path;
-  const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase.storage.from(AUTOMATION_BUCKET).createSignedUrl(path, 60 * 60);
-  return error || !data?.signedUrl ? null : data.signedUrl;
+  try {
+    return await createSocialStudioBlobSignedUrl(path, 60 * 60);
+  } catch {
+    return null;
+  }
 }
 
 function mediaPaths(value: unknown) {
@@ -354,16 +356,16 @@ export async function POST(request: NextRequest) {
     }
 
     const selectedAccountIds = [...new Set(sourceRows.flatMap((item) => item.targetIds))];
-    const [{ data: accountRows, error: accountError }, { error: storageError }] = await Promise.all([
+    const [{ data: accountRows, error: accountError }, storagePaths] = await Promise.all([
       supabase.from("social_medias").select("id").in("id", selectedAccountIds),
-      supabase.storage.from(AUTOMATION_BUCKET).list("", { limit: 1 }),
+      listAutomationStoragePaths().catch((error) => error),
     ]);
     if (accountError || (accountRows?.length ?? 0) !== selectedAccountIds.length) {
       logAutomationRequestFailure("automation_preflight_accounts_failed", accountError ?? new Error("automation_account_count_mismatch"), { scope: ownerKey, selectedAccountCount: selectedAccountIds.length, foundAccountCount: accountRows?.length ?? 0 });
       return NextResponse.json({ errorCode: "automation_preflight_accounts_failed" }, { status: 409 });
     }
-    if (storageError) {
-      logAutomationRequestFailure("automation_preflight_storage_failed", storageError, { scope: ownerKey });
+    if (storagePaths instanceof Error) {
+      logAutomationRequestFailure("automation_preflight_storage_failed", storagePaths, { scope: ownerKey });
       return NextResponse.json({ errorCode: "automation_preflight_storage_failed" }, { status: 503 });
     }
 

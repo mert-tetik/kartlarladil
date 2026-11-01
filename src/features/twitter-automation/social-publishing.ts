@@ -3,6 +3,7 @@ import "server-only";
 import crypto from "node:crypto";
 import { isIP } from "node:net";
 import { decryptSocialProviderToken } from "@/features/twitter-automation/social-token-crypto";
+import { createSocialStudioBlobSignedUrl, deleteSocialStudioBlobs, putSocialStudioBlob, SOCIAL_STUDIO_EXTERNAL_URL_SECONDS } from "@/features/twitter-automation/social-studio-blob";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const X_MEDIA_UPLOAD_URL = "https://api.x.com/2/media/upload";
@@ -10,7 +11,6 @@ const X_CREATE_POST_URL = "https://api.x.com/2/tweets";
 const PINTEREST_BOARDS_URL = "https://api.pinterest.com/v5/boards?page_size=100";
 const PINTEREST_CREATE_PIN_URL = "https://api.pinterest.com/v5/pins";
 const INSTAGRAM_GRAPH_URL = "https://graph.instagram.com";
-const INSTAGRAM_ASSET_BUCKET = "social-publishing";
 const YOUTUBE_UPLOAD_URL = "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=multipart&part=snippet,status";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_YOUTUBE_VIDEO_BYTES = 40 * 1024 * 1024;
@@ -287,23 +287,18 @@ function extensionForImage(mimeType: DataUrlAsset["mimeType"]) {
 async function uploadInstagramImage(asset: DataUrlAsset) {
   const image = parseImageDataUrl(asset);
   const path = `instagram/${crypto.randomUUID()}.${extensionForImage(asset.mimeType)}`;
-  const supabase = createSupabaseAdminClient();
-  const { error } = await supabase.storage
-    .from(INSTAGRAM_ASSET_BUCKET)
-    .upload(path, image, { contentType: asset.mimeType, cacheControl: "3600", upsert: false });
-  if (error) throw new Error("instagram_media_upload_failed");
-
-  const { data } = supabase.storage.from(INSTAGRAM_ASSET_BUCKET).getPublicUrl(path);
-  if (!data.publicUrl) {
-    await supabase.storage.from(INSTAGRAM_ASSET_BUCKET).remove([path]);
+  try {
+    await putSocialStudioBlob(path, image, asset.mimeType);
+    const publicUrl = await createSocialStudioBlobSignedUrl(path, SOCIAL_STUDIO_EXTERNAL_URL_SECONDS);
+    return { path, publicUrl };
+  } catch {
+    await deleteSocialStudioBlobs(path).catch(() => undefined);
     throw new Error("instagram_media_upload_failed");
   }
-  return { path, publicUrl: data.publicUrl };
 }
 
 async function removeInstagramImage(path: string) {
-  const supabase = createSupabaseAdminClient();
-  await supabase.storage.from(INSTAGRAM_ASSET_BUCKET).remove([path]);
+  await deleteSocialStudioBlobs(path);
 }
 
 async function waitForInstagramContainer(containerId: string, accessToken: string) {

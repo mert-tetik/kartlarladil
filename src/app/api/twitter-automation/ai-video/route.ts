@@ -1,4 +1,5 @@
 import sharp from "sharp";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { isLanguageCode } from "@/data/languages";
 import { extractResponseOutputText } from "@/features/ai-practice/ai-practice-openai";
@@ -7,6 +8,7 @@ import { FOXIESDECK_MASCOT_VOICE } from "@/features/twitter-automation/poyo-spee
 import { FOXIESDECK_MASCOT_IMAGE_STYLE, generatePoyoImageEdit, PoyoImageError } from "@/features/twitter-automation/poyo-image-generation";
 import { generateSocialStudioTextWithFallback, getSocialStudioResponsesErrorCode, getSocialStudioResponsesProviderLabel, SOCIAL_CONTENT_CREATIVE_MODEL } from "@/features/twitter-automation/social-studio-poyo";
 import { createSocialStudioDiagnostic } from "@/features/twitter-automation/social-studio-diagnostics";
+import { createSocialStudioBlobSignedUrl, putSocialStudioBlob, SOCIAL_STUDIO_EXTERNAL_URL_SECONDS } from "@/features/twitter-automation/social-studio-blob";
 import { finalizeNativeCaption } from "@/features/twitter-automation/social-video-titles";
 import { resolveSocialStudioVocabularyCard, selectSocialStudioVocabularyTerms, SocialStudioVocabularyError } from "@/features/twitter-automation/social-studio-vocabulary";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -21,7 +23,6 @@ const VIDEO_MODEL = "kling-avatar-2.0/standard";
 const SPEECH_MODEL = "elevenlabs-tts-turbo-2-5";
 const SPEECH_WAIT_TIMEOUT_MS = 150_000;
 const SPEECH_POLL_INTERVAL_MS = 5_000;
-const SOCIAL_STUDIO_AUDIO_BUCKET = "social-studio-audio";
 const AVATAR_FRAME_WIDTH = 576;
 const AVATAR_FRAME_HEIGHT = 1024;
 
@@ -259,19 +260,9 @@ function stripLeadingId3Tag(segment: Buffer) {
 
 async function uploadAudioForAvatar(audio: Buffer) {
   try {
-    const supabase = createSupabaseAdminClient();
-    const filePath = `avatar-audio/${Date.now()}-${crypto.randomUUID()}.mp3`;
-    const { error: uploadError } = await supabase.storage
-      .from(SOCIAL_STUDIO_AUDIO_BUCKET)
-      .upload(filePath, audio, { cacheControl: "900", contentType: "audio/mpeg", upsert: false });
-    if (uploadError) return null;
-
-    const { data, error: signedUrlError } = await supabase.storage
-      .from(SOCIAL_STUDIO_AUDIO_BUCKET)
-      .createSignedUrl(filePath, 15 * 60);
-    if (signedUrlError || !data?.signedUrl) return null;
-
-    return data.signedUrl;
+    const filePath = `avatar-audio/${Date.now()}-${randomUUID()}.mp3`;
+    await putSocialStudioBlob(filePath, audio, "audio/mpeg");
+    return await createSocialStudioBlobSignedUrl(filePath, SOCIAL_STUDIO_EXTERNAL_URL_SECONDS);
   } catch {
     return null;
   }

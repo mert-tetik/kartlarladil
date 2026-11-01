@@ -193,7 +193,7 @@ export function MobileSubscriptionOfferScreen({
 
           <p
             className={cn(
-              "subscription-details-intro-item relative -top-[32px] mt-1 w-[calc(100%+2rem)] whitespace-normal text-balance text-center text-[clamp(1.2rem,7vw,2.3rem)] font-semibold leading-tight text-white",
+              "subscription-details-intro-item relative -top-[32px] mt-1 w-[calc(100%+2rem)] whitespace-normal text-balance text-center text-[clamp(1.2rem,7.5vw,2.5rem)] font-semibold leading-tight text-white",
               usesSuperWater && "font-super-water",
               "subscription-details-intro-item--enter",
             )}
@@ -202,22 +202,11 @@ export function MobileSubscriptionOfferScreen({
             {formatSuperWaterText(locale, t("pricing.startWithPremium"))}
           </p>
 
-          <p
-            className={cn(
-              "subscription-details-intro-item relative -top-[32px] mt-1 w-[calc(100%+2rem)] whitespace-normal text-balance text-center text-[clamp(0.8rem,4.5vw,1.35rem)] font-semibold leading-tight text-white",
-              usesSuperWater && "font-super-water",
-              "subscription-details-intro-item--enter",
-            )}
-            style={{ animationDelay: "730ms" }}
-          >
-            {formatSuperWaterText(locale, t("pricing.seriousLearnerSubtitle"))}
-          </p>
-
           <div className="relative mt-0 min-h-0 w-full max-w-xl flex-1 -translate-y-[23px]">
             <ul
               ref={featureListRef}
               onScroll={updateFeatureScrollHint}
-              className="h-full min-h-0 w-full overscroll-contain overflow-y-auto pb-12 pr-1 pt-[30px]"
+              className="h-[calc(100%_+_19px)] min-h-0 w-full overscroll-contain overflow-y-auto pb-12 pr-1 pt-0"
             >
             <SeriousLearnerOfferFeature introDelay={690} icon={Layers} locale={locale} text={t("pricing.featureCards")} />
             <SeriousLearnerOfferFeature introDelay={750} icon={BookOpen} locale={locale} text={t("pricing.featureLearned")} />

@@ -223,9 +223,14 @@ describe("MobileOnboardingForm", () => {
     });
     await selectLanguage("de");
     await waitFor(() => expect(container.querySelector("[data-login-language-submit]")).toBeInTheDocument());
-    await user.click(container.querySelector("[data-login-language-submit]") as HTMLButtonElement);
+    const submitButton = container.querySelector<HTMLButtonElement>("[data-login-language-submit]") as HTMLButtonElement;
+    await user.click(submitButton);
 
     expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(submitButton).toBeDisabled();
+    expect(submitButton).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByText("Saving...")).toHaveClass("font-super-water");
+    expect(submitButton.querySelector("svg.animate-spin")).toBeInTheDocument();
     await waitFor(() => {
       expect(updateMobileLoginLanguagePreferencesAction).toHaveBeenCalledTimes(1);
     });

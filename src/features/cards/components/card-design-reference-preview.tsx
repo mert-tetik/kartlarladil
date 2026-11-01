@@ -263,7 +263,7 @@ export function VocabularyCardDesign({
               data-testid="card-pronunciation"
               style={{
                 backgroundColor: palette.label,
-                fontSize: pronunciationMatchesTranslation ? "9.1cqw" : undefined,
+                fontSize: pronunciationMatchesTranslation ? "10.8cqw" : undefined,
               }}
             >
               <button

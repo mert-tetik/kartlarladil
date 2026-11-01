@@ -85,6 +85,24 @@ function quoteArg(arg) {
   return arg;
 }
 
+function describeCommandArgs(args) {
+  const safeArgs = [];
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = String(args[index]);
+    if (/^--(?:ks-pass|key-pass)=/i.test(arg)) {
+      safeArgs.push(`${arg.split("=", 1)[0]}=[REDACTED]`);
+      continue;
+    }
+    if (/^-(?:storepass|keypass)$/i.test(arg)) {
+      safeArgs.push(arg, "[REDACTED]");
+      index += 1;
+      continue;
+    }
+    safeArgs.push(arg);
+  }
+  return safeArgs.join(" ");
+}
+
 function run(cmd, args, options = {}) {
   return new Promise((resolve, reject) => {
     const isWin = process.platform === "win32";
@@ -112,7 +130,7 @@ function run(cmd, args, options = {}) {
       if (code === 0) resolve();
       else
         reject(
-          new Error(`Command failed with code ${code}: ${cmd} ${args.join(" ")}`)
+          new Error(`Command failed with code ${code}: ${cmd} ${describeCommandArgs(args)}`)
         );
     });
   });

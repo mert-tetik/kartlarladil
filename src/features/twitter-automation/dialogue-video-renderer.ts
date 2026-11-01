@@ -277,12 +277,9 @@ export async function canRenderDialogueDeterministically() {
   }
 }
 
-async function renderDeterministicDialogueVideo({ audioContext, backgroundVideoUrl, backgroundVideoPath, firstCharacter, secondCharacter, scenes }: DialogueVideoRenderOptions) {
-  const backgroundFetchUrl = backgroundVideoPath
-    ? `/api/dialogue-background?path=${encodeURIComponent(backgroundVideoPath)}`
-    : backgroundVideoUrl;
+async function renderDeterministicDialogueVideo({ audioContext, backgroundVideoUrl, firstCharacter, secondCharacter, scenes }: DialogueVideoRenderOptions) {
   const [backgroundVideo, firstImageRaw, secondImageRaw, audioBuffers] = await Promise.all([
-    loadBackgroundVideo(backgroundFetchUrl),
+    loadBackgroundVideo(backgroundVideoUrl),
     loadImage(`/mascot-variations/${encodeURIComponent(firstCharacter)}`),
     loadImage(`/mascot-variations/${encodeURIComponent(secondCharacter)}`),
     decodeDialogueAudio(audioContext, scenes),

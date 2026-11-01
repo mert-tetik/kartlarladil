@@ -87,6 +87,7 @@ export function MobileOnboardingForm({
   const [displayedStep, setDisplayedStep] = useState<OnboardingStep>("native");
   const [preferredUiLocale, setPreferredUiLocale] = useState<LocaleCode>(initialDefaults.preferredUiLocale);
   const [preferredLanguageCode, setPreferredLanguageCode] = useState<LanguageCode>(initialDefaults.preferredLanguageCode);
+  const [isLoginLanguageSubmitPending, setIsLoginLanguageSubmitPending] = useState(false);
   const [languageOrders, setLanguageOrders] = useState(() => ({
     native: getLanguageOrder(initialDefaults.preferredUiLocale, true),
     learning: getLearningLanguageOrder(),
@@ -206,6 +207,7 @@ export function MobileOnboardingForm({
     }
 
     loginLanguageSubmitStartedRef.current = true;
+    setIsLoginLanguageSubmitPending(true);
     const formData = new FormData(form);
 
     // These preferences are already stored locally; update the in-memory profile and continue
@@ -234,10 +236,12 @@ export function MobileOnboardingForm({
           }
 
           loginLanguageSubmitStartedRef.current = false;
+          setIsLoginLanguageSubmitPending(false);
           showMessage(result.message || t("auth.message.onboardingSaveFailed"), "error");
         })
         .catch(() => {
           loginLanguageSubmitStartedRef.current = false;
+          setIsLoginLanguageSubmitPending(false);
           showMessage(t("auth.message.onboardingSaveFailed"), "error");
         });
     }, 0);
@@ -394,6 +398,8 @@ export function MobileOnboardingForm({
           <div className={cn("mobile-primary-action-depth w-full rounded-md", actionDepthClass)}>
             <SubmitButton
               data-login-language-submit={isLoginLanguageRefresh ? "true" : undefined}
+              aria-busy={isLoginLanguageSubmitPending}
+              pendingOverride={isLoginLanguageRefresh ? isLoginLanguageSubmitPending : undefined}
               disabled={isStepTransitioning}
               onClick={isLoginLanguageRefresh
                 ? () => {

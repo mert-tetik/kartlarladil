@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { automationOwnerKey, normalizeAutomationScope } from "@/features/twitter-automation/automation-scope";
 import { hasSocialStudioAutomationSession } from "@/features/twitter-automation/social-studio-auth";
+import { createSocialStudioBlobSignedUrl } from "@/features/twitter-automation/social-studio-blob";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const BUCKET = "social-studio-automation";
 const AUTOMATION_IMAGE_PATH = /^automation\/[\da-f-]+(?:-\d+)?\.(?:png|jpe?g|webp)$/iu;
 const requestSchema = z.object({
   outputId: z.string().uuid(),
@@ -63,9 +63,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ errorCode: "browser_video_source_missing" }, { status: 409 });
     }
 
-    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(output.media_path, 60 * 60);
-    if (error || !data?.signedUrl) return NextResponse.json({ errorCode: "browser_video_source_url_failed" }, { status: 503 });
-    return NextResponse.json({ sourceUrl: data.signedUrl }, { headers: { "Cache-Control": "no-store" } });
+    const sourceUrl = await createSocialStudioBlobSignedUrl(output.media_path, 60 * 60);
+    return NextResponse.json({ sourceUrl }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return NextResponse.json({ errorCode: "browser_video_source_url_failed" }, { status: 503 });
   }
