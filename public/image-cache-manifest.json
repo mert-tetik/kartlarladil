@@ -1,5 +1,5 @@
 {
-  "version": "c3f871aac02a8024ec5b450b0aedd6f5c70d857fe938969671187d40860107e0",
+  "version": "18536714e95d44a539a42d0f319de903b7fe7108eb2a5e5f14cdb6490c9fe467",
   "assets": [
     {
       "url": "/AppLogdfo.png",
@@ -548,6 +548,30 @@
     {
       "url": "/chests/chest_background.png",
       "revision": "bee82eef4adc486164398fca265b7ebb4d221f0c74c0ba8e10b56706648b2191"
+    },
+    {
+      "url": "/chests/count-preview/diamond.webp",
+      "revision": "49ff48843a1aa4845bf4d5926e8e1dbf153fa690a975ddc5288da672312bc859"
+    },
+    {
+      "url": "/chests/count-preview/emerald.webp",
+      "revision": "d11558abd807e13aa51313716fc0bde5427f07591e85062bd3324c9287a8eb0b"
+    },
+    {
+      "url": "/chests/count-preview/gold.webp",
+      "revision": "6f52f932cad2943d665cc2b58f49907b60fd379b8fbc8258ae1df5813f917d63"
+    },
+    {
+      "url": "/chests/count-preview/iron.webp",
+      "revision": "28343114884ad2c5d2cd37a82d4290dc7032bfc0750f34fd0203516cae43d573"
+    },
+    {
+      "url": "/chests/count-preview/ruby.webp",
+      "revision": "8ae58da291ddec0433b8967c482259452d3a0d781575465ea44224c43c9c762f"
+    },
+    {
+      "url": "/chests/count-preview/wood.webp",
+      "revision": "ead2e9ca47d5fd7fb6cb1747d8d0ab4deebdd23c850a092167d43cf32df3e474"
     },
     {
       "url": "/chests/crack.png",
@@ -5360,6 +5384,30 @@
       "revision": "2041ca995b50d60d353e7260ff0791ee6521e8e39d6cce2e72fabe3cccf0636c"
     },
     {
+      "url": "/chests/count-preview/diamond.webp",
+      "revision": "49ff48843a1aa4845bf4d5926e8e1dbf153fa690a975ddc5288da672312bc859"
+    },
+    {
+      "url": "/chests/count-preview/emerald.webp",
+      "revision": "d11558abd807e13aa51313716fc0bde5427f07591e85062bd3324c9287a8eb0b"
+    },
+    {
+      "url": "/chests/count-preview/gold.webp",
+      "revision": "6f52f932cad2943d665cc2b58f49907b60fd379b8fbc8258ae1df5813f917d63"
+    },
+    {
+      "url": "/chests/count-preview/iron.webp",
+      "revision": "28343114884ad2c5d2cd37a82d4290dc7032bfc0750f34fd0203516cae43d573"
+    },
+    {
+      "url": "/chests/count-preview/ruby.webp",
+      "revision": "8ae58da291ddec0433b8967c482259452d3a0d781575465ea44224c43c9c762f"
+    },
+    {
+      "url": "/chests/count-preview/wood.webp",
+      "revision": "ead2e9ca47d5fd7fb6cb1747d8d0ab4deebdd23c850a092167d43cf32df3e474"
+    },
+    {
       "url": "/flags/4x3/cn.svg",
       "revision": "981da9bdf82d48e31691f20578cefcb26cf7d0bd95e4ebd5c0df00bdfe988c1a"
     },
@@ -5506,22 +5554,6 @@
     {
       "url": "/mobile-nav-icons/question-mark.png",
       "revision": "dbe6497030675549025a3b1cb43d1930d42fcd9149da6cbf214e475dca1ef32c"
-    },
-    {
-      "url": "/quiz/count-options/10.png",
-      "revision": "3b888065a6100b247b2f48ad3c0d63a231e30016352258652fa291e53c811793"
-    },
-    {
-      "url": "/quiz/count-options/20.png",
-      "revision": "0abf8bd198880db902f8211c87a9dbfff7482497b4ecbd3d422ecfc67f82597d"
-    },
-    {
-      "url": "/quiz/count-options/30.png",
-      "revision": "80da6063f1a94288497ef30aa686d90e6878347ec4845cf8e5e5764197b8d2c2"
-    },
-    {
-      "url": "/quiz/count-options/50.png",
-      "revision": "a433773111150b00abb140495bb089d865b04ebee00a3e19839ec34b0d7e2c18"
     },
     {
       "url": "/quiz/count-selection-frames/frame-001.webp",

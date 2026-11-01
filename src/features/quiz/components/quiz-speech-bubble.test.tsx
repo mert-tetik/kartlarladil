@@ -42,4 +42,27 @@ describe("QuizSpeechBubble character video", () => {
 
     expect(container.querySelector("[data-quiz-speech-character-video]")).not.toBeInTheDocument();
   });
+
+  it("shows count-selection copy while the mascot frames are still loading", () => {
+    const { container, getByRole } = render(
+      <LocaleProvider initialLocale="en">
+        <QuizSpeechBubble
+          character={character}
+          term="Choose"
+          language="en"
+          showSpeaker={false}
+          characterFrameSources={["/quiz/count-selection-frames/frame-001.webp"]}
+          showBubbleWhileCharacterLoads
+        />
+      </LocaleProvider>,
+    );
+    const bubble = container.querySelector("[data-quiz-speech-bubble]");
+
+    expect(getByRole("heading", { name: "Choose" })).toBeVisible();
+    expect(bubble).not.toHaveClass("opacity-0");
+    expect(container.querySelector("[data-quiz-speech-character-frames]")).toHaveAttribute(
+      "fetchPriority",
+      "high",
+    );
+  });
 });

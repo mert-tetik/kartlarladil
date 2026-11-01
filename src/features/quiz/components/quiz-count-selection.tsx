@@ -5,6 +5,7 @@ import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import { QuizWordButton } from "@/features/quiz/components/quiz-word-button";
 import { getRandomQuizCharacter, QuizSpeechBubble } from "@/features/quiz/components/quiz-speech-bubble";
 import {
+  CHEST_TIER_PREVIEW_ARTWORK,
   getChestPreviewPairForCount,
   QUIZ_COUNT_OPTIONS,
 } from "@/features/quiz/chest-rewards";
@@ -104,6 +105,7 @@ export function QuizCountSelection({
             showSpeaker={false}
             largeCharacter
             characterFrameSources={QUIZ_COUNT_SELECTION_FRAME_SOURCES}
+            showBubbleWhileCharacterLoads
             characterClassName="quiz-count-selection-character"
             bubbleClassName="quiz-count-selection-bubble"
             disableEntryOffset
@@ -159,7 +161,15 @@ export function QuizCountSelection({
                   ) : previewPair ? (
                     <span className="flex items-center justify-center gap-2 pb-1 sm:gap-3">
                       {previewPair.map((tier) => (
-                        <ChestIcon key={tier} tier={tier} className="size-8 shrink-0 sm:size-9" />
+                        <ChestIcon
+                          key={tier}
+                          tier={tier}
+                          artworkSrc={CHEST_TIER_PREVIEW_ARTWORK[tier]}
+                          unoptimized
+                          priority
+                          sizes="36px"
+                          className="size-8 shrink-0 sm:size-9"
+                        />
                       ))}
                     </span>
                   ) : null}

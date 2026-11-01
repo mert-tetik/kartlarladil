@@ -122,6 +122,7 @@ interface InventoryState {
     draft: GeneratedCardDraft;
     optimisticCard?: VocabularyCard;
     idempotencyKey?: string;
+    awaitCompletion?: boolean;
     onBackgroundError?: (error: InventoryActionError) => void;
   }) => Promise<void>;
   registerPendingCustomCard: (card: VocabularyCard) => void;
@@ -912,7 +913,7 @@ export const useInventoryStore = create<InventoryState>()(
           addPendingCardId(set, optimisticCardId);
         }
 
-        void (async () => {
+        const creation = (async () => {
           let result: Awaited<ReturnType<typeof createCustomCardAction>>;
           try {
             result = input.idempotencyKey
@@ -970,6 +971,12 @@ export const useInventoryStore = create<InventoryState>()(
 
           void syncMissionsFromClientState();
         })();
+
+        if (input.awaitCompletion) {
+          await creation;
+        } else {
+          void creation;
+        }
       },
 
       registerPendingCustomCard(card) {

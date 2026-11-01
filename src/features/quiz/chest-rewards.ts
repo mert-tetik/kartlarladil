@@ -43,6 +43,15 @@ export const CHEST_TIER_ARTWORK: Record<ChestTier, string> = {
   ruby: "/chests/ruby_chest.png",
 };
 
+export const CHEST_TIER_PREVIEW_ARTWORK: Record<ChestTier, string> = {
+  wood: "/chests/count-preview/wood.webp",
+  iron: "/chests/count-preview/iron.webp",
+  gold: "/chests/count-preview/gold.webp",
+  diamond: "/chests/count-preview/diamond.webp",
+  emerald: "/chests/count-preview/emerald.webp",
+  ruby: "/chests/count-preview/ruby.webp",
+};
+
 export const CHEST_TIER_OPENING_AUDIO: Record<ChestTier, string> = {
   wood: "/chests/openings/wood_chest_opening_v2.m4a?v=20261007-2",
   iron: "/chests/openings/iron_chest_opening_v2.m4a?v=20261007-2",

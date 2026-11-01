@@ -13,5 +13,6 @@ if (isDevPreparation && existsSync(publicDirectory)) {
   }
 }
 
+await import("./generate-chest-preview-assets.mjs");
 await import("./generate-image-cache-manifest.mjs");
 await import("./build-offline-card-renderer.mjs");

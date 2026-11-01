@@ -4,7 +4,7 @@ import { LOCALE_CODES } from "@/data/languages";
 import { getTierRequirement } from "@/features/quiz/quiz-engine";
 import { customCardRegistry } from "@/features/cards/custom-card-registry";
 import { localCardRepository } from "@/features/cards/card-repository";
-import { InventoryActionError, useInventoryStore } from "@/features/inventory/inventory-store";
+import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import {
   addCloudInventoryCardAction,
@@ -566,8 +566,10 @@ describe("inventory store analytics", () => {
       message: "Active card limit reached",
       errorCode: "free_active_card_limit",
     });
+    const onBackgroundError = vi.fn();
 
     const creation = useInventoryStore.getState().createCustomCard({
+      awaitCompletion: true,
       language: optimisticCard.language,
       tier: optimisticCard.tier,
       termKind: optimisticCard.termKind,
@@ -588,10 +590,11 @@ describe("inventory store analytics", () => {
         termKind: optimisticCard.termKind,
       },
       optimisticCard,
+      onBackgroundError,
     });
 
     await creation;
-    await waitForBackgroundSync();
+    expect(onBackgroundError).toHaveBeenCalledWith(expect.objectContaining({ errorCode: "free_active_card_limit" }));
     expect(useInventoryStore.getState().cards).toEqual([]);
   });
 

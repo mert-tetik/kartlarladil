@@ -14,10 +14,11 @@ import type { AiPracticeCharacter, LanguageCode } from "@/types/domain";
 import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 import {
-  areQuizCountSelectionFramesReady,
+  areQuizCountSelectionFramesFirstFrameReady,
+  areQuizCountSelectionFramesSettled,
+  getNextLoadedQuizCountSelectionFrameIndex,
   preloadQuizCountSelectionFrames,
   QUIZ_COUNT_SELECTION_FRAME_FPS,
-  subscribeToQuizCountSelectionFramesReady,
 } from "@/features/quiz/quiz-video-preload";
 
 export function getRandomQuizCharacter() {
@@ -42,6 +43,7 @@ export function QuizSpeechBubble({
   showCharacter = true,
   characterVideoSrc,
   characterFrameSources,
+  showBubbleWhileCharacterLoads = false,
   characterClassName,
   bubbleClassName,
   disableEntryOffset = false,
@@ -63,6 +65,7 @@ export function QuizSpeechBubble({
   showCharacter?: boolean;
   characterVideoSrc?: string;
   characterFrameSources?: readonly string[];
+  showBubbleWhileCharacterLoads?: boolean;
   characterClassName?: string;
   bubbleClassName?: string;
   disableEntryOffset?: boolean;
@@ -83,9 +86,11 @@ export function QuizSpeechBubble({
     <div className={cn(
       "relative mx-auto flex w-full max-w-xl items-center gap-2 border-b border-[#AAAAAA] px-1 transition-opacity duration-150 sm:gap-3",
       !disableEntryOffset && "-translate-y-5 sm:-translate-y-6",
-      hasCharacterMedia && (characterMediaReady ? "opacity-100" : "pointer-events-none opacity-0"),
+      hasCharacterMedia && !characterMediaReady && !showBubbleWhileCharacterLoads
+        ? "pointer-events-none opacity-0"
+        : "opacity-100",
       className,
-    )}>
+    )} data-quiz-speech-bubble>
       {showCharacter ? (
         <div
           className={cn(
@@ -99,7 +104,7 @@ export function QuizSpeechBubble({
               frames={characterFrameSources}
               label={characterName}
               onReady={() => setCharacterMediaReady(true)}
-              onError={() => setCharacterMediaReady(false)}
+              onError={() => setCharacterMediaReady(true)}
             />
           ) : characterVideoSrc ? (
             <QuizSpeechCharacterVideo
@@ -257,25 +262,22 @@ function QuizSpeechCharacterFrames({
   onReady: () => void;
   onError: () => void;
 }) {
-  const [framesReady, setFramesReady] = useState(areQuizCountSelectionFramesReady);
+  const [firstFrameReady, setFirstFrameReady] = useState(
+    areQuizCountSelectionFramesFirstFrameReady,
+  );
+  const [firstFrameFailed, setFirstFrameFailed] = useState(false);
   const [frameIndex, setFrameIndex] = useState(0);
-  const handleFramesReady = useCallback(() => {
-    setFramesReady(true);
+  const handleFirstFrameReady = useCallback(() => {
+    setFirstFrameReady(true);
     onReady();
   }, [onReady]);
 
   useEffect(() => {
     preloadQuizCountSelectionFrames();
-
-    if (areQuizCountSelectionFramesReady()) {
-      handleFramesReady();
-    }
-
-    return subscribeToQuizCountSelectionFramesReady(handleFramesReady);
-  }, [handleFramesReady]);
+  }, []);
 
   useEffect(() => {
-    if (!framesReady) return;
+    if (!firstFrameReady || firstFrameFailed) return;
 
     let animationFrameId = 0;
     let frameStartedAt = performance.now();
@@ -290,19 +292,15 @@ function QuizSpeechCharacterFrames({
           frameStartedAt = now;
           setFrameIndex(0);
         }
-      } else {
-        const nextFrame = Math.min(
-          frames.length - 1,
-          Math.floor(((now - frameStartedAt) * QUIZ_COUNT_SELECTION_FRAME_FPS) / 1000),
-        );
+      } else if (now - frameStartedAt >= 1000 / QUIZ_COUNT_SELECTION_FRAME_FPS) {
+        const nextFrame = getNextLoadedQuizCountSelectionFrameIndex(currentFrame);
 
-        if (nextFrame !== currentFrame) {
-          currentFrame = nextFrame;
-          setFrameIndex(nextFrame);
-        }
-
-        if (currentFrame === frames.length - 1) {
+        if (nextFrame === 0 && currentFrame > 0 && areQuizCountSelectionFramesSettled()) {
           idleUntil = now + CHARACTER_VIDEO_REPLAY_DELAY_MS;
+        } else if (nextFrame !== currentFrame) {
+          currentFrame = nextFrame;
+          frameStartedAt = now;
+          setFrameIndex(nextFrame);
         }
       }
 
@@ -311,15 +309,24 @@ function QuizSpeechCharacterFrames({
 
     animationFrameId = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(animationFrameId);
-  }, [frames, framesReady]);
+  }, [firstFrameFailed, firstFrameReady, frames]);
 
-  if (!frames.length) return null;
+  if (!frames.length || firstFrameFailed) return null;
 
   return (
+    // Pre-generated WebP frames must bypass Next's image transformer for animation.
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={frames[frameIndex]}
       alt={label}
-      onError={onError}
+      fetchPriority={frameIndex === 0 ? "high" : "auto"}
+      loading="eager"
+      decoding="async"
+      onLoad={handleFirstFrameReady}
+      onError={() => {
+        if (frameIndex === 0) setFirstFrameFailed(true);
+        onError();
+      }}
       className="absolute inset-0 size-full object-contain object-bottom"
       data-quiz-speech-character-frames
     />

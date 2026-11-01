@@ -18,47 +18,59 @@ const QUIZ_CRITICAL_IMAGE_SOURCES = [
   "/ai-characters/wise-elder.webp",
   "/quiz/quiz-word-repetition-teacher.png?v=20261008-2",
   "/quiz/quiz-word-repetition-teacher-1.png?v=20261008-1",
-  "/quiz/count-options/10.png",
-  "/quiz/count-options/20.png",
-  "/quiz/count-options/30.png",
-  "/quiz/count-options/50.png",
+  "/chests/count-preview/wood.webp",
+  "/chests/count-preview/iron.webp",
+  "/chests/count-preview/gold.webp",
+  "/chests/count-preview/diamond.webp",
+  "/chests/count-preview/emerald.webp",
+  "/chests/count-preview/ruby.webp",
 ] as const;
 
 const preloadedFrameImages = new Map<string, HTMLImageElement>();
 const preloadedCriticalImages = new Map<string, HTMLImageElement>();
-const frameReadyListeners = new Set<() => void>();
+const frameLoadStates: Array<"idle" | "loading" | "loaded" | "failed"> =
+  QUIZ_COUNT_SELECTION_FRAME_SOURCES.map(() => "idle");
 let framesLoading = false;
 let framesReady = false;
+let framesSettled = false;
 
-function loadFrame(source: string) {
+function loadFrame(source: string, index: number) {
   const existingImage = preloadedFrameImages.get(source);
   if (existingImage) {
     if (existingImage.complete && existingImage.naturalWidth > 0) {
+      frameLoadStates[index] = "loaded";
       return Promise.resolve();
     }
 
-    return new Promise<void>((resolve, reject) => {
-      existingImage.addEventListener("load", () => resolve(), { once: true });
-      existingImage.addEventListener(
-        "error",
-        () => {
-          preloadedFrameImages.delete(source);
-          reject(new Error(`Frame failed to load: ${source}`));
-        },
-        { once: true },
-      );
-    });
+    if (frameLoadStates[index] === "loading") {
+      return new Promise<void>((resolve, reject) => {
+        existingImage.addEventListener("load", () => resolve(), { once: true });
+        existingImage.addEventListener(
+          "error",
+          () => reject(new Error(`Frame failed to load: ${source}`)),
+          { once: true },
+        );
+      });
+    }
+
+    preloadedFrameImages.delete(source);
   }
 
+  frameLoadStates[index] = "loading";
   const image = new window.Image();
   image.decoding = "async";
+  image.fetchPriority = index === 0 ? "high" : index < 5 ? "auto" : "low";
   preloadedFrameImages.set(source, image);
 
   return new Promise<void>((resolve, reject) => {
-    image.addEventListener("load", () => resolve(), { once: true });
+    image.addEventListener("load", () => {
+      frameLoadStates[index] = "loaded";
+      resolve();
+    }, { once: true });
     image.addEventListener(
       "error",
       () => {
+        frameLoadStates[index] = "failed";
         preloadedFrameImages.delete(source);
         reject(new Error(`Frame failed to load: ${source}`));
       },
@@ -73,6 +85,7 @@ function preloadCriticalImage(source: string) {
 
   const image = new window.Image();
   image.decoding = "async";
+  image.fetchPriority = "low";
   image.src = source;
   preloadedCriticalImages.set(source, image);
   void image.decode?.().catch(() => undefined);
@@ -92,29 +105,45 @@ export function preloadQuizCountSelectionFrames() {
   if (typeof window === "undefined" || framesLoading || framesReady) return;
 
   framesLoading = true;
-  void Promise.all(QUIZ_COUNT_SELECTION_FRAME_SOURCES.map((source) => loadFrame(source)))
-    .then(() => {
-      framesReady = true;
-      frameReadyListeners.forEach((listener) => listener());
-      frameReadyListeners.clear();
-    })
-    .catch(() => {
-      framesLoading = false;
-    });
+  framesSettled = false;
+  void Promise.allSettled(
+    QUIZ_COUNT_SELECTION_FRAME_SOURCES.map((source, index) => loadFrame(source, index)),
+  ).then((results) => {
+    framesSettled = true;
+    framesLoading = false;
+    framesReady = results.every((result) => result.status === "fulfilled");
+  });
 }
 
 export function areQuizCountSelectionFramesReady() {
   return framesReady;
 }
 
-export function subscribeToQuizCountSelectionFramesReady(listener: () => void) {
-  if (framesReady) {
-    listener();
-    return () => undefined;
+export function areQuizCountSelectionFramesSettled() {
+  return framesSettled;
+}
+
+export function isQuizCountSelectionFrameLoaded(index: number) {
+  return frameLoadStates[index] === "loaded";
+}
+
+export function getNextLoadedQuizCountSelectionFrameIndex(currentIndex: number) {
+  for (let index = currentIndex + 1; index < frameLoadStates.length; index += 1) {
+    const state = frameLoadStates[index];
+
+    if (state === "loaded") return index;
+    if (state === "idle" || state === "loading") return currentIndex;
   }
 
-  frameReadyListeners.add(listener);
-  return () => {
-    frameReadyListeners.delete(listener);
-  };
+  if (!framesSettled) return currentIndex;
+
+  return frameLoadStates.findIndex((state) => state === "loaded");
+}
+
+/*
+ * Keep the first frame independently usable: the count screen should render as
+ * soon as its poster arrives, while the remaining frames continue loading.
+ */
+export function areQuizCountSelectionFramesFirstFrameReady() {
+  return isQuizCountSelectionFrameLoaded(0);
 }

@@ -14,7 +14,12 @@ import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-
 import { buildPreviewVocabularyCard } from "@/features/cards/custom-card-preview";
 import { generatedCardSchema, type GeneratedCardResponse } from "@/features/cards/create-card-schema";
 import { getCardDesignTierPalette } from "@/features/cards/card-design-tier-palette";
-import { createDeckCardTermIndex, getDraftsNotInDeck, getGeneratedCardTermKey } from "@/features/inventory/offline-notes-card-match";
+import {
+  areOfflineNotesSafeToCloseWithoutConfirmation,
+  createDeckCardTermIndex,
+  getDraftsNotInDeck,
+  getGeneratedCardTermKey,
+} from "@/features/inventory/offline-notes-card-match";
 import { InventoryActionError, useInventoryStore } from "@/features/inventory/inventory-store";
 import {
   listOfflineGeneratedDrafts,
@@ -278,6 +283,7 @@ function OfflineNotesConversionOverlayContent() {
     () => canCheckDeck ? getDraftsNotInDeck(drafts, currentDeckTermIndex) : [],
     [canCheckDeck, currentDeckTermIndex, drafts],
   );
+  const visibleNotes = notes.filter((entry) => !drafts.some((candidate) => isDraftForNote(candidate.draft, entry)));
 
   useEffect(() => {
     if (!isOfflineScreen) return;
@@ -619,8 +625,22 @@ function OfflineNotesConversionOverlayContent() {
   }, []);
 
   const requestDiscardConfirmation = useCallback(() => {
+    const safeToCloseWithoutConfirmation = areOfflineNotesSafeToCloseWithoutConfirmation({
+      canCheckDeck,
+      visibleNoteCount: visibleNotes.length,
+      addableDraftCount: addableDrafts.length,
+      hasPendingAdds: conversionBusy
+        || pendingDraftIds.size > 0
+        || drafts.some((entry) => entry.draft.pendingAdd)
+        || draftAddInFlightRef.current
+        || draftAddQueueRef.current.size > 0,
+    });
+    if (safeToCloseWithoutConfirmation) {
+      closeOverlay();
+      return;
+    }
     setDiscardConfirmationOpen(true);
-  }, []);
+  }, [addableDrafts.length, canCheckDeck, closeOverlay, conversionBusy, drafts, pendingDraftIds.size, visibleNotes.length]);
 
   useEffect(() => {
     if (
@@ -648,10 +668,12 @@ function OfflineNotesConversionOverlayContent() {
   }, [discardConfirmationOpen, isAvailable, phase, requestDiscardConfirmation, subscriptionRestrictionOpen]);
 
   async function addDraftToDeck(entry: DraftEntry): Promise<"added" | "limit"> {
+    const backgroundErrors: InventoryActionError[] = [];
     try {
       const generated = entry.draft.generated;
       const optimisticCard = buildPendingOfflineVocabularyCard(entry);
       await useInventoryStore.getState().createCustomCard({
+        awaitCompletion: true,
         language: generated.language,
         tier: generated.tier,
         termKind: generated.termKind,
@@ -671,17 +693,12 @@ function OfflineNotesConversionOverlayContent() {
         optimisticCard,
         idempotencyKey: entry.draft.id,
         onBackgroundError: (error) => {
-          // The card is already visible locally. Restore the durable draft
-          // after the current queue turn so a failed background sync remains
-          // retryable instead of disappearing with the note.
-          window.setTimeout(() => {
-            void restoreDraftAfterRejectedAdd(entry);
-            if (error.errorCode === "free_active_card_limit") {
-              showActiveCardLimit(0, 1);
-            }
-          }, 0);
+          backgroundErrors.push(error);
         },
       });
+      const backgroundError = backgroundErrors[0];
+      if (backgroundError?.errorCode === "free_active_card_limit") return "limit";
+      if (backgroundError) throw backgroundError;
       return "added";
     } catch (error) {
       if (error instanceof InventoryActionError && error.errorCode === "free_active_card_limit") return "limit";
@@ -873,7 +890,6 @@ function OfflineNotesConversionOverlayContent() {
   if (!isAvailable) return null;
 
   const isTransitioning = phase === "opening" || phase === "closing";
-  const visibleNotes = notes.filter((entry) => !drafts.some((candidate) => isDraftForNote(candidate.draft, entry)));
   const content = phase === "closed" ? null : (
     <div
       data-offline-note-conversion-overlay

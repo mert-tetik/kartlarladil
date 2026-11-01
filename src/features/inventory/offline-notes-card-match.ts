@@ -26,3 +26,15 @@ export function getDraftsNotInDeck<T extends { draft: { generated: GeneratedCard
 ) {
   return drafts.filter(({ draft }) => !deckTermIndex.has(getGeneratedCardTermKey(draft.generated)));
 }
+
+export function areOfflineNotesSafeToCloseWithoutConfirmation(input: {
+  canCheckDeck: boolean;
+  visibleNoteCount: number;
+  addableDraftCount: number;
+  hasPendingAdds: boolean;
+}) {
+  return input.canCheckDeck
+    && input.visibleNoteCount === 0
+    && input.addableDraftCount === 0
+    && !input.hasPendingAdds;
+}

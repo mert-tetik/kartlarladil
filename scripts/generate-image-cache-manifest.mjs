@@ -58,8 +58,8 @@ const version = createHash("sha256").update(JSON.stringify(assets)).digest("hex"
 const criticalAssets = assets.filter(
   (asset) =>
     CRITICAL_IMAGE_URLS.has(asset.url) ||
-    asset.url.startsWith("/quiz/count-options/") ||
     asset.url.startsWith("/quiz/count-selection-frames/") ||
+    asset.url.startsWith("/chests/count-preview/") ||
     asset.url.startsWith("/flags/") ||
     asset.url.startsWith("/mobile-nav-icons/"),
 );

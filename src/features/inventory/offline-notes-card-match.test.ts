@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import {
+  areOfflineNotesSafeToCloseWithoutConfirmation,
   createDeckCardTermIndex,
   getDraftsNotInDeck,
   getGeneratedCardTermKey,
@@ -44,5 +45,20 @@ describe("offline note duplicate card matching", () => {
     ];
 
     expect(getDraftsNotInDeck(drafts, new Set([getGeneratedCardTermKey(existing)]))).toEqual([drafts[1]]);
+  });
+
+  it("skips the discard confirmation only when every note card is safely in the deck", () => {
+    const safeState = {
+      canCheckDeck: true,
+      visibleNoteCount: 0,
+      addableDraftCount: 0,
+      hasPendingAdds: false,
+    };
+
+    expect(areOfflineNotesSafeToCloseWithoutConfirmation(safeState)).toBe(true);
+    expect(areOfflineNotesSafeToCloseWithoutConfirmation({ ...safeState, canCheckDeck: false })).toBe(false);
+    expect(areOfflineNotesSafeToCloseWithoutConfirmation({ ...safeState, visibleNoteCount: 1 })).toBe(false);
+    expect(areOfflineNotesSafeToCloseWithoutConfirmation({ ...safeState, addableDraftCount: 1 })).toBe(false);
+    expect(areOfflineNotesSafeToCloseWithoutConfirmation({ ...safeState, hasPendingAdds: true })).toBe(false);
   });
 });

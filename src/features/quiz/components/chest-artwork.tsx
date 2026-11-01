@@ -14,6 +14,8 @@ interface ChestArtworkProps {
   lidRef?: Ref<HTMLImageElement>;
   /** Kept for call-site compatibility; the new artwork is a single composed image. */
   hideLid?: boolean;
+  artworkSrc?: string;
+  unoptimized?: boolean;
   priority?: boolean;
   sizes?: string;
 }
@@ -25,10 +27,12 @@ export function ChestArtwork({
   bodyClassName,
   lidStyle,
   lidRef,
+  artworkSrc,
+  unoptimized = false,
   priority = false,
   sizes = "256px",
 }: ChestArtworkProps) {
-  const artwork = CHEST_TIER_ARTWORK[tier];
+  const artwork = artworkSrc ?? CHEST_TIER_ARTWORK[tier];
 
   return (
     <div className={cn("relative aspect-square", className)} aria-hidden="true">
@@ -37,6 +41,7 @@ export function ChestArtwork({
         src={artwork}
         alt=""
         fill
+        unoptimized={unoptimized}
         priority={priority}
         sizes={sizes}
         className={cn("pointer-events-none object-contain", bodyClassName, lidClassName)}

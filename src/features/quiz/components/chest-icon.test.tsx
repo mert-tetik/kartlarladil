@@ -10,4 +10,19 @@ describe("ChestIcon", () => {
       "wooden_chest.png",
     );
   });
+
+  it("supports the small preview artwork used by count selection", () => {
+    const { container } = render(
+      <ChestIcon
+        tier="wood"
+        artworkSrc="/chests/count-preview/wood.webp"
+        unoptimized
+        priority
+        sizes="36px"
+      />,
+    );
+    const image = container.querySelector("[data-chest-artwork]");
+
+    expect(image?.getAttribute("src")).toBe("/chests/count-preview/wood.webp");
+  });
 });
