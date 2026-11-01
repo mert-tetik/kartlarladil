@@ -240,7 +240,7 @@ function saveWebChoice() {
 }
 
 export function MobileAuthGateway({ countryCode }: { countryCode: string | null }) {
-  const { user } = useAuthSession();
+  const { user, clearUser } = useAuthSession();
   const { entitlements, isLoading: isEntitlementsLoading } = useSubscription();
   const activateTutorial = useTutorialStore((state) => state.activate);
   const deactivateTutorial = useTutorialStore((state) => state.deactivate);
@@ -288,6 +288,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     }
 
     function handleLogoutAuthRequested() {
+      clearUser();
       deactivateTutorial();
       setHasChosenWeb(true);
       logoutLoginRequestedRef.current = true;
@@ -319,7 +320,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       window.removeEventListener("resize", handleResize);
       window.removeEventListener(LOGOUT_AUTH_EVENT, handleLogoutAuthRequested);
     };
-  }, [deactivateTutorial]);
+  }, [clearUser, deactivateTutorial]);
 
   useEffect(() => {
     if (!mounted) return;

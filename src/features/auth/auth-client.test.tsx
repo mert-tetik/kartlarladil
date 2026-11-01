@@ -135,4 +135,35 @@ describe("AuthSessionProvider", () => {
     expect(mocks.from).not.toHaveBeenCalled();
     expect(screen.getByTestId("session-state")).toHaveTextContent("signed-out");
   });
+
+  it("keeps the browser session when a stale server refresh temporarily reports no user", async () => {
+    mocks.getSession.mockResolvedValue({
+      data: { session: { user: { id: initialUser.id, email: initialUser.email } } },
+      error: null,
+    });
+
+    const { rerender } = render(
+      <AuthSessionProvider user={initialUser}>
+        <SessionStateProbe />
+      </AuthSessionProvider>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    rerender(
+      <AuthSessionProvider user={null}>
+        <SessionStateProbe />
+      </AuthSessionProvider>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByTestId("session-state")).toHaveTextContent(initialUser.email);
+  });
 });

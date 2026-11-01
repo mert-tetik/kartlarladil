@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   activateTutorial: vi.fn(),
   deactivateTutorial: vi.fn(),
   resetTutorial: vi.fn(),
+  clearUser: vi.fn(),
   authUser: { profile: { onboardingCompleted: true } } as { profile: { onboardingCompleted: boolean } } | null,
   router: {
     refresh: vi.fn(),
@@ -34,7 +35,7 @@ vi.mock("@/features/auth/auth-client", () => ({
     user: mocks.authUser,
     refreshProfile: vi.fn(),
     updateProfileField: vi.fn(),
-    clearUser: vi.fn(),
+    clearUser: mocks.clearUser,
   }),
 }));
 
@@ -187,5 +188,6 @@ describe("MobileAuthGateway returning-login flow", () => {
     expect(screen.queryByTestId("mobile-google-auth-loading")).not.toBeInTheDocument();
     expect(window.sessionStorage.getItem("foxiesdeck:google-auth-pending")).toBeNull();
     expect(mocks.deactivateTutorial).toHaveBeenCalled();
+    expect(mocks.clearUser).toHaveBeenCalledOnce();
   });
 });

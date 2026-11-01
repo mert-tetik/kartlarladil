@@ -162,27 +162,6 @@ export function AuthSessionProvider({
       : current);
   }, [getVisibleGemBalances]);
 
-  useEffect(() => {
-    const previousUser = previousInitialUserRef.current;
-    previousInitialUserRef.current = initialUser;
-
-    const serverUserChanged =
-      previousUser?.id !== initialUser?.id ||
-      previousUser?.profile.onboardingCompleted !== initialUser?.profile.onboardingCompleted ||
-      previousUser?.profile.preferredLanguageCode !== initialUser?.profile.preferredLanguageCode ||
-      previousUser?.profile.preferredUiLocale !== initialUser?.profile.preferredUiLocale;
-
-    if (!serverUserChanged) return;
-
-    sessionSyncGenerationRef.current += 1;
-    if (initialUser) {
-      locallySignedOutRef.current = false;
-    }
-    activeUserIdRef.current = initialUser?.id ?? null;
-    gemLedgerRef.current.reset(getGemBalances(initialUser?.profile));
-    setUser(initialUser);
-  }, [initialUser]);
-
   const reserveGemSpend = useCallback((type: GemType, amount: number): GemSpendReservation | null => {
     const userId = activeUserIdRef.current;
     if (!userId) return null;
@@ -316,6 +295,62 @@ export function AuthSessionProvider({
       },
     });
   }, [client, getVisibleGemBalances]);
+
+  useEffect(() => {
+    const previousUser = previousInitialUserRef.current;
+    previousInitialUserRef.current = initialUser;
+
+    const serverUserChanged =
+      previousUser?.id !== initialUser?.id ||
+      previousUser?.profile.onboardingCompleted !== initialUser?.profile.onboardingCompleted ||
+      previousUser?.profile.preferredLanguageCode !== initialUser?.profile.preferredLanguageCode ||
+      previousUser?.profile.preferredUiLocale !== initialUser?.profile.preferredUiLocale;
+
+    if (!serverUserChanged) return;
+
+    const generation = ++sessionSyncGenerationRef.current;
+
+    if (initialUser) {
+      locallySignedOutRef.current = false;
+      activeUserIdRef.current = initialUser.id;
+      gemLedgerRef.current.reset(getGemBalances(initialUser.profile));
+      setUser(initialUser);
+      return;
+    }
+
+    // App Router refreshes can briefly deliver an unauthenticated server
+    // snapshot while the WebView still has the valid Supabase browser session.
+    // Reconcile that snapshot with browser storage before replacing the live
+    // client user; otherwise the auth gateway can send a signed-in user back
+    // to the login screen until the next cold start.
+    if (locallySignedOutRef.current || !client) {
+      activeUserIdRef.current = null;
+      gemLedgerRef.current.reset();
+      setUser(null);
+      return;
+    }
+
+    void client.auth.getSession().then(({ data: { session }, error }) => {
+      if (
+        error ||
+        sessionSyncGenerationRef.current !== generation ||
+        locallySignedOutRef.current
+      ) {
+        return;
+      }
+
+      if (session?.user) {
+        if (activeUserIdRef.current !== session.user.id) {
+          void syncUserFromSession(session.user, generation);
+        }
+        return;
+      }
+
+      activeUserIdRef.current = null;
+      gemLedgerRef.current.reset();
+      setUser(null);
+    });
+  }, [client, initialUser, syncUserFromSession]);
 
   useEffect(() => {
     if (!client) {
