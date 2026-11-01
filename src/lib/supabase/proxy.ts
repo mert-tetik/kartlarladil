@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseBrowserConfig, hasSupabaseBrowserConfig } from "@/lib/supabase/config";
+import { SUPABASE_COOKIE_OPTIONS } from "@/lib/supabase/cookie-options";
 
 export async function updateSupabaseSession(request: NextRequest) {
   let response = NextResponse.next({
@@ -31,13 +32,7 @@ export async function updateSupabaseSession(request: NextRequest) {
         });
       },
     },
-    cookieOptions: {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 365,
-      path: "/",
-    },
+    cookieOptions: SUPABASE_COOKIE_OPTIONS,
   });
 
   await supabase.auth.getClaims();

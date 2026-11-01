@@ -1,14 +1,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { getSupabaseBrowserConfig } from "@/lib/supabase/config";
-
-const browserCookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
-  maxAge: 60 * 60 * 24 * 365,
-  path: "/",
-};
+import { SUPABASE_COOKIE_OPTIONS } from "@/lib/supabase/cookie-options";
 
 export function createSupabaseBrowserClient(options?: {
   detectSessionInUrl?: boolean;
@@ -23,7 +16,7 @@ export function createSupabaseBrowserClient(options?: {
       autoRefreshToken: true,
       detectSessionInUrl: options?.detectSessionInUrl ?? true,
     },
-    cookieOptions: browserCookieOptions,
+    cookieOptions: SUPABASE_COOKIE_OPTIONS,
   });
 }
 

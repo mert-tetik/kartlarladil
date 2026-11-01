@@ -3,6 +3,7 @@ import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { getSupabaseBrowserConfig } from "@/lib/supabase/config";
+import { SUPABASE_COOKIE_OPTIONS } from "@/lib/supabase/cookie-options";
 
 export async function createSupabaseServerClient() {
   const config = getSupabaseBrowserConfig();
@@ -24,12 +25,6 @@ export async function createSupabaseServerClient() {
         }
       },
     },
-    cookieOptions: {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 365,
-      path: "/",
-    },
+    cookieOptions: SUPABASE_COOKIE_OPTIONS,
   });
 }

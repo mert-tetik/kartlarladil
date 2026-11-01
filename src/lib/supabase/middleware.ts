@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { getSupabaseBrowserConfig } from "@/lib/supabase/config";
+import { SUPABASE_COOKIE_OPTIONS } from "@/lib/supabase/cookie-options";
 
 export async function updateSession(request: NextRequest) {
   const config = getSupabaseBrowserConfig();
@@ -23,13 +24,7 @@ export async function updateSession(request: NextRequest) {
         });
       },
     },
-    cookieOptions: {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 365,
-      path: "/",
-    },
+    cookieOptions: SUPABASE_COOKIE_OPTIONS,
   });
 
   // Verify and refresh the session using the locally verifiable claims path
