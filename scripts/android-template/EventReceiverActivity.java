@@ -59,27 +59,10 @@ public class EventReceiverActivity extends Activity {
         }
 
         String eventType = data.getQueryParameter("type");
-        if (eventType == null || eventType.isEmpty()) return false;
+        if (!"request_play_review".equals(eventType)) return false;
 
-        FirebaseAnalytics analytics = FirebaseAnalytics.getInstance(this);
-        if ("request_play_review".equals(eventType)) {
-            requestPlayReview(analytics);
-            return true;
-        }
-
-        if ("set_user_id".equals(eventType)) {
-            analytics.setUserId(data.getQueryParameter("user_id"));
-            return false;
-        }
-
-        Bundle params = new Bundle();
-        for (String key : data.getQueryParameterNames()) {
-            if ("type".equals(key)) continue;
-            String value = data.getQueryParameter(key);
-            if (value != null) params.putString(key, value);
-        }
-        analytics.logEvent(sanitizeEventName(eventType), params);
-        return false;
+        requestPlayReview(FirebaseAnalytics.getInstance(this));
+        return true;
     }
 
     private void requestPlayReview(FirebaseAnalytics analytics) {
@@ -106,12 +89,5 @@ public class EventReceiverActivity extends Activity {
         REVIEW_IN_FLIGHT.set(false);
         finishHandler.removeCallbacks(finishRunnable);
         finish();
-    }
-
-    private String sanitizeEventName(String name) {
-        String sanitized = name == null ? "" : name.replaceAll("[^a-zA-Z0-9_]", "_");
-        if (sanitized.length() > 40) sanitized = sanitized.substring(0, 40);
-        if (sanitized.matches("^[0-9].*")) sanitized = "fd_" + sanitized;
-        return sanitized.isEmpty() ? "fd_unknown_event" : sanitized;
     }
 }

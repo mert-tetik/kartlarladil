@@ -38,6 +38,7 @@ export const ANDROID_JAVA_TEMPLATE_FILES = [
   "NativeVibrationBridge.java",
   "NativeLoadingIndicatorView.java",
   "NativeLoadingCatalog.java",
+  "NativeAnalyticsReceiver.java",
   "EventReceiverActivity.java",
 ];
 
@@ -237,20 +238,17 @@ const HYBRID_MANIFEST = ({ packageName }) => `<?xml version="1.0" encoding="utf-
             </intent-filter>
         </activity>
 
+        <receiver
+            android:name="${packageName}.NativeAnalyticsReceiver"
+            android:exported="false" />
+
         <activity
             android:name="${packageName}.EventReceiverActivity"
             android:excludeFromRecents="true"
-            android:exported="true"
+            android:exported="false"
             android:launchMode="singleTop"
             android:noHistory="true"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="foxiesdeck" android:host="event" />
-            </intent-filter>
-        </activity>
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

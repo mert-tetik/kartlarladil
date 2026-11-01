@@ -242,13 +242,7 @@ public final class LocalMediaWebViewClient extends WebViewClient {
 
     private boolean handleNavigation(Uri uri) {
         if (isInternalEventUrl(uri)) {
-            try {
-                Intent eventIntent = new Intent(activity, EventReceiverActivity.class);
-                eventIntent.setData(uri);
-                activity.startActivity(eventIntent);
-            } catch (Exception ignored) {
-                // Analytics/review events are best-effort and must not block navigation.
-            }
+            dispatchInternalEvent(uri);
             return true;
         }
 
@@ -259,6 +253,28 @@ public final class LocalMediaWebViewClient extends WebViewClient {
         // Keep the native JavaScript bridge scoped to the trusted FoxiesDeck
         // document. External pages must never be rendered in this WebView.
         return openExternalUrl(uri);
+    }
+
+    private void dispatchInternalEvent(Uri uri) {
+        String eventType = uri.getQueryParameter("type");
+        if ("request_play_review".equals(eventType)) {
+            try {
+                Intent reviewIntent = new Intent(activity, EventReceiverActivity.class);
+                reviewIntent.setData(uri);
+                activity.startActivity(reviewIntent);
+            } catch (Exception ignored) {
+                // The Play review request is best-effort.
+            }
+            return;
+        }
+
+        try {
+            Intent analyticsIntent = new Intent(activity, NativeAnalyticsReceiver.class);
+            analyticsIntent.setData(uri);
+            activity.sendBroadcast(analyticsIntent);
+        } catch (Exception ignored) {
+            // Analytics events are best-effort and must not interrupt WebView navigation.
+        }
     }
 
     private static boolean isInternalEventUrl(Uri uri) {

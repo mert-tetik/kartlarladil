@@ -81,7 +81,8 @@ generated `com.foxiesdeck/` project.
 ## Firebase Analytics
 
 - The Android shell includes Firebase Analytics. Native review/event callbacks
-  are sent by `EventReceiverActivity`.
+  use `NativeAnalyticsReceiver` in the background; only the user-triggered Play
+  review flow opens `EventReceiverActivity`.
 - The matching Android `google-services.json` belongs at
   `com.foxiesdeck/app/google-services.json`. The generated Android project is
   ignored by Git, so keep this file backed up locally. `pwa:init` preserves and

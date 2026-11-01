@@ -64,6 +64,14 @@ describe("reproducible Android Firebase bootstrap", () => {
     expect(applicationTemplate).toContain("FirebaseAnalytics.getInstance(this)");
     expect(applicationTemplate).toContain("FirebaseAnalytics.Event.APP_OPEN");
     expect(applicationTemplate).toContain("ProcessLifecycleOwner.get().getLifecycle().addObserver");
+
+    const webViewClientSource = fs.readFileSync(
+      path.join(PROJECT_ROOT, "scripts", "android-template", "LocalMediaWebViewClient.java"),
+      "utf8",
+    );
+    expect(webViewClientSource).toContain("NativeAnalyticsReceiver.class");
+    expect(webViewClientSource).toContain("activity.sendBroadcast(analyticsIntent)");
+    expect(webViewClientSource).toContain("EventReceiverActivity.class");
   });
 
   it("copies Firebase initialization into a clean generated Android project", () => {
@@ -119,6 +127,9 @@ describe("reproducible Android Firebase bootstrap", () => {
       expect(patchedGradle).toContain("id 'com.google.gms.google-services'");
       expect(patchedGradle).toContain("implementation 'com.google.firebase:firebase-analytics'");
       expect(patchedManifest).toContain('android:name="com.example.app.Application"');
+      expect(patchedManifest).toContain('android:name="com.example.app.NativeAnalyticsReceiver"');
+      expect(patchedManifest).toContain('android:exported="false"');
+      expect(patchedManifest).not.toContain('android:host="event"');
       expect(patchedManifest).toContain('android:name="androidx.core.content.FileProvider"');
       expect(patchedManifest).toContain('android:name="android.intent.action.TTS_SERVICE"');
       expect(fileProviderPaths).toContain('path="camera/"');
