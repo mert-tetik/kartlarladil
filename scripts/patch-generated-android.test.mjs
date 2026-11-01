@@ -174,6 +174,21 @@ describe("Native loading visual test mode", () => {
     expect(launcherSource).toContain("NATIVE_LOADING_TEST_STEP_DELAY_MS = 1200L");
     expect(launcherSource).toContain("Foxies are stretching their tails...");
     expect(launcherSource).toContain("Cards are ready to play!");
-    expect(launcherSource).toContain("int[] progress = {8, 24, 48, 68, 76, 100}");
+    expect(launcherSource).toContain("int[] progress = {8, 24, 48, 60, 68, 76, 88, 100}");
+  });
+});
+
+describe("Native WebView bootstrap suppression", () => {
+  it("only hides the explicit web bootstrap overlay, not fixed app screens using the splash logo", () => {
+    const launcherSource = fs.readFileSync(
+      path.join(PROJECT_ROOT, "scripts", "android-template", "LauncherActivity.java"),
+      "utf8",
+    );
+
+    expect(launcherSource).toContain("document.querySelectorAll('[data-mobile-gateway-bootstrap]')");
+    expect(launcherSource).toContain("node.style.setProperty('display','none','important')");
+    expect(launcherSource).not.toContain("document.querySelectorAll('img')");
+    expect(launcherSource).not.toContain("source.indexOf('splash.png')");
+    expect(launcherSource).not.toContain("getComputedStyle(node).position==='fixed'");
   });
 });
