@@ -66,10 +66,10 @@ export function AppShell({
         <NativeLoadingCardsBridge />
         <QuizPoolAuthBoundary />
         <OfflineInventorySync />
-        <OfflineNotesConversionOverlay />
         <DailyStreakProvider>
           <TwaAnalyticsProvider>
             <SubscriptionProvider>
+              <OfflineNotesConversionOverlay />
               <ProgressStatsProvider>
                 <ThemeProvider initialTheme={initialTheme}>
                   <CardPronunciationQueue />
