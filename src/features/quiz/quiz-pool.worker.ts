@@ -10,10 +10,15 @@ workerScope.onmessage = async (event: MessageEvent<QuizPoolWorkerRequest>) => {
   if (!request || !Number.isSafeInteger(request.id) || !request.input) return;
 
   try {
-    const pool = await buildQuizPool(
+    await buildQuizPool(
       { ...request.input, key: "worker-result" },
+      undefined,
+      (update) => {
+        const response: QuizPoolWorkerResponse = { id: request.id, update };
+        workerScope.postMessage(response);
+      },
     );
-    const response: QuizPoolWorkerResponse = { id: request.id, pool };
+    const response: QuizPoolWorkerResponse = { id: request.id, complete: true };
     workerScope.postMessage(response);
   } catch (error) {
     const response: QuizPoolWorkerResponse = {

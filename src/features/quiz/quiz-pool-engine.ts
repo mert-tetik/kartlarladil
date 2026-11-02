@@ -28,7 +28,12 @@ import {
 } from "@/features/quiz/bonus-question-constants";
 import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data";
 import type { InventoryCard, LanguageCode, LocaleCode, PracticeMode, VocabularyCard } from "@/types/domain";
-import type { PreparedBonusPlan, PreparedQuizPool, QuizItem } from "@/features/quiz/quiz-pool-types";
+import type {
+  PreparedBonusPlan,
+  PreparedQuizPool,
+  QuizItem,
+  QuizPoolProgressUpdate,
+} from "@/features/quiz/quiz-pool-types";
 
 export type NormalQuestionType =
   | "choice"
@@ -128,9 +133,20 @@ function yieldToEventLoop() {
   return new Promise<void>((resolve) => setTimeout(resolve, 0));
 }
 
+type QuizPoolCandidate = {
+  card: VocabularyCard;
+  inventoryCard: InventoryCard;
+  sourceIndex: number;
+  willLearn: boolean;
+  forceLearned: boolean;
+};
+
+const QUIZ_POOL_PROGRESS_BATCH_SIZE = 2;
+
 export async function buildQuizPool(
   input: QuizPoolInput,
   shouldCancel: () => boolean = () => false,
+  onProgress?: (update: QuizPoolProgressUpdate) => void,
 ): Promise<PreparedQuizPool> {
   const {
     key,
@@ -158,20 +174,57 @@ export async function buildQuizPool(
   const listeningCards = [...VOCABULARY_CARDS, ...source];
   const shuffled = shuffle(source).slice(0, maxRegularCount);
   const hasNoLearnedCards = !cards.some((item) => item.status === "learned");
-  const builtRegularItems: QuizItem[] = [];
-
-  for (const [index, card] of shuffled.entries()) {
-    if (shouldCancel()) throw new DOMException("Quiz preparation cancelled", "AbortError");
+  const candidates = shuffled.flatMap((card, sourceIndex): QuizPoolCandidate[] => {
     const inventoryCard = inventoryById.get(card.id) ?? inventoryById.get(card.sourceKey);
-    if (!inventoryCard) continue;
+    if (!inventoryCard) return [];
 
-    const requirement = getTierRequirement(card.tier);
+    const forceLearned = mode === "active" && hasNoLearnedCards && sourceIndex === 0;
+    const willLearn = normalQuestionType
+      ? inventoryCard.status !== "learned" && inventoryCard.correctCount + 1 >= getTierRequirement(card.tier)
+      : forceLearned || (
+        inventoryCard.status !== "learned" && inventoryCard.correctCount + 1 >= getTierRequirement(card.tier)
+      );
+
+    return [{ card, inventoryCard, sourceIndex, willLearn, forceLearned }];
+  });
+  const orderedCandidates = moveLearningQuestionsToEnd(candidates);
+  const bonusInventoryCards = joined.filter(({ card }) => card.language === language);
+  const bonusCards = bonusInventoryCards.map(({ card }) => card);
+  const bonusLearnedCards = bonusInventoryCards
+    .filter(({ inventory }) => inventory.status.trim().toLowerCase() === "learned")
+    .map(({ card }) => card);
+  const forceBonusAfterEachQuestion = bonusAfterEachNormalQuestion && !normalQuestionType;
+  const usedNonMatchingBonusKinds = new Set<BonusQuestionKind>();
+  const regularItems: QuizItem[] = [];
+  const bonusPlans: PreparedBonusPlan[] = [];
+  let pendingRegularItems: QuizItem[] = [];
+  let pendingBonusPlans: PreparedBonusPlan[] = [];
+  let metadataSent = false;
+
+  const emitProgress = (includeMetadata: boolean) => {
+    if (!onProgress) return;
+
+    const update: QuizPoolProgressUpdate = {
+      totalCandidateCount: candidates.length,
+      regularItems: pendingRegularItems,
+      bonusPlans: pendingBonusPlans,
+      ...(includeMetadata ? { metadata: { bonusCards, bonusLearnedCards } } : {}),
+    };
+    onProgress(update);
+    pendingRegularItems = [];
+    pendingBonusPlans = [];
+    metadataSent = true;
+  };
+
+  emitProgress(true);
+
+  for (const candidate of orderedCandidates) {
+    if (shouldCancel()) throw new DOMException("Quiz preparation cancelled", "AbortError");
+    const { card, inventoryCard, sourceIndex: index, willLearn, forceLearned } = candidate;
     const answerLocale = getStudyLocale(card.language, locale);
     let built: QuizItem | null = null;
 
     if (normalQuestionType) {
-      const willLearn = inventoryCard.status !== "learned" && inventoryCard.correctCount + 1 >= requirement;
-      const forceLearned = mode === "active" && hasNoLearnedCards && index === 0;
       switch (normalQuestionType) {
         case "choice":
           built = { card, inventoryCard, questionType: "choice", question: buildQuizQuestion(card, VOCABULARY_CARDS, answerLocale), willLearn, forceLearned };
@@ -213,7 +266,6 @@ export async function buildQuizPool(
         forceLearned: true,
       };
     } else {
-      const willLearn = inventoryCard.status !== "learned" && inventoryCard.correctCount + 1 >= requirement;
       const isLearningQuestion = mode === "active" && willLearn;
       if (isLearningQuestion && shouldUseDefinitionQuestion()) {
         const question = buildDefinitionQuizQuestion(card, VOCABULARY_CARDS, answerLocale);
@@ -246,52 +298,59 @@ export async function buildQuizPool(
         built = { card, inventoryCard, questionType: "choice", question: buildQuizQuestion(card, VOCABULARY_CARDS, answerLocale), willLearn: false };
       }
     }
-    if (built) builtRegularItems.push(built);
-    await yieldToEventLoop();
-  }
+    if (built) {
+      const index = regularItems.length;
+      regularItems.push(built);
+      pendingRegularItems.push(built);
 
-  const regularItems = moveLearningQuestionsToEnd(builtRegularItems);
-  const bonusInventoryCards = joined.filter(({ card }) => card.language === language);
-  const bonusCards = bonusInventoryCards.map(({ card }) => card);
-  const bonusLearnedCards = bonusInventoryCards
-    .filter(({ inventory }) => inventory.status.trim().toLowerCase() === "learned")
-    .map(({ card }) => card);
-  const forceBonusAfterEachQuestion = bonusAfterEachNormalQuestion && !normalQuestionType;
-  const usedNonMatchingBonusKinds = new Set<BonusQuestionKind>();
-  const bonusPlans: PreparedBonusPlan[] = [];
-
-  for (const [index] of regularItems.entries()) {
-    if (shouldCancel()) throw new DOMException("Quiz preparation cancelled", "AbortError");
-    const preferredKind = getBonusKind(usedNonMatchingBonusKinds);
-    const candidateKinds = [
-      preferredKind,
-      ...shuffle(BONUS_QUESTION_KINDS.filter((kind) => kind !== preferredKind && (kind === "matching" || !usedNonMatchingBonusKinds.has(kind)))),
-    ];
-    let selectedKind = preferredKind;
-    let selectedFallback: BonusQuestion | null = null;
-    for (const candidateKind of candidateKinds) {
-      const fallback = buildFallbackBonusQuestion(
-        candidateKind,
-        bonusCards,
-        language,
-        locale,
-        `${seed}-bonus-${candidateKind}-${index}`,
-        bonusLearnedCards,
+      const preferredKind = getBonusKind(usedNonMatchingBonusKinds);
+      const candidateKinds = [
+        preferredKind,
+        ...shuffle(BONUS_QUESTION_KINDS.filter((kind) => kind !== preferredKind && (kind === "matching" || !usedNonMatchingBonusKinds.has(kind)))),
+      ];
+      let selectedKind = preferredKind;
+      let selectedFallback: BonusQuestion | null = null;
+      for (const candidateKind of candidateKinds) {
+        const fallback = buildFallbackBonusQuestion(
+          candidateKind,
+          bonusCards,
+          language,
+          locale,
+          `${seed}-bonus-${candidateKind}-${index}`,
+          bonusLearnedCards,
+        );
+        if (fallback) {
+          selectedKind = candidateKind;
+          selectedFallback = fallback;
+          break;
+        }
+      }
+      const selectedForMaxDeck = Boolean(
+        selectedFallback && (forceBonusAfterEachQuestion || Math.random() < BONUS_QUESTION_PROBABILITY),
       );
-      if (fallback) {
-        selectedKind = candidateKind;
-        selectedFallback = fallback;
-        break;
+      if (selectedForMaxDeck && selectedKind !== "matching") usedNonMatchingBonusKinds.add(selectedKind);
+      const bonusPlan = { index, kind: selectedKind, fallback: selectedFallback, selectedForMaxDeck };
+      bonusPlans.push(bonusPlan);
+      pendingBonusPlans.push(bonusPlan);
+
+      if (pendingRegularItems.length >= QUIZ_POOL_PROGRESS_BATCH_SIZE) {
+        emitProgress(false);
       }
     }
-    const selectedForMaxDeck = Boolean(
-      selectedFallback && (forceBonusAfterEachQuestion || Math.random() < BONUS_QUESTION_PROBABILITY),
-    );
-    if (selectedForMaxDeck && selectedKind !== "matching") usedNonMatchingBonusKinds.add(selectedKind);
-    bonusPlans.push({ index, kind: selectedKind, fallback: selectedFallback, selectedForMaxDeck });
     await yieldToEventLoop();
   }
 
+  if (!metadataSent || pendingRegularItems.length > 0) emitProgress(false);
+
   if (shouldCancel()) throw new DOMException("Quiz preparation cancelled", "AbortError");
-  return { key, regularItems, bonusCards, bonusLearnedCards, bonusPlans };
+  return {
+    key,
+    regularItems,
+    bonusCards,
+    bonusLearnedCards,
+    bonusPlans,
+    totalCandidateCount: candidates.length,
+    metadataReady: true,
+    complete: true,
+  };
 }

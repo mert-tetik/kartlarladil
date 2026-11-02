@@ -1,5 +1,5 @@
 import type { QuizPoolInput } from "@/features/quiz/quiz-pool-engine";
-import type { PreparedQuizPool } from "@/features/quiz/quiz-pool-types";
+import type { QuizPoolProgressUpdate } from "@/features/quiz/quiz-pool-types";
 
 export type QuizPoolWorkerRequest = {
   id: number;
@@ -7,5 +7,6 @@ export type QuizPoolWorkerRequest = {
 };
 
 export type QuizPoolWorkerResponse =
-  | { id: number; pool: PreparedQuizPool }
+  | { id: number; update: QuizPoolProgressUpdate }
+  | { id: number; complete: true }
   | { id: number; error: string };

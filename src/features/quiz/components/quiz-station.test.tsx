@@ -16,6 +16,7 @@ import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { LOCALE_COOKIE_NAME } from "@/i18n/config";
 import { awardQuizResultPoints } from "@/features/quiz/actions";
 import { formatSuperWaterText } from "@/lib/super-water";
+import { clearQuizPoolCache } from "@/features/quiz/quiz-pool-preparation";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { InventoryCard, LanguageCode, LocaleCode, ProgressStats } from "@/types/domain";
 import type { NormalQuizItem } from "@/features/quiz/components/quiz-station";
@@ -1064,6 +1065,35 @@ describe("QuizStation hydration fallback", () => {
 
     expect(screen.queryByRole("heading", { name: /Preparing practice|Alıştırma hazırlanıyor/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /English|İngilizce/i })).toBeVisible();
+  });
+});
+
+describe("QuizStation progressive preparation", () => {
+  it("starts the quiz once the first question batch is ready", async () => {
+    const activeCards = VOCABULARY_CARDS.filter(
+      (card) => card.language === "en" && card.tier === "B1",
+    ).slice(0, 12);
+    clearQuizPoolCache();
+    useInventoryStore.setState({
+      cards: activeCards.map((card) => ({
+        cardId: card.id,
+        status: "active" as const,
+        correctCount: 0,
+        addedAt: "2026-06-09T00:00:00.000Z",
+      })),
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation();
+    fireEvent.click(screen.getByRole("button", { name: /English|Ä°ngilizce/i }));
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-learn-quiz-page="quiz"]')).toBeInTheDocument();
+    });
   });
 });
 

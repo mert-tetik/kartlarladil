@@ -64,7 +64,6 @@ import {
 } from "@/features/quiz/quiz-engine";
 import {
   getUniqueCardsForRepetition,
-  moveLearningQuestionsToEnd,
 } from "@/features/quiz/quiz-deck-order";
 import {
   buildCategoryBonusFromGenerated,
@@ -81,13 +80,13 @@ import {
 } from "@/features/quiz/bonus-question-client";
 import {
   BONUS_QUESTION_TYPE_WEIGHTS,
-  getMaxBonusQuestionCount,
 } from "@/features/quiz/bonus-question-constants";
 import {
   getCachedQuizPool,
   getQuizPoolKey as getPreparedQuizPoolKey,
   prepareQuizPool as requestQuizPoolPreparation,
 } from "@/features/quiz/quiz-pool-preparation";
+import { buildPreparedQuizDeck, getQuizDeckItemKey } from "@/features/quiz/quiz-pool-deck";
 import type {
   BonusQuizItem,
   ChoiceQuizItem,
@@ -248,6 +247,27 @@ type AdvanceQuizOptions = {
   resultsOverride?: QuizResult;
   skipRankUpCheck?: boolean;
 };
+
+type ActiveQuizPoolSession = {
+  key: string;
+  language: LanguageCode;
+  sessionId: string;
+  targetRegularCount: number;
+  items: QuizItem[];
+  preparedRegularCount: number;
+  complete: boolean;
+  deckToken: number;
+  generatedCategoryBonusIds: Set<string>;
+};
+
+const QUIZ_POOL_QUICK_START_COUNT = 2;
+
+function isQuizPoolReadyToStart(pool: PreparedQuizPool, hasFixedQuestionType: boolean) {
+  if (pool.complete) return true;
+  if (hasFixedQuestionType) return false;
+  const requiredCount = Math.min(QUIZ_POOL_QUICK_START_COUNT, pool.totalCandidateCount);
+  return requiredCount > 0 && pool.regularItems.length >= requiredCount;
+}
 
 type QuizViewTransitionDocument = Document & {
   startViewTransition?: (update: () => void) => { finished: Promise<void> };
@@ -589,6 +609,9 @@ export function QuizStation({
 
   const [phase, setPhase] = useState<QuizPhase>(initialLanguage ? "count" : "language");
   const [isPreparingQuizPool, setIsPreparingQuizPool] = useState(Boolean(initialLanguage));
+  const [isWaitingForQuizPool, setIsWaitingForQuizPool] = useState(false);
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
 
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode | null>(
     initialLanguage ?? null,
@@ -691,6 +714,7 @@ export function QuizStation({
     animation: null,
   });
   const preparedQuizPoolRef = useRef<PreparedQuizPool | null>(null);
+  const activeQuizPoolSessionRef = useRef<ActiveQuizPoolSession | null>(null);
   const quizPoolPreparationTokenRef = useRef(0);
   const quizStartPreparationRef = useRef(false);
   const currentIndexRef = useRef(0);
@@ -1672,9 +1696,72 @@ export function QuizStation({
     [createQuizPoolRequest],
   );
   const prepareQuizPool = useCallback(
-    (language: LanguageCode) => requestQuizPoolPreparation(createQuizPoolRequest(language)),
+    (
+      language: LanguageCode,
+      onProgress?: (pool: PreparedQuizPool) => void,
+      onError?: (error: Error) => void,
+    ) => requestQuizPoolPreparation(createQuizPoolRequest(language), onProgress, onError),
     [createQuizPoolRequest],
   );
+
+  const appendPreparedQuizPool = useCallback((pool: PreparedQuizPool) => {
+    const session = activeQuizPoolSessionRef.current;
+    if (!session || session.key !== pool.key || phaseRef.current !== "quiz") return;
+    if (session.complete && !pool.complete) return;
+
+    const nextDeck = buildPreparedQuizDeck(pool, {
+      targetRegularCount: session.targetRegularCount,
+      sessionId: session.sessionId,
+      hasFixedQuestionType: normalQuestionType !== null,
+      bonusAfterEachNormalQuestion,
+    });
+    const previousKeys = session.items.map(getQuizDeckItemKey);
+    const nextKeys = nextDeck.items.map(getQuizDeckItemKey);
+    const preservesPrefix = previousKeys.length <= nextKeys.length &&
+      previousKeys.every((key, index) => key === nextKeys[index]);
+
+    if (!preservesPrefix) {
+      session.complete = true;
+      session.targetRegularCount = session.preparedRegularCount;
+      setDeck((current) => [...current]);
+      showMessage(t("inventory.error.operationFailed"), "error");
+      return;
+    }
+
+    session.items = nextDeck.items;
+    session.preparedRegularCount = Math.min(session.targetRegularCount, pool.regularItems.length);
+    if (pool.complete) session.targetRegularCount = session.preparedRegularCount;
+    session.complete = pool.complete || session.preparedRegularCount >= session.targetRegularCount;
+
+    setDeck((current) => {
+      if (current.length > nextDeck.items.length) return current;
+      if (!current.every((item, index) => getQuizDeckItemKey(item) === nextKeys[index])) return current;
+      return [...current, ...nextDeck.items.slice(current.length)];
+    });
+
+    const newCategoryBonusIds = nextDeck.categoryBonusIds.filter((bonusId) => {
+      if (session.generatedCategoryBonusIds.has(bonusId)) return false;
+      session.generatedCategoryBonusIds.add(bonusId);
+      return true;
+    });
+    void Promise.all(newCategoryBonusIds.map(async (bonusId) => {
+      const generated = await requestCategoryBonusQuestion({
+        language: session.language,
+        cards: pool.bonusCards,
+      });
+      if (!generated || bonusDeckTokenRef.current !== session.deckToken) return;
+
+      setDeck((current) => current.map((item, itemIndex) => {
+        if (!item.isBonus || item.bonusId !== bonusId || itemIndex <= currentIndexRef.current) return item;
+        const generatedQuestion = buildCategoryBonusFromGenerated(
+          generated,
+          pool.bonusCards,
+          bonusId,
+        );
+        return generatedQuestion ? { ...item, bonusQuestion: generatedQuestion } : item;
+      }));
+    }));
+  }, [bonusAfterEachNormalQuestion, normalQuestionType, showMessage, t]);
 
   const buildDeck = useCallback(
     (
@@ -1693,65 +1780,37 @@ export function QuizStation({
           ? preparedQuizPoolRef.current
           : getCachedQuizPool(currentKey);
       if (!pool) return;
-      const regularCount = normalQuestionType || !count
-        ? pool.regularItems.length
-        : Math.min(count, pool.regularItems.length);
-      const regularItems = pool.regularItems.slice(0, regularCount);
+      const targetRegularCount = normalQuestionType || count === null
+        ? pool.complete
+          ? pool.regularItems.length
+          : pool.totalCandidateCount
+        : pool.complete
+          ? Math.min(count, pool.regularItems.length)
+          : Math.min(count, pool.totalCandidateCount);
       const sessionId = createQuizSessionId();
       quizStartedAtRef.current = Date.now();
       setQuizDurationSeconds(null);
-      const forceBonusAfterEachQuestion = bonusAfterEachNormalQuestion && !normalQuestionType;
-      const maxBonusQuestionCount = forceBonusAfterEachQuestion
-        ? regularItems.length
-        : normalQuestionType
-          ? 0
-          : getMaxBonusQuestionCount(regularItems.length);
-      const availableBonusPlans = pool.bonusPlans.filter(
-        (plan) =>
-          plan.fallback &&
-          plan.index < regularItems.length,
-      );
-      const selectedBonusPlans = availableBonusPlans
-        .filter((plan) => plan.selectedForMaxDeck)
-        .slice(0, maxBonusQuestionCount)
-        .map((plan) => ({
-          ...plan,
-          bonusId: `${sessionId}-${plan.kind}-${plan.index}`,
-        }));
-
-      const selectedBonusIds = new Set(selectedBonusPlans.map((plan) => plan.bonusId));
-      const items: QuizItem[] = [];
-      const gptJobs: Array<{
-        bonusId: string;
-        kind: "category-sort";
-      }> = [];
+      const preparedDeck = buildPreparedQuizDeck(pool, {
+        targetRegularCount,
+        sessionId,
+        hasFixedQuestionType: normalQuestionType !== null,
+        bonusAfterEachNormalQuestion,
+      });
+      const orderedItems = preparedDeck.items;
       const deckToken = bonusDeckTokenRef.current + 1;
       bonusDeckTokenRef.current = deckToken;
-
-      regularItems.forEach((item, index) => {
-        items.push(item);
-
-        const plan = selectedBonusPlans.find((candidate) => candidate.index === index);
-        const fallback = plan?.fallback;
-        if (!plan || !selectedBonusIds.has(plan.bonusId) || !fallback) return;
-
-        const anchor = regularItems[0] ?? item;
-        items.push({
-          card: anchor.card,
-          inventoryCard: anchor.inventoryCard,
-          willLearn: false,
-          isBonus: true,
-          bonusId: plan.bonusId,
-          questionType: `bonus-${plan.kind}`,
-          bonusQuestion: fallback,
-        });
-
-        if (plan.kind === "category-sort") {
-          gptJobs.push({ bonusId: plan.bonusId, kind: plan.kind });
-        }
-      });
-
-      const orderedItems = moveLearningQuestionsToEnd(items);
+      const preparedRegularCount = Math.min(targetRegularCount, pool.regularItems.length);
+      activeQuizPoolSessionRef.current = {
+        key: currentKey,
+        language,
+        sessionId,
+        targetRegularCount,
+        items: orderedItems,
+        preparedRegularCount,
+        complete: pool.complete || preparedRegularCount >= targetRegularCount,
+        deckToken,
+        generatedCategoryBonusIds: new Set(preparedDeck.categoryBonusIds),
+      };
       const repetitionCards = getUniqueCardsForRepetition(
         orderedItems
           .filter((item) => !isBonusQuizItem(item))
@@ -1816,7 +1875,7 @@ export function QuizStation({
       }
 
       void Promise.all(
-        gptJobs.map(async (job) => {
+        preparedDeck.categoryBonusIds.map(async (bonusId) => {
           const generated = await requestCategoryBonusQuestion({
             language,
             cards: pool.bonusCards,
@@ -1825,26 +1884,48 @@ export function QuizStation({
           if (!generated || bonusDeckTokenRef.current !== deckToken) return;
 
           setDeck((current) => current.map((item, itemIndex) => {
-            if (!item.isBonus || item.bonusId !== job.bonusId || itemIndex <= currentIndexRef.current) return item;
+            if (!item.isBonus || item.bonusId !== bonusId || itemIndex <= currentIndexRef.current) return item;
             const generatedQuestion = buildCategoryBonusFromGenerated(
               generated,
               pool.bonusCards,
-              job.bonusId,
+              bonusId,
             );
             return generatedQuestion ? { ...item, bonusQuestion: generatedQuestion } : item;
           }));
         }),
       );
+
+      void prepareQuizPool(
+        language,
+        appendPreparedQuizPool,
+        (error) => {
+          const session = activeQuizPoolSessionRef.current;
+          if (!session || session.key !== currentKey) return;
+          if (preparedQuizPoolRef.current?.key === currentKey && !preparedQuizPoolRef.current.complete) {
+            preparedQuizPoolRef.current = null;
+          }
+          session.complete = true;
+          session.targetRegularCount = session.preparedRegularCount;
+          setDeck((current) => [...current]);
+          if (!(error instanceof DOMException && error.name === "AbortError")) {
+            showMessage(t("inventory.error.operationFailed"), "error");
+          }
+        },
+      ).catch(() => undefined);
     },
     [
+      appendPreparedQuizPool,
       clearCardProgressFeedback,
       bonusAfterEachNormalQuestion,
       getQuizPoolKey,
       normalQuestionType,
+      prepareQuizPool,
       quizWordRepetitionTest,
       user?.profile.quizResultPoints,
+      showMessage,
       stats.rank,
       stats.totalPoints,
+      t,
     ],
   );
 
@@ -1872,13 +1953,20 @@ export function QuizStation({
     const shouldShowLoading = phase === "count";
     if (shouldShowLoading) setIsPreparingQuizPool(true);
     const timeoutId = window.setTimeout(() => {
-      void prepareQuizPool(language).then((pool) => {
+      void prepareQuizPool(language, (pool) => {
         if (quizPoolPreparationTokenRef.current !== preparationToken) return;
         if (getQuizPoolKey(language) !== pool.key) return;
         preparedQuizPoolRef.current = pool;
-        if (shouldShowLoading) setIsPreparingQuizPool(false);
+        if (shouldShowLoading) {
+          setIsPreparingQuizPool(
+            !isQuizPoolReadyToStart(pool, normalQuestionType !== null || quizWordRepetitionTest),
+          );
+        }
       }).catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
+        if (preparedQuizPoolRef.current?.key === key && !preparedQuizPoolRef.current.complete) {
+          preparedQuizPoolRef.current = null;
+        }
         if (quizPoolPreparationTokenRef.current === preparationToken && shouldShowLoading) {
           setIsPreparingQuizPool(false);
           showMessage(t("inventory.error.operationFailed"), "error");
@@ -1889,7 +1977,7 @@ export function QuizStation({
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [getQuizPoolKey, pendingAnswerWrites, phase, prepareQuizPool, selectedLanguage, showMessage, t]);
+  }, [getQuizPoolKey, normalQuestionType, pendingAnswerWrites, phase, prepareQuizPool, quizWordRepetitionTest, selectedLanguage, showMessage, t]);
 
   const resetQuestionUi = useCallback(() => {
     clearCardProgressFeedback();
@@ -2123,7 +2211,19 @@ export function QuizStation({
         return;
       }
 
+      const activePoolSession = activeQuizPoolSessionRef.current;
+      if (
+        currentIndex + 1 >= deck.length &&
+        activePoolSession &&
+        !activePoolSession.complete
+      ) {
+        pendingAdvanceRef.current = { bypassCelebration, resultsOverride, skipRankUpCheck };
+        setIsWaitingForQuizPool(true);
+        return;
+      }
+
       if (currentIndex + 1 >= deck.length) {
+        setIsWaitingForQuizPool(false);
         const quizResults = resultsOverride ?? results;
 
         if (!wordRepetitionCompletedRef.current) {
@@ -2208,6 +2308,7 @@ export function QuizStation({
       runQuizViewTransition(() => {
         currentIndexRef.current = nextIndex;
         setCurrentIndex(nextIndex);
+        setIsWaitingForQuizPool(false);
         setBonusRewardRevealVisible(false);
         if (bypassCelebration || isNormalQuestionLevelUpSimulation) {
           setLastLearned(null);
@@ -2336,10 +2437,15 @@ export function QuizStation({
       return;
     }
 
+    const hasNextPreparedQuestion = currentIndexRef.current + 1 < deck.length;
+    const poolSessionComplete = activeQuizPoolSessionRef.current?.complete ?? true;
+    if (isWaitingForQuizPool && !hasNextPreparedQuestion && !poolSessionComplete) return;
+
     const pendingAdvance = pendingAdvanceRef.current;
     pendingAdvanceRef.current = null;
+    setIsWaitingForQuizPool(false);
     advanceQuizRef.current(pendingAdvance);
-  }, [pendingAnswerWrites]);
+  }, [deck.length, isWaitingForQuizPool, pendingAnswerWrites]);
 
 
   function handleSelectLanguage(language: LanguageCode) {
@@ -2358,25 +2464,31 @@ export function QuizStation({
     const preparedPool = preparedQuizPoolRef.current?.key === getQuizPoolKey(selectedLanguage)
       ? preparedQuizPoolRef.current
       : getCachedQuizPool(getQuizPoolKey(selectedLanguage));
-    if (!preparedPool) {
+    const canStartFromPreparedPool = preparedPool && isQuizPoolReadyToStart(
+      preparedPool,
+      normalQuestionType !== null || quizWordRepetitionTest,
+    );
+    if (!preparedPool || !canStartFromPreparedPool) {
       if (quizStartPreparationRef.current) return;
       quizStartPreparationRef.current = true;
       setIsPreparingQuizPool(true);
       const language = selectedLanguage;
       const key = getQuizPoolKey(language);
-      const preparationToken = quizPoolPreparationTokenRef.current;
-      void prepareQuizPool(language).then((pool) => {
+      void prepareQuizPool(language, (pool) => {
         if (
-          quizPoolPreparationTokenRef.current !== preparationToken ||
           getQuizPoolKey(language) !== key ||
-          phase !== "count"
+          phaseRef.current !== "count"
         ) return;
         preparedQuizPoolRef.current = pool;
+        if (!isQuizPoolReadyToStart(pool, normalQuestionType !== null || quizWordRepetitionTest)) return;
         setIsPreparingQuizPool(false);
         quizStartPreparationRef.current = false;
         handleStartCount(count, _startSplashAlreadyShown);
       }).catch((error: unknown) => {
-        if (quizPoolPreparationTokenRef.current !== preparationToken) return;
+        if (getQuizPoolKey(language) !== key || phaseRef.current !== "count") return;
+        if (preparedQuizPoolRef.current?.key === key && !preparedQuizPoolRef.current.complete) {
+          preparedQuizPoolRef.current = null;
+        }
         quizStartPreparationRef.current = false;
         setIsPreparingQuizPool(false);
         if (!(error instanceof DOMException && error.name === "AbortError")) {
@@ -3717,7 +3829,11 @@ export function QuizStation({
     );
   }
 
-  const regularProgress = getRegularQuizProgress(deck, currentIndex);
+  const regularProgress = getRegularQuizProgress(
+    deck,
+    currentIndex,
+    activeQuizPoolSessionRef.current?.targetRegularCount,
+  );
   const mobileQuestionPrompt = isBonusQuizItem(item)
     ? getBonusCopy(locale).intro
     : item.questionType === "listening"
@@ -3759,6 +3875,16 @@ export function QuizStation({
 
   return (
     <>
+      {isWaitingForQuizPool ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed inset-0 z-[500] flex items-center justify-center gap-3 bg-background/75 text-foreground backdrop-blur-sm"
+        >
+          <Loader2 className="size-7 animate-spin" aria-hidden="true" />
+          <span>{t("quiz.loadingTitle")}</span>
+        </div>
+      ) : null}
       <MobileQuizTopBar
         currentIndex={regularProgress.current - 1}
         total={regularProgress.total}
@@ -4457,7 +4583,11 @@ function getFeedbackCorrectAnswer(item: QuizItem): string | undefined {
   }
 }
 
-function getRegularQuizProgress(deck: QuizItem[], currentIndex: number) {
+function getRegularQuizProgress(
+  deck: QuizItem[],
+  currentIndex: number,
+  expectedRegularCount?: number,
+) {
   const regularItems = deck.filter((item) => !isBonusQuizItem(item));
   const currentRegularCount = deck
     .slice(0, currentIndex + 1)
@@ -4465,7 +4595,7 @@ function getRegularQuizProgress(deck: QuizItem[], currentIndex: number) {
 
   return {
     current: Math.max(1, currentRegularCount),
-    total: Math.max(1, regularItems.length),
+    total: Math.max(1, expectedRegularCount ?? regularItems.length),
   };
 }
 

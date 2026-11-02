@@ -88,4 +88,17 @@ export type PreparedQuizPool = {
   bonusCards: VocabularyCard[];
   bonusLearnedCards: VocabularyCard[];
   bonusPlans: PreparedBonusPlan[];
+  totalCandidateCount: number;
+  metadataReady: boolean;
+  complete: boolean;
+};
+
+export type QuizPoolProgressUpdate = {
+  totalCandidateCount: number;
+  regularItems: QuizItem[];
+  bonusPlans: PreparedBonusPlan[];
+  metadata?: {
+    bonusCards: VocabularyCard[];
+    bonusLearnedCards: VocabularyCard[];
+  };
 };
