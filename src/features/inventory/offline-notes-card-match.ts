@@ -1,6 +1,6 @@
 import { joinInventoryCards } from "@/features/inventory/inventory-selectors";
 import type { GeneratedCardResponse } from "@/features/cards/create-card-schema";
-import type { InventoryCard, VocabularyCard } from "@/types/domain";
+import type { InventoryCard, LanguageCode, VocabularyCard } from "@/types/domain";
 
 type CardTermIdentity = Pick<VocabularyCard, "language" | "term" | "termKind">;
 type GeneratedCardTermIdentity = Pick<GeneratedCardResponse, "language" | "term" | "termKind">;
@@ -25,6 +25,36 @@ export function getDraftsNotInDeck<T extends { draft: { generated: GeneratedCard
   deckTermIndex: ReadonlySet<string>,
 ) {
   return drafts.filter(({ draft }) => !deckTermIndex.has(getGeneratedCardTermKey(draft.generated)));
+}
+
+export function getDraftsBlockedByActiveCardLimit<
+  T extends { draft: { generated: Pick<GeneratedCardTermIdentity, "language"> } },
+>(
+  drafts: readonly T[],
+  inventory: readonly InventoryCard[],
+  perLanguageLimit: number | null,
+): T[] {
+  if (perLanguageLimit === null) return [];
+
+  const activeCounts = new Map<LanguageCode, number>();
+  for (const { inventory: ownedCard, card } of joinInventoryCards([...inventory])) {
+    if (ownedCard.status !== "active") continue;
+    activeCounts.set(card.language, (activeCounts.get(card.language) ?? 0) + 1);
+  }
+
+  const blockedDrafts: T[] = [];
+  for (const entry of drafts) {
+    const language = entry.draft.generated.language;
+    const currentCount = activeCounts.get(language) ?? 0;
+    if (currentCount >= perLanguageLimit) {
+      blockedDrafts.push(entry);
+      continue;
+    }
+
+    activeCounts.set(language, currentCount + 1);
+  }
+
+  return blockedDrafts;
 }
 
 export function areOfflineNotesSafeToCloseWithoutConfirmation(input: {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LoaderCircle } from "lucide-react";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import { QuizWordButton } from "@/features/quiz/components/quiz-word-button";
 import { getRandomQuizCharacter, QuizSpeechBubble } from "@/features/quiz/components/quiz-speech-bubble";
@@ -57,11 +58,13 @@ export function QuizCountSelection({
   mode,
   availableCount,
   locked = false,
+  preparing = false,
   onSelect,
 }: {
   mode: PracticeMode;
   availableCount: number;
   locked?: boolean;
+  preparing?: boolean;
   onSelect: (count: number) => void;
 }) {
   const { locale } = useLocale();
@@ -116,7 +119,7 @@ export function QuizCountSelection({
           data-quiz-count-options
         >
           {countOptions.map((count, index) => {
-            const unavailable = locked || count > availableCount;
+            const unavailable = locked || preparing || count > availableCount;
             const selectionLocked = animatingCount !== null;
             const isFirstOption = index === 0;
             const showChestRequirement = isFirstOption && additionalCardsNeededForChest > 0;
@@ -137,6 +140,7 @@ export function QuizCountSelection({
                 key={QUIZ_COUNT_OPTIONS[index]}
                 wordType="correct"
                 disabled={unavailable || selectionLocked}
+                aria-busy={preparing || undefined}
                 aria-label={
                   chestRequirementText ?? `${name}: ${formatNumber(locale, count)}`
                 }
@@ -149,6 +153,12 @@ export function QuizCountSelection({
               >
                 <span className="flex w-full flex-col items-center justify-center gap-1 pb-1">
                   <span className="flex items-center justify-center gap-3 pb-1 pt-2 text-center">
+                    {preparing ? (
+                      <LoaderCircle
+                        className="size-4 shrink-0 animate-spin"
+                        aria-hidden="true"
+                      />
+                    ) : null}
                     <span className="truncate text-base font-semibold leading-none sm:text-lg">{name}</span>
                     <span className="shrink-0 text-sm font-semibold sm:text-base">
                       {formatNumber(locale, count)} {t("quiz.countLabel")}

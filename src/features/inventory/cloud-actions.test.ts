@@ -7,6 +7,7 @@ import type { InventoryCard, UserEntitlements } from "@/types/domain";
 import {
   addCloudInventoryCardAction,
   addCloudInventoryCardsAction,
+  checkOfflineDraftBatchCardLimitAction,
   createCustomCardAction,
   listCloudInventoryAction,
   migrateLocalInventoryToCloudAction,
@@ -544,6 +545,74 @@ describe("cloud-actions", () => {
     expect(result.data?.addedCardIds).toEqual([germanCard.sourceKey]);
     expect(result.data?.remainingCardIds).toEqual([]);
     expect(state.userCards).toHaveLength(21);
+  });
+
+  it("rejects a single offline draft before any add when its language is already at the Free limit", async () => {
+    const englishCards = VOCABULARY_CARDS.filter((card) => card.language === "en").slice(0, 20);
+    const state = createState({
+      userCards: englishCards.map((card) => ({
+        user_id: "user-1",
+        card_source_key: card.sourceKey,
+        language_code: card.language,
+        status: "active",
+        correct_count: 0,
+        added_at: "2026-01-01T00:00:00.000Z",
+        learned_at: null,
+      })),
+    });
+    currentSupabase = createSupabaseMock(state);
+    mockGetUserEntitlements.mockResolvedValue(createEntitlements("free"));
+
+    const result = await checkOfflineDraftBatchCardLimitAction({ languages: ["en"] });
+
+    expect(result).toMatchObject({ status: "error", errorCode: "free_active_card_limit" });
+    expect(state.userCards).toHaveLength(20);
+  });
+
+  it("rejects a whole offline batch when any language would cross its limit", async () => {
+    const englishCards = VOCABULARY_CARDS.filter((card) => card.language === "en").slice(0, 19);
+    const state = createState({
+      userCards: englishCards.map((card) => ({
+        user_id: "user-1",
+        card_source_key: card.sourceKey,
+        language_code: card.language,
+        status: "active",
+        correct_count: 0,
+        added_at: "2026-01-01T00:00:00.000Z",
+        learned_at: null,
+      })),
+    });
+    currentSupabase = createSupabaseMock(state);
+    mockGetUserEntitlements.mockResolvedValue(createEntitlements("free"));
+
+    const result = await checkOfflineDraftBatchCardLimitAction({ languages: ["en", "en", "de"] });
+
+    expect(result).toMatchObject({ status: "error", errorCode: "free_active_card_limit" });
+    expect(state.userCards).toHaveLength(19);
+    expect(state.customCards).toHaveLength(0);
+  });
+
+  it("allows an offline batch that fits each language quota", async () => {
+    const englishCards = VOCABULARY_CARDS.filter((card) => card.language === "en").slice(0, 19);
+    const state = createState({
+      userCards: englishCards.map((card) => ({
+        user_id: "user-1",
+        card_source_key: card.sourceKey,
+        language_code: card.language,
+        status: "active",
+        correct_count: 0,
+        added_at: "2026-01-01T00:00:00.000Z",
+        learned_at: null,
+      })),
+    });
+    currentSupabase = createSupabaseMock(state);
+    mockGetUserEntitlements.mockResolvedValue(createEntitlements("free"));
+
+    const result = await checkOfflineDraftBatchCardLimitAction({ languages: ["en", "de"] });
+
+    expect(result).toMatchObject({ status: "success" });
+    expect(state.userCards).toHaveLength(19);
+    expect(state.customCards).toHaveLength(0);
   });
 
   it("migrates local inventory directly with card_source_key rows", async () => {

@@ -649,6 +649,7 @@ export function QuizStation({
   const chestRewardsEnabled = mode === "active";
 
   const [phase, setPhase] = useState<QuizPhase>(initialLanguage ? "count" : "language");
+  const [isPreparingQuizPool, setIsPreparingQuizPool] = useState(Boolean(initialLanguage));
 
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode | null>(
     initialLanguage ?? null,
@@ -2204,16 +2205,30 @@ export function QuizStation({
     const preparationToken = quizPoolPreparationTokenRef.current + 1;
     quizPoolPreparationTokenRef.current = preparationToken;
 
-    if (phase !== "count" || !selectedLanguage) return;
+    if (phase !== "count" || !selectedLanguage) {
+      setIsPreparingQuizPool(false);
+      return;
+    }
 
     const language = selectedLanguage;
-    const preparationTimeout = window.setTimeout(() => {
-      const pool = prepareQuizPool(language);
-      if (quizPoolPreparationTokenRef.current !== preparationToken) return;
-      preparedQuizPoolRef.current = pool;
-    }, 0);
+    setIsPreparingQuizPool(true);
+    let secondFrameId: number | null = null;
+    const firstFrameId = window.requestAnimationFrame(() => {
+      // Paint the disabled buttons and loading indicators before synchronous
+      // question generation temporarily occupies the main thread.
+      secondFrameId = window.requestAnimationFrame(() => {
+        if (quizPoolPreparationTokenRef.current !== preparationToken) return;
+        const pool = prepareQuizPool(language);
+        if (quizPoolPreparationTokenRef.current !== preparationToken) return;
+        preparedQuizPoolRef.current = pool;
+        setIsPreparingQuizPool(false);
+      });
+    });
 
-    return () => window.clearTimeout(preparationTimeout);
+    return () => {
+      window.cancelAnimationFrame(firstFrameId);
+      if (secondFrameId !== null) window.cancelAnimationFrame(secondFrameId);
+    };
   }, [phase, prepareQuizPool, selectedLanguage]);
 
   const resetQuestionUi = useCallback(() => {
@@ -2669,6 +2684,7 @@ export function QuizStation({
 
   function handleSelectLanguage(language: LanguageCode) {
     setSelectedLanguage(language);
+    setIsPreparingQuizPool(true);
     setResultMessageOnResult(false);
     setSelectedCount(null);
     setChestOpened(false);
@@ -3394,6 +3410,7 @@ export function QuizStation({
     setBonusGemRewards([]);
     setBonusPointsDisplayed(0);
     setBonusScorePulse(0);
+    setIsPreparingQuizPool(true);
     setPhase("count");
   }
 
@@ -3561,6 +3578,7 @@ export function QuizStation({
       return;
     }
 
+    setIsPreparingQuizPool(true);
     setPhase("count");
   }
 
@@ -3709,6 +3727,7 @@ export function QuizStation({
             mode={mode}
             availableCount={availableCards.length}
             locked={interactionLocked}
+            preparing={isPreparingQuizPool}
             onSelect={handleStartCount}
           />
       </div>

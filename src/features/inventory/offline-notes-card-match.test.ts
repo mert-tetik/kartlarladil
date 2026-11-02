@@ -3,6 +3,7 @@ import { VOCABULARY_CARDS } from "@/data/cards";
 import {
   areOfflineNotesSafeToCloseWithoutConfirmation,
   createDeckCardTermIndex,
+  getDraftsBlockedByActiveCardLimit,
   getDraftsNotInDeck,
   getGeneratedCardTermKey,
 } from "@/features/inventory/offline-notes-card-match";
@@ -45,6 +46,50 @@ describe("offline note duplicate card matching", () => {
     ];
 
     expect(getDraftsNotInDeck(drafts, new Set([getGeneratedCardTermKey(existing)]))).toEqual([drafts[1]]);
+  });
+
+  it("blocks a single draft when its language already has twenty active cards", () => {
+    const englishCards = VOCABULARY_CARDS.filter((card) => card.language === "en").slice(0, 20);
+    const inventory: InventoryCard[] = englishCards.map((card) => ({
+      cardId: card.sourceKey,
+      status: "active",
+      correctCount: 0,
+      addedAt: "2026-10-17T00:00:00.000Z",
+    }));
+    const draft = { id: "english-draft", draft: { generated: { language: "en" as const } } };
+
+    expect(getDraftsBlockedByActiveCardLimit([draft], inventory, 20)).toEqual([draft]);
+  });
+
+  it("blocks the entire bulk operation if any sequential addition would exceed a language quota", () => {
+    const englishCards = VOCABULARY_CARDS.filter((card) => card.language === "en").slice(0, 19);
+    const inventory: InventoryCard[] = englishCards.map((card) => ({
+      cardId: card.sourceKey,
+      status: "active",
+      correctCount: 0,
+      addedAt: "2026-10-17T00:00:00.000Z",
+    }));
+    const drafts = [
+      { id: "first", draft: { generated: { language: "en" as const } } },
+      { id: "second", draft: { generated: { language: "en" as const } } },
+      { id: "other-language", draft: { generated: { language: "de" as const } } },
+    ];
+
+    expect(getDraftsBlockedByActiveCardLimit(drafts, inventory, 20)).toEqual([drafts[1]]);
+  });
+
+  it("keeps language quotas independent and treats a null limit as unlimited", () => {
+    const englishCards = VOCABULARY_CARDS.filter((card) => card.language === "en").slice(0, 20);
+    const inventory: InventoryCard[] = englishCards.map((card) => ({
+      cardId: card.sourceKey,
+      status: "active",
+      correctCount: 0,
+      addedAt: "2026-10-17T00:00:00.000Z",
+    }));
+    const germanDraft = { id: "german-draft", draft: { generated: { language: "de" as const } } };
+
+    expect(getDraftsBlockedByActiveCardLimit([germanDraft], inventory, 20)).toEqual([]);
+    expect(getDraftsBlockedByActiveCardLimit([germanDraft], inventory, null)).toEqual([]);
   });
 
   it("skips the discard confirmation only when every note card is safely in the deck", () => {

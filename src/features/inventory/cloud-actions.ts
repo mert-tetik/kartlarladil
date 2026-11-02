@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { User } from "@supabase/supabase-js";
-import { LOCALE_CODES } from "@/data/languages";
+import { isLanguageCode, LOCALE_CODES } from "@/data/languages";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { mapDbCustomCardToVocabularyCard } from "@/features/cards/custom-card-mapper";
 import type { DbCustomCard, GeneratedCardDraft } from "@/features/cards/custom-card-types";
@@ -466,6 +466,59 @@ export async function loadCustomCardsAction(): Promise<CloudActionResult<Vocabul
       message: "",
       data: cards,
     };
+  } catch (error) {
+    return await cloudError(error);
+  }
+}
+
+export async function checkOfflineDraftBatchCardLimitAction(input: {
+  languages: LanguageCode[];
+}): Promise<CloudActionResult<null>> {
+  try {
+    if (
+      !input ||
+      !Array.isArray(input.languages) ||
+      input.languages.length === 0 ||
+      input.languages.length > 500 ||
+      !input.languages.every(isLanguageCode)
+    ) {
+      const t = await getCloudActionText();
+      return { status: "error", message: t("createCard.error.invalid_request") };
+    }
+
+    const { supabase, user } = await getAuthedSupabase();
+    const entitlements = await getUserEntitlements(user.id);
+    const activeCardLimit = getActiveCardLimit(entitlements);
+    if (activeCardLimit === null) {
+      return { status: "success", message: "", data: null };
+    }
+
+    const requestedByLanguage = new Map<LanguageCode, number>();
+    for (const language of input.languages) {
+      requestedByLanguage.set(language, (requestedByLanguage.get(language) ?? 0) + 1);
+    }
+
+    const languageCounts = await Promise.all(
+      [...requestedByLanguage].map(async ([language, requestedCount]) => ({
+        language,
+        requestedCount,
+        activeCount: await countUserCardsByStatus(supabase, user.id, "active", language),
+      })),
+    );
+    const blocked = languageCounts.some(
+      ({ requestedCount, activeCount }) => activeCount + requestedCount > activeCardLimit,
+    );
+
+    if (blocked) {
+      const t = await getCloudActionText();
+      return {
+        status: "error",
+        message: t("limit.activeCardLimitDescription"),
+        errorCode: "free_active_card_limit",
+      };
+    }
+
+    return { status: "success", message: "", data: null };
   } catch (error) {
     return await cloudError(error);
   }
