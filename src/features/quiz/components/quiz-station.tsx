@@ -57,28 +57,15 @@ import {
 } from "@/features/ai-practice/ai-practice-data";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { InventoryActionError, useInventoryStore } from "@/features/inventory/inventory-store";
+import { customCardRegistry } from "@/features/cards/custom-card-registry";
 import {
-  buildQuizQuestion,
-  buildListeningQuizQuestion,
-  buildDefinitionQuizQuestion,
-  buildSentenceCompletionQuizQuestion,
-  buildTrueFalseQuizQuestion,
   getTierRequirement,
   isAnswerSimilarEnough,
-  shouldUseSentenceCompletionQuestion,
-  shouldUseListeningQuestion,
-  shouldUseDefinitionQuestion,
-  shouldUseTrueFalseQuestion,
 } from "@/features/quiz/quiz-engine";
 import {
   getUniqueCardsForRepetition,
   moveLearningQuestionsToEnd,
 } from "@/features/quiz/quiz-deck-order";
-import {
-  buildGroupQuestion,
-  shouldUseGroupQuestion,
-  type GroupQuestion,
-} from "@/features/quiz/group-question";
 import {
   buildCategoryBonusFromGenerated,
   buildFallbackCategoryBonusQuestion,
@@ -93,10 +80,37 @@ import {
   requestCategoryBonusQuestion,
 } from "@/features/quiz/bonus-question-client";
 import {
-  BONUS_QUESTION_PROBABILITY,
   BONUS_QUESTION_TYPE_WEIGHTS,
   getMaxBonusQuestionCount,
 } from "@/features/quiz/bonus-question-constants";
+import {
+  getCachedQuizPool,
+  getQuizPoolKey as getPreparedQuizPoolKey,
+  prepareQuizPool as requestQuizPoolPreparation,
+} from "@/features/quiz/quiz-pool-preparation";
+import type {
+  BonusQuizItem,
+  ChoiceQuizItem,
+  DefinitionQuizItem,
+  GroupQuizItem,
+  ListeningQuizItem,
+  NormalQuizItem,
+  PreparedQuizPool,
+  SentenceCompletionQuizItem,
+  TextQuizItem,
+  TrueFalseQuizItem,
+  QuizItem,
+} from "@/features/quiz/quiz-pool-types";
+export type {
+  ChoiceQuizItem,
+  DefinitionQuizItem,
+  GroupQuizItem,
+  ListeningQuizItem,
+  NormalQuizItem,
+  SentenceCompletionQuizItem,
+  TextQuizItem,
+  TrueFalseQuizItem,
+} from "@/features/quiz/quiz-pool-types";
 import { PLAN_LIMITS } from "@/features/subscriptions/subscription-limits";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
@@ -201,17 +215,11 @@ import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { useAppMessage } from "@/components/app-message-provider";
 import confetti from "canvas-confetti";
 import type {
-  DefinitionQuizQuestion,
   InventoryCard,
-  ListeningQuizQuestion,
   LanguageCode,
   LimitErrorCode,
   LocaleCode,
   PracticeMode,
-  QuizQuestion,
-  SentenceCompletionQuizQuestion,
-  TrueFalseQuizQuestion,
-  AiPracticeCharacter,
   RankDefinition,
   RankIconId,
   VocabularyCard,
@@ -372,76 +380,7 @@ function QuizTierRayField({
   );
 }
 
-interface BaseQuizItem {
-  card: VocabularyCard;
-  inventoryCard: InventoryCard;
-  willLearn: boolean;
-  forceLearned?: boolean;
-  isBonus?: false;
-}
-
-export interface ChoiceQuizItem extends BaseQuizItem {
-  questionType: "choice";
-  question: QuizQuestion;
-}
-
-export interface ListeningQuizItem extends BaseQuizItem {
-  questionType: "listening";
-  question: ListeningQuizQuestion;
-}
-
-export interface DefinitionQuizItem extends BaseQuizItem {
-  questionType: "definition";
-  question: DefinitionQuizQuestion;
-}
-
-export interface TextQuizItem extends BaseQuizItem {
-  questionType: "text";
-  question: { correctAnswer: string };
-}
-
-export interface TrueFalseQuizItem extends BaseQuizItem {
-  questionType: "true-false";
-  question: TrueFalseQuizQuestion;
-}
-
-export interface SentenceCompletionQuizItem extends BaseQuizItem {
-  questionType: "sentence-completion";
-  question: SentenceCompletionQuizQuestion;
-  character: AiPracticeCharacter;
-}
-
-export interface GroupQuizItem extends BaseQuizItem {
-  questionType: "group";
-  question: GroupQuestion;
-  character: AiPracticeCharacter;
-}
-
-interface BonusQuizItem extends Omit<BaseQuizItem, "isBonus"> {
-  isBonus: true;
-  bonusId: string;
-  questionType: `bonus-${BonusQuestionKind}`;
-  bonusQuestion: BonusQuestion;
-}
-
-type QuizItem = ChoiceQuizItem | ListeningQuizItem | DefinitionQuizItem | TextQuizItem | TrueFalseQuizItem | SentenceCompletionQuizItem | GroupQuizItem | BonusQuizItem;
-export type NormalQuizItem = ChoiceQuizItem | ListeningQuizItem | DefinitionQuizItem | TextQuizItem | TrueFalseQuizItem | SentenceCompletionQuizItem | GroupQuizItem;
 type QuizCardFeedbackStage = "idle" | "appearing" | "growing" | "revealing" | "updating";
-
-type PreparedBonusPlan = {
-  index: number;
-  kind: BonusQuestionKind;
-  fallback: BonusQuestion | null;
-  selectedForMaxDeck: boolean;
-};
-
-type PreparedQuizPool = {
-  key: string;
-  regularItems: QuizItem[];
-  bonusCards: VocabularyCard[];
-  bonusLearnedCards: VocabularyCard[];
-  bonusPlans: PreparedBonusPlan[];
-};
 
 interface QuizRerollAction {
   onReroll: () => void;
@@ -753,6 +692,7 @@ export function QuizStation({
   });
   const preparedQuizPoolRef = useRef<PreparedQuizPool | null>(null);
   const quizPoolPreparationTokenRef = useRef(0);
+  const quizStartPreparationRef = useRef(false);
   const currentIndexRef = useRef(0);
   const showingAnswerRef = useRef(false);
   showingAnswerRef.current = showingAnswer;
@@ -1714,316 +1654,26 @@ export function QuizStation({
     selectedLanguage,
   ]);
 
-  const getQuizPoolKey = useCallback(
-    (language: LanguageCode) => [
+  const createQuizPoolRequest = useCallback(
+    (language: LanguageCode) => ({
+      ownerScope: user?.id ?? "guest",
+      cards,
+      customCards: customCardRegistry.list(),
       language,
       mode,
-      normalQuestionType ?? "default",
-      bonusAfterEachNormalQuestion ? "bonus-after-each" : "bonus-default",
       locale,
-      cards.map((item) => `${item.cardId}:${item.status}:${item.correctCount}`).join(","),
-    ].join("::"),
-    [bonusAfterEachNormalQuestion, cards, locale, mode, normalQuestionType],
-  );
-
-  const prepareQuizPool = useCallback(
-    (language: LanguageCode): PreparedQuizPool => {
-      const key = getQuizPoolKey(language);
-      const source = filterInventoryCards({
-        cards,
-        language,
-        status: mode,
-      }).map((item) => item.card);
-      const maxRegularCount = Math.min(
-        Math.max(...QUIZ_COUNT_OPTIONS),
-        source.length,
-      );
-      const listeningCards = [...VOCABULARY_CARDS, ...source];
-      const inventoryById = new Map(cards.map((item) => [item.cardId, item]));
-      const shuffled = shuffle(source).slice(0, maxRegularCount);
-      const hasNoLearnedCards = !cards.some((item) => item.status === "learned");
-
-      const builtRegularItems = shuffled.map((card, index): QuizItem | null => {
-        const inventoryCard = inventoryById.get(card.id);
-        if (!inventoryCard) return null;
-
-        const requirement = getTierRequirement(card.tier);
-        const answerLocale = getStudyLocale(card.language, locale);
-
-        if (normalQuestionType) {
-          const willLearn =
-            inventoryCard.status !== "learned" &&
-            inventoryCard.correctCount + 1 >= requirement;
-          const forceLearned = mode === "active" && hasNoLearnedCards && index === 0;
-
-          switch (normalQuestionType) {
-            case "choice":
-              return {
-                card,
-                inventoryCard,
-                questionType: "choice",
-                question: buildQuizQuestion(card, VOCABULARY_CARDS, answerLocale),
-                willLearn,
-                forceLearned,
-              };
-            case "listening": {
-              const question = buildListeningQuizQuestion(card, listeningCards);
-              return question
-                ? { card, inventoryCard, questionType: "listening", question, willLearn, forceLearned }
-                : null;
-            }
-            case "definition": {
-              const question = buildDefinitionQuizQuestion(card, VOCABULARY_CARDS, answerLocale);
-              return question
-                ? { card, inventoryCard, questionType: "definition", question, willLearn, forceLearned }
-                : null;
-            }
-            case "text":
-              return {
-                card,
-                inventoryCard,
-                questionType: "text",
-                question: { correctAnswer: card.term },
-                willLearn,
-                forceLearned,
-              };
-            case "true-false":
-              return {
-                card,
-                inventoryCard,
-                questionType: "true-false",
-                question: buildTrueFalseQuizQuestion(card, VOCABULARY_CARDS, answerLocale),
-                willLearn,
-                forceLearned,
-              };
-            case "sentence-completion": {
-              const question = buildSentenceCompletionQuizQuestion(card, VOCABULARY_CARDS);
-              return question
-                ? {
-                    card,
-                    inventoryCard,
-                    questionType: "sentence-completion",
-                    question,
-                    character: getRandomQuizCharacter(),
-                    willLearn,
-                    forceLearned,
-                  }
-                : null;
-            }
-            case "group": {
-              const question = buildGroupQuestion(
-                card,
-                createSeededRandom(`${key}-group-${card.id}`),
-              );
-              return question
-                ? {
-                    card,
-                    inventoryCard,
-                    questionType: "group",
-                    question,
-                    character: getRandomQuizCharacter(),
-                    willLearn,
-                    forceLearned,
-                  }
-                : null;
-            }
-          }
-        }
-
-        // First impression: when the user has no learned cards yet, the first
-        // pool card is answered as a normal multiple-choice question and becomes
-        // learned immediately on success. It is ordered with the other learning
-        // questions below, so it still appears at the end of the quiz.
-        if (mode === "active" && hasNoLearnedCards && index === 0) {
-          return {
-            card,
-            inventoryCard,
-            questionType: "choice",
-            question: buildQuizQuestion(card, VOCABULARY_CARDS, answerLocale),
-            willLearn: true,
-            forceLearned: true,
-          };
-        }
-
-        const willLearn =
-          inventoryCard.status !== "learned" &&
-          inventoryCard.correctCount + 1 >= requirement;
-        const isLearningQuestion = mode === "active" && willLearn;
-
-        if (isLearningQuestion) {
-          if (shouldUseDefinitionQuestion()) {
-            const definitionQuestion = buildDefinitionQuizQuestion(
-              card,
-              VOCABULARY_CARDS,
-              answerLocale,
-            );
-
-            if (definitionQuestion) {
-              return {
-                card,
-                inventoryCard,
-                questionType: "definition",
-                question: definitionQuestion,
-                willLearn: true,
-              };
-            }
-          }
-
-          return {
-            card,
-            inventoryCard,
-            questionType: "text",
-            question: { correctAnswer: card.term },
-            willLearn: true,
-          };
-        }
-
-        const sentenceCompletionQuestion = shouldUseSentenceCompletionQuestion(isLearningQuestion)
-          ? buildSentenceCompletionQuizQuestion(card, VOCABULARY_CARDS)
-          : null;
-
-        if (sentenceCompletionQuestion) {
-          return {
-            card,
-            inventoryCard,
-            questionType: "sentence-completion",
-            question: sentenceCompletionQuestion,
-            character: getRandomQuizCharacter(),
-            willLearn: false,
-          };
-        }
-
-        const groupRandom = createSeededRandom(`${key}-group-${card.id}`);
-        if (shouldUseGroupQuestion(groupRandom)) {
-          const groupQuestion = buildGroupQuestion(card, groupRandom);
-
-          if (groupQuestion) {
-            return {
-              card,
-              inventoryCard,
-              questionType: "group",
-              question: groupQuestion,
-              character: getRandomQuizCharacter(),
-              willLearn: false,
-            };
-          }
-        }
-
-        if (shouldUseTrueFalseQuestion(inventoryCard, mode)) {
-          return {
-            card,
-            inventoryCard,
-            questionType: "true-false",
-            question: buildTrueFalseQuizQuestion(card, VOCABULARY_CARDS, answerLocale),
-            willLearn: false,
-          };
-        }
-
-        if (shouldUseListeningQuestion()) {
-          const listeningQuestion = buildListeningQuizQuestion(card, listeningCards);
-
-          if (listeningQuestion) {
-            return {
-              card,
-              inventoryCard,
-              questionType: "listening",
-              question: listeningQuestion,
-              willLearn: false,
-            };
-          }
-        }
-
-        return {
-          card,
-          inventoryCard,
-          questionType: "choice",
-          question: buildQuizQuestion(card, VOCABULARY_CARDS, answerLocale),
-          willLearn: false,
-        };
-      }).filter((item): item is QuizItem => item !== null);
-      const regularItems = moveLearningQuestionsToEnd(builtRegularItems);
-
-      const bonusInventoryCards = filterInventoryCards({
-        cards,
-        language,
-        status: "all",
-      });
-      const bonusCards = bonusInventoryCards.map((item) => item.card);
-      const bonusLearnedCards = bonusInventoryCards
-        .filter((item) => item.inventory.status === "learned")
-        .map((item) => item.card);
-      const forceBonusAfterEachQuestion = bonusAfterEachNormalQuestion && !normalQuestionType;
-      const maxBonusQuestionCount = forceBonusAfterEachQuestion
-        ? regularItems.length
-        : normalQuestionType
-          ? 0
-          : getMaxBonusQuestionCount(regularItems.length);
-      const usedNonMatchingBonusKinds = new Set<BonusQuestionKind>();
-      const bonusPlans = regularItems.map((_, index): PreparedBonusPlan => {
-        const preferredKind = getBonusKind(usedNonMatchingBonusKinds);
-        const candidateKinds = [
-          preferredKind,
-          ...shuffle(
-            BONUS_QUESTION_KINDS.filter(
-              (kind) =>
-                kind !== preferredKind &&
-                (kind === "matching" || !usedNonMatchingBonusKinds.has(kind)),
-            ),
-          ),
-        ];
-        let selectedKind = preferredKind;
-        let selectedFallback: BonusQuestion | null = null;
-
-        for (const candidateKind of candidateKinds) {
-          const candidateFallback = buildFallbackBonusQuestion(
-            candidateKind,
-            bonusCards,
-            language,
-            locale,
-            `${key}-bonus-${candidateKind}-${index}`,
-            bonusLearnedCards,
-          );
-
-          if (candidateFallback) {
-            selectedKind = candidateKind;
-            selectedFallback = candidateFallback;
-            break;
-          }
-        }
-
-        const selectedForMaxDeck = Boolean(
-          selectedFallback && (
-            forceBonusAfterEachQuestion || Math.random() < BONUS_QUESTION_PROBABILITY
-          ),
-        );
-        if (selectedForMaxDeck && selectedKind !== "matching") {
-          usedNonMatchingBonusKinds.add(selectedKind);
-        }
-
-        return {
-          index,
-          kind: selectedKind,
-          fallback: selectedFallback,
-          selectedForMaxDeck,
-        };
-      });
-
-      return {
-        key,
-        regularItems,
-        bonusCards,
-        bonusLearnedCards,
-        bonusPlans,
-      };
-    },
-    [
-      bonusAfterEachNormalQuestion,
-      cards,
-      getQuizPoolKey,
-      locale,
-      mode,
       normalQuestionType,
-    ],
+      bonusAfterEachNormalQuestion,
+    }),
+    [bonusAfterEachNormalQuestion, cards, locale, mode, normalQuestionType, user?.id],
+  );
+  const getQuizPoolKey = useCallback(
+    (language: LanguageCode) => getPreparedQuizPoolKey(createQuizPoolRequest(language)),
+    [createQuizPoolRequest],
+  );
+  const prepareQuizPool = useCallback(
+    (language: LanguageCode) => requestQuizPoolPreparation(createQuizPoolRequest(language)),
+    [createQuizPoolRequest],
   );
 
   const buildDeck = useCallback(
@@ -2041,7 +1691,8 @@ export function QuizStation({
         ? options.preparedPool
         : preparedQuizPoolRef.current?.key === currentKey
           ? preparedQuizPoolRef.current
-          : prepareQuizPool(language);
+          : getCachedQuizPool(currentKey);
+      if (!pool) return;
       const regularCount = normalQuestionType || !count
         ? pool.regularItems.length
         : Math.min(count, pool.regularItems.length);
@@ -2189,10 +1840,7 @@ export function QuizStation({
       clearCardProgressFeedback,
       bonusAfterEachNormalQuestion,
       getQuizPoolKey,
-      locale,
-      mode,
       normalQuestionType,
-      prepareQuizPool,
       quizWordRepetitionTest,
       user?.profile.quizResultPoints,
       stats.rank,
@@ -2201,35 +1849,47 @@ export function QuizStation({
   );
 
   useEffect(() => {
-    preparedQuizPoolRef.current = null;
     const preparationToken = quizPoolPreparationTokenRef.current + 1;
     quizPoolPreparationTokenRef.current = preparationToken;
+    quizStartPreparationRef.current = false;
 
-    if (phase !== "count" || !selectedLanguage) {
+    if ((phase !== "count" && phase !== "result") || !selectedLanguage) {
       setIsPreparingQuizPool(false);
       return;
     }
 
     const language = selectedLanguage;
-    setIsPreparingQuizPool(true);
-    let secondFrameId: number | null = null;
-    const firstFrameId = window.requestAnimationFrame(() => {
-      // Paint the disabled buttons and loading indicators before synchronous
-      // question generation temporarily occupies the main thread.
-      secondFrameId = window.requestAnimationFrame(() => {
+    if (phase === "result" && pendingAnswerWrites > 0) return;
+
+    const key = getQuizPoolKey(language);
+    const cachedPool = getCachedQuizPool(key);
+    if (cachedPool) {
+      preparedQuizPoolRef.current = cachedPool;
+      if (phase === "count") setIsPreparingQuizPool(false);
+      return;
+    }
+
+    const shouldShowLoading = phase === "count";
+    if (shouldShowLoading) setIsPreparingQuizPool(true);
+    const timeoutId = window.setTimeout(() => {
+      void prepareQuizPool(language).then((pool) => {
         if (quizPoolPreparationTokenRef.current !== preparationToken) return;
-        const pool = prepareQuizPool(language);
-        if (quizPoolPreparationTokenRef.current !== preparationToken) return;
+        if (getQuizPoolKey(language) !== pool.key) return;
         preparedQuizPoolRef.current = pool;
-        setIsPreparingQuizPool(false);
+        if (shouldShowLoading) setIsPreparingQuizPool(false);
+      }).catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (quizPoolPreparationTokenRef.current === preparationToken && shouldShowLoading) {
+          setIsPreparingQuizPool(false);
+          showMessage(t("inventory.error.operationFailed"), "error");
+        }
       });
-    });
+    }, 0);
 
     return () => {
-      window.cancelAnimationFrame(firstFrameId);
-      if (secondFrameId !== null) window.cancelAnimationFrame(secondFrameId);
+      window.clearTimeout(timeoutId);
     };
-  }, [phase, prepareQuizPool, selectedLanguage]);
+  }, [getQuizPoolKey, pendingAnswerWrites, phase, prepareQuizPool, selectedLanguage, showMessage, t]);
 
   const resetQuestionUi = useCallback(() => {
     clearCardProgressFeedback();
@@ -2281,7 +1941,7 @@ export function QuizStation({
     const preparedPool = selectedLanguage && preparedQuizPoolRef.current?.key === getQuizPoolKey(selectedLanguage)
       ? preparedQuizPoolRef.current
       : selectedLanguage
-        ? prepareQuizPool(selectedLanguage)
+        ? getCachedQuizPool(getQuizPoolKey(selectedLanguage)) ?? null
         : null;
     const bonusCards = preparedPool?.bonusCards.length
       ? preparedPool.bonusCards
@@ -2695,11 +2355,40 @@ export function QuizStation({
 
   function handleStartCount(count: number, _startSplashAlreadyShown = false) {
     if (!selectedLanguage) return;
-    setSelectedCount(count);
-    setAwardedChestTier(null);
     const preparedPool = preparedQuizPoolRef.current?.key === getQuizPoolKey(selectedLanguage)
       ? preparedQuizPoolRef.current
-      : undefined;
+      : getCachedQuizPool(getQuizPoolKey(selectedLanguage));
+    if (!preparedPool) {
+      if (quizStartPreparationRef.current) return;
+      quizStartPreparationRef.current = true;
+      setIsPreparingQuizPool(true);
+      const language = selectedLanguage;
+      const key = getQuizPoolKey(language);
+      const preparationToken = quizPoolPreparationTokenRef.current;
+      void prepareQuizPool(language).then((pool) => {
+        if (
+          quizPoolPreparationTokenRef.current !== preparationToken ||
+          getQuizPoolKey(language) !== key ||
+          phase !== "count"
+        ) return;
+        preparedQuizPoolRef.current = pool;
+        setIsPreparingQuizPool(false);
+        quizStartPreparationRef.current = false;
+        handleStartCount(count, _startSplashAlreadyShown);
+      }).catch((error: unknown) => {
+        if (quizPoolPreparationTokenRef.current !== preparationToken) return;
+        quizStartPreparationRef.current = false;
+        setIsPreparingQuizPool(false);
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          showMessage(t("inventory.error.operationFailed"), "error");
+        }
+      });
+      return;
+    }
+
+    quizStartPreparationRef.current = false;
+    setSelectedCount(count);
+    setAwardedChestTier(null);
     runQuizViewTransition(() => {
       buildDeck(selectedLanguage, count, {
         preparedPool,
@@ -4672,22 +4361,6 @@ function MobileQuizCard({
 
 function shuffle<T>(items: T[]) {
   return [...items].sort(() => Math.random() - 0.5);
-}
-
-function createSeededRandom(seed: string) {
-  let state = 2166136261;
-  for (let index = 0; index < seed.length; index += 1) {
-    state ^= seed.charCodeAt(index);
-    state = Math.imul(state, 16777619);
-  }
-
-  return () => {
-    state += 0x6d2b79f5;
-    let value = state;
-    value = Math.imul(value ^ (value >>> 15), value | 1);
-    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
-    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-  };
 }
 
 const BONUS_QUESTION_KINDS: readonly BonusQuestionKind[] = [

@@ -38,6 +38,8 @@ import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-clien
 import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
+import { customCardRegistry } from "@/features/cards/custom-card-registry";
+import { prepareQuizPool } from "@/features/quiz/quiz-pool-preparation";
 import {
   consumePlayReviewEligibility,
   hasPlayReviewEligibility,
@@ -82,7 +84,6 @@ import type {
   LimitErrorCode,
   Tier,
   UserEntitlements,
-  VocabularyCard,
 } from "@/types/domain";
 import type { GemType } from "@/features/gems/gem-types";
 import { RewardMedalHud } from "@/features/progress/components/reward-medal-hud";
@@ -149,6 +150,9 @@ export function MobileLandingDashboard() {
   const cards = useInventoryStore((state) => state.cards);
   const addCards = useInventoryStore((state) => state.addCards);
   const hydrated = useInventoryStore((state) => state.hydrated);
+  const cloudEnabled = useInventoryStore((state) => state.cloudEnabled);
+  const cloudLoading = useInventoryStore((state) => state.cloudLoading);
+  const cloudLoadComplete = useInventoryStore((state) => state.cloudLoadComplete);
   const isTwa = useTwaMode();
   const waitingMissionCount = useMissionWaitingCount();
   const {
@@ -331,6 +335,31 @@ export function MobileLandingDashboard() {
     router.prefetch(`/learn?mode=active&language=${encodeURIComponent(selectedLanguage)}`);
     router.prefetch(`/learn?mode=learned&language=${encodeURIComponent(selectedLanguage)}`);
   }, [hydrated, router, selectedLanguage, user]);
+
+  useEffect(() => {
+    if (
+      !hydrated ||
+      (cloudEnabled && (cloudLoading || !cloudLoadComplete)) ||
+      !cards.some((card) => card.status.trim().toLowerCase() === "active")
+    ) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void prepareQuizPool({
+        ownerScope: user?.id ?? "guest",
+        cards,
+        customCards: customCardRegistry.list(),
+        language: selectedLanguage,
+        mode: "active",
+        locale,
+        normalQuestionType: null,
+        bonusAfterEachNormalQuestion: false,
+      }).catch(() => undefined);
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [cards, cloudEnabled, cloudLoadComplete, cloudLoading, hydrated, locale, selectedLanguage, user?.id]);
 
   useEffect(() => {
     if (!isTwa || !hydrated || cards.length < 10 || !hasPlayReviewEligibility()) {

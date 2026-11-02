@@ -21,6 +21,7 @@ import { PushNotificationsProvider } from "@/features/push/components/push-notif
 import { ProgressStatsProvider } from "@/features/progress/progress-client";
 import { RankUpTestOverlay } from "@/features/progress/components/rank-up-test-overlay";
 import { ChestOpeningTestOverlay } from "@/features/quiz/components/chest-opening-test-overlay";
+import { QuizPoolAuthBoundary } from "@/features/quiz/components/quiz-pool-auth-boundary";
 import { SubscriptionProvider } from "@/features/subscriptions/subscription-client";
 import { LandingTutorial } from "@/features/tutorial/landing-tutorial";
 import { GameLaunchCover } from "@/features/games/components/game-launch-cover";
@@ -63,6 +64,7 @@ export function AppShell({
         <GlobalTapVibration />
         <AuthSessionProvider user={user}>
         <NativeLoadingCardsBridge />
+        <QuizPoolAuthBoundary />
         <OfflineInventorySync />
         <OfflineNotesConversionOverlay />
         <DailyStreakProvider>

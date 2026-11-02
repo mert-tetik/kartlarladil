@@ -29,6 +29,7 @@ const {
   subscriptionEntitlementsMock,
   subscriptionPlanMock,
   dayStreakOverlayMock,
+  prepareQuizPoolMock,
   useLeaderboardDataMock,
 } = vi.hoisted(() => ({
   consumePlayReviewEligibilityMock: vi.fn(),
@@ -52,6 +53,7 @@ const {
       openDayStreak: () => void;
     },
   },
+  prepareQuizPoolMock: vi.fn(),
   useLeaderboardDataMock: vi.fn(),
 }));
 
@@ -154,6 +156,10 @@ vi.mock("@/features/inventory/inventory-store", () => {
   return { useInventoryStore };
 });
 
+vi.mock("@/features/quiz/quiz-pool-preparation", () => ({
+  prepareQuizPool: prepareQuizPoolMock,
+}));
+
 describe("MobileLandingDashboard language sync", () => {
   beforeEach(() => {
     Object.defineProperty(HTMLElement.prototype, "scrollTo", {
@@ -162,6 +168,8 @@ describe("MobileLandingDashboard language sync", () => {
     });
     window.localStorage.clear();
     inventoryCardsMock.value = [];
+    prepareQuizPoolMock.mockReset();
+    prepareQuizPoolMock.mockResolvedValue({});
     addCardsMock.mockReset();
     addCardsMock.mockResolvedValue({
       ok: true,
@@ -197,6 +205,31 @@ describe("MobileLandingDashboard language sync", () => {
         entries: [],
         canViewLeaderboard: true,
       },
+    });
+  });
+
+  it("starts preparing active quiz questions in the background on the landing page", async () => {
+    const card = VOCABULARY_CARDS[0];
+    inventoryCardsMock.value = [{
+      cardId: card.id,
+      status: "active",
+      correctCount: 0,
+      addedAt: "2026-01-01T00:00:00.000Z",
+    }];
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    await waitFor(() => {
+      expect(prepareQuizPoolMock).toHaveBeenCalledWith(expect.objectContaining({
+        ownerScope: "test-user",
+        language: "en",
+        mode: "active",
+        cards: inventoryCardsMock.value,
+      }));
     });
   });
 
