@@ -58,6 +58,13 @@ describe("MobileLockedActionSheet", () => {
     expect(panel).toHaveClass("rounded-2xl", "bg-[#191919]");
     expect(dialog.querySelector("[data-mobile-dialog-accent]")).toHaveClass(accentClass);
     expect(dialog.querySelector("[data-mobile-bottom-sheet-drag-handle]")).toBeNull();
+    if (variant === "active") {
+      expect(dialog.querySelector("[data-locked-active-sheet-height-extension]")).toHaveClass("h-[30px]");
+      expect(panel).toHaveStyle({ transform: "translateY(15px) scale(0.96)" });
+    } else {
+      expect(dialog.querySelector("[data-locked-active-sheet-height-extension]")).toBeNull();
+      expect(panel).toHaveStyle({ transform: "scale(0.96)" });
+    }
   });
 
   it("opens draw and create card actions from the empty learning deck sheet", async () => {

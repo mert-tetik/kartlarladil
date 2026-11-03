@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import type { TranslationKey, TranslationValues } from "@/i18n/dictionaries";
 import { isTutorialVisibleState, useTutorialStore } from "@/features/tutorial/tutorial-store";
+import { TUTORIAL_CHOICES } from "@/features/tutorial/tutorial-choice-options";
 import {
   dispatchTutorialCardLayerClosed,
   dispatchTutorialCardLayerOpened,
@@ -35,40 +36,12 @@ const WELCOME_FRAME_ASSET_VERSION = "20261024-png-frames-2";
 const WELCOME_ANIMATION_FALLBACK_URL = `/mascots/tutorial-welcome/mascot-animation-fallback.webp?v=${WELCOME_MEDIA_ASSET_VERSION}`;
 const SCREEN_TRANSITION_MS = 1000;
 const SCREEN_SCROLL_DELAY_MS = 400;
-const TUTORIAL_ARROW_EXIT_MS = 260;
 const ORIGIN_SCREEN_ENTER_MS = 650;
 const ORIGIN_SCREEN_CLOSE_TOTAL_MS = 860;
 const LAYER_MESSAGE_VISIBLE_MS = 1500;
 const LAYER_OPEN_RECOVERY_TIMEOUT_MS = 4000;
 const TUTORIAL_MESSAGE_SURFACE_CLASS =
   "border-0 shadow-none outline-none ring-0 before:border-0 before:shadow-none before:outline-none before:ring-0";
-
-const TUTORIAL_CHOICES = [
-  {
-    key: "random",
-    selector: '[data-tutorial-target="landing-draw-cards"]',
-    layer: "draw-cards",
-    icon: "/card-icons/draw_cards_button.png",
-    titleKey: "tutorial.cardModes.random.title",
-    descriptionKey: "tutorial.cardModes.random.description",
-  },
-  {
-    key: "custom",
-    selector: '[data-tutorial-target="landing-create-card"]',
-    layer: "custom-card",
-    icon: "/card-icons/add_custom_card_button.png",
-    titleKey: "tutorial.cardModes.custom.title",
-    descriptionKey: "tutorial.cardModes.custom.description",
-  },
-  {
-    key: "groups",
-    selector: '[data-tutorial-target="landing-card-groups"]',
-    layer: "card-groups",
-    icon: "/card-icons/add_cards_with_groups.png",
-    titleKey: "tutorial.cardModes.groups.title",
-    descriptionKey: "tutorial.cardModes.groups.description",
-  },
-] as const;
 
 interface SpotlightPosition {
   target: TutorialTarget;
@@ -118,7 +91,6 @@ export function LandingTutorial() {
   const [isLandingReady, setIsLandingReady] = useState(false);
   const welcomeUnderlayTimerRef = useRef<number | null>(null);
   const transitionTimerRef = useRef<number | null>(null);
-  const targetExitTimerRef = useRef<number | null>(null);
   const scrollTimerRef = useRef<number | null>(null);
   const phaseRef = useRef<TutorialPhase>("visible");
   const layerRef = useRef<string | null>(null);
@@ -155,14 +127,12 @@ export function LandingTutorial() {
   const clearTutorialTimers = useCallback(() => {
     if (welcomeUnderlayTimerRef.current !== null) window.clearTimeout(welcomeUnderlayTimerRef.current);
     if (transitionTimerRef.current !== null) window.clearTimeout(transitionTimerRef.current);
-    if (targetExitTimerRef.current !== null) window.clearTimeout(targetExitTimerRef.current);
     if (scrollTimerRef.current !== null) window.clearTimeout(scrollTimerRef.current);
     if (layerMessageTimerRef.current !== null) window.clearTimeout(layerMessageTimerRef.current);
     if (layerMessageCloseTimerRef.current !== null) window.clearTimeout(layerMessageCloseTimerRef.current);
     if (layerOpenRecoveryTimerRef.current !== null) window.clearTimeout(layerOpenRecoveryTimerRef.current);
     welcomeUnderlayTimerRef.current = null;
     transitionTimerRef.current = null;
-    targetExitTimerRef.current = null;
     scrollTimerRef.current = null;
     layerMessageTimerRef.current = null;
     layerMessageCloseTimerRef.current = null;
@@ -507,22 +477,17 @@ export function LandingTutorial() {
           return;
         }
 
-        // Keep the final target mounted long enough for the arrow's exit
-        // animation to finish, then replay the original action. Persist
-        // completion before that action can navigate away from this page.
+        // Persist completion and replay the original action in the same click
+        // turn so the tutorial target disappears immediately when pressed.
         event.preventDefault();
         event.stopPropagation();
-        setIsTargetExiting(true);
-        targetExitTimerRef.current = window.setTimeout(() => {
-          targetExitTimerRef.current = null;
-          complete();
-          allowProgrammaticTargetClickRef.current = true;
-          try {
-            target.click();
-          } finally {
-            window.setTimeout(() => { allowProgrammaticTargetClickRef.current = false; }, 0);
-          }
-        }, TUTORIAL_ARROW_EXIT_MS);
+        complete();
+        allowProgrammaticTargetClickRef.current = true;
+        try {
+          target.click();
+        } finally {
+          window.setTimeout(() => { allowProgrammaticTargetClickRef.current = false; }, 0);
+        }
       }
     };
     // Capture the click before the real action's React handler can start a
@@ -666,7 +631,9 @@ function WelcomeTutorialScreen({ exiting, underlay, stage, label, nextLabel, onN
   const isAddCardsStage = stage === "add-cards";
   const [isPlaybackComplete, setIsPlaybackComplete] = useState(false);
   const [hasVideoAlphaSupport, setHasVideoAlphaSupport] = useState(false);
+  const [hasPresentedVideoFrame, setHasPresentedVideoFrame] = useState(false);
   const [usesAnimationFallback, setUsesAnimationFallback] = useState(false);
+  const [hasFallbackAnimationLoaded, setHasFallbackAnimationLoaded] = useState(false);
   const [hasFallbackAnimationFailed, setHasFallbackAnimationFailed] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -769,10 +736,29 @@ function WelcomeTutorialScreen({ exiting, underlay, stage, label, nextLabel, onN
     setHasFallbackAnimationFailed(true);
   }, []);
 
+  const handleVideoPlaying = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const videoWithFrameCallback = video as HTMLVideoElement & {
+      requestVideoFrameCallback?: (callback: () => void) => number;
+    };
+    if (videoWithFrameCallback.requestVideoFrameCallback) {
+      videoWithFrameCallback.requestVideoFrameCallback(() => setHasPresentedVideoFrame(true));
+      return;
+    }
+
+    // Older Android WebViews lack requestVideoFrameCallback. Two paint turns
+    // after `playing` ensure the decoded frame has replaced the poster.
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => setHasPresentedVideoFrame(true));
+    });
+  }, []);
+
   // Keep the paused video visible after playback ends. The last-frame image is
   // layered above it, but the video remains as a seamless visual fallback
   // while that image is mounting/decoding so the mascot never flashes away.
-  const canShowAlphaVideo = isAddCardsStage && hasVideoAlphaSupport && !usesAnimationFallback;
+  const canShowAlphaVideo = isAddCardsStage && hasVideoAlphaSupport && hasPresentedVideoFrame && !usesAnimationFallback;
 
   return (
     <div data-landing-tutorial data-landing-tutorial-welcome data-tutorial-welcome-underlay={underlay ? "" : undefined} role="dialog" aria-label={label} aria-modal={underlay ? undefined : "true"} aria-hidden={underlay || undefined} aria-busy={exiting} className={cn("tutorial-origin-overlay fixed inset-0 z-[1000]", exiting && "tutorial-origin-overlay--closing")}>
@@ -792,10 +778,10 @@ function WelcomeTutorialScreen({ exiting, underlay, stage, label, nextLabel, onN
         style={{ top: "calc(50% - 6.25rem)", animationDelay: exiting ? "0ms" : "520ms" }}
       >
         {!isAddCardsStage ? <Image alt="" aria-hidden="true" data-tutorial-welcome-first-frame className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" height={900} priority src={`/mascots/tutorial-welcome/first-frame.png?v=${WELCOME_FRAME_ASSET_VERSION}`} width={940} /> : null}
-        {isAddCardsStage && usesAnimationFallback && !hasFallbackAnimationFailed && !isPlaybackComplete ? <Image alt="" aria-hidden="true" className="absolute inset-0 z-0 h-full w-full origin-center scale-[1.5] object-contain" data-tutorial-welcome-fallback-animation height={900} onError={handleFallbackAnimationError} priority src={WELCOME_ANIMATION_FALLBACK_URL} unoptimized width={940} /> : null}
+        {isAddCardsStage && usesAnimationFallback && !hasFallbackAnimationFailed && !isPlaybackComplete ? <Image alt="" aria-hidden="true" className="absolute inset-0 z-0 h-full w-full origin-center scale-[1.5] object-contain" data-tutorial-welcome-fallback-animation height={900} onError={handleFallbackAnimationError} onLoad={() => setHasFallbackAnimationLoaded(true)} priority src={WELCOME_ANIMATION_FALLBACK_URL} unoptimized width={940} /> : null}
         {isAddCardsStage && usesAnimationFallback && hasFallbackAnimationFailed && !isPlaybackComplete ? <Image alt="" aria-hidden="true" data-tutorial-welcome-last-frame className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" height={900} priority src={`/mascots/tutorial-welcome/last-frame.png?v=${WELCOME_FRAME_ASSET_VERSION}`} width={940} /> : null}
         {isAddCardsStage && isPlaybackComplete ? <Image alt="" aria-hidden="true" data-tutorial-welcome-last-frame className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" height={900} priority src={`/mascots/tutorial-welcome/last-frame.png?v=${WELCOME_FRAME_ASSET_VERSION}`} width={940} /> : null}
-        {isAddCardsStage && !hasVideoAlphaSupport && !usesAnimationFallback && !isPlaybackComplete ? <Image alt="" aria-hidden="true" className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" data-tutorial-welcome-video-poster height={900} src={`/mascots/tutorial-welcome/first-frame.png?v=${WELCOME_FRAME_ASSET_VERSION}`} width={940} /> : null}
+        {isAddCardsStage && !isPlaybackComplete && (usesAnimationFallback ? !hasFallbackAnimationLoaded && !hasFallbackAnimationFailed : !hasVideoAlphaSupport || !hasPresentedVideoFrame) ? <Image alt="" aria-hidden="true" className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" data-tutorial-welcome-video-poster height={900} src={`/mascots/tutorial-welcome/first-frame.png?v=${WELCOME_FRAME_ASSET_VERSION}`} width={940} /> : null}
         <video
           ref={videoRef}
           aria-hidden="true"
@@ -804,6 +790,7 @@ function WelcomeTutorialScreen({ exiting, underlay, stage, label, nextLabel, onN
           onEnded={finishPlayback}
           onError={handleVideoError}
           onLoadedData={handleVideoLoadedData}
+          onPlaying={handleVideoPlaying}
           muted
           playsInline
           poster={`/mascots/tutorial-welcome/first-frame.png?v=${WELCOME_FRAME_ASSET_VERSION}`}
@@ -856,11 +843,11 @@ function TutorialMessageScreen({ exiting, message, nextLabel, onNext }: { exitin
       <div aria-hidden="true" className="tutorial-origin-overlay__circle bg-black/80" />
       <div className="tutorial-origin-overlay__viewport flex min-h-[100dvh] items-center justify-center px-5 text-center">
         <div className="flex w-full max-w-[20rem] flex-col items-center">
-          <div data-tutorial-message-callout className="tutorial-origin-overlay__item relative w-full pl-20" style={{ animationDelay: exiting ? "0ms" : "520ms" }}>
+          <div data-tutorial-message-callout data-tutorial-message-exit={exiting ? "true" : undefined} className="tutorial-origin-overlay__item relative w-full pl-20" style={{ animationDelay: exiting ? "0ms" : "520ms" }}>
             <Image aria-hidden="true" alt="" data-tutorial-callout-mascot className="pointer-events-none absolute -left-5 top-8 z-10 h-auto w-24" height={512} priority src="/mascots/mascot5.webp" width={512} />
             <p data-landing-tutorial-message className={cn("relative z-20 flex min-h-28 items-center rounded-lg bg-brand px-4 py-4 text-center text-lg font-semibold leading-snug text-white shadow-sm before:absolute before:-left-3.5 before:bottom-5 before:h-8 before:w-4 before:bg-brand before:[clip-path:polygon(100%_0,100%_100%,0_50%)]", useSuperWater && "font-super-water")}>{formatSuperWaterText(locale, message)}</p>
           </div>
-          <button type="button" data-landing-tutorial-next onClick={() => { vibrate("tutorial-next"); onNext(); }} disabled={exiting} className={cn("tutorial-origin-overlay__item mt-12 h-14 w-[calc(100%-4rem)] translate-y-[30px] rounded-lg bg-brand text-lg font-bold text-brand-foreground shadow-sm transition-[background-color,transform] duration-300 hover:bg-brand-hover active:scale-[0.98] disabled:pointer-events-none focus:outline-none focus-visible:outline-none", useSuperWater && "font-super-water")} style={{ animationDelay: exiting ? "90ms" : "660ms" }}>{formatSuperWaterText(locale, nextLabel)}</button>
+          <button type="button" data-landing-tutorial-next data-tutorial-message-exit={exiting ? "true" : undefined} onClick={() => { vibrate("tutorial-next"); onNext(); }} disabled={exiting} className={cn("tutorial-origin-overlay__item mt-12 h-14 w-[calc(100%-4rem)] translate-y-[30px] rounded-lg bg-brand text-lg font-bold text-brand-foreground shadow-sm transition-[background-color,transform] duration-300 hover:bg-brand-hover active:scale-[0.98] disabled:pointer-events-none focus:outline-none focus-visible:outline-none", useSuperWater && "font-super-water")} style={{ animationDelay: exiting ? "0ms" : "660ms" }}>{formatSuperWaterText(locale, nextLabel)}</button>
         </div>
       </div>
     </div>

@@ -6420,7 +6420,8 @@ body:has([data-mobile-hide-bottom-nav="true"]) [data-mobile-main-nav-frame] {
 }
 
 body:has([data-leaderboard-overlay]) [data-mobile-main-nav-frame] {
-  display: none;
+  display: block !important;
+  z-index: 90;
 }
 
 body:has([data-pricing-active-subscription]) [data-mobile-main-nav-frame] {
@@ -7344,6 +7345,24 @@ body:has([data-games-active]) {
   animation-name: tutorial-flow-item-exit;
   animation-duration: 220ms;
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes tutorial-card-collection-message-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.62);
+  }
+}
+
+.tutorial-origin-overlay--closing[data-landing-tutorial-message-screen] [data-tutorial-message-exit] {
+  animation: tutorial-card-collection-message-exit 280ms cubic-bezier(0.22, 1, 0.36, 1) 0ms both;
+  transform-origin: center;
+  will-change: opacity, transform;
 }
 
 .tutorial-origin-overlay--closing[data-landing-tutorial-choice-screen] .tutorial-origin-overlay__item {

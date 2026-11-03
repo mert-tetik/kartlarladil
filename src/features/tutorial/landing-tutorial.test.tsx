@@ -142,6 +142,7 @@ describe("LandingTutorial", () => {
     expect(vibrate).toHaveBeenCalledWith("tutorial-next");
     const secondWelcome = screen.getByRole("dialog", { name: "tutorial.welcomeAddCards" });
     expect(secondWelcome).toBe(firstWelcome);
+    expect(document.querySelector("[data-tutorial-welcome-video-poster]")).toBeInTheDocument();
     expect(document.querySelector("[data-landing-tutorial-transition]")).not.toBeInTheDocument();
     expect(document.querySelector("[data-tutorial-welcome-description]")).not.toBeInTheDocument();
     const video = document.querySelector("[data-tutorial-welcome-video]") as HTMLVideoElement;
@@ -151,6 +152,18 @@ describe("LandingTutorial", () => {
     expect(video.getAttribute("poster")).toBe("/mascots/tutorial-welcome/first-frame.png?v=20261024-png-frames-2");
     expect(document.querySelector("[data-tutorial-welcome-audio]")?.getAttribute("src")).toBe("/mascots/tutorial-welcome/mascot-audio.m4a?v=20261024-45fps-1");
     expect(videoPlay).toHaveBeenCalledTimes(2);
+    Object.defineProperty(video, "videoWidth", { configurable: true, value: 940 });
+    Object.defineProperty(video, "videoHeight", { configurable: true, value: 900 });
+    Object.defineProperty(video, "requestVideoFrameCallback", {
+      configurable: true,
+      value: (callback: () => void) => { callback(); return 1; },
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      drawImage: vi.fn(),
+      getImageData: () => ({ data: [0, 0, 0, 0] }),
+    } as unknown as CanvasRenderingContext2D);
+    fireEvent.loadedData(video);
+    fireEvent.playing(video);
     expect(screen.queryByRole("heading", { name: "tutorial.welcomeAddCards" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "tutorial.next" })).not.toBeInTheDocument();
     expect(document.querySelector("[data-tutorial-welcome-last-frame]")).not.toBeInTheDocument();
@@ -387,8 +400,8 @@ describe("LandingTutorial", () => {
     expect(continueButton).toHaveClass("text-lg", "font-super-water", "translate-y-[30px]");
     fireEvent.click(continueButton);
     expect(vibrate).toHaveBeenCalledWith("tutorial-next");
-    expect(document.querySelector<HTMLElement>("[data-tutorial-message-callout]")?.style.animationDelay).toBe("0ms");
-    expect(continueButton.style.animationDelay).toBe("90ms");
+    expect(document.querySelector<HTMLElement>("[data-tutorial-message-callout]")).toHaveAttribute("data-tutorial-message-exit", "true");
+    expect(continueButton).toHaveAttribute("data-tutorial-message-exit", "true");
     await waitFor(() => expect(dashboard.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" }), { timeout: 2_200 });
     await waitFor(() => expect(useTutorialStore.getState().step).toBe(3), { timeout: 2_500 });
     await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_500 });
@@ -400,9 +413,8 @@ describe("LandingTutorial", () => {
     await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_500 });
     fireEvent.click(screen.getByRole("button", { name: "start" }));
 
-    expect(document.querySelector("[data-tutorial-arrow-image]")).toHaveClass("tutorial-arrow-image--exiting");
-    expect(screen.queryByText("started")).not.toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText("started")).toBeInTheDocument(), { timeout: 1_000 });
+    expect(screen.getByText("started")).toBeInTheDocument();
+    expect(document.querySelector("[data-landing-tutorial]")).not.toBeInTheDocument();
     expect(useTutorialStore.getState()).toMatchObject({
       active: false,
       completed: true,

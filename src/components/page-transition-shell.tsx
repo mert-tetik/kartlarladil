@@ -4,6 +4,8 @@ import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "rea
 import { usePathname, useSearchParams } from "next/navigation";
 import {
   ROUTE_TRANSITION_COVER_DURATION_MS,
+  cancelPendingNavigationTransition,
+  shouldAnimateRouteTransition,
   subscribeRouteTransition,
 } from "@/lib/route-transition";
 import { cn } from "@/lib/utils";
@@ -46,6 +48,7 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
   const animationFrameRef = useRef<number | null>(null);
   const contentObserverRef = useRef<MutationObserver | null>(null);
   const previousRouteKeyRef = useRef(routeKey);
+  const previousPathnameRef = useRef(pathname);
   const mainRef = useRef<HTMLElement>(null);
 
   const clearRouteTransitionItems = useEffectEvent(() => {
@@ -136,7 +139,14 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
       setTransitionPhase("covering");
     }
 
-    const unsubscribe = subscribeRouteTransition(startRouteTransition);
+    function cancelRouteTransition() {
+      clearTransitionTimers();
+      transitionStartedAtRef.current = null;
+      applyRouteTransitionPhase("idle");
+      setTransitionPhase("idle");
+    }
+
+    const unsubscribe = subscribeRouteTransition(startRouteTransition, cancelRouteTransition);
 
     return () => {
       unsubscribe();
@@ -150,6 +160,16 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
     }
 
     previousRouteKeyRef.current = routeKey;
+    cancelPendingNavigationTransition();
+    const previousPathname = previousPathnameRef.current;
+    previousPathnameRef.current = pathname;
+
+    if (!shouldAnimateRouteTransition(previousPathname, pathname)) {
+      transitionStartedAtRef.current = null;
+      applyRouteTransitionPhase("idle");
+      setTransitionPhase("idle");
+      return;
+    }
 
     const elapsed = transitionStartedAtRef.current
       ? window.performance.now() - transitionStartedAtRef.current
@@ -212,7 +232,7 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
         animationFrameRef.current = null;
       }
     };
-  }, [routeKey]);
+  }, [pathname, routeKey]);
 
   useEffect(() => {
     if (transitionPhase === "idle") {

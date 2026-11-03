@@ -15,7 +15,6 @@ interface BaseQuizItem {
   card: VocabularyCard;
   inventoryCard: InventoryCard;
   willLearn: boolean;
-  forceLearned?: boolean;
   isBonus?: false;
 }
 

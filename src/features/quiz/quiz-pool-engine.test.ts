@@ -30,6 +30,25 @@ describe("buildQuizPool", () => {
     expect(() => JSON.stringify(pool)).not.toThrow();
   });
 
+  it("does not force a first active card to become learned for a new learner", async () => {
+    const card = VOCABULARY_CARDS.find((item) => item.tier === "A1")!;
+    const pool = await buildQuizPool({
+      key: "new-learner-pool",
+      seed: "new-learner-seed",
+      cards: [{ cardId: card.id, status: "active", correctCount: 0, addedAt: "2026-01-01T00:00:00.000Z" }],
+      customCards: [],
+      language: card.language,
+      mode: "active",
+      locale: "en",
+      normalQuestionType: null,
+      bonusAfterEachNormalQuestion: false,
+    });
+
+    expect(pool.regularItems).toHaveLength(1);
+    expect(pool.regularItems[0]?.willLearn).toBe(false);
+    expect(pool.regularItems[0]).not.toHaveProperty("forceLearned");
+  });
+
   it("stops when the preparation has been cancelled", async () => {
     await expect(buildQuizPool({
       key: "cancelled-pool",

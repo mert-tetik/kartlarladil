@@ -67,40 +67,21 @@ describe("quiz engine", () => {
     expect(secondWrong.status).toBe("active");
   });
 
-  it("can mark a card as learned in a single correct answer when forced", () => {
+  it("does not mark a card learned before it reaches its tier requirement", () => {
     const card = VOCABULARY_CARDS.find((item) => item.tier === "A1");
     expect(card).toBeDefined();
 
     const state = createInventoryCard(card!.id);
-    const forced = applyAnswerProgress(
+    const afterOneAnswer = applyAnswerProgress(
       state,
       card!,
       true,
       "2026-01-01T00:00:00.000Z",
-      true,
     );
 
-    expect(forced.correctCount).toBe(1);
-    expect(forced.status).toBe("learned");
-    expect(forced.learnedAt).toBe("2026-01-01T00:00:00.000Z");
-  });
-
-  it("does not mark a forced card learned when the answer is incorrect", () => {
-    const card = VOCABULARY_CARDS.find((item) => item.tier === "A1");
-    expect(card).toBeDefined();
-
-    const state = createInventoryCard(card!.id);
-    const forcedWrong = applyAnswerProgress(
-      state,
-      card!,
-      false,
-      "2026-01-01T00:00:00.000Z",
-      true,
-    );
-
-    expect(forcedWrong.correctCount).toBe(0);
-    expect(forcedWrong.status).toBe("active");
-    expect(forcedWrong.learnedAt).toBeUndefined();
+    expect(afterOneAnswer.correctCount).toBe(1);
+    expect(afterOneAnswer.status).toBe("active");
+    expect(afterOneAnswer.learnedAt).toBeUndefined();
   });
 
   it("does not add the same card twice", () => {

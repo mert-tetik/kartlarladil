@@ -40,6 +40,7 @@ const SENTENCE_TOKEN_ANIMATION_MS = 360;
 const AUTO_PLACED_SENTENCE_TOKEN_COUNT = 3;
 const CATEGORY_WORD_ANIMATION_MS = 260;
 const BONUS_REWARD_IMAGE = "/quiz/bonus_img.png?v=20261001-1";
+let bonusRewardImagePreload: HTMLImageElement | null = null;
 const BONUS_INTRO_FRAME_COUNT = 13;
 const BONUS_INTRO_FRAME_DURATION_MS = 1_000 / 22;
 const BONUS_INTRO_HOLD_DURATION_MS = 800;
@@ -51,6 +52,14 @@ const BONUS_INTRO_SPRITE_IMAGE = "/quiz/bonus-intro-sprite.png";
 const BONUS_INTRO_FRAME_WIDTH = 480;
 const BONUS_INTRO_FRAME_HEIGHT = 854;
 const BONUS_INTRO_SPRITE_COLUMNS = 4;
+
+export function preloadBonusRewardImage() {
+  if (typeof window === "undefined" || bonusRewardImagePreload) return;
+
+  bonusRewardImagePreload = new window.Image();
+  bonusRewardImagePreload.decoding = "async";
+  bonusRewardImagePreload.src = BONUS_REWARD_IMAGE;
+}
 
 type BonusIntroRenderer = {
   drawFrame: (frame: number) => void;
@@ -628,12 +637,6 @@ export function BonusQuestionView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rewardAnimationGate.reset, rewardFlightReady]);
 
-  useEffect(() => {
-    if (rewardRevealVisible) return;
-    rewardCollectStartedRef.current = false;
-    setRewardRevealCollected(false);
-  }, [rewardRevealVisible]);
-
   function handleRewardRevealCollect() {
     if (!rewardRevealVisible || rewardCollectStartedRef.current) return;
     rewardCollectStartedRef.current = true;
@@ -716,7 +719,7 @@ export function BonusQuestionView({
             }
           }}
         >
-          <div className="quiz-flow-enter-right flex min-h-full w-full flex-col items-center justify-center gap-5 px-5">
+          <div className="flex min-h-full w-full flex-col items-center justify-center gap-5 px-5">
             <div
               ref={sourceRef}
               className="relative aspect-[1536/1000] w-[min(74vw,27rem)] overflow-visible"

@@ -50,10 +50,10 @@ const input = {
 };
 
 describe("QuizContinuationMotivationView", () => {
-  it("routes the new-card action back to the landing draw overlay", () => {
+  it("routes the random-card action back to the landing draw overlay with the learning language", () => {
     routerPushMock.mockReset();
 
-    const { container } = render(
+    render(
       <QuizContinuationMotivationView
         input={{ ...input, remainingActiveCards: 0 }}
         hasMoreCardsToLearn={false}
@@ -62,9 +62,11 @@ describe("QuizContinuationMotivationView", () => {
       />,
     );
 
-    fireEvent.click(container.querySelector('[data-continuation-action="draw-cards"]')!);
+    fireEvent.click(document.body.querySelector('[data-continuation-card-addition="random"]')!);
 
-    expect(routerPushMock).toHaveBeenCalledWith("/?mission-action=draw-cards");
+    expect(routerPushMock).toHaveBeenCalledWith("/?mission-action=draw-cards&language=en");
+    expect(document.body.querySelectorAll("[data-continuation-card-addition]")).toHaveLength(3);
+    expect(document.body.querySelector("[data-continuation-card-additions] h3")).toHaveTextContent("quiz.continuation.addToDeckTitle");
   });
 
   it("renders three motivation cards with the legacy actions when cards remain", () => {
@@ -206,7 +208,7 @@ describe("QuizContinuationMotivationView", () => {
       "leaderboard",
     );
     expect(container.querySelector('[data-quiz-continuation-motivation-card="drawCards"]')).toBeInTheDocument();
-    expect(container.querySelector('[data-continuation-action="draw-cards"]')).toBeInTheDocument();
+    expect(document.body.querySelector('[data-continuation-action="draw-cards"]')).toBeInTheDocument();
     expect(container.querySelector('[data-continuation-action="continue"]')).not.toBeInTheDocument();
   });
 

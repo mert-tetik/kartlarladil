@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode, type Ref } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode, type Ref } from "react";
 import { X } from "lucide-react";
 import { MobileEmptyDeckPointer } from "@/app/components/mobile-empty-deck-pointer";
 import { buttonClassName } from "@/components/ui/button";
@@ -128,6 +128,7 @@ export interface MobileBottomSheetShellProps {
   titleClassName?: string;
   panelLabel?: string;
   tutorialLayer?: string;
+  centeredDialogOffsetY?: number;
   tone?: MobileBottomSheetTone;
   showProtrusionCircle?: boolean;
   showTutorialClosePointer?: boolean;
@@ -155,6 +156,7 @@ export function MobileBottomSheetShell({
   titleClassName,
   panelLabel,
   tutorialLayer,
+  centeredDialogOffsetY = 0,
   tone = "brand",
   showProtrusionCircle = true,
   showTutorialClosePointer = false,
@@ -174,8 +176,10 @@ export function MobileBottomSheetShell({
   const onExitedRef = useRef(onExited);
   const hasBeenOpenedRef = useRef(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  onEnteredRef.current = onEntered;
-  onExitedRef.current = onExited;
+  useLayoutEffect(() => {
+    onEnteredRef.current = onEntered;
+    onExitedRef.current = onExited;
+  }, [onEntered, onExited]);
 
   const toneStyles = MOBILE_BOTTOM_SHEET_TONES[tone];
   const isCenteredDialog = presentation === "centered-dialog";
@@ -190,9 +194,9 @@ export function MobileBottomSheetShell({
       hasBeenOpenedRef.current = true;
       let enterFrame: number | null = null;
       let enterTimer: number | null = null;
-      setHasPresented(false);
-      setEntered(false);
       const mountFrame = window.requestAnimationFrame(() => {
+        setHasPresented(false);
+        setEntered(false);
         setMounted(true);
         // Give the browser a painted, off-screen state before changing the
         // transform. Without this separation the first frame is skipped and
@@ -332,7 +336,7 @@ export function MobileBottomSheetShell({
         )}
         style={{
           transform: isCenteredDialog
-            ? entered ? "scale(1)" : hiddenPanelTransform
+            ? `${centeredDialogOffsetY ? `translateY(${centeredDialogOffsetY}px) ` : ""}${entered ? "scale(1)" : hiddenPanelTransform}`
             : entered ? `translateY(${dragY}px)` : hiddenPanelTransform,
         }}
       >

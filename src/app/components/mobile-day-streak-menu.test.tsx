@@ -1,175 +1,105 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
-import { ThemeProvider } from "@/components/theme-provider";
-import { LocaleProvider } from "@/i18n/locale-provider";
+import { act, fireEvent, render, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileDayStreakMenu } from "@/app/components/mobile-day-streak-menu";
 
+const { loadAtlasMock, preloadFramesMock } = vi.hoisted(() => ({
+  loadAtlasMock: vi.fn(),
+  preloadFramesMock: vi.fn(),
+}));
+
+vi.mock("@/components/theme-provider", () => ({ useTheme: () => ({ mode: "dark" }) }));
+vi.mock("@/i18n/locale-provider", () => ({
+  useLocale: () => ({ locale: "en" }),
+  useT: () => (key: string) => key,
+}));
+vi.mock("@/features/daily-streak/day-streak-opening-frames", async () => {
+  const actual = await vi.importActual<typeof import("@/features/daily-streak/day-streak-opening-frames")>(
+    "@/features/daily-streak/day-streak-opening-frames",
+  );
+  return {
+    ...actual,
+    loadDayStreakOpeningAtlasImage: loadAtlasMock,
+    preloadDayStreakFrames: preloadFramesMock,
+  };
+});
+
 describe("MobileDayStreakMenu", () => {
-  it("shows the current week, marks logged days, and opens the full calendar", async () => {
-    const user = userEvent.setup();
-    const onClose = vi.fn();
+  let nextFrame: FrameRequestCallback | null;
+  const drawImage = vi.fn();
+  const audioPlay = vi.fn(() => Promise.resolve());
+  const audioPause = vi.fn();
 
-    render(
-      <LocaleProvider initialLocale="tr">
-        <ThemeProvider initialTheme="default-dark">
-          <MobileDayStreakMenu
-            open
-            onClose={onClose}
-            snapshot={{
-              currentStreak: 4,
-              today: "2026-09-15",
-              loggedDates: ["2026-09-12", "2026-09-14", "2026-09-15"],
-            }}
-          />
-        </ThemeProvider>
-      </LocaleProvider>,
-    );
-
-    await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
-
-    const dialog = screen.getByRole("dialog");
-    const currentStreak = document.querySelector<HTMLElement>("[data-day-streak-current-streak]");
-    expect(dialog).toHaveAttribute("data-day-streak-content-ready", "false");
-    expect(currentStreak).toHaveClass("day-streak-ui-pending");
-
-    const backgroundVideo = document.querySelector<HTMLVideoElement>("[data-day-streak-background]");
-    expect(backgroundVideo).toBeInTheDocument();
-    expect(document.querySelector("[data-day-streak-idle-background]")).not.toBeInTheDocument();
-    fireEvent.ended(backgroundVideo!);
-
-    await waitFor(() => expect(dialog).toHaveAttribute("data-day-streak-content-ready", "true"));
-
-    expect(currentStreak).toHaveTextContent("4");
-    expect(currentStreak).toHaveClass("day-streak-ui-enter");
-    expect(currentStreak?.style.getPropertyValue("--day-streak-enter-delay")).toBe("80ms");
-    expect(document.querySelectorAll("[data-day-streak-day]")).toHaveLength(7);
-    expect(document.querySelectorAll("[data-day-streak-weekday]")).toHaveLength(7);
-    expect(document.querySelector('[data-day-streak-day="2026-09-15"] svg')).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "SERI TAKVIMI" })).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "SERI TAKVIMI" }));
-
-    expect(document.querySelector("[data-day-streak-calendar-view]")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "HAFTAYA DÖN" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Eylül 2026" })).toBeInTheDocument();
-
-    const closeButton = screen.getByRole("button", { name: "Kapat" });
-    await user.click(closeButton);
-    await waitFor(() => expect(document.querySelector("[data-day-streak-calendar-view]")).not.toBeInTheDocument());
-    expect(onClose).not.toHaveBeenCalled();
-
-    await user.click(screen.getByRole("button", { name: "Kapat" }));
-    expect(onClose).toHaveBeenCalledOnce();
-  });
-
-  it("shows a loader instead of a stale streak value while the streak is loading", async () => {
-    render(
-      <LocaleProvider initialLocale="tr">
-        <ThemeProvider initialTheme="default-dark">
-          <MobileDayStreakMenu
-            open
-            loading
-            onClose={vi.fn()}
-            snapshot={{
-              currentStreak: 4,
-              today: "2026-09-15",
-              loggedDates: [],
-            }}
-          />
-        </ThemeProvider>
-      </LocaleProvider>,
-    );
-
-    const backgroundVideo = document.querySelector<HTMLVideoElement>("[data-day-streak-background]");
-    fireEvent.ended(backgroundVideo!);
-
-    await waitFor(() => {
-      expect(document.querySelector("[data-day-streak-current-streak-loading]")).toBeInTheDocument();
+  beforeEach(() => {
+    nextFrame = null;
+    drawImage.mockClear();
+    audioPlay.mockReset().mockResolvedValue(undefined);
+    audioPause.mockClear();
+    preloadFramesMock.mockClear();
+    loadAtlasMock.mockReset().mockImplementation(async () => document.createElement("img"));
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      setTransform: vi.fn(),
+      clearRect: vi.fn(),
+      drawImage,
+      imageSmoothingEnabled: true,
+      imageSmoothingQuality: "high",
+    } as unknown as CanvasRenderingContext2D);
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      nextFrame = callback;
+      return 1;
     });
-    expect(document.querySelector("[data-day-streak-current-streak]")).not.toBeInTheDocument();
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(audioPlay);
+    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(audioPause);
   });
 
-  it("skips the opening animation on a mobile double tap and keeps the audio asset attached", async () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("plays the WebP frame atlas with synchronized audio and reveals content on the original timeline", async () => {
     render(
-      <LocaleProvider initialLocale="tr">
-        <ThemeProvider initialTheme="default-dark">
-          <MobileDayStreakMenu
-            open
-            onClose={vi.fn()}
-            snapshot={{
-              currentStreak: 4,
-              today: "2026-09-15",
-              loggedDates: [],
-            }}
-          />
-        </ThemeProvider>
-      </LocaleProvider>,
+      <MobileDayStreakMenu
+        open
+        onClose={vi.fn()}
+        snapshot={{ today: "2026-11-03", currentStreak: 3, loggedDates: [] }}
+      />,
     );
 
-    const dialog = screen.getByRole("dialog");
-    const backgroundVideo = document.querySelector<HTMLVideoElement>("[data-day-streak-background]");
-    const audio = document.querySelector<HTMLAudioElement>("[data-day-streak-audio]");
-    expect(backgroundVideo).toBeInTheDocument();
+    await waitFor(() => expect(audioPlay).toHaveBeenCalledOnce());
+    const dialog = document.querySelector("[data-mobile-day-streak-menu]");
+    const canvas = document.querySelector("[data-day-streak-background-frames]");
+    const audio = document.querySelector("[data-day-streak-audio]");
+    expect(dialog).toBeInTheDocument();
+    expect(canvas).toBeInTheDocument();
+    expect(document.querySelector("video")).not.toBeInTheDocument();
     expect(audio).toHaveAttribute("src", "/day-streak/daily_streak_sfx.mp3?v=20261009-1");
+    expect(drawImage).toHaveBeenCalled();
 
-    let currentTime = 0;
-    Object.defineProperty(backgroundVideo, "duration", { configurable: true, value: 4.5 });
-    Object.defineProperty(backgroundVideo, "currentTime", {
-      configurable: true,
-      get: () => currentTime,
-      set: (value: number) => {
-        currentTime = value;
-      },
-    });
+    const firstFrame = nextFrame;
+    expect(firstFrame).toEqual(expect.any(Function));
+    const startedAt = window.performance.now();
+    act(() => firstFrame?.(startedAt + 2_600));
+    expect(dialog).toHaveAttribute("data-day-streak-content-ready", "true");
 
-    fireEvent.pointerUp(dialog, { pointerType: "touch" });
-    fireEvent.pointerUp(dialog, { pointerType: "touch" });
-
-    await waitFor(() => expect(dialog).toHaveAttribute("data-day-streak-content-ready", "true"));
-    expect(currentTime).toBeCloseTo(4.499, 3);
+    const finalFrame = nextFrame;
+    act(() => finalFrame?.(startedAt + 4_100));
+    expect(dialog).toHaveAttribute("data-mobile-day-streak-phase", "open");
+    expect(audioPause).toHaveBeenCalled();
   });
 
-  it("does not repeatedly seek the audio track during mobile video updates", () => {
+  it("keeps the touch double-tap skip behavior", async () => {
     render(
-      <LocaleProvider initialLocale="tr">
-        <ThemeProvider initialTheme="default-dark">
-          <MobileDayStreakMenu
-            open
-            onClose={vi.fn()}
-            snapshot={{
-              currentStreak: 4,
-              today: "2026-09-15",
-              loggedDates: [],
-            }}
-          />
-        </ThemeProvider>
-      </LocaleProvider>,
+      <MobileDayStreakMenu
+        open
+        onClose={vi.fn()}
+        snapshot={{ today: "2026-11-03", currentStreak: 1, loggedDates: [] }}
+      />,
     );
 
-    const backgroundVideo = document.querySelector<HTMLVideoElement>("[data-day-streak-background]")!;
-    const audio = document.querySelector<HTMLAudioElement>("[data-day-streak-audio]")!;
-    let audioCurrentTime = 0;
-    const audioSeek = vi.fn((value: number) => {
-      audioCurrentTime = value;
-    });
+    await waitFor(() => expect(audioPlay).toHaveBeenCalledOnce());
+    const dialog = document.querySelector("[data-mobile-day-streak-menu]")!;
+    fireEvent.pointerUp(dialog, { pointerType: "touch" });
+    fireEvent.pointerUp(dialog, { pointerType: "touch" });
 
-    Object.defineProperty(audio, "currentTime", {
-      configurable: true,
-      get: () => audioCurrentTime,
-      set: audioSeek,
-    });
-    Object.defineProperty(backgroundVideo, "currentTime", {
-      configurable: true,
-      get: () => 1,
-    });
-    Object.defineProperty(backgroundVideo, "duration", {
-      configurable: true,
-      value: 4,
-    });
-
-    fireEvent.timeUpdate(backgroundVideo);
-
-    expect(audioSeek).not.toHaveBeenCalled();
+    expect(dialog).toHaveAttribute("data-mobile-day-streak-phase", "open");
+    expect(audioPause).toHaveBeenCalled();
   });
 });

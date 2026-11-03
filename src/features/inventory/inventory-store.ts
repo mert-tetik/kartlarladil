@@ -112,7 +112,6 @@ interface InventoryState {
     correctAnswer: string;
     isCorrect: boolean;
     mode: PracticeMode;
-    forceLearned?: boolean;
   }) => Promise<RecordAnswerResult | undefined>;
   reset: () => Promise<void>;
   createCustomCard: (input: {
@@ -830,7 +829,7 @@ export const useInventoryStore = create<InventoryState>()(
         const updatedCard =
           input.mode === "learned"
             ? ownedCard
-            : applyAnswerProgress(ownedCard, vocabularyCard, input.isCorrect, undefined, input.forceLearned);
+            : applyAnswerProgress(ownedCard, vocabularyCard, input.isCorrect);
         const attempt = createPracticeAttempt(input);
 
         set((state) => ({

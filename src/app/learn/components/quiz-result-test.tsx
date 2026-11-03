@@ -44,6 +44,7 @@ export function QuizResultTest() {
         <div key={round} className="flex h-full w-full max-w-3xl items-center justify-center">
           <ResultFlowView
             mode="active"
+            selectedLanguage="en"
             results={{
               correct: TEST_CARDS,
               incorrect: [],

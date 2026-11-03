@@ -49,6 +49,7 @@ import {
   getCardTranslationMeanings,
   getStudyLocale,
 } from "@/features/cards/card-localization";
+import { getQuizPromptTerm } from "@/features/quiz/quiz-prompt-term";
 import { speakCardTerm, speakText } from "@/features/cards/card-speech";
 import { QuizSpeechBubble, getRandomQuizCharacter } from "@/features/quiz/components/quiz-speech-bubble";
 import {
@@ -147,6 +148,7 @@ import type { QuizContinuationMotivationInput } from "@/features/quiz/quiz-conti
 import { QuizStartSplash } from "@/features/quiz/components/quiz-start-splash";
 import {
   BonusQuestionView,
+  preloadBonusRewardImage,
 } from "@/features/quiz/components/bonus-question-view";
 import { QuizStreakCelebrationView } from "@/features/quiz/components/quiz-streak-celebration-view";
 import { QuizCompletionProgressView } from "@/features/quiz/components/quiz-completion-progress-view";
@@ -773,6 +775,7 @@ export function QuizStation({
     // Start fetching and decoding the critical text-question frames while the
     // language/count setup is visible, not after the text screen mounts.
     void preloadTextQuizFeedbackMascots().catch(() => undefined);
+    preloadBonusRewardImage();
   }, []);
 
   useEffect(() => {
@@ -3007,7 +3010,6 @@ export function QuizStation({
             correctAnswer,
             isCorrect,
             mode,
-            forceLearned: item.forceLearned,
           }).catch((error: unknown) => {
             if (error instanceof InventoryActionError && error.errorCode) {
               setLimitError(error.errorCode);
@@ -3645,6 +3647,7 @@ export function QuizStation({
         <div className="flex h-full w-full max-w-3xl items-center justify-center">
           <ResultFlowView
             mode={mode}
+            selectedLanguage={selectedLanguage}
             results={results}
             earnedPoints={earnedPoints}
             selectedCount={selectedCount}
@@ -6266,7 +6269,7 @@ export function TextQuestion({
         <div className="relative -top-20 flex flex-col items-center gap-2">
           <div className="flex items-center justify-center">
           <h2 className="font-display text-5xl font-semibold leading-none text-white sm:text-6xl lg:text-8xl">
-            {getCardTranslation(item.card, locale)}
+            {getQuizPromptTerm(getCardTranslation(item.card, locale))}
           </h2>
           </div>
         </div>
@@ -6791,6 +6794,7 @@ function QuizViewportOverlay({
 
 type ResultFlowViewProps = {
   mode: PracticeMode;
+  selectedLanguage: LanguageCode | null;
   results: QuizResult;
   earnedPoints?: number;
   selectedCount: number | null;
@@ -6824,6 +6828,7 @@ type ResultFlowViewProps = {
 };
 
 export function ResultFlowView({
+  selectedLanguage,
   showResultMessage = false,
   showChestRewardGate = false,
   chestTier = null,
@@ -7002,6 +7007,7 @@ export function ResultFlowView({
       >
         <QuizContinuationMotivationView
           input={continuationInput}
+          learningLanguage={selectedLanguage}
           hasMoreCardsToLearn={remainingActiveCards > 0}
           isReviewQuiz
           currentRankIcon={currentRankIcon}
@@ -7058,6 +7064,7 @@ export function ResultFlowView({
         {resultStageVisible && continuationMotivationVisible ? (
           <QuizContinuationMotivationView
             input={continuationInput}
+            learningLanguage={selectedLanguage}
             hasMoreCardsToLearn={remainingActiveCards > 0}
             currentRankIcon={currentRankIcon}
             nextRankIcon={nextRankIcon}
@@ -7095,6 +7102,7 @@ export function ResultFlowView({
       {continuationMotivationVisible ? (
         <QuizContinuationMotivationView
           input={continuationInput}
+          learningLanguage={selectedLanguage}
           hasMoreCardsToLearn={remainingActiveCards > 0}
           enterWithTransition={motivationEntering}
           onContinue={handleContinuationContinue}

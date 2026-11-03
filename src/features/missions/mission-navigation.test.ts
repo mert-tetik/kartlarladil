@@ -61,6 +61,8 @@ describe("mission navigation", () => {
 
   it("rejects unknown landing actions and does not create character routes without a character", () => {
     expect(parseLandingMissionAction("unknown")).toBeNull();
+    expect(parseLandingMissionAction("create-card")).toBe("create-card");
+    expect(parseLandingMissionAction("card-groups")).toBe("card-groups");
     expect(resolveMissionNavigation(mission("ai_practice"), "en")).toBeNull();
   });
 });

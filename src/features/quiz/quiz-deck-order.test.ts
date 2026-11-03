@@ -20,16 +20,16 @@ describe("quiz deck learning question order", () => {
     ]);
   });
 
-  it("also moves the forced first-impression question to the end", () => {
+  it("also moves a card-learning question to the end", () => {
     const items = [
-      { id: "first-impression", willLearn: true, forceLearned: true },
+      { id: "learning-first", willLearn: true },
       { id: "regular-1", willLearn: false },
       { id: "learning-1", willLearn: true },
     ];
 
     expect(moveLearningQuestionsToEnd(items).map((item) => item.id)).toEqual([
       "regular-1",
-      "first-impression",
+      "learning-first",
       "learning-1",
     ]);
   });

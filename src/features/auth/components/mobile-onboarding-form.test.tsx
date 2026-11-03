@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, vi } from "vitest";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import {
+  completeOnboardingAction,
   updateLanguagePreferenceAction,
   updateMobileLoginLanguagePreferencesAction,
 } from "@/features/auth/actions";
@@ -99,6 +100,34 @@ describe("MobileOnboardingForm", () => {
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "Hangi dili öğrenmek istersiniz?" })).toBeVisible();
     });
+  });
+
+  it("keeps the profile-picture save button fully opaque while saving", async () => {
+    const user = userEvent.setup();
+    vi.mocked(completeOnboardingAction).mockImplementationOnce(
+      () => new Promise<Awaited<ReturnType<typeof completeOnboardingAction>>>(() => undefined),
+    );
+    const { container } = render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={testUser}>
+          <MobileOnboardingForm countryCode="TR" />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    const form = container.querySelector("form") as HTMLFormElement;
+    await user.click(screen.getByRole("button", { name: "Dil seç" }));
+    await waitFor(() => expect(form).toHaveAttribute("data-mobile-onboarding-visible-step", "learning"));
+    await user.click(screen.getByRole("button", { name: "Dil seç" }));
+    await waitFor(() => expect(form).toHaveAttribute("data-mobile-onboarding-visible-step", "picture"));
+
+    const submit = container.querySelector<HTMLButtonElement>("[data-onboarding-picture-submit]");
+    expect(submit).toHaveClass("disabled:opacity-100");
+    await user.click(submit!);
+
+    await waitFor(() => expect(submit).toBeDisabled());
+    expect(submit).toHaveClass("disabled:opacity-100");
+    expect(submit).not.toHaveClass("disabled:opacity-70");
   });
 
   it("keeps the primary action outside the animated content and enables it with the committed step", async () => {

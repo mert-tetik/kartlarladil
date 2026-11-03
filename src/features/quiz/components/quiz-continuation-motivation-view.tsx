@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowRight, Flame, Loader2 } from "lucide-react";
+import { Flame, Loader2 } from "lucide-react";
 import Image from "next/image";
+import { createPortal } from "react-dom";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { ScoreIcon } from "@/components/score-icon";
@@ -29,6 +30,8 @@ import { cn } from "@/lib/utils";
 import { RANK_ICON_ASSETS } from "@/features/progress/rank-icons";
 import type { RankIconId } from "@/types/domain";
 import { RESULT_MEDAL_IMAGE_SRC } from "@/features/progress/components/reward-medal-hud";
+import { TUTORIAL_CHOICES } from "@/features/tutorial/tutorial-choice-options";
+import type { LanguageCode } from "@/types/domain";
 
 type LeaderboardPositionKey =
   | "pointsPosition"
@@ -109,6 +112,7 @@ export function QuizContinuationMotivationView({
   onContinue,
   onExit,
   onDrawCards,
+  learningLanguage,
   onMotivationsResolved,
 }: {
   input: QuizContinuationMotivationInput;
@@ -122,6 +126,7 @@ export function QuizContinuationMotivationView({
   onContinue: () => void;
   onExit: () => void;
   onDrawCards?: () => void;
+  learningLanguage?: LanguageCode | null;
   onMotivationsResolved?: (motivations: QuizContinuationMotivation[]) => void;
 }) {
   const t = useT();
@@ -149,8 +154,14 @@ export function QuizContinuationMotivationView({
     ? t("quiz.continuation.reviewTitle")
     : t(hasMoreCardsToLearn ? titleKey : "quiz.continuation.noCardsTitle");
 
-  const goToCardDrawOverlay = () => {
-    navigateWithRouteTransition(() => router.push("/?mission-action=draw-cards"));
+  const goToCardAddition = (choice: (typeof TUTORIAL_CHOICES)[number]) => {
+    const action = choice.key === "random"
+      ? "draw-cards"
+      : choice.key === "custom"
+        ? "create-card"
+        : "card-groups";
+    const language = learningLanguage ?? locale;
+    navigateWithRouteTransition(() => router.push(`/?mission-action=${action}&language=${encodeURIComponent(language)}`));
   };
 
   const leaderboardSection = (
@@ -412,19 +423,51 @@ export function QuizContinuationMotivationView({
               />
             </>
           ) : (
-            <button
-              type="button"
-              onClick={onDrawCards ?? goToCardDrawOverlay}
-              className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-brand px-7 py-3 text-base font-bold text-white shadow-[0_5px_0_color-mix(in_srgb,var(--brand)_65%,black)] transition-transform hover:scale-[1.02] active:translate-y-1 active:shadow-none sm:min-h-16 sm:px-10 sm:text-lg"
-              data-continuation-action="draw-cards"
-            >
-              {t("quiz.continuation.drawCardsButton")}
-              <ArrowRight className="size-5" aria-hidden="true" />
-            </button>
+            <div aria-hidden="true" className="h-14" data-continuation-actions-layout-placeholder />
           )}
         </div>
       </div>
-
+      {!hasMoreCardsToLearn && !isReviewQuiz && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="fixed inset-x-0 bottom-0 z-[56] bg-background/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 sm:px-5"
+              data-continuation-card-additions
+            >
+              <h3 className={cn("mb-2 text-center text-xl font-bold text-white", canUseSuperWater(locale) && "font-super-water")}>
+                {formatSuperWaterText(locale, t("quiz.continuation.addToDeckTitle"))}
+              </h3>
+              <div className="mx-auto grid w-full max-w-lg grid-cols-3 gap-2 sm:gap-3">
+                {TUTORIAL_CHOICES.map((choice) => (
+                  <button
+                    key={choice.key}
+                    type="button"
+                    onClick={() => {
+                      if (choice.key === "random" && onDrawCards) {
+                        onDrawCards();
+                        return;
+                      }
+                      goToCardAddition(choice);
+                    }}
+                    className={cn(
+                      "flex min-h-[7rem] min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1.5 py-2 text-center text-white shadow-sm transition-transform active:scale-[0.97]",
+                      choice.key === "random" && "bg-[#f59e0b]",
+                      choice.key === "custom" && "bg-[#c026d3]",
+                      choice.key === "groups" && "bg-[#84cc16]",
+                    )}
+                    data-continuation-card-addition={choice.key}
+                    data-continuation-action={choice.key === "random" ? "draw-cards" : choice.key === "custom" ? "create-card" : "card-groups"}
+                  >
+                    <Image src={choice.icon} alt="" aria-hidden="true" width={64} height={64} className="size-12 shrink-0 object-contain sm:size-14" />
+                    <span className={cn("text-xs font-bold leading-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.75)] sm:text-sm", canUseSuperWater(locale) && "font-super-water")}>
+                      {formatSuperWaterText(locale, t(choice.continuationTitleKey))}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </section>
   );
 }

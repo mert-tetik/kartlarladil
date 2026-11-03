@@ -8,7 +8,7 @@ export const MISSION_ACTION_LANGUAGE_QUERY_KEY = "language";
 export const MISSION_GAME_QUERY_KEY = "mission-game";
 export const MISSION_AUTO_START_QUERY_KEY = "mission-auto-start";
 
-export type LandingMissionAction = "draw-cards" | "start-learning";
+export type LandingMissionAction = "draw-cards" | "create-card" | "card-groups" | "start-learning";
 
 export type MissionNavigationTarget =
   | {
@@ -79,7 +79,9 @@ export function getMissionNavigationHref(target: MissionNavigationTarget, isMobi
 }
 
 export function parseLandingMissionAction(value: string | null): LandingMissionAction | null {
-  return value === "draw-cards" || value === "start-learning" ? value : null;
+  return value === "draw-cards" || value === "create-card" || value === "card-groups" || value === "start-learning"
+    ? value
+    : null;
 }
 
 export function parseMissionGame(value: string | null): GameName | null {

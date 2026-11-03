@@ -29,6 +29,7 @@ const DEMO_START_DELAY = 1000;
 const DEMO_SIDE_HOLD = 1800;
 const CARD_ENTRY_ANIMATION_FALLBACK_MS = 1400;
 const TUTORIAL_PROMPT_WAIT_FALLBACK_MS = 10_000;
+const TUTORIAL_LATER_PROMPT_WAIT_FALLBACK_MS = 1_500;
 const CARD_EXIT_DURATION = 320;
 const INCOMING_ENTRY_DURATION = 260;
 const INCOMING_START_OFFSET = 180;
@@ -43,6 +44,9 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
   const { locale } = useLocale();
   const t = useT();
   const showTutorialClosePointer = useTutorialCardCloseGuidance("draw-cards");
+  const tutorialActive = useTutorialStore((state) => state.active);
+  const tutorialCompleted = useTutorialStore((state) => state.completed);
+  const tutorialStep = useTutorialStore((state) => state.step);
   const tutorialTestMode = useTutorialStore((state) => state.testMode);
   const inventory = useInventoryStore((state) => state.cards);
   const activeCardLimit = useInventoryStore((state) => state.activeCardLimit);
@@ -181,12 +185,14 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
   useEffect(() => {
     if (!open || typeof window === "undefined") return;
 
-    // Tutorial test mode is deliberately repeatable: reopening the draw sheet
-    // should replay its swipe hint even if the regular one-time hint was seen.
-    if (!tutorialTestMode && window.localStorage.getItem(DEMO_KEY)) return;
+    const tutorialFlowActive = (tutorialActive || tutorialTestMode) && !tutorialCompleted;
+
+    // The regular swipe hint is one-time, but tutorial openings need their own
+    // hint every time so users can see the interaction during onboarding.
+    if (!tutorialFlowActive && window.localStorage.getItem(DEMO_KEY)) return;
 
     const timers: number[] = [];
-    if (tutorialTestMode) {
+    if (tutorialFlowActive) {
       timers.push(window.setTimeout(() => {
         setDemoX(0);
         setDemoActive(false);
@@ -221,15 +227,12 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
       );
     };
 
-    const tutorial = useTutorialStore.getState();
-    const isFirstTutorialCardDraw = (tutorial.active || tutorial.testMode)
-      && !tutorial.completed
-      && tutorial.step === 0;
+    const shouldWaitForTutorialPrompt = tutorialFlowActive;
 
-    if (!isFirstTutorialCardDraw) {
+    if (!shouldWaitForTutorialPrompt) {
       startDemo();
     } else {
-      let promptWasShown = false;
+      let promptWasShown = Boolean(document.querySelector("[data-landing-tutorial-layer-message-screen]"));
       promptChangedHandler = (event) => {
         const detail = (event as CustomEvent<TutorialCardLayerPromptChangedDetail>).detail;
         if (detail?.layer !== "draw-cards") return;
@@ -246,7 +249,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
       window.addEventListener(TUTORIAL_CARD_LAYER_PROMPT_CHANGED_EVENT, promptChangedHandler);
       promptWaitTimer = window.setTimeout(() => {
         if (!promptWasShown) startDemo();
-      }, TUTORIAL_PROMPT_WAIT_FALLBACK_MS);
+      }, tutorialStep === 0 ? TUTORIAL_PROMPT_WAIT_FALLBACK_MS : TUTORIAL_LATER_PROMPT_WAIT_FALLBACK_MS);
     }
 
     return () => {
@@ -254,7 +257,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
       if (promptChangedHandler) window.removeEventListener(TUTORIAL_CARD_LAYER_PROMPT_CHANGED_EVENT, promptChangedHandler);
       timers.forEach(window.clearTimeout);
     };
-  }, [open, tutorialTestMode]);
+  }, [open, tutorialActive, tutorialCompleted, tutorialStep, tutorialTestMode]);
 
   function finish(direction: SwipeDirection) {
     if (!card || locked) return;

@@ -397,6 +397,7 @@ export function MobileOnboardingForm({
         ) : (
           <div className={cn("mobile-primary-action-depth w-full rounded-md", actionDepthClass)}>
             <SubmitButton
+              data-onboarding-picture-submit={displayedStep === "picture" ? "true" : undefined}
               data-login-language-submit={isLoginLanguageRefresh ? "true" : undefined}
               aria-busy={isLoginLanguageSubmitPending}
               pendingOverride={isLoginLanguageRefresh ? isLoginLanguageSubmitPending : undefined}
@@ -408,7 +409,11 @@ export function MobileOnboardingForm({
                   }
                 }
                 : undefined}
-              className={cn("h-14 w-full text-base font-bold disabled:opacity-70", actionButtonClass)}
+              className={cn(
+                "h-14 w-full text-base font-bold",
+                displayedStep === "picture" ? "disabled:opacity-100" : "disabled:opacity-70",
+                actionButtonClass,
+              )}
               pendingLabel={t("auth.onboarding.pending")}
             >
               {t("auth.onboarding.continue")}

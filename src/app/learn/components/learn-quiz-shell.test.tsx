@@ -47,7 +47,11 @@ vi.mock("@/features/subscriptions/components/upgrade-dialog", () => ({
 }));
 
 vi.mock("@/features/quiz/components/quiz-station", () => ({
-  QuizStation: ({ mode }: { mode: string }) => <div data-testid="quiz-station" data-mode={mode} />,
+  QuizStation: ({ mode, onPhaseChange }: { mode: string; onPhaseChange?: (phase: "quiz") => void }) => (
+    <div data-testid="quiz-station" data-mode={mode}>
+      <button type="button" onClick={() => onPhaseChange?.("quiz")}>Begin questions</button>
+    </div>
+  ),
 }));
 
 vi.mock("@/features/inventory/cloud-actions", () => ({
@@ -179,6 +183,38 @@ describe("LearnQuizShell", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /^Öğren/i }));
     await waitFor(() => expect(routerReplaceMock).toHaveBeenCalledWith("/"));
+  });
+
+  it("does not redirect after a quiz session consumes the final active card", async () => {
+    useInventoryStore.setState({
+      cards: [createInventoryCard(englishCard.id)],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudLoadComplete: true,
+    });
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <LearnQuizShell
+          title="Kartları öğren"
+          description="Kartlarını çalış"
+          initialMode="active"
+          initialLanguage="en"
+        />
+      </LocaleProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Begin questions" }));
+    await act(async () => {
+      useInventoryStore.setState({
+        cards: [{ ...createInventoryCard(englishCard.id), status: "learned" }],
+      });
+    });
+
+    expect(routerReplaceMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId("quiz-station")).toBeInTheDocument();
   });
 
   it("waits for the authenticated cloud inventory before deciding it is empty", async () => {

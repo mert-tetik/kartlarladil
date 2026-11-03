@@ -43,6 +43,7 @@ export function MobileLockedActionSheet({
       visual={null}
       showProtrusionCircle={false}
       showPanelDecoration={false}
+      centeredDialogOffsetY={isActive ? 15 : 0}
       contentClassName="px-5 pb-5"
     >
       <div className="flex shrink-0 flex-col items-center justify-start text-center">
@@ -90,6 +91,7 @@ export function MobileLockedActionSheet({
           </div>
         )}
       </div>
+      {isActive ? <div aria-hidden="true" className="h-[30px] shrink-0" data-locked-active-sheet-height-extension /> : null}
     </MobileBottomSheetShell>
   );
 }

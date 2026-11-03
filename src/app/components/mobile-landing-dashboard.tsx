@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -23,7 +23,7 @@ import { MobileImageTextTranslateOverlay } from "@/app/components/mobile-image-t
 import { MobileCardGroupSheet } from "@/app/components/mobile-card-group-sheet";
 import { MobileGemDetailsSheet } from "@/app/components/mobile-gem-details-sheet";
 import { MobileMedalDetailsSheet } from "@/app/components/mobile-medal-details-sheet";
-import { preloadDayStreakVideo } from "@/app/components/mobile-day-streak-menu";
+import { preloadDayStreakFrames } from "@/features/daily-streak/day-streak-opening-frames";
 import { useOptionalMobileDayStreakOverlay } from "@/app/components/mobile-day-streak-overlay-provider";
 import { useTheme } from "@/components/theme-provider";
 import {
@@ -122,7 +122,7 @@ export function MobileLandingDashboard() {
   const { mode: themeMode } = useTheme();
 
   useEffect(() => {
-    preloadDayStreakVideo(themeMode);
+    preloadDayStreakFrames(themeMode);
     preloadQuizCountSelectionFrames();
   }, [themeMode]);
 
@@ -290,18 +290,19 @@ export function MobileLandingDashboard() {
 
       tutorialCardSessionRef.current = null;
       const currentCards = useInventoryStore.getState().cards;
-      const hasLearningCards = filterInventoryCards({
+      const learningCardCount = filterInventoryCards({
         cards: currentCards,
         language: session.language,
         status: "active",
-      }).length > 0;
-      if (hasLearningCards) return;
+      }).length;
+      const starterCardsNeeded = Math.max(0, 3 - learningCardCount);
+      if (starterCardsNeeded === 0) return;
 
       const existingIds = new Set(currentCards.map((card) => card.cardId));
       const automaticCardIds = VOCABULARY_CARDS
         .filter((card) => card.language === session.language && card.tier === "A1")
         .filter((card) => !existingIds.has(card.id) && !existingIds.has(card.sourceKey))
-        .slice(0, 3)
+        .slice(0, starterCardsNeeded)
         .map((card) => card.sourceKey);
 
       if (automaticCardIds.length > 0) {
@@ -527,8 +528,13 @@ export function MobileLandingDashboard() {
     }, { nextPath: "/" });
   }
 
-  function handleCreateCard() {
+  function handleCreateCard(languageOverride?: LanguageCode) {
     vibrate("tap");
+    const requestedLanguage = getValidLanguageOverride(languageOverride);
+    if (requestedLanguage && requestedLanguage !== selectedLanguage) {
+      persistLandingCardLanguage(requestedLanguage);
+      setSelectedLanguage(requestedLanguage);
+    }
     requireAuthAction(() => {
       setCustomCardOpen(true);
     }, { nextPath: "/" });
@@ -541,8 +547,13 @@ export function MobileLandingDashboard() {
     }, { nextPath: "/" });
   }
 
-  function handleOpenCardGroups() {
+  function handleOpenCardGroups(languageOverride?: LanguageCode) {
     vibrate("tap");
+    const requestedLanguage = getValidLanguageOverride(languageOverride);
+    if (requestedLanguage && requestedLanguage !== selectedLanguage) {
+      persistLandingCardLanguage(requestedLanguage);
+      setSelectedLanguage(requestedLanguage);
+    }
     requireAuthAction(() => {
       setGroupCardOpen(true);
     }, { nextPath: "/" });
@@ -630,6 +641,19 @@ export function MobileLandingDashboard() {
     navigateWithRouteTransition(() => router.push(getMissionNavigationHref(target, true)));
   }
 
+  const runLandingMissionAction = useEffectEvent((action: NonNullable<ReturnType<typeof parseLandingMissionAction>>, actionLanguage: LanguageCode | null) => {
+    const language = actionLanguage ?? selectedLanguage;
+    if (action === "draw-cards") {
+      handleDrawCards(language);
+    } else if (action === "create-card") {
+      handleCreateCard(language);
+    } else if (action === "card-groups") {
+      handleOpenCardGroups(language);
+    } else {
+      handleStartLearning(language);
+    }
+  });
+
   useEffect(() => {
     const action = parseLandingMissionAction(searchParams.get("mission-action"));
     const actionLanguage = parseLandingLanguage(searchParams.get("language"));
@@ -645,11 +669,7 @@ export function MobileLandingDashboard() {
     window.history.replaceState(window.history.state, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
 
     const timerId = window.setTimeout(() => {
-      if (action === "draw-cards") {
-        handleDrawCards(actionLanguage ?? selectedLanguage);
-      } else {
-        handleStartLearning(actionLanguage ?? selectedLanguage);
-      }
+      runLandingMissionAction(action, actionLanguage);
     }, 0);
 
     return () => window.clearTimeout(timerId);
@@ -869,10 +889,10 @@ export function MobileLandingDashboard() {
       <button
         type="button"
         onPointerEnter={() => {
-          preloadDayStreakVideo(themeMode);
+          preloadDayStreakFrames(themeMode);
         }}
         onFocus={() => {
-          preloadDayStreakVideo(themeMode);
+          preloadDayStreakFrames(themeMode);
         }}
         onClick={() => {
           vibrate("tap");

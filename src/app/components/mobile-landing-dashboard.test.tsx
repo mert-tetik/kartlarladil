@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileLandingDashboard } from "@/app/components/mobile-landing-dashboard";
 import {
   LANDING_CARD_LANGUAGE_KEY,
@@ -162,6 +162,11 @@ vi.mock("@/features/quiz/quiz-pool-preparation", () => ({
 
 describe("MobileLandingDashboard language sync", () => {
   beforeEach(() => {
+    vi.stubGlobal("ResizeObserver", class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    });
     Object.defineProperty(HTMLElement.prototype, "scrollTo", {
       configurable: true,
       value: vi.fn(),
@@ -208,6 +213,8 @@ describe("MobileLandingDashboard language sync", () => {
     });
   });
 
+  afterEach(() => vi.unstubAllGlobals());
+
   it("starts preparing active quiz questions in the background on the landing page", async () => {
     const card = VOCABULARY_CARDS[0];
     inventoryCardsMock.value = [{
@@ -241,6 +248,25 @@ describe("MobileLandingDashboard language sync", () => {
     );
 
     expect(screen.getByText("Dünyada 17.")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["draw-cards", "draw-cards"],
+    ["create-card", "custom-card"],
+    ["card-groups", "card-groups"],
+  ])("opens the %s action requested from the quiz continuation", async (action, tutorialLayer) => {
+    searchParamsMock.value = `mission-action=${action}&language=de`;
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    await waitFor(() => {
+      expect(document.querySelector(`[data-tutorial-layer="${tutorialLayer}"]`)).toBeInTheDocument();
+    });
+    expect(window.localStorage.getItem(LANDING_CARD_LANGUAGE_KEY)).toBe("de");
   });
 
   it("keeps the learned empty-deck menu closed in the normal flow", async () => {
@@ -317,7 +343,19 @@ describe("MobileLandingDashboard language sync", () => {
     expect(within(landingLanguageButton!).getByText(getLanguageDisplayName("en", "tr"))).toBeInTheDocument();
   });
 
-  it("adds starter cards only when the selected language has no learning cards", async () => {
+  it.each([
+    { currentCount: 0, expectedAddCount: 3 },
+    { currentCount: 1, expectedAddCount: 2 },
+    { currentCount: 2, expectedAddCount: 1 },
+    { currentCount: 3, expectedAddCount: 0 },
+  ])("fills the tutorial deck from $currentCount active cards up to three", async ({ currentCount, expectedAddCount }) => {
+    const starterCards = VOCABULARY_CARDS.filter((card) => card.language === "en" && card.tier === "A1");
+    inventoryCardsMock.value = starterCards.slice(0, currentCount).map((card) => ({
+      cardId: card.sourceKey,
+      status: "active",
+      correctCount: 0,
+      addedAt: "2026-09-06T00:00:00.000Z",
+    }));
     render(
       <LocaleProvider initialLocale="tr">
         <MobileLandingDashboard />
@@ -327,24 +365,13 @@ describe("MobileLandingDashboard language sync", () => {
     dispatchTutorialCardLayerOpened({ layer: "draw-cards", origin: { x: 10, y: 10 } });
     dispatchTutorialCardLayerClosed({ layer: "draw-cards" });
 
-    await waitFor(() => expect(addCardsMock).toHaveBeenCalledOnce());
-    expect(addCardsMock.mock.calls[0][0]).toHaveLength(3);
-
-    addCardsMock.mockClear();
-    const learningCard = VOCABULARY_CARDS.find((card) => card.language === "en" && card.tier === "A1");
-    expect(learningCard).toBeDefined();
-    inventoryCardsMock.value = [{
-      cardId: learningCard!.sourceKey,
-      status: "active",
-      correctCount: 0,
-      addedAt: "2026-09-06T00:00:00.000Z",
-    }];
-
-    dispatchTutorialCardLayerOpened({ layer: "draw-cards", origin: { x: 10, y: 10 } });
-    dispatchTutorialCardLayerClosed({ layer: "draw-cards" });
-    await new Promise((resolve) => window.setTimeout(resolve, 0));
-
-    expect(addCardsMock).not.toHaveBeenCalled();
+    if (expectedAddCount > 0) {
+      await waitFor(() => expect(addCardsMock).toHaveBeenCalledOnce());
+      expect(addCardsMock.mock.calls[0][0]).toHaveLength(expectedAddCount);
+    } else {
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+      expect(addCardsMock).not.toHaveBeenCalled();
+    }
   });
 
   it("requests the native review flow after eligible activity when the TWA deck has 10 cards", async () => {
@@ -450,6 +477,17 @@ describe("MobileLandingDashboard language sync", () => {
 
   it("shows the draw pointer after switching from a populated language to an empty language", async () => {
     const user = userEvent.setup();
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+      x: 10,
+      y: 10,
+      top: 10,
+      left: 10,
+      right: 50,
+      bottom: 50,
+      width: 40,
+      height: 40,
+      toJSON: () => ({}),
+    } as DOMRect);
     const englishCard = VOCABULARY_CARDS.find((card) => card.language === "en")!;
     inventoryCardsMock.value = [{
       cardId: englishCard.id,
@@ -469,7 +507,7 @@ describe("MobileLandingDashboard language sync", () => {
     const languageButton = document.querySelector<HTMLButtonElement>("[data-mobile-landing-card-language]");
     expect(languageButton).not.toBeNull();
     await user.click(languageButton!);
-    await user.click(screen.getByRole("button", { name: /Fransızca/i }));
+    await user.click(await screen.findByRole("button", { name: /Fran/ }));
 
     await waitFor(() => {
       expect(screen.getByTestId("mobile-empty-deck-pointer")).toBeInTheDocument();

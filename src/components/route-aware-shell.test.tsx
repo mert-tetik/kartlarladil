@@ -5,6 +5,7 @@ import { RouteAwareShell } from "@/components/route-aware-shell";
 
 vi.mock("next/navigation", () => ({
   usePathname: vi.fn(),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 function renderWithPath(pathname: string) {

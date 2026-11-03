@@ -162,6 +162,11 @@ export function LearnQuizShell({
   useEffect(() => {
     if (bonusTest || bonusRewardTest || normalTest || chestRewardTest || continuationMotivationTest) return;
 
+    // The quiz itself may consume the final active cards by marking them
+    // learned. Only redirect for an empty/unavailable setup; once the session
+    // has started, QuizStation must finish its result flow instead.
+    if (phase !== "mode" && phase !== "language" && phase !== "count") return;
+
     if (!hydrated || cloudLoading || !cloudInventoryReady) {
       return;
     }
@@ -183,6 +188,7 @@ export function LearnQuizShell({
     normalTest,
     chestRewardTest,
     continuationMotivationTest,
+    phase,
     ownerUserId,
     redirectToLanding,
     selectedMode,

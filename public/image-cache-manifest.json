@@ -1,5 +1,5 @@
 {
-  "version": "18536714e95d44a539a42d0f319de903b7fe7108eb2a5e5f14cdb6490c9fe467",
+  "version": "6f16636bea4d45f0440852c395e072736054126e9e86bba6cf949c9998c48b66",
   "assets": [
     {
       "url": "/AppLogdfo.png",
@@ -808,6 +808,34 @@
     {
       "url": "/day-streak/day-streak-light-v2-poster.webp",
       "revision": "058f354c3fbbf80282c77f1830443448e6d2d0971d84436d433e13e7589341b4"
+    },
+    {
+      "url": "/day-streak/opening-frames/dark/atlas-01.webp",
+      "revision": "f8bee0f97aaaeeee7ff2abc012aa20f70aadc0851e62e7eda8ce0e3d91750e89"
+    },
+    {
+      "url": "/day-streak/opening-frames/dark/atlas-02.webp",
+      "revision": "ebf56e36ea7c8c6161f493ab79fd4056fb1c5c206cff891d8e3f9870437b06de"
+    },
+    {
+      "url": "/day-streak/opening-frames/dark/atlas-03.webp",
+      "revision": "fe530e717d1392813a2a1e639b5e3067f34060146a2b6a5b31e4a2efd856e8b1"
+    },
+    {
+      "url": "/day-streak/opening-frames/dark/atlas-04.webp",
+      "revision": "4e57c5980bc9ad819572436ac200c8154564fa68f75eb66ff828a0d5fe7011cc"
+    },
+    {
+      "url": "/day-streak/opening-frames/dark/atlas-05.webp",
+      "revision": "5be8ab16e516053f911ce19afef775e39d4df0d31910e8d8a8f5a83fda6970d9"
+    },
+    {
+      "url": "/day-streak/opening-frames/dark/atlas-06.webp",
+      "revision": "5fc213d9175c64b759a2b60506cf97ba3f29308f20b5d91b9879666b4b2e1cb1"
+    },
+    {
+      "url": "/day-streak/opening-frames/dark/atlas-07.webp",
+      "revision": "9a7ac3ccb95c98d098542c2868f9f155912f9921fec1a27e5a79be533732c8ec"
     },
     {
       "url": "/flags/4x3/cn.svg",

@@ -155,12 +155,47 @@ describe("MobileCardSwipeOverlay", () => {
     expect(card.style.transform).toContain("translate3d(-124px");
   });
 
+  it("replays the swipe demo on every tutorial opening even after the normal hint was seen", async () => {
+    useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 3, testMode: false });
+    render(<MobileCardSwipeOverlay open language="en" onClose={vi.fn()} />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_500);
+    });
+
+    expect((document.querySelector("[data-card-swipe-card]") as HTMLElement).style.transform)
+      .toContain("translate3d(-124px");
+    expect(window.localStorage.getItem("foxiesdeck:card-swipe-demo:shown")).toBe("1");
+  });
+
+  it("waits for the tutorial bubble to close on later tutorial steps too", async () => {
+    useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 3, testMode: false });
+    render(<MobileCardSwipeOverlay open language="en" onClose={vi.fn()} />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    const card = document.querySelector("[data-card-swipe-card]") as HTMLElement;
+    act(() => dispatchTutorialCardLayerPromptChanged({ layer: "draw-cards", active: true }));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(card.style.transform).toBe("");
+
+    act(() => dispatchTutorialCardLayerPromptChanged({ layer: "draw-cards", active: false }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(card.style.transform).toContain("translate3d(-124px");
+  });
+
   it("replays the swipe demo every time the draw sheet opens in tutorial test mode", async () => {
     useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 3, testMode: true });
     const { rerender } = render(<MobileCardSwipeOverlay open language="en" onClose={vi.fn()} />);
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(1_000);
+      await vi.advanceTimersByTimeAsync(2_500);
     });
     expect((document.querySelector("[data-card-swipe-card]") as HTMLElement).style.transform)
       .toContain("translate3d(-124px");
@@ -186,7 +221,7 @@ describe("MobileCardSwipeOverlay", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(1_000);
+      await vi.advanceTimersByTimeAsync(2_500);
     });
     expect((document.querySelector("[data-card-swipe-card]") as HTMLElement).style.transform)
       .toContain("translate3d(-124px");
@@ -234,7 +269,7 @@ describe("MobileCardSwipeOverlay", () => {
     expect(addAttempted).toHaveBeenCalledOnce();
     expect((addAttempted.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({ layer: "draw-cards", count: 1 });
     expect(document.querySelector("[data-card-swipe-outgoing]")).toBeInTheDocument();
-    expect(addCardMock).not.toHaveBeenCalled();
+    expect(addCardMock).toHaveBeenCalledOnce();
     expect(document.querySelector("[data-card-swipe-outgoing]")).toHaveStyle({ transform: "translate3d(150px, 0, 0) rotate(8.333333333333334deg)" });
     expect(document.querySelector('[data-card-swipe-outgoing-state="add"]')).toHaveClass("bg-emerald-500/85");
     expect(document.querySelector('[data-card-swipe-outgoing-state="add"]')).toHaveStyle({ borderRadius: "12% / 8.5%" });

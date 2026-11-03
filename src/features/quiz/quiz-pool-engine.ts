@@ -136,9 +136,7 @@ function yieldToEventLoop() {
 type QuizPoolCandidate = {
   card: VocabularyCard;
   inventoryCard: InventoryCard;
-  sourceIndex: number;
   willLearn: boolean;
-  forceLearned: boolean;
 };
 
 const QUIZ_POOL_PROGRESS_BATCH_SIZE = 2;
@@ -173,19 +171,15 @@ export async function buildQuizPool(
   const maxRegularCount = Math.min(50, source.length);
   const listeningCards = [...VOCABULARY_CARDS, ...source];
   const shuffled = shuffle(source).slice(0, maxRegularCount);
-  const hasNoLearnedCards = !cards.some((item) => item.status === "learned");
-  const candidates = shuffled.flatMap((card, sourceIndex): QuizPoolCandidate[] => {
+  const candidates = shuffled.flatMap((card): QuizPoolCandidate[] => {
     const inventoryCard = inventoryById.get(card.id) ?? inventoryById.get(card.sourceKey);
     if (!inventoryCard) return [];
 
-    const forceLearned = mode === "active" && hasNoLearnedCards && sourceIndex === 0;
     const willLearn = normalQuestionType
       ? inventoryCard.status !== "learned" && inventoryCard.correctCount + 1 >= getTierRequirement(card.tier)
-      : forceLearned || (
-        inventoryCard.status !== "learned" && inventoryCard.correctCount + 1 >= getTierRequirement(card.tier)
-      );
+      : inventoryCard.status !== "learned" && inventoryCard.correctCount + 1 >= getTierRequirement(card.tier);
 
-    return [{ card, inventoryCard, sourceIndex, willLearn, forceLearned }];
+    return [{ card, inventoryCard, willLearn }];
   });
   const orderedCandidates = moveLearningQuestionsToEnd(candidates);
   const bonusInventoryCards = joined.filter(({ card }) => card.language === language);
@@ -220,51 +214,42 @@ export async function buildQuizPool(
 
   for (const candidate of orderedCandidates) {
     if (shouldCancel()) throw new DOMException("Quiz preparation cancelled", "AbortError");
-    const { card, inventoryCard, sourceIndex: index, willLearn, forceLearned } = candidate;
+    const { card, inventoryCard, willLearn } = candidate;
     const answerLocale = getStudyLocale(card.language, locale);
     let built: QuizItem | null = null;
 
     if (normalQuestionType) {
       switch (normalQuestionType) {
         case "choice":
-          built = { card, inventoryCard, questionType: "choice", question: buildQuizQuestion(card, VOCABULARY_CARDS, answerLocale), willLearn, forceLearned };
+          built = { card, inventoryCard, questionType: "choice", question: buildQuizQuestion(card, VOCABULARY_CARDS, answerLocale), willLearn };
           break;
         case "listening": {
           const question = buildListeningQuizQuestion(card, listeningCards);
-          built = question ? { card, inventoryCard, questionType: "listening", question, willLearn, forceLearned } : null;
+          built = question ? { card, inventoryCard, questionType: "listening", question, willLearn } : null;
           break;
         }
         case "definition": {
           const question = buildDefinitionQuizQuestion(card, VOCABULARY_CARDS, answerLocale);
-          built = question ? { card, inventoryCard, questionType: "definition", question, willLearn, forceLearned } : null;
+          built = question ? { card, inventoryCard, questionType: "definition", question, willLearn } : null;
           break;
         }
         case "text":
-          built = { card, inventoryCard, questionType: "text", question: { correctAnswer: card.term }, willLearn, forceLearned };
+          built = { card, inventoryCard, questionType: "text", question: { correctAnswer: card.term }, willLearn };
           break;
         case "true-false":
-          built = { card, inventoryCard, questionType: "true-false", question: buildTrueFalseQuizQuestion(card, VOCABULARY_CARDS, answerLocale), willLearn, forceLearned };
+          built = { card, inventoryCard, questionType: "true-false", question: buildTrueFalseQuizQuestion(card, VOCABULARY_CARDS, answerLocale), willLearn };
           break;
         case "sentence-completion": {
           const question = buildSentenceCompletionQuizQuestion(card, VOCABULARY_CARDS);
-          built = question ? { card, inventoryCard, questionType: "sentence-completion", question, character: getRandomCharacter(), willLearn, forceLearned } : null;
+          built = question ? { card, inventoryCard, questionType: "sentence-completion", question, character: getRandomCharacter(), willLearn } : null;
           break;
         }
         case "group": {
           const question = buildGroupQuestion(card, createSeededRandom(`${seed}-group-${card.id}`));
-          built = question ? { card, inventoryCard, questionType: "group", question, character: getRandomCharacter(), willLearn, forceLearned } : null;
+          built = question ? { card, inventoryCard, questionType: "group", question, character: getRandomCharacter(), willLearn } : null;
           break;
         }
       }
-    } else if (mode === "active" && hasNoLearnedCards && index === 0) {
-      built = {
-        card,
-        inventoryCard,
-        questionType: "choice",
-        question: buildQuizQuestion(card, VOCABULARY_CARDS, answerLocale),
-        willLearn: true,
-        forceLearned: true,
-      };
     } else {
       const isLearningQuestion = mode === "active" && willLearn;
       if (isLearningQuestion && shouldUseDefinitionQuestion()) {

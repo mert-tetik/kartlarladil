@@ -1,8 +1,9 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type SyntheticEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import { ChevronLeft, ChevronRight, Flame, Loader2, X } from "lucide-react";
+import Image from "next/image";
 import { useTheme } from "@/components/theme-provider";
 import type { ThemeMode } from "@/lib/themes";
 import { formatNumber } from "@/i18n/labels";
@@ -11,7 +12,19 @@ import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText }
 import type { DailyStreakSnapshot } from "@/features/daily-streak/daily-streak-actions";
 import type { LocaleCode } from "@/types/domain";
 import { cn } from "@/lib/utils";
-import { getNativeMediaFallbackSource, isNativeMediaFallbackSource } from "@/lib/native-media-fallback";
+import {
+  DAY_STREAK_OPENING_ATLAS_COUNT,
+  DAY_STREAK_OPENING_ATLAS_COLUMNS,
+  DAY_STREAK_OPENING_DURATION_SECONDS,
+  DAY_STREAK_OPENING_FRAME_COUNT,
+  DAY_STREAK_OPENING_FRAME_HEIGHT,
+  DAY_STREAK_OPENING_FRAME_RATE,
+  DAY_STREAK_OPENING_FRAMES_PER_ATLAS,
+  DAY_STREAK_OPENING_FRAME_WIDTH,
+  getDayStreakOpeningAtlasSource,
+  loadDayStreakOpeningAtlasImage,
+  preloadDayStreakFrames,
+} from "@/features/daily-streak/day-streak-opening-frames";
 
 const DAY_STREAK_CLOSE_DURATION = 360;
 const DAY_STREAK_CALENDAR_TRANSITION_DURATION = 560;
@@ -19,33 +32,9 @@ const DAY_STREAK_VIDEO_FALLBACK_DURATION = 4500;
 const DAY_STREAK_UI_EARLY_REVEAL = 1500;
 const DAY_STREAK_AUDIO_SOURCE = "/day-streak/daily_streak_sfx.mp3?v=20261009-1";
 const DAY_STREAK_DOUBLE_TAP_WINDOW = 320;
-const DAY_STREAK_VIDEO_SOURCES: Record<ThemeMode, string> = {
-  dark: "/day-streak/day-streak-dark-v3.mp4?v=20261007-1",
-};
 const DAY_STREAK_POSTER_SOURCES: Record<ThemeMode, string> = {
   dark: "/day-streak/day-streak-dark-v2-poster.webp",
 };
-
-const preloadedDayStreakVideos = new Map<string, HTMLVideoElement>();
-
-export function preloadDayStreakVideo(mode: ThemeMode) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  const source = DAY_STREAK_VIDEO_SOURCES[mode];
-  if (preloadedDayStreakVideos.has(source)) {
-    return;
-  }
-
-  const video = document.createElement("video");
-  video.preload = "auto";
-  video.muted = true;
-  video.playsInline = true;
-  video.src = source;
-  video.load();
-  preloadedDayStreakVideos.set(source, video);
-}
 
 export function MobileDayStreakMenu({
   open,
@@ -69,65 +58,344 @@ export function MobileDayStreakMenu({
   const { mode } = useTheme();
   const { locale } = useLocale();
   const t = useT();
-  const videoSource = DAY_STREAK_VIDEO_SOURCES[mode];
   const [mounted, setMounted] = useState(false);
   const [phase, setPhase] = useState<"opening" | "open" | "closing">("opening");
   const [contentReady, setContentReady] = useState(false);
-  const [openingVideoSource, setOpeningVideoSource] = useState(videoSource);
-  const [openingVideoUnavailable, setOpeningVideoUnavailable] = useState(false);
+  const [openingFramesUnavailable, setOpeningFramesUnavailable] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [calendarClosing, setCalendarClosing] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(parseDateKey(snapshot?.today ?? getLocalDateKey(new Date()))));
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const loadedAtlasesRef = useRef(new Map<number, HTMLImageElement>());
+  const atlasPromisesRef = useRef(new Map<number, Promise<HTMLImageElement | null>>());
+  const atlasGenerationRef = useRef(0);
+  const animationFrameRef = useRef<number | null>(null);
+  const animationStartedRef = useRef(false);
+  const animationFinishedRef = useRef(false);
+  const animationStartTimeRef = useRef<number | null>(null);
+  const audioStartedRef = useRef(false);
+  const lastRequestedFrameRef = useRef(0);
+  const lastDrawnFrameRef = useRef<number | null>(null);
+  const drawFrameRef = useRef<(frameIndex: number) => void>(() => undefined);
   const lastTapAtRef = useRef<number | null>(null);
   const todayKey = snapshot?.today ?? getLocalDateKey(new Date());
   const loggedDates = useMemo(() => new Set(snapshot?.loggedDates ?? []), [snapshot?.loggedDates]);
   const weekDays = useMemo(() => getWeekDays(parseDateKey(todayKey)), [todayKey]);
   const calendarDays = useMemo(() => getCalendarDays(calendarMonth), [calendarMonth]);
 
+  const ensureAtlasImage = useCallback((atlasIndex: number) => {
+    if (atlasIndex < 0 || atlasIndex >= DAY_STREAK_OPENING_ATLAS_COUNT) {
+      return Promise.resolve(null);
+    }
+
+    const loaded = loadedAtlasesRef.current.get(atlasIndex);
+    if (loaded) return Promise.resolve(loaded);
+
+    const pending = atlasPromisesRef.current.get(atlasIndex);
+    if (pending) return pending;
+
+    const generation = atlasGenerationRef.current;
+    const request = loadDayStreakOpeningAtlasImage(getDayStreakOpeningAtlasSource(mode, atlasIndex))
+      .then((image) => {
+        if (generation !== atlasGenerationRef.current) {
+          image.src = "data:,";
+          return null;
+        }
+
+        loadedAtlasesRef.current.set(atlasIndex, image);
+        drawFrameRef.current(lastRequestedFrameRef.current);
+        return image;
+      })
+      .catch(() => null)
+      .finally(() => {
+        if (atlasPromisesRef.current.get(atlasIndex) === request) {
+          atlasPromisesRef.current.delete(atlasIndex);
+        }
+      });
+
+    atlasPromisesRef.current.set(atlasIndex, request);
+    return request;
+  }, [mode]);
+
+  const drawFrame = useCallback((requestedFrame: number) => {
+    const frameIndex = Math.max(0, Math.min(DAY_STREAK_OPENING_FRAME_COUNT - 1, requestedFrame));
+    lastRequestedFrameRef.current = frameIndex;
+    const atlasIndex = Math.floor(frameIndex / DAY_STREAK_OPENING_FRAMES_PER_ATLAS);
+    const atlas = loadedAtlasesRef.current.get(atlasIndex);
+
+    if (!atlas) {
+      void ensureAtlasImage(atlasIndex);
+      return;
+    }
+
+    if (
+      atlasIndex + 1 < DAY_STREAK_OPENING_ATLAS_COUNT &&
+      !loadedAtlasesRef.current.has(atlasIndex + 1) &&
+      !atlasPromisesRef.current.has(atlasIndex + 1)
+    ) {
+      void ensureAtlasImage(atlasIndex + 1);
+    }
+
+    for (const loadedIndex of loadedAtlasesRef.current.keys()) {
+      if (loadedIndex === atlasIndex || loadedIndex === atlasIndex + 1) continue;
+      loadedAtlasesRef.current.delete(loadedIndex);
+      atlasPromisesRef.current.delete(loadedIndex);
+    }
+
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d", { alpha: false, desynchronized: true });
+    if (!canvas || !context) return;
+
+    const width = canvas.clientWidth || window.innerWidth;
+    const height = canvas.clientHeight || window.innerHeight;
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+    const pixelWidth = Math.max(1, Math.round(width * pixelRatio));
+    const pixelHeight = Math.max(1, Math.round(height * pixelRatio));
+    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+    }
+
+    context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+
+    const scale = Math.max(width / DAY_STREAK_OPENING_FRAME_WIDTH, height / DAY_STREAK_OPENING_FRAME_HEIGHT);
+    const drawWidth = DAY_STREAK_OPENING_FRAME_WIDTH * scale;
+    const drawHeight = DAY_STREAK_OPENING_FRAME_HEIGHT * scale;
+    const drawX = (width - drawWidth) / 2;
+    const drawY = (height - drawHeight) / 2;
+    const frameInAtlas = frameIndex % DAY_STREAK_OPENING_FRAMES_PER_ATLAS;
+    const sourceX = (frameInAtlas % DAY_STREAK_OPENING_ATLAS_COLUMNS) * DAY_STREAK_OPENING_FRAME_WIDTH;
+    const sourceY = Math.floor(frameInAtlas / DAY_STREAK_OPENING_ATLAS_COLUMNS) * DAY_STREAK_OPENING_FRAME_HEIGHT;
+
+    context.clearRect(0, 0, width, height);
+    context.drawImage(
+      atlas,
+      sourceX,
+      sourceY,
+      DAY_STREAK_OPENING_FRAME_WIDTH,
+      DAY_STREAK_OPENING_FRAME_HEIGHT,
+      drawX,
+      drawY,
+      drawWidth,
+      drawHeight,
+    );
+    lastDrawnFrameRef.current = frameIndex;
+  }, [ensureAtlasImage]);
+
+  const revealContent = useCallback(() => {
+    if (!open) return;
+    setPhase("open");
+    setContentReady(true);
+  }, [open]);
+
+  const finishOpening = useCallback((showLastFrame = false) => {
+    if (!open) return;
+    animationFinishedRef.current = true;
+    animationStartedRef.current = false;
+    animationStartTimeRef.current = null;
+    if (animationFrameRef.current !== null) {
+      window.cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    if (showLastFrame) drawFrameRef.current(DAY_STREAK_OPENING_FRAME_COUNT - 1);
+    audioRef.current?.pause();
+    revealContent();
+  }, [open, revealContent]);
+
+  const animateOpeningRef = useRef<(timestamp: number) => void>(() => undefined);
+  const animateOpening = useCallback((timestamp: number) => {
+    const startedAt = animationStartTimeRef.current;
+    if (startedAt === null || !animationStartedRef.current || animationFinishedRef.current) return;
+
+    const elapsed = Math.max(0, (timestamp - startedAt) / 1000);
+    const animationTime = Math.min(elapsed, DAY_STREAK_OPENING_DURATION_SECONDS);
+    const frameIndex = Math.min(
+      DAY_STREAK_OPENING_FRAME_COUNT - 1,
+      Math.floor(animationTime * DAY_STREAK_OPENING_FRAME_RATE),
+    );
+    drawFrameRef.current(frameIndex);
+
+    if (DAY_STREAK_OPENING_DURATION_SECONDS - animationTime <= DAY_STREAK_UI_EARLY_REVEAL / 1000) {
+      revealContent();
+    }
+
+    const audio = audioRef.current;
+    if (audio) {
+      const fadeStart = DAY_STREAK_OPENING_DURATION_SECONDS - 0.8;
+      audio.volume = animationTime >= fadeStart
+        ? Math.max(0, (DAY_STREAK_OPENING_DURATION_SECONDS - animationTime) / 0.8)
+        : 1;
+      if (audioStartedRef.current && !audio.paused && Math.abs(audio.currentTime - animationTime) > 0.16) {
+        try {
+          audio.currentTime = animationTime;
+        } catch {
+          // A rejected audio seek should not interrupt the frame timeline.
+        }
+      }
+    }
+
+    if (elapsed >= DAY_STREAK_OPENING_DURATION_SECONDS) {
+      finishOpening(true);
+      return;
+    }
+
+    animationFrameRef.current = window.requestAnimationFrame((nextTimestamp) => {
+      animateOpeningRef.current(nextTimestamp);
+    });
+  }, [finishOpening, revealContent]);
+
+  useEffect(() => {
+    drawFrameRef.current = drawFrame;
+  }, [drawFrame]);
+
+  useEffect(() => {
+    animateOpeningRef.current = animateOpening;
+  }, [animateOpening]);
+
+  const startOpening = useCallback(async () => {
+    if (animationStartedRef.current || animationFinishedRef.current) return;
+    const firstAtlas = await ensureAtlasImage(0);
+    if (!firstAtlas || animationFinishedRef.current || !open) {
+      if (!firstAtlas && !animationFinishedRef.current) {
+        setOpeningFramesUnavailable(true);
+        finishOpening();
+      }
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    let hasCanvasContext = false;
+    try {
+      hasCanvasContext = Boolean(canvas?.getContext("2d", { alpha: false, desynchronized: true }));
+    } catch {
+      hasCanvasContext = false;
+    }
+    if (!hasCanvasContext) {
+      setOpeningFramesUnavailable(true);
+      finishOpening();
+      return;
+    }
+
+    animationStartedRef.current = true;
+    animationStartTimeRef.current = window.performance.now();
+    lastRequestedFrameRef.current = 0;
+    drawFrameRef.current(0);
+    void ensureAtlasImage(1);
+
+    const audio = audioRef.current;
+    if (audio) {
+      audioStartedRef.current = false;
+      audio.volume = 1;
+      try {
+        audio.currentTime = 0;
+        const playback = audio.play?.();
+        if (playback && typeof playback.then === "function") {
+          void playback.then(() => {
+            audioStartedRef.current = true;
+          }).catch(() => {
+            audioStartedRef.current = false;
+          });
+        } else {
+          audioStartedRef.current = true;
+        }
+      } catch {
+        audioStartedRef.current = false;
+      }
+    }
+
+    animationFrameRef.current = window.requestAnimationFrame((timestamp) => {
+      animateOpeningRef.current(timestamp);
+    });
+  }, [ensureAtlasImage, finishOpening, open]);
+
+  useEffect(() => {
+    if (!mounted || !open) return;
+
+    const generation = ++atlasGenerationRef.current;
+    animationFinishedRef.current = false;
+    animationStartedRef.current = false;
+    void startOpening();
+
+    return () => {
+      if (atlasGenerationRef.current === generation) atlasGenerationRef.current += 1;
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      animationStartedRef.current = false;
+      audioRef.current?.pause();
+      loadedAtlasesRef.current.clear();
+      atlasPromisesRef.current.clear();
+    };
+  }, [mounted, open, startOpening]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !mounted || !open || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(() => {
+      if (lastDrawnFrameRef.current !== null) drawFrameRef.current(lastDrawnFrameRef.current);
+    });
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, [mounted, open]);
+
   useEffect(() => {
     if (open) {
-      setMounted(true);
-      setPhase("opening");
-      setContentReady(false);
-      setOpeningVideoSource(videoSource);
-      setOpeningVideoUnavailable(false);
-      setCalendarOpen(false);
-      setCalendarClosing(false);
+      animationFinishedRef.current = false;
+      animationStartedRef.current = false;
+      animationStartTimeRef.current = null;
       lastTapAtRef.current = null;
-      setCalendarMonth(startOfMonth(parseDateKey(todayKey)));
-      preloadDayStreakVideo(mode);
+      preloadDayStreakFrames(mode);
+
+      const mountTimer = window.setTimeout(() => {
+        setMounted(true);
+        setPhase("opening");
+        setContentReady(false);
+        setOpeningFramesUnavailable(false);
+        setCalendarOpen(false);
+        setCalendarClosing(false);
+        setCalendarMonth(startOfMonth(parseDateKey(todayKey)));
+      });
 
       const fallbackTimer = window.setTimeout(() => {
+        if (!animationStartedRef.current) {
+          animationFinishedRef.current = true;
+          audioRef.current?.pause();
+        }
         setPhase("open");
         setContentReady(true);
       }, DAY_STREAK_VIDEO_FALLBACK_DURATION);
 
-      return () => window.clearTimeout(fallbackTimer);
+      return () => {
+        window.clearTimeout(mountTimer);
+        window.clearTimeout(fallbackTimer);
+      };
     }
 
     if (!mounted) return;
 
-    videoRef.current?.pause();
+    animationFinishedRef.current = true;
+    animationStartedRef.current = false;
+    if (animationFrameRef.current !== null) {
+      window.cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
     audioRef.current?.pause();
-    setPhase("closing");
+    const closeFrame = window.requestAnimationFrame(() => setPhase("closing"));
     const closeTimer = window.setTimeout(() => {
       setMounted(false);
       onExited?.();
     }, DAY_STREAK_CLOSE_DURATION);
 
-    return () => window.clearTimeout(closeTimer);
+    return () => {
+      window.cancelAnimationFrame(closeFrame);
+      window.clearTimeout(closeTimer);
+    };
   }, [mode, onExited, open]);
-
-  const handleOpeningVideoError = () => {
-    if (!isNativeMediaFallbackSource(openingVideoSource)) {
-      setOpeningVideoSource(getNativeMediaFallbackSource(openingVideoSource));
-      return;
-    }
-    setOpeningVideoUnavailable(true);
-    finishOpeningVideo();
-  };
 
   useEffect(() => {
     if (!calendarClosing) {
@@ -141,50 +409,6 @@ export function MobileDayStreakMenu({
 
     return () => window.clearTimeout(closeTimer);
   }, [calendarClosing]);
-
-  useEffect(() => {
-    if (!mounted || !open) {
-      return;
-    }
-
-    const video = videoRef.current;
-    if (!video) {
-      return;
-    }
-
-    const startVideo = () => {
-      video.currentTime = 0;
-      const audio = audioRef.current;
-      if (audio) {
-        try {
-          audio.currentTime = 0;
-        } catch {
-          // Audio metadata may still be loading; playback can still begin at its default position.
-        }
-        audio.volume = 1;
-        void audio.play().catch(() => undefined);
-      }
-      void video.play().catch(() => undefined);
-    };
-
-    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-      startVideo();
-      return;
-    }
-
-    video.addEventListener("canplay", startVideo, { once: true });
-    video.load();
-    return () => video.removeEventListener("canplay", startVideo);
-  }, [mounted, open, openingVideoSource]);
-
-  const finishOpeningVideo = () => {
-    if (!open) {
-      return;
-    }
-
-    audioRef.current?.pause();
-    revealContent();
-  };
 
   useEffect(() => {
     if (!open) return;
@@ -204,42 +428,9 @@ export function MobileDayStreakMenu({
   const streak = Math.max(1, snapshot?.currentStreak ?? 1);
   const highestStreakValue = Math.max(1, highestStreak ?? streak);
   const superWater = canUseSuperWater(locale);
-  const revealContent = () => {
-    if (!open) {
-      return;
-    }
-
-    setPhase("open");
-    setContentReady(true);
-  };
-  const handleVideoTimeUpdate = (event: SyntheticEvent<HTMLVideoElement>) => {
-    const video = event.currentTarget;
-
-    if (!contentReady && video.duration > 0 && video.duration - video.currentTime <= DAY_STREAK_UI_EARLY_REVEAL / 1000) {
-      revealContent();
-    }
-  };
-  const skipOpeningVideo = () => {
-    if (!open) {
-      return;
-    }
-
-    const video = videoRef.current;
-    if (!video || video.ended) {
-      return;
-    }
-
-    if (Number.isFinite(video.duration) && video.duration > 0) {
-      try {
-        video.currentTime = Math.max(0, video.duration - 0.001);
-      } catch {
-        // The final frame is best effort on native media implementations.
-      }
-    }
-
-    video.pause();
-    audioRef.current?.pause();
-    finishOpeningVideo();
+  const skipOpeningAnimation = () => {
+    if (!open || animationFinishedRef.current) return;
+    finishOpening(true);
   };
   const handleOpeningPointerUp = (event: PointerEvent<HTMLDivElement>) => {
     if (event.pointerType !== "touch" && event.pointerType !== "pen") {
@@ -252,7 +443,7 @@ export function MobileDayStreakMenu({
 
     if (previousTapAt !== null && now - previousTapAt <= DAY_STREAK_DOUBLE_TAP_WINDOW) {
       lastTapAtRef.current = null;
-      skipOpeningVideo();
+      skipOpeningAnimation();
     }
   };
 
@@ -269,23 +460,23 @@ export function MobileDayStreakMenu({
       data-mobile-day-streak-phase={phase}
       data-day-streak-content-ready={contentReady}
       onPointerUp={handleOpeningPointerUp}
-      onDoubleClick={skipOpeningVideo}
+      onDoubleClick={skipOpeningAnimation}
     >
-      {!openingVideoUnavailable ? <video
-        ref={videoRef}
-        key={openingVideoSource}
-        src={openingVideoSource}
-        poster={DAY_STREAK_POSTER_SOURCES[mode]}
-        autoPlay
-        muted
-        playsInline
-        preload="auto"
-        onTimeUpdate={handleVideoTimeUpdate}
-        onEnded={finishOpeningVideo}
-        onError={handleOpeningVideoError}
+      <Image
+        src={DAY_STREAK_POSTER_SOURCES[mode]}
+        alt=""
         aria-hidden="true"
-        data-day-streak-background
-        className="day-streak-opening-background absolute inset-0 h-full w-full object-cover"
+        fill
+        priority
+        unoptimized
+        data-day-streak-background-poster
+        className="absolute inset-0 z-0 h-full w-full object-cover"
+      />
+      {!openingFramesUnavailable ? <canvas
+        ref={canvasRef}
+        aria-hidden="true"
+        data-day-streak-background-frames
+        className="day-streak-opening-background absolute inset-0 z-0 h-full w-full"
       /> : null}
       <audio
         ref={audioRef}

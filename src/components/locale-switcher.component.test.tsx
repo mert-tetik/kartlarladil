@@ -74,6 +74,7 @@ describe("LocaleSwitcher language matching", () => {
     expect(mobileMenu).toHaveClass("grid-rows-[minmax(0,1fr)_2.5rem]", "top-[var(--app-header-height)]");
     expect(mobileMenu.firstElementChild).toHaveClass("grid-cols-3");
     expect(within(mobileMenu).getAllByRole("option")).toHaveLength(14);
-    expect(selectedOption).toHaveClass("aspect-square", "border-0", "bg-transparent");
+    expect(selectedOption).toHaveClass("min-h-36", "border-0", "bg-transparent", "flex-col");
+    expect(selectedOption.querySelector(".size-24")).toBeInTheDocument();
   });
 });
