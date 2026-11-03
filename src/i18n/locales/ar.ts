@@ -11,7 +11,7 @@ const dictionary = {
   "quiz.continuation.addToDeckTitle": "أضف بطاقات إلى مجموعتك",
   "quiz.continuation.addRandomCards": "اسحب بطاقة عشوائية",
   "quiz.continuation.searchWords": "ابحث عن كلمة",
-  "quiz.continuation.addFromCollections": "أضف من المجموعات",
+  "quiz.continuation.addFromCollections": "أضف مجموعة",
   "quiz.continuation.reviewTitle": "كرّرها مرة أخرى لترسّخها جيدًا!",
   "quiz.continuation.randomTitle.one": "عليك أن تتعلم هذه اللغة! هيا، تمرين آخر.",
   "quiz.continuation.randomTitle.two": "هناك لغة تنتظرك لتتعلمها! أنجز تمرينًا آخر!",

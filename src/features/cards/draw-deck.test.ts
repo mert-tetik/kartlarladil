@@ -1,5 +1,5 @@
 import { drawCardsFromDeck, markCardsAsDrawn } from "@/features/cards/draw-deck";
-import type { LanguageCode, LocaleCode, VocabularyCard } from "@/types/domain";
+import type { LanguageCode, LocaleCode, Tier, VocabularyCard } from "@/types/domain";
 
 const ALL_LOCALES: LocaleCode[] = [
   "tr",
@@ -25,10 +25,10 @@ function fillLocales<T>(value: T): Record<LocaleCode, T> {
   >;
 }
 
-function createCard(id: string, language: LanguageCode = "ko", tier: "A1" = "A1"): VocabularyCard {
+function createCard(id: string, language: LanguageCode = "ko", tier: Tier = "A1"): VocabularyCard {
   return {
     id,
-    sourceKey: `ko:A1:word:${id}:noun`,
+    sourceKey: `ko:${tier}:word:${id}:noun`,
     englishKey: id,
     language,
     tier,
@@ -121,6 +121,43 @@ describe("drawCardsFromDeck", () => {
     expect(result.cards).toHaveLength(3);
     expect(result.state.remaining).toHaveLength(0);
   });
+
+  it("deals random cards in the A1-A2-B1-B2-C1 tier cycle across draw calls", () => {
+    const tiers: Tier[] = ["A1", "A2", "B1", "B2", "C1"];
+    const cards = tiers.flatMap((tier) => [
+      createCard(`${tier}-first`, "ko", tier),
+      createCard(`${tier}-second`, "ko", tier),
+    ]);
+
+    const first = drawCardsFromDeck(null, 3, cards, new Set());
+    const second = drawCardsFromDeck(first.state, 7, cards, new Set());
+    const dealt = [...first.cards, ...second.cards];
+
+    expect(dealt.map((card) => card.tier)).toEqual([
+      "A1", "A2", "B1", "B2", "C1",
+      "A1", "A2", "B1", "B2", "C1",
+    ]);
+    expect(new Set(dealt.map((card) => card.id)).size).toBe(10);
+  });
+
+  it("converts a previously saved random deck into tier order", () => {
+    const cards = [
+      createCard("a1", "ko", "A1"),
+      createCard("a2", "ko", "A2"),
+      createCard("b1", "ko", "B1"),
+      createCard("b2", "ko", "B2"),
+      createCard("c1", "ko", "C1"),
+    ];
+    const legacyState = {
+      remaining: ["c1", "b2", "b1", "a2"],
+      drawn: ["a1"],
+    };
+
+    const result = drawCardsFromDeck(legacyState, 4, cards, new Set());
+
+    expect(result.cards.map((card) => card.tier)).toEqual(["A2", "B1", "B2", "C1"]);
+    expect(result.state.drawn).toEqual(["a1", ...result.cards.map((card) => card.id)]);
+  });
 });
 
 describe("markCardsAsDrawn", () => {
@@ -129,6 +166,15 @@ describe("markCardsAsDrawn", () => {
     const next = markCardsAsDrawn(state, ["b"]);
     expect(next.remaining).toEqual(["a", "c"]);
     expect(next.drawn).toEqual(["d", "b"]);
+  });
+
+  it("preserves tier ordering metadata", () => {
+    const state = { remaining: ["a", "b"], drawn: ["c"], tierOrderVersion: 1 as const };
+    expect(markCardsAsDrawn(state, ["b"])).toEqual({
+      remaining: ["a"],
+      drawn: ["c", "b"],
+      tierOrderVersion: 1,
+    });
   });
 
   it("creates a fresh deck state when none exists", () => {

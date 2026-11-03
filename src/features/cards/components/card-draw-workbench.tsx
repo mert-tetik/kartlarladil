@@ -150,6 +150,7 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
       writeDrawDeckState(window.localStorage, language, tier, {
         remaining: nextRemaining,
         drawn: nextDrawn,
+        ...(current.tierOrderVersion === 1 ? { tierOrderVersion: 1 } : {}),
       });
     }
   }, [ownedIds, language, tier]);

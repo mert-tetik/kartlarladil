@@ -253,7 +253,7 @@ export function QuizContinuationMotivationView({
     >
       {leaderboardSection}
 
-      <div className="relative -top-10 flex min-h-0 w-full flex-1 flex-col items-center justify-center">
+      <div className="relative -top-[60px] flex min-h-0 w-full flex-1 flex-col items-center justify-center">
         <div
           className="quiz-continuation-stagger-enter mx-auto flex w-full max-w-3xl flex-col items-center"
           style={{ "--quiz-continuation-delay": "90ms" } as CSSProperties}
@@ -427,7 +427,7 @@ export function QuizContinuationMotivationView({
           )}
         </div>
       </div>
-      {!hasMoreCardsToLearn && !isReviewQuiz && typeof document !== "undefined"
+      {!isReviewQuiz && typeof document !== "undefined"
         ? createPortal(
             <div
               className="fixed inset-x-0 bottom-0 z-[56] bg-background/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 sm:px-5"
@@ -448,8 +448,9 @@ export function QuizContinuationMotivationView({
                       }
                       goToCardAddition(choice);
                     }}
+                    aria-label={formatSuperWaterText(locale, t(choice.continuationTitleKey))}
                     className={cn(
-                      "flex min-h-[7rem] min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1.5 py-2 text-center text-white shadow-sm transition-transform active:scale-[0.97]",
+                      "flex min-h-[7.75rem] min-w-0 flex-col items-center justify-start gap-1.5 rounded-2xl border border-transparent px-1.5 pb-2 pt-1 text-center text-white shadow-sm transition-transform active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
                       choice.key === "random" && "bg-[#f59e0b]",
                       choice.key === "custom" && "bg-[#c026d3]",
                       choice.key === "groups" && "bg-[#84cc16]",
@@ -457,8 +458,8 @@ export function QuizContinuationMotivationView({
                     data-continuation-card-addition={choice.key}
                     data-continuation-action={choice.key === "random" ? "draw-cards" : choice.key === "custom" ? "create-card" : "card-groups"}
                   >
-                    <Image src={choice.icon} alt="" aria-hidden="true" width={64} height={64} className="size-12 shrink-0 object-contain sm:size-14" />
-                    <span className={cn("text-xs font-bold leading-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.75)] sm:text-sm", canUseSuperWater(locale) && "font-super-water")}>
+                    <Image src={choice.icon} alt="" aria-hidden="true" width={64} height={64} className="size-14 shrink-0 object-contain" />
+                    <span className={cn("flex min-h-0 flex-1 items-center justify-center text-center text-lg font-bold leading-[1.05] drop-shadow-[0_1px_2px_rgba(0,0,0,0.75)] sm:text-xl", canUseSuperWater(locale) && "font-super-water")}>
                       {formatSuperWaterText(locale, t(choice.continuationTitleKey))}
                     </span>
                   </button>

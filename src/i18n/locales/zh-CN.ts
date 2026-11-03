@@ -11,7 +11,7 @@ const dictionary = {
   "quiz.continuation.addToDeckTitle": "向卡组添加卡片",
   "quiz.continuation.addRandomCards": "抽取随机卡片",
   "quiz.continuation.searchWords": "搜索单词",
-  "quiz.continuation.addFromCollections": "从收藏集添加",
+  "quiz.continuation.addFromCollections": "添加分组",
   "quiz.continuation.reviewTitle": "再复习一次，把这些内容牢牢记住！",
   "quiz.continuation.randomTitle.one": "你得学会这门语言！来，再练习一次。",
   "quiz.continuation.randomTitle.two": "还有一门语言等着你学习！再练习一次！",

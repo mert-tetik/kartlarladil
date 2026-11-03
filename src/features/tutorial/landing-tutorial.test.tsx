@@ -28,7 +28,7 @@ function TutorialFixture({ cardSwipeEntryComplete = true }: { cardSwipeEntryComp
         <button type="button" data-tutorial-target="landing-draw-cards" onClick={() => setLayer("draw-cards")}>draw</button>
         <button type="button" data-tutorial-target="landing-create-card" onClick={() => setLayer("custom-card")}>custom</button>
         <button type="button" data-tutorial-target="landing-card-groups" onClick={() => setLayer("card-groups")}>groups</button>
-        <button type="button" data-tutorial-target="landing-card-center" onClick={() => setCardsOpen(true)}>cards</button>
+        <button type="button" data-tutorial-target="landing-card-center" onClick={() => setCardsOpen((open) => !open)}>cards</button>
         <button type="button" data-tutorial-target="start-learning" onClick={() => setStarted(true)}>start</button>
         {cardsOpen ? <div id="mobile-card-center-content">card collection</div> : null}
       </section>
@@ -239,6 +239,19 @@ describe("LandingTutorial", () => {
     expect(document.querySelector("#mobile-card-center-content")).not.toBeInTheDocument();
   });
 
+  it("animates a choice even when its landing target has no visible layout", async () => {
+    render(<TutorialFixture />);
+    const target = document.querySelector<HTMLElement>('[data-tutorial-target="landing-draw-cards"]');
+    expect(target).not.toBeNull();
+    target!.style.display = "none";
+
+    fireEvent.click(await screen.findByRole("button", { name: /tutorial\.cardModes\.random\.title/ }));
+
+    const closingChoiceScreen = document.querySelector<HTMLElement>("[data-landing-tutorial-choice-screen]");
+    expect(closingChoiceScreen).toHaveClass("tutorial-origin-overlay--closing");
+    expect(closingChoiceScreen?.querySelector("[data-tutorial-choice-exit-viewport]")).toBeInTheDocument();
+  });
+
   it("opens the selected real layer and continues one second after it closes", async () => {
     render(<TutorialFixture />);
     const choice = await screen.findByRole("button", { name: /tutorial\.cardModes\.random\.title/ }, { timeout: 3_500 });
@@ -246,8 +259,17 @@ describe("LandingTutorial", () => {
     expect(vibrate).toHaveBeenCalledWith("tutorial-next");
     const closingChoiceScreen = document.querySelector<HTMLElement>("[data-landing-tutorial-choice-screen]");
     expect(closingChoiceScreen).toHaveClass("tutorial-origin-overlay--closing");
+    expect(closingChoiceScreen?.querySelector("[data-tutorial-choice-exit-viewport]")).toBeInTheDocument();
     expect(closingChoiceScreen?.querySelector("h2")?.style.animationDelay).toBe("0ms");
-    expect(Array.from(closingChoiceScreen?.querySelectorAll<HTMLElement>("[data-landing-tutorial-choice]") ?? []).map((item) => item.style.animationDelay)).toEqual(["110ms", "220ms", "330ms"]);
+    const exitingChoices = Array.from(closingChoiceScreen?.querySelectorAll<HTMLButtonElement>("[data-landing-tutorial-choice]") ?? []);
+    expect(exitingChoices.map((item) => item.style.animationDelay)).toEqual(["160ms", "320ms", "480ms"]);
+    fireEvent.animationEnd(exitingChoices[0], { animationName: "tutorial-choice-item-scale-exit" });
+    expect(document.querySelector("[data-landing-tutorial-choice-screen]")).toBeInTheDocument();
+    fireEvent.animationEnd(exitingChoices[2], { animationName: "tutorial-choice-item-scale-exit" });
+    expect(document.querySelector("[data-landing-tutorial-choice-screen]")).toBeInTheDocument();
+    const exitCircle = closingChoiceScreen?.querySelector(".tutorial-origin-overlay__circle");
+    expect(exitCircle).toBeInTheDocument();
+    fireEvent.animationEnd(exitCircle!, { animationName: "tutorial-circle-screen-exit" });
     expect(await screen.findByText("close layer", {}, { timeout: 3_500 })).toBeInTheDocument();
     expect(document.querySelector("[data-landing-tutorial-choice-screen]")).not.toBeInTheDocument();
     const layerPrompt = await screen.findByTestId("tutorial-layer-message", {}, { timeout: 2_000 });
@@ -290,6 +312,18 @@ describe("LandingTutorial", () => {
     expect(await screen.findByTestId("tutorial-layer-message", {}, { timeout: 2_000 })).toBeInTheDocument();
   });
 
+  it("opens the selected layer when its landing target has no visible layout", async () => {
+    render(<EventDrivenLayerTutorialFixture />);
+    const target = document.querySelector<HTMLElement>('[data-tutorial-target="landing-draw-cards"]');
+    expect(target).not.toBeNull();
+    target!.style.display = "none";
+
+    fireEvent.click(await screen.findByRole("button", { name: /tutorial\.cardModes\.random\.title/ }));
+
+    expect(await screen.findByText("close layer", {}, { timeout: 3_500 })).toBeInTheDocument();
+    expect(await screen.findByTestId("tutorial-layer-message", {}, { timeout: 2_000 })).toBeInTheDocument();
+  });
+
   it("allows interactions from a portal belonging to the active tutorial layer", async () => {
     render(<TutorialFixture />);
 
@@ -325,7 +359,7 @@ describe("LandingTutorial", () => {
     expect(useTutorialStore.getState()).toMatchObject({ active: true, completed: false, step: 0 });
   });
 
-  it("keeps the cards target restricted and then shows a message-only screen", async () => {
+  it("immediately removes the cards target overlay on click, then shows its message", async () => {
     useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 1, testMode: false });
     render(<TutorialFixture />);
     await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_500 });
@@ -334,13 +368,24 @@ describe("LandingTutorial", () => {
     expect(targetViewport?.querySelectorAll(".fixed")).toHaveLength(0);
 
     fireEvent.click(screen.getByRole("button", { name: "cards" }));
-    expect(document.querySelector("[data-tutorial-arrow-image]")).toHaveClass("tutorial-arrow-image--exiting");
+    expect(document.querySelector("#mobile-card-center-content")).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector('[data-landing-tutorial-phase="target"]')).not.toBeInTheDocument());
+    expect(document.querySelector("[data-landing-tutorial-transition]")).toBeInTheDocument();
+    expect(document.querySelectorAll("[data-landing-tutorial-rect-mask]")).toHaveLength(0);
+    expect(document.querySelector("[data-landing-tutorial-spotlight]")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-tutorial-arrow-image]")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-landing-tutorial-callout]")).not.toBeInTheDocument();
+    expect(document.querySelector("#mobile-card-center-content")).toBeInTheDocument();
     await waitFor(() => expect(useTutorialStore.getState().step).toBe(2), { timeout: 2_500 });
     expect(document.querySelector("[data-landing-tutorial-spotlight]")).not.toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "tutorial.collectionMessageButton" })).toBeInTheDocument();
     expect(screen.getByText("tutorial.landingCardsMessage")).toBeInTheDocument();
     const message = document.querySelector<HTMLElement>("[data-landing-tutorial-message]");
-    expect(message).toHaveClass("text-lg", "font-super-water", "bg-brand", "text-white", "before:bg-brand");
+    expect(message).toHaveClass("text-lg", "font-super-water", "bg-brand", "text-white");
+    expect(message?.querySelector("[data-tutorial-message-tail-outline]")).toHaveAttribute("d", "M20 1.5L1.5 16L20 30.5");
+    expect(message?.querySelector("[data-tutorial-message-tail] rect")).not.toBeInTheDocument();
+    expect(message?.querySelector("[data-tutorial-message-tail]")).toHaveAttribute("viewBox", "0 0 24 32");
+    expect(message?.querySelector("[data-tutorial-message-tail] path[data-tutorial-message-tail-outline]")).toHaveAttribute("stroke-linecap", "butt");
     expect(message?.style.transform).toBe("");
     expect(document.querySelector("#mobile-card-center-content")).toBeInTheDocument();
   });
@@ -391,6 +436,20 @@ describe("LandingTutorial", () => {
     expect(imageCenterY + direction * renderedImageWidth / 2).toBe(actualTipY);
   });
 
+  it("starts the tutorial arrow scale animation only after its image loads", async () => {
+    useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 1, testMode: false });
+    render(<TutorialFixture />);
+
+    await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_500 });
+    const arrow = document.querySelector<HTMLImageElement>("[data-tutorial-arrow-image]");
+    expect(arrow).toBeInTheDocument();
+    expect(arrow?.style.animationPlayState).toBe("paused");
+
+    fireEvent.load(arrow!);
+
+    await waitFor(() => expect(arrow?.style.animationPlayState).toBe("running"));
+  });
+
   it("scrolls at 400ms and reaches the learning target after message continue", async () => {
     useTutorialStore.setState({ active: true, completed: false, introSeen: true, step: 2, testMode: false });
     render(<TutorialFixture />);
@@ -400,8 +459,14 @@ describe("LandingTutorial", () => {
     expect(continueButton).toHaveClass("text-lg", "font-super-water", "translate-y-[30px]");
     fireEvent.click(continueButton);
     expect(vibrate).toHaveBeenCalledWith("tutorial-next");
-    expect(document.querySelector<HTMLElement>("[data-tutorial-message-callout]")).toHaveAttribute("data-tutorial-message-exit", "true");
+    const callout = document.querySelector<HTMLElement>("[data-tutorial-message-callout]");
+    const character = document.querySelector<HTMLElement>('[data-tutorial-message-exit-part="character"]');
+    const bubble = document.querySelector<HTMLElement>('[data-tutorial-message-exit-part="bubble"]');
+    expect(callout).toHaveAttribute("data-tutorial-message-exit", "true");
     expect(continueButton).toHaveAttribute("data-tutorial-message-exit", "true");
+    expect(bubble?.style.animationDelay).toBe("0ms");
+    expect(character?.style.animationDelay).toBe("160ms");
+    expect(continueButton.style.animationDelay).toBe("320ms");
     await waitFor(() => expect(dashboard.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" }), { timeout: 2_200 });
     await waitFor(() => expect(useTutorialStore.getState().step).toBe(3), { timeout: 2_500 });
     await waitFor(() => expect(document.querySelector("[data-landing-tutorial-spotlight]")).toBeInTheDocument(), { timeout: 1_500 });

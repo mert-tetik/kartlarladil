@@ -374,6 +374,30 @@ describe("MobileLandingDashboard language sync", () => {
     }
   });
 
+  it("randomly selects unowned A1 cards when filling the tutorial deck", async () => {
+    const starterCards = VOCABULARY_CARDS.filter((card) => card.language === "en" && card.tier === "A1");
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.99);
+
+    try {
+      render(
+        <LocaleProvider initialLocale="tr">
+          <MobileLandingDashboard />
+        </LocaleProvider>,
+      );
+      dispatchTutorialCardLayerOpened({ layer: "draw-cards", origin: { x: 10, y: 10 } });
+      dispatchTutorialCardLayerClosed({ layer: "draw-cards" });
+    } finally {
+      randomSpy.mockRestore();
+    }
+
+    await waitFor(() => expect(addCardsMock).toHaveBeenCalledOnce());
+    const selectedIds = addCardsMock.mock.calls[0][0] as string[];
+    expect(selectedIds).toHaveLength(3);
+    expect(selectedIds).not.toEqual(starterCards.slice(0, 3).map((card) => card.sourceKey));
+    expect(selectedIds.every((id) => starterCards.some((card) => card.sourceKey === id))).toBe(true);
+    expect(new Set(selectedIds).size).toBe(3);
+  });
+
   it("requests the native review flow after eligible activity when the TWA deck has 10 cards", async () => {
     isTwaModeMock.value = true;
     hasPlayReviewEligibilityMock.mockReturnValue(true);

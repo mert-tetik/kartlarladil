@@ -11,7 +11,7 @@ const dictionary = {
   "quiz.continuation.addToDeckTitle": "Добавь карточки в колоду",
   "quiz.continuation.addRandomCards": "Вытянуть случайную карточку",
   "quiz.continuation.searchWords": "Найти слово",
-  "quiz.continuation.addFromCollections": "Добавить из коллекций",
+  "quiz.continuation.addFromCollections": "Добавить группу",
   "quiz.continuation.reviewTitle": "Повтори ещё раз, чтобы как следует закрепить!",
   "quiz.continuation.randomTitle.one": "Тебе нужно выучить этот язык! Давай ещё одно упражнение.",
   "quiz.continuation.randomTitle.two": "Тебя ждёт язык, который нужно выучить! Давай ещё одно упражнение!",

@@ -11,7 +11,7 @@ const dictionary = {
   "quiz.continuation.addToDeckTitle": "Ajoute des cartes à ton paquet",
   "quiz.continuation.addRandomCards": "Tirer une carte au hasard",
   "quiz.continuation.searchWords": "Rechercher un mot",
-  "quiz.continuation.addFromCollections": "Ajouter depuis les collections",
+  "quiz.continuation.addFromCollections": "Ajouter un groupe",
   "quiz.continuation.reviewTitle": "Répète encore une fois pour bien ancrer tout ça !",
   "quiz.continuation.randomTitle.one": "Tu dois apprendre cette langue ! Allez, encore un exercice.",
   "quiz.continuation.randomTitle.two": "Une langue t’attend encore ! Fais encore un exercice !",

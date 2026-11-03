@@ -11,7 +11,7 @@ const dictionary = {
   "quiz.continuation.addToDeckTitle": "Füge deinem Deck etwas hinzu",
   "quiz.continuation.addRandomCards": "Zufällige Karte ziehen",
   "quiz.continuation.searchWords": "Nach einem Wort suchen",
-  "quiz.continuation.addFromCollections": "Aus Sammlungen hinzufügen",
+  "quiz.continuation.addFromCollections": "Gruppe hinzufügen",
   "quiz.continuation.reviewTitle": "Noch einmal wiederholen und richtig festigen!",
   "quiz.continuation.randomTitle.one": "Du musst diese Sprache lernen! Los, noch eine Übung.",
   "quiz.continuation.randomTitle.two": "Es gibt eine Sprache, die du lernen musst! Noch eine Übung geht klar!",

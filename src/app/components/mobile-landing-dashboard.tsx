@@ -299,10 +299,23 @@ export function MobileLandingDashboard() {
       if (starterCardsNeeded === 0) return;
 
       const existingIds = new Set(currentCards.map((card) => card.cardId));
-      const automaticCardIds = VOCABULARY_CARDS
+      const availableStarterCards = VOCABULARY_CARDS
         .filter((card) => card.language === session.language && card.tier === "A1")
-        .filter((card) => !existingIds.has(card.id) && !existingIds.has(card.sourceKey))
-        .slice(0, starterCardsNeeded)
+        .filter((card) => !existingIds.has(card.id) && !existingIds.has(card.sourceKey));
+      const starterCardsToAdd = Math.min(starterCardsNeeded, availableStarterCards.length);
+
+      // Choose a random subset without replacement instead of always taking
+      // the first A1 entries in catalog order.
+      for (let index = 0; index < starterCardsToAdd; index++) {
+        const randomIndex = index + Math.floor(Math.random() * (availableStarterCards.length - index));
+        [availableStarterCards[index], availableStarterCards[randomIndex]] = [
+          availableStarterCards[randomIndex],
+          availableStarterCards[index],
+        ];
+      }
+
+      const automaticCardIds = availableStarterCards
+        .slice(0, starterCardsToAdd)
         .map((card) => card.sourceKey);
 
       if (automaticCardIds.length > 0) {

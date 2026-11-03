@@ -11,7 +11,7 @@ const dictionary = {
   "quiz.continuation.addToDeckTitle": "Voeg kaarten toe aan je stapel",
   "quiz.continuation.addRandomCards": "Trek een willekeurige kaart",
   "quiz.continuation.searchWords": "Zoek een woord",
-  "quiz.continuation.addFromCollections": "Voeg kaarten uit collecties toe",
+  "quiz.continuation.addFromCollections": "Een groep toevoegen",
   "quiz.continuation.reviewTitle": "Herhaal het nog één keer en zet het goed vast!",
   "quiz.continuation.randomTitle.one": "Je moet deze taal leren! Kom op, nog één oefening.",
   "quiz.continuation.randomTitle.two": "Er wacht nog een taal op je! Doe nog één oefening!",

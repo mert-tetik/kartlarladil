@@ -11,7 +11,7 @@ const dictionary = {
   "quiz.continuation.addToDeckTitle": "デッキにカードを追加しよう",
   "quiz.continuation.addRandomCards": "ランダムなカードを引く",
   "quiz.continuation.searchWords": "単語を検索",
-  "quiz.continuation.addFromCollections": "コレクションから追加",
+  "quiz.continuation.addFromCollections": "グループを追加",
   "quiz.continuation.reviewTitle": "もう一度復習して、しっかり身につけよう！",
   "quiz.continuation.randomTitle.one": "この言語を覚えなきゃ！さあ、もう一回練習しよう。",
   "quiz.continuation.randomTitle.two": "まだ覚える言語があるよ！もう一回練習しよう！",

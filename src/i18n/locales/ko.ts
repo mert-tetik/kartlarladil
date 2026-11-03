@@ -11,7 +11,7 @@ const dictionary = {
   "quiz.continuation.addToDeckTitle": "덱에 카드를 추가하세요",
   "quiz.continuation.addRandomCards": "무작위 카드 뽑기",
   "quiz.continuation.searchWords": "단어 검색",
-  "quiz.continuation.addFromCollections": "컬렉션에서 추가",
+  "quiz.continuation.addFromCollections": "그룹 추가",
   "quiz.continuation.reviewTitle": "한 번 더 복습해서 확실히 익혀 보세요!",
   "quiz.continuation.randomTitle.one": "이 언어를 배워야 해요! 자, 연습 한 번 더 해요.",
   "quiz.continuation.randomTitle.two": "배워야 할 언어가 남아 있어요! 연습 한 번 더 해요!",

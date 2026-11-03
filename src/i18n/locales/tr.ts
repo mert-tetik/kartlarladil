@@ -11,7 +11,7 @@ const dictionary = {
   "quiz.continuation.addToDeckTitle": "Destene ekleme yap",
   "quiz.continuation.addRandomCards": "Rastgele kart çek",
   "quiz.continuation.searchWords": "Kelime ara",
-  "quiz.continuation.addFromCollections": "Koleksiyonlardan ekle",
+  "quiz.continuation.addFromCollections": "Grup ekle",
   "quiz.continuation.reviewTitle": "Bi kez daha tekrar ederek iyice pekiştirebilirsin!",
   "quiz.continuation.randomTitle.one": "Bu dili öğrenmen lazım! Hadi bi alıştırma daha çöz.",
   "quiz.continuation.randomTitle.two": "Öğrenmen gereken bir dil var! Bi alıştırma daha patlat!",
