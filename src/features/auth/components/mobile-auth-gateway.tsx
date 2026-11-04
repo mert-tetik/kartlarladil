@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { MobileAppChoiceScreen } from "@/features/auth/components/mobile-app-choice-screen";
 import { MobileAuthScreen } from "@/features/auth/components/mobile-auth-screen";
@@ -34,6 +34,8 @@ import {
   isMobileTestMode,
 } from "@/features/install-app/twa-mode";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
+import { resetFlowButtonSoundSequence } from "@/lib/flow-button-sound";
+import { skipNextRouteTransitionTo } from "@/lib/route-transition";
 import { cn } from "@/lib/utils";
 
 const BOOTSTRAP_EXIT_DURATION_MS = 320;
@@ -90,6 +92,7 @@ function GatewayShell({
   centered = false,
   showBackground = true,
   fullBleed = false,
+  flowButtonSound,
 }: {
   children: ReactNode;
   isTestMode: boolean;
@@ -98,6 +101,7 @@ function GatewayShell({
   centered?: boolean;
   showBackground?: boolean;
   fullBleed?: boolean;
+  flowButtonSound?: "auth";
 }) {
   const contentPanelRef = useRef<HTMLDivElement | null>(null);
   const [flowPhase, setFlowPhase] = useState<GatewayFlowPhase>("enter");
@@ -158,6 +162,8 @@ function GatewayShell({
   return (
     <div
       data-mobile-auth-gateway
+      data-tap-vibration="firm"
+      data-flow-button-sound={flowButtonSound}
       className={cn(
         "fixed inset-0 z-[100] isolate overflow-hidden bg-background",
         !isTestMode && "max-lg:block lg:hidden",
@@ -279,6 +285,19 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   const bootstrapFinishedRef = useRef(false);
   const seriousLearnerTestTimerRef = useRef<number | null>(null);
   const gatewayExitTimerRef = useRef<number | null>(null);
+  const authButtonSoundFlowActiveRef = useRef(false);
+  const loginFlowResumeConsumedRef = useRef(false);
+
+  const navigateHomeWithoutEntrance = useCallback(() => {
+    const currentUrl = new URL(window.location.href);
+    if (currentUrl.pathname !== "/") {
+      skipNextRouteTransitionTo("/");
+    }
+    if (currentUrl.pathname === "/" && !currentUrl.search && !currentUrl.hash) {
+      return;
+    }
+    router.replace("/");
+  }, [router]);
 
   useEffect(() => {
     setMounted(true);
@@ -437,21 +456,22 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   }, [isOfferEligible]);
 
   useEffect(() => {
-    if (!resumeLoginFlowAfterLanguageRefresh) return;
+    if (!resumeLoginFlowAfterLanguageRefresh || loginFlowResumeConsumedRef.current) return;
     if (isOfferTriggered && isEntitlementsLoading) return;
     if (isOfferEligible || offerActive) return;
 
+    loginFlowResumeConsumedRef.current = true;
     activateTutorial();
     setResumeLoginFlowAfterLanguageRefresh(false);
-    router.replace("/");
+    navigateHomeWithoutEntrance();
   }, [
     activateTutorial,
     isEntitlementsLoading,
     isOfferEligible,
     isOfferTriggered,
+    navigateHomeWithoutEntrance,
     offerActive,
     resumeLoginFlowAfterLanguageRefresh,
-    router,
   ]);
 
   useEffect(() => {
@@ -504,6 +524,21 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       isMobilePasswordRecoveryPath ||
       isMobilePasswordRecoveryError
     ));
+
+  const isAuthButtonSoundFlowActive = Boolean(
+    showGateway &&
+    !isPublicMobilePath &&
+    !isRankUpTestMode &&
+    !isSeriousLearnerTestMode &&
+    (needsAuth || needsOnboarding || shouldRefreshLoginLanguages),
+  );
+
+  useEffect(() => {
+    if (isAuthButtonSoundFlowActive && !authButtonSoundFlowActiveRef.current) {
+      resetFlowButtonSoundSequence("auth");
+    }
+    authButtonSoundFlowActiveRef.current = isAuthButtonSoundFlowActive;
+  }, [isAuthButtonSoundFlowActive]);
 
   const shouldKeepBootstrapVisible = shouldKeepMobileGatewayBootstrapVisible({
     mounted,
@@ -565,6 +600,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
 
   function handleLoginLanguageRefreshComplete() {
     window.sessionStorage.removeItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY);
+    loginFlowResumeConsumedRef.current = false;
     setNeedsLoginLanguageRefresh(false);
     setResumeLoginFlowAfterLanguageRefresh(true);
     resetTutorial();
@@ -597,7 +633,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       setOfferTriggered(false);
       setOfferExitPending(false);
       setGatewayExitPending(false);
-      router.replace("/");
+      navigateHomeWithoutEntrance();
     }, GATEWAY_FLOW_EXIT_DURATION_MS);
   }
 
@@ -614,6 +650,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       gateway = (
         <GatewayShell
           centered={mobileAuthMode !== "google"}
+          flowButtonSound="auth"
           isTestMode={isTestMode}
           showBackground={mobileAuthMode === "google"}
           transitionKey={`auth-${mobileAuthMode}`}
@@ -690,6 +727,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
         <GatewayShell
           isTestMode={isTestMode}
           centered
+          flowButtonSound="auth"
           showBackground={false}
           transitionKey="login-language-refresh"
         >
@@ -726,6 +764,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       <GatewayShell
         isTestMode={isTestMode}
         centered
+        flowButtonSound="auth"
         showBackground={false}
         transitionKey="onboarding"
       >
@@ -743,6 +782,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
         <GatewayShell
           isTestMode={isTestMode}
           centered={mobileAuthMode !== "google"}
+          flowButtonSound="auth"
           showBackground={mobileAuthMode === "google"}
           transitionKey={`auth-${mobileAuthMode}`}
         >

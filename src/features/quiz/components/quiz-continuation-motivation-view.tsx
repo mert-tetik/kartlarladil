@@ -247,6 +247,7 @@ export function QuizContinuationMotivationView({
     <section
       className="absolute inset-0 z-[55] flex h-full w-full flex-col overflow-hidden bg-[var(--background)] px-4 text-center sm:px-6"
       data-quiz-continuation-motivation
+      data-tap-vibration="firm"
       data-has-more-cards={hasMoreCardsToLearn || isReviewQuiz ? "true" : "false"}
       data-review-quiz={isReviewQuiz ? "true" : "false"}
       data-quiz-continuation-enter={enterWithTransition ? "true" : "false"}
@@ -432,37 +433,50 @@ export function QuizContinuationMotivationView({
             <div
               className="fixed inset-x-0 bottom-0 z-[56] bg-background/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 sm:px-5"
               data-continuation-card-additions
+              data-tap-vibration="firm"
             >
-              <h3 className={cn("mb-2 text-center text-xl font-bold text-white", canUseSuperWater(locale) && "font-super-water")}>
+              <h3
+                className={cn(
+                  "quiz-continuation-stagger-enter mb-2 text-center text-xl font-bold text-white",
+                  canUseSuperWater(locale) && "font-super-water",
+                )}
+                style={{ "--quiz-continuation-delay": "360ms" } as CSSProperties}
+              >
                 {formatSuperWaterText(locale, t("quiz.continuation.addToDeckTitle"))}
               </h3>
               <div className="mx-auto grid w-full max-w-lg grid-cols-3 gap-2 sm:gap-3">
-                {TUTORIAL_CHOICES.map((choice) => (
-                  <button
+                {TUTORIAL_CHOICES.map((choice, index) => (
+                  <div
                     key={choice.key}
-                    type="button"
-                    onClick={() => {
-                      if (choice.key === "random" && onDrawCards) {
-                        onDrawCards();
-                        return;
-                      }
-                      goToCardAddition(choice);
-                    }}
-                    aria-label={formatSuperWaterText(locale, t(choice.continuationTitleKey))}
-                    className={cn(
-                      "flex min-h-[7.75rem] min-w-0 flex-col items-center justify-start gap-1.5 rounded-2xl border border-transparent px-1.5 pb-2 pt-1 text-center text-white shadow-sm transition-transform active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
-                      choice.key === "random" && "bg-[#f59e0b]",
-                      choice.key === "custom" && "bg-[#c026d3]",
-                      choice.key === "groups" && "bg-[#84cc16]",
-                    )}
-                    data-continuation-card-addition={choice.key}
-                    data-continuation-action={choice.key === "random" ? "draw-cards" : choice.key === "custom" ? "create-card" : "card-groups"}
+                    className="quiz-continuation-stagger-enter w-full"
+                    style={{ "--quiz-continuation-delay": `${440 + index * 70}ms` } as CSSProperties}
+                    data-continuation-card-addition-enter={choice.key}
                   >
-                    <Image src={choice.icon} alt="" aria-hidden="true" width={64} height={64} className="size-14 shrink-0 object-contain" />
-                    <span className={cn("flex min-h-0 flex-1 items-center justify-center text-center text-lg font-bold leading-[1.05] drop-shadow-[0_1px_2px_rgba(0,0,0,0.75)] sm:text-xl", canUseSuperWater(locale) && "font-super-water")}>
-                      {formatSuperWaterText(locale, t(choice.continuationTitleKey))}
-                    </span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (choice.key === "random" && onDrawCards) {
+                          onDrawCards();
+                          return;
+                        }
+                        goToCardAddition(choice);
+                      }}
+                      aria-label={formatSuperWaterText(locale, t(choice.continuationTitleKey))}
+                      className={cn(
+                        "flex min-h-[7.75rem] w-full min-w-0 flex-col items-center justify-start gap-1.5 rounded-2xl border border-transparent px-1.5 pb-2 pt-1 text-center text-white shadow-sm transition-transform active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
+                        choice.key === "random" && "bg-[#f59e0b]",
+                        choice.key === "custom" && "bg-[#c026d3]",
+                        choice.key === "groups" && "bg-[#84cc16]",
+                      )}
+                      data-continuation-card-addition={choice.key}
+                      data-continuation-action={choice.key === "random" ? "draw-cards" : choice.key === "custom" ? "create-card" : "card-groups"}
+                    >
+                      <Image src={choice.icon} alt="" aria-hidden="true" width={64} height={64} className="size-14 shrink-0 object-contain" />
+                      <span className={cn("flex min-h-0 flex-1 items-center justify-center text-center text-lg font-bold leading-[1.05] drop-shadow-[0_1px_2px_rgba(0,0,0,0.75)] sm:text-xl", canUseSuperWater(locale) && "font-super-water")}>
+                        {formatSuperWaterText(locale, t(choice.continuationTitleKey))}
+                      </span>
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>,

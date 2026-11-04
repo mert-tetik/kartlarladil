@@ -379,10 +379,14 @@ export function RankUpMenu({
   rank,
   fromRank,
   onClose,
+  onOpen,
+  zIndex = 50,
 }: {
   rank: RankDefinition;
   fromRank?: RankDefinition;
   onClose: () => void;
+  onOpen?: () => void;
+  zIndex?: number;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -398,6 +402,10 @@ export function RankUpMenu({
   const backgroundLoopRequestedRef = useRef(false);
   const foregroundCloseTimerRef = useRef<number | null>(null);
   const backgroundCloseTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    onOpen?.();
+  }, [onOpen]);
 
   function handleClose() {
     if (closing) {
@@ -473,6 +481,7 @@ export function RankUpMenu({
       aria-label={t("rank.up")}
       className={cn("rank-up-menu fixed inset-0 z-50 flex bg-background", closing && "rank-up-menu--closing")}
       onPointerDown={handleReveal}
+      style={{ zIndex }}
     >
       <div
         className={cn(

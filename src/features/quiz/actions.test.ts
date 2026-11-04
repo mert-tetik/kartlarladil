@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   awardChestPoints,
   awardQuizBonusPoints,
+  awardQuizPerformancePoints,
   awardQuizResultPoints,
   claimQuizResultMedals,
 } from "@/features/quiz/actions";
@@ -79,6 +80,89 @@ describe("awardQuizResultPoints", () => {
       success: true,
       awarded: false,
       points: 8,
+    });
+  });
+});
+
+describe("awardQuizPerformancePoints", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "user-1" } },
+      error: null,
+    });
+    mockRpc.mockReturnValue({
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: {
+          awarded: true,
+          accuracy_points: 40,
+          time_points: 25,
+          correct_points: 50,
+          learned_points: 20,
+          total_points: 135,
+        },
+        error: null,
+      }),
+    });
+  });
+
+  it("rejects invalid sessions and impossible result stats before calling Supabase", async () => {
+    const input = {
+      selectedCount: 10,
+      durationSeconds: 300,
+      correctAnswerCount: 8,
+      answeredCount: 10,
+      correctCardCount: 8,
+      learnedCardCount: 1,
+    };
+
+    await expect(awardQuizPerformancePoints("not-a-uuid", input)).resolves.toEqual({
+      success: false,
+      error: "invalid_session",
+    });
+    await expect(awardQuizPerformancePoints("00000000-0000-4000-8000-000000000040", {
+      ...input,
+      correctAnswerCount: 11,
+    })).resolves.toEqual({
+      success: false,
+      error: "invalid_result",
+    });
+
+    expect(mockGetUser).not.toHaveBeenCalled();
+    expect(mockRpc).not.toHaveBeenCalled();
+  });
+
+  it("persists the session stats through the idempotent reward RPC", async () => {
+    const sessionId = "00000000-0000-4000-8000-000000000041";
+    const input = {
+      selectedCount: 10,
+      durationSeconds: 300,
+      correctAnswerCount: 8,
+      answeredCount: 10,
+      correctCardCount: 8,
+      learnedCardCount: 1,
+    };
+
+    await expect(awardQuizPerformancePoints(sessionId, input)).resolves.toEqual({
+      success: true,
+      awarded: true,
+      rewards: {
+        accuracyPoints: 40,
+        timePoints: 25,
+        correctPoints: 50,
+        learnedPoints: 20,
+      },
+      totalPoints: 135,
+    });
+    expect(mockRpc).toHaveBeenCalledWith("award_quiz_performance_points", {
+      p_user_id: "user-1",
+      p_session_id: sessionId,
+      p_selected_count: 10,
+      p_duration_seconds: 300,
+      p_correct_answer_count: 8,
+      p_answered_count: 10,
+      p_correct_card_count: 8,
+      p_learned_card_count: 1,
     });
   });
 });

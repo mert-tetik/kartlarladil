@@ -34,7 +34,8 @@ export type SoundEffectName =
   | "gem-spend"
   | "result-medal-collect"
   | "result-action-press"
-  | "result-card-reveal";
+  | "result-card-reveal"
+  | "quiz-result-point-award";
 
 interface BrowserAudioWindow extends Window {
   Audio?: typeof Audio;
@@ -322,6 +323,25 @@ function points(context: AudioContext, now: number) {
   // Tiny high coin tick.
   playTone(context, { frequency: SCALE.G5, startTime: now, duration: 0.07, gain: 0.05 });
   playTone(context, { frequency: SCALE.C6, startTime: now + 0.02, duration: 0.09, gain: 0.035 });
+}
+
+function quizResultPointAward(context: AudioContext, now: number) {
+  // A light, bright two-note coin chime synced with result reward pulses.
+  playTone(context, {
+    frequency: 1046.5,
+    endFrequency: 1396.9,
+    startTime: now,
+    duration: 0.12,
+    gain: 0.045,
+    type: "triangle",
+  });
+  playTone(context, {
+    frequency: 1568,
+    startTime: now + 0.035,
+    duration: 0.12,
+    gain: 0.027,
+    type: "sine",
+  });
 }
 
 function learned(context: AudioContext, now: number) {
@@ -871,6 +891,7 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "result-medal-collect": resultMedalCollect,
   "result-action-press": resultActionPress,
   "result-card-reveal": resultCardReveal,
+  "quiz-result-point-award": quizResultPointAward,
 };
 
 export function playSoundEffect(effect: SoundEffectName, options?: { playbackRate?: number }) {

@@ -30,7 +30,7 @@ const profiles = [
     ai_practice_points: 0,
     chest_points: 0,
     streak_points: 0,
-    mission_points: 10,
+    mission_points: 50,
     quiz_result_points: 0,
     quiz_result_medals: 12,
     leaderboard_visible: true,
@@ -164,9 +164,9 @@ describe("getLeaderboardPayload", () => {
       streakPosition: 1,
     });
     expect(payload.entries.map((entry) => [entry.userId, entry.totalPoints, entry.position])).toEqual([
-      ["user-5", 40, 1],
-      ["user-2", 10, 2],
-      ["user-3", 10, 3],
+      ["user-5", 75, 1],
+      ["user-2", 50, 2],
+      ["user-3", 50, 3],
       ["user-1", 7, 4],
       ["user-4", 3, 5],
     ]);

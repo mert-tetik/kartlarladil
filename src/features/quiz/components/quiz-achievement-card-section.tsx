@@ -35,7 +35,10 @@ export function AchievementCardSection({
     if (!reveal || exiting || typeof window === "undefined") return;
 
     const timers = Array.from({ length: cards.length }, (_, index) => window.setTimeout(
-      () => playSoundEffect("result-card-reveal"),
+      () => {
+        playSoundEffect("result-card-reveal");
+        vibrate("reward-arrival");
+      },
       staggerOffsetMs + 150 + index * 55,
     ));
 

@@ -17,6 +17,8 @@ import {
 import { getTargetForStep, getTutorialStep, type TutorialTarget } from "@/features/tutorial/tutorial-targets";
 import { cn } from "@/lib/utils";
 import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
+import { playFlowButtonSound, resetFlowButtonSoundSequence } from "@/lib/flow-button-sound";
+import { speakText, stopSpeakingText } from "@/features/cards/card-speech";
 import { vibrate } from "@/lib/vibration";
 
 const MOBILE_BREAKPOINT = 1023;
@@ -101,6 +103,8 @@ export function LandingTutorial() {
   const allowProgrammaticTargetClickRef = useRef(false);
   const completionStartedRef = useRef(false);
   const testModeUrlHandledRef = useRef(false);
+  const tutorialButtonSoundFlowActiveRef = useRef(false);
+  const lastSpokenBubbleRef = useRef<string | null>(null);
   const isVisible = isTutorialVisibleState({ active, completed, testMode });
   const isTutorialStarting = isVisible && !tutorialStartReady;
   const currentStep = getTutorialStep(step);
@@ -109,6 +113,46 @@ export function LandingTutorial() {
     && isMobile
     && pathname === "/";
   const shouldShowWelcome = isVisible && tutorialStartReady && !introSeen && phase === "visible";
+  const isTutorialButtonSoundFlowActive = isVisible && isMobile && isLandingReady && pathname === "/";
+  const tutorialBubbleSpeechText = !isTutorialButtonSoundFlowActive || shouldShowWelcome
+    ? null
+    : phase === "layer-message"
+      ? t("tutorial.cardCollectionPrompt")
+      : phase === "visible" && currentStep?.messageKey && (
+        currentStep.mode === "message" || (currentStep.mode === "target" && position)
+      )
+        ? t(currentStep.messageKey as TranslationKey)
+        : null;
+  const tutorialBubbleSpeechKey = tutorialBubbleSpeechText === null
+    ? null
+    : phase === "layer-message"
+      ? `layer-message:${activeLayer ?? "unknown"}:${step}`
+      : `step-message:${currentStep?.key ?? "unknown"}:${step}`;
+
+  useEffect(() => {
+    if (!isTutorialButtonSoundFlowActive) {
+      tutorialButtonSoundFlowActiveRef.current = false;
+      return;
+    }
+
+    if (!tutorialButtonSoundFlowActiveRef.current) {
+      resetFlowButtonSoundSequence("tutorial");
+      tutorialButtonSoundFlowActiveRef.current = true;
+    }
+  }, [isTutorialButtonSoundFlowActive]);
+
+  useEffect(() => {
+    if (!tutorialBubbleSpeechText || !tutorialBubbleSpeechKey) {
+      lastSpokenBubbleRef.current = null;
+      return;
+    }
+
+    const speechKey = `${tutorialBubbleSpeechKey}:${locale}:${tutorialBubbleSpeechText}`;
+    if (lastSpokenBubbleRef.current === speechKey) return;
+
+    lastSpokenBubbleRef.current = speechKey;
+    speakText(tutorialBubbleSpeechText, locale);
+  }, [locale, tutorialBubbleSpeechKey, tutorialBubbleSpeechText]);
 
   function updatePhase(nextPhase: TutorialPhase) {
     const previousPhase = phaseRef.current;
@@ -474,6 +518,28 @@ export function LandingTutorial() {
       const current = getTutorialStep(useTutorialStore.getState().step);
       if (!element || current?.mode !== "target" || !current.selector || !element.closest(current.selector)) return;
 
+      const clickable = element.closest<HTMLElement>("button, a, [role='button'], [data-clickable]");
+      if (!clickable) return;
+
+      playFlowButtonSound("tutorial");
+      vibrate("firm-tap");
+      const previousNoTapVibrate = clickable.getAttribute("data-no-tap-vibrate");
+      const previousNoFlowButtonSound = clickable.getAttribute("data-no-flow-button-sound");
+      clickable.setAttribute("data-no-tap-vibrate", "");
+      clickable.setAttribute("data-no-flow-button-sound", "");
+      window.setTimeout(() => {
+        if (previousNoTapVibrate === null) {
+          clickable.removeAttribute("data-no-tap-vibrate");
+        } else {
+          clickable.setAttribute("data-no-tap-vibrate", previousNoTapVibrate);
+        }
+        if (previousNoFlowButtonSound === null) {
+          clickable.removeAttribute("data-no-flow-button-sound");
+        } else {
+          clickable.setAttribute("data-no-flow-button-sound", previousNoFlowButtonSound);
+        }
+      }, 0);
+
       if (current.key === "landing-card-center") {
         const target = element.closest(current.selector);
         if (!(target instanceof HTMLButtonElement)) return;
@@ -580,6 +646,7 @@ export function LandingTutorial() {
 
   function handleMessageContinue() {
     if (phaseRef.current !== "visible" || isMessageExiting) return;
+    stopSpeakingText();
     setIsMessageExiting(true);
     transitionTimerRef.current = window.setTimeout(() => {
       setIsMessageExiting(false);

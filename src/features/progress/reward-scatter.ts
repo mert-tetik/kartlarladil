@@ -31,7 +31,8 @@ export interface RewardScatterPlacement {
 
 export interface RewardScatterMotion {
   scatterOffset?: { x: number; y: number };
-  arrivalSoundEffect?: SoundEffectName;
+  arrivalSoundEffect?: SoundEffectName | false;
+  vibrateOnArrival?: boolean;
   iconSize?: number;
   zIndex?: number;
   startDelayMs?: number;
@@ -80,7 +81,8 @@ export interface RewardScatterFlight {
   delay: number;
   iconSize: number;
   zIndex: number;
-  arrivalSoundEffect: SoundEffectName;
+  arrivalSoundEffect: SoundEffectName | false;
+  vibrateOnArrival: boolean;
 }
 
 export interface CreateRewardScatterFlightsInput {
@@ -163,6 +165,7 @@ function getMotion(
     iconSize: options.iconSize ?? 32,
     zIndex: options.zIndex ?? 50,
     arrivalSoundEffect: options.arrivalSoundEffect ?? "points",
+    vibrateOnArrival: options.vibrateOnArrival !== false,
   };
 }
 

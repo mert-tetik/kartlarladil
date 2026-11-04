@@ -134,6 +134,31 @@ export function getSpeechLanguage(language: LanguageCode) {
   return SPEECH_LANG_BY_LANGUAGE[language];
 }
 
+export function stopSpeakingText() {
+  pendingBrowserSpeechRequest = null;
+
+  if (typeof window === "undefined") return;
+
+  if ("speechSynthesis" in window) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch {
+      // Speech is optional; a browser failure should not block tutorial navigation.
+    }
+  }
+
+  for (const request of nativeSpeechRequests.values()) {
+    emitSpeechStatus({ ...request, state: "end" });
+  }
+  nativeSpeechRequests.clear();
+
+  try {
+    window.FoxiesDeckNativeSpeech?.stop();
+  } catch {
+    // A stale native bridge must not prevent the user from continuing.
+  }
+}
+
 export function speakText(
   text: string,
   language: LanguageCode,

@@ -42,7 +42,7 @@ Arayüz dili navbar dil seçicisinden değiştirilir. Seçim cookie ve localStor
 - Kullanıcı kartı manuel olarak öğrenildi yapamaz.
 - Yanlış cevap doğru sayacını 1 azaltır, minimum 0.
 - Eşiğe ulaşan aktif kart otomatik öğrenildi olur.
-- Öğrenilen kartlar tierına göre puan kazandırır: A1 = 10, A2 = 20, B1 = 40, B2 = 70, C1 = 110.
+- Öğrenilen kartlar tierına göre puan kazandırır: A1 = 50, A2 = 50, B1 = 75, B2 = 75, C1 = 100.
 - Rank, öğrenilmiş kartlardan türetilen toplam puana göre hesaplanır; ayrı bir manuel puan sayacı tutulmaz.
 - Quiz seçenekleri aktif arayüz dilinde gösterilir. Öğrenme dili ile arayüz dili aynıysa çalışma dili fallback kullanır: İngilizce için Türkçe, diğerleri için İngilizce.
 - Quiz sırasında detaylar cevap verilmeden gösterilmez; cevap sonrası öğrenme desteği olarak açılır.

@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { useLocale } from "@/i18n/locale-provider";
 import { formatSuperWaterText } from "@/lib/super-water";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { vibrate } from "@/lib/vibration";
 import { cn } from "@/lib/utils";
 import { createCompletionParticles } from "@/lib/quiz-completion-particles";
 
@@ -46,7 +47,10 @@ export function QuizCompletionProgressView({
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => setProgress(100));
     const particleTimer = window.setTimeout(
-      () => setParticlesVisible(true),
+      () => {
+        setParticlesVisible(true);
+        vibrate("confetti");
+      },
       Math.max(
         0,
         QUIZ_COMPLETION_FILL_DURATION_MS -

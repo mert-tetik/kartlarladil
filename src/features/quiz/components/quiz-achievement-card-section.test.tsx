@@ -1,8 +1,13 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { AchievementCardSection } from "@/features/quiz/components/quiz-achievement-card-section";
 import { LocaleProvider } from "@/i18n/locale-provider";
+import { playSoundEffect } from "@/lib/sound-effects";
+import { vibrate } from "@/lib/vibration";
+
+vi.mock("@/lib/sound-effects", () => ({ playSoundEffect: vi.fn() }));
+vi.mock("@/lib/vibration", () => ({ vibrate: vi.fn() }));
 
 vi.mock("@/features/auth/auth-client", () => ({
   useRequireAuthAction: () => (action: () => void) => action(),
@@ -11,6 +16,38 @@ vi.mock("@/features/auth/auth-client", () => ({
 const card = VOCABULARY_CARDS.find((entry) => entry.language === "ja" && entry.tier === "B1")!;
 
 describe("AchievementCardSection shared vocabulary cards", () => {
+  it("pairs a light vibration with each sequential card-reveal sound", () => {
+    vi.useFakeTimers();
+    try {
+      render(
+        <LocaleProvider initialLocale="en">
+          <AchievementCardSection
+            title="Learned cards"
+            cards={[card, { ...card, id: `${card.id}-second` }]}
+            tone="learned"
+            reveal
+            exiting={false}
+            staggerOffsetMs={0}
+          />
+        </LocaleProvider>,
+      );
+
+      act(() => vi.advanceTimersByTime(149));
+      expect(playSoundEffect).not.toHaveBeenCalled();
+      expect(vibrate).not.toHaveBeenCalled();
+
+      act(() => vi.advanceTimersByTime(1));
+      expect(playSoundEffect).toHaveBeenCalledWith("result-card-reveal");
+      expect(vibrate).toHaveBeenCalledWith("reward-arrival");
+      expect(vibrate).toHaveBeenCalledTimes(1);
+
+      act(() => vi.advanceTimersByTime(55));
+      expect(vibrate).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("keeps the complete shared card design and progress visible, and still flips on card click", () => {
     const { container } = render(
       <LocaleProvider initialLocale="en">

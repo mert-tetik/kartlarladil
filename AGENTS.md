@@ -18,10 +18,10 @@ Temel kavramlar:
   - `C1 = 8`
 - **Yanlış cevap**: Doğru sayacını 1 azaltır, minimum `0`.
 - **Puan / Rank**: Öğrenilmiş kartların tier puanlarından türetilir; ayrı mutable puan sayacı tutulmaz. Kaynak kodundaki puan değerleri:
-  - `A1 = 10`
-  - `A2 = 20`
-  - `B1 = 40`
-  - `B2 = 50`
+  - `A1 = 50`
+  - `A2 = 50`
+  - `B1 = 75`
+  - `B2 = 75`
   - `C1 = 100`
 - **Rankler**: `baslangic` (0), `kart-ciragi` (200), `kelime-toplayici` (600), `dil-yolcusu` (1400), `akici-ogrenci` (2800), `kelime-ustasi` (7500), `cok-dilli` (13500), `seckin-koleksiyoncu` (22500), `dil-bilgesi` (36000), `efsane` (54000).
 

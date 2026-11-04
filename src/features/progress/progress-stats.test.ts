@@ -12,8 +12,31 @@ import type { InventoryCardView } from "@/features/inventory/inventory-selectors
 
 describe("progress stats", () => {
   it("returns the configured tier points", () => {
-    expect(TIER_POINTS).toEqual({ A1: 10, A2: 20, B1: 40, B2: 50, C1: 100 });
+    expect(TIER_POINTS).toEqual({ A1: 50, A2: 50, B1: 75, B2: 75, C1: 100 });
+    expect(getPointsForTier("A1")).toBe(50);
+    expect(getPointsForTier("A2")).toBe(50);
+    expect(getPointsForTier("B1")).toBe(75);
+    expect(getPointsForTier("B2")).toBe(75);
     expect(getPointsForTier("C1")).toBe(100);
+  });
+
+  it("uses the new learned-card values when summing one card from every tier", () => {
+    const learnedCards = (["A1", "A2", "B1", "B2", "C1"] as const).map((tier) => {
+      const card = VOCABULARY_CARDS.find((candidate) => candidate.language === "en" && candidate.tier === tier);
+      expect(card).toBeDefined();
+      return learned(card!);
+    });
+
+    const stats = calculateProgressStats(learnedCards);
+
+    expect(stats.totalPoints).toBe(350);
+    expect(stats.tierStats.map(({ tier, points }) => [tier, points])).toEqual([
+      ["A1", 50],
+      ["A2", 50],
+      ["B1", 75],
+      ["B2", 75],
+      ["C1", 100],
+    ]);
   });
 
   it("calculates points only from learned cards and ignores duplicate card ids", () => {
@@ -31,7 +54,7 @@ describe("progress stats", () => {
     expect(stats.totalCards).toBe(3);
     expect(stats.learnedCards).toBe(2);
     expect(stats.activeCards).toBe(1);
-    expect(stats.totalPoints).toBe(110);
+    expect(stats.totalPoints).toBe(150);
     expect(stats.tierStats.find((tier) => tier.tier === "A1")?.learned).toBe(1);
     expect(stats.tierStats.find((tier) => tier.tier === "B1")?.points).toBe(0);
     expect(stats.languageStats.find((language) => language.language === "de")?.points).toBe(100);

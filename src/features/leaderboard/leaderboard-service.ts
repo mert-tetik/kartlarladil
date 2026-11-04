@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getRankForPoints } from "@/features/progress/progress-stats";
+import { getRankForPoints, TIER_POINTS } from "@/features/progress/progress-stats";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getProfilePointTotal } from "@/features/progress/point-sources";
 import type { Tier } from "@/types/domain";
@@ -49,14 +49,6 @@ export interface DeveloperLeaderboardRow {
   medals: number;
   rankIcon: ReturnType<typeof getRankForPoints>["icon"];
 }
-
-const TIER_POINT_MAP: Record<Tier, number> = {
-  A1: 10,
-  A2: 20,
-  B1: 40,
-  B2: 50,
-  C1: 100,
-};
 
 const SUPABASE_PAGE_SIZE = 1000;
 
@@ -146,7 +138,7 @@ export async function getLeaderboardPayload(
 
     learnedPointsByUser.set(
       row.user_id,
-      (learnedPointsByUser.get(row.user_id) ?? 0) + TIER_POINT_MAP[tier],
+      (learnedPointsByUser.get(row.user_id) ?? 0) + TIER_POINTS[tier],
     );
   }
 
@@ -300,7 +292,7 @@ export async function getDeveloperLeaderboardRows(
 
     learnedPointsByUser.set(
       row.user_id,
-      (learnedPointsByUser.get(row.user_id) ?? 0) + TIER_POINT_MAP[tier],
+      (learnedPointsByUser.get(row.user_id) ?? 0) + TIER_POINTS[tier],
     );
   }
 

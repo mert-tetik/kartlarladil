@@ -34,6 +34,8 @@ export interface PointsScatterRequest {
   gemIcon?: GemType;
   iconSize?: number;
   zIndex?: number;
+  arrivalSoundEffect?: SoundEffectName | false;
+  vibrateOnArrival?: boolean;
 }
 
 export interface GemsScatterRequest {
@@ -64,6 +66,7 @@ export function RewardScatter({
   onMedalsStart,
   onMedalsUnavailable,
   onMedalsComplete,
+  flightExit = false,
 }: {
   points?: PointsScatterRequest | null;
   gems?: GemsScatterRequest | null;
@@ -80,8 +83,11 @@ export function RewardScatter({
   onMedalsStart?: () => void;
   onMedalsUnavailable?: () => void;
   onMedalsComplete?: () => void;
+  flightExit?: boolean;
 }) {
   const [flights, setFlights] = useState<RewardScatterFlight[]>([]);
+  const flightsRef = useRef(flights);
+  flightsRef.current = flights;
   const arrivedFlightIdsRef = useRef({ points: new Set<string>(), gems: new Set<string>(), medals: new Set<string>() });
   const groupFlightCountsRef = useRef({ points: 0, gems: 0, medals: 0 });
   const groupArrivalCountsRef = useRef({ points: 0, gems: 0, medals: 0 });
@@ -127,6 +133,8 @@ export function RewardScatter({
   const pointGemIcon = points?.gemIcon;
   const pointIconSize = points?.iconSize ?? 32;
   const pointZIndex = points?.zIndex ?? 50;
+  const pointArrivalSoundEffect = points?.arrivalSoundEffect;
+  const pointVibrateOnArrival = points?.vibrateOnArrival;
 
   const gemRewards = gems?.rewards ?? [];
   const gemRewardsKey = gemRewards.map((item) => `${item.type}:${item.amount}`).join("|");
@@ -154,7 +162,7 @@ export function RewardScatter({
   const medalArrivalSoundEffect = medals?.arrivalSoundEffect ?? "points";
 
   useEffect(() => {
-    if (pointAmount <= 0) return;
+    if (pointAmount <= 0 || flightExit) return;
 
     let cancelled = false;
     let geometryAttempt = 0;
@@ -195,7 +203,8 @@ export function RewardScatter({
             : { x: pointScatterX, y: pointScatterY },
           iconSize: pointIconSize,
           zIndex: pointZIndex,
-          arrivalSoundEffect: "points",
+          arrivalSoundEffect: pointArrivalSoundEffect,
+          vibrateOnArrival: pointVibrateOnArrival,
         },
       });
       const pointFlights = generated.filter((flight) => flight.channel === "points");
@@ -224,7 +233,7 @@ export function RewardScatter({
     };
   // All request fields are expanded so parent re-renders do not restart a running scatter.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pointAmount, pointSource, pointTarget, pointTargetSelector, pointDelay, pointPlacementKey, pointScatterX, pointScatterY, pointIconCount, pointGemIcon, pointIconSize, pointZIndex]);
+  }, [pointAmount, pointSource, pointTarget, pointTargetSelector, pointDelay, pointPlacementKey, pointScatterX, pointScatterY, pointIconCount, pointGemIcon, pointIconSize, pointZIndex, pointArrivalSoundEffect, pointVibrateOnArrival, flightExit]);
 
   useEffect(() => {
     if (!gemRewards.length) return;
@@ -414,13 +423,34 @@ export function RewardScatter({
       callbacksRef.current.onMedalArrive?.(flight.pointsAwarded ?? 1, flight.arrivalIndex);
     }
 
-    playSoundEffect(flight.arrivalSoundEffect);
-    vibrate(flight.channel === "medals" ? "reward-arrival" : "tap");
+    if (flight.arrivalSoundEffect) playSoundEffect(flight.arrivalSoundEffect);
+    if (flight.vibrateOnArrival) {
+      vibrate(flight.channel === "medals" ? "reward-arrival" : "tap");
+    }
 
     if (groupArrivalCountsRef.current[flight.channel] >= groupFlightCountsRef.current[flight.channel]) {
       completeGroup(flight.channel);
     }
   }
+
+  function handleFlightExit(flight: RewardScatterFlight) {
+    arrivedFlightIdsRef.current[flight.channel].add(flight.id);
+    setFlights((current) => current.filter((item) => item.id !== flight.id));
+  }
+
+  useEffect(() => {
+    if (!flightExit) return;
+
+    const timeout = window.setTimeout(() => {
+      const activeFlights = flightsRef.current;
+      for (const flight of activeFlights) {
+        arrivedFlightIdsRef.current[flight.channel].add(flight.id);
+      }
+      setFlights([]);
+    }, 240);
+
+    return () => window.clearTimeout(timeout);
+  }, [flightExit]);
 
   if (typeof document === "undefined" || flights.length === 0) return null;
 
@@ -431,12 +461,15 @@ export function RewardScatter({
           key={flight.id}
           aria-hidden="true"
           data-reward-flight-channel={flight.channel}
-          className={`pointer-events-none fixed left-0 top-0 ${flight.animation === "medal" ? "animate-quiz-medal-icon-flight" : "animate-quiz-score-icon-flight"}`}
+          className={`pointer-events-none fixed left-0 top-0 ${flight.animation === "medal" ? "animate-quiz-medal-icon-flight" : "animate-quiz-score-icon-flight"} ${flightExit ? "quiz-performance-flight-exiting" : ""}`}
           onAnimationStart={() => {
             if (flight.channel === "points") callbacksRef.current.onPointsLaunch?.();
             else if (flight.gemType) callbacksRef.current.onGemLaunch?.(flight.gemType);
           }}
-          onAnimationEnd={() => handleFlightEnd(flight)}
+          onAnimationEnd={(event) => {
+            if (event.target !== event.currentTarget || flightExit) return;
+            handleFlightEnd(flight);
+          }}
           style={{
             zIndex: flight.zIndex,
             opacity: 1,
@@ -450,32 +483,39 @@ export function RewardScatter({
             animationDelay: `${flight.delay}ms`,
           } as CSSProperties}
         >
-          {flight.visual.kind === "points" ? (
-            <ScoreIcon size={flight.iconSize} />
-          ) : flight.visual.kind === "medal" ? (
-            <span
-              className="result-medal-center-wobble block"
-              style={{ width: flight.iconSize, height: flight.iconSize }}
-            >
-              <img
-                src={MEDAL_IMAGE_SRC}
+          <span
+            className={flightExit ? "quiz-performance-flight-exit-content" : undefined}
+            onAnimationEnd={(event) => {
+              if (event.target === event.currentTarget && flightExit) handleFlightExit(flight);
+            }}
+          >
+            {flight.visual.kind === "points" ? (
+              <ScoreIcon size={flight.iconSize} />
+            ) : flight.visual.kind === "medal" ? (
+              <span
+                className="result-medal-center-wobble block"
+                style={{ width: flight.iconSize, height: flight.iconSize }}
+              >
+                <img
+                  src={MEDAL_IMAGE_SRC}
+                  alt=""
+                  width={flight.iconSize}
+                  height={flight.iconSize}
+                  draggable={false}
+                  className="size-full object-contain"
+                />
+              </span>
+            ) : (
+              <Image
+                src={GEM_ASSETS[flight.visual.type]}
                 alt=""
                 width={flight.iconSize}
                 height={flight.iconSize}
-                draggable={false}
-                className="size-full object-contain"
+                className="object-contain"
+                style={{ width: flight.iconSize, height: flight.iconSize }}
               />
-            </span>
-          ) : (
-            <Image
-              src={GEM_ASSETS[flight.visual.type]}
-              alt=""
-              width={flight.iconSize}
-              height={flight.iconSize}
-              className="object-contain"
-              style={{ width: flight.iconSize, height: flight.iconSize }}
-            />
-          )}
+            )}
+          </span>
         </span>
       ))}
     </>,

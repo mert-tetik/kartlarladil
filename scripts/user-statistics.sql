@@ -27,10 +27,10 @@ user_stats AS (
       CASE
         WHEN status = 'learned' THEN
           CASE tier
-            WHEN 'A1' THEN 10
-            WHEN 'A2' THEN 20
-            WHEN 'B1' THEN 40
-            WHEN 'B2' THEN 50
+            WHEN 'A1' THEN 50
+            WHEN 'A2' THEN 50
+            WHEN 'B1' THEN 75
+            WHEN 'B2' THEN 75
             WHEN 'C1' THEN 100
             ELSE 0
           END

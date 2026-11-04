@@ -166,6 +166,17 @@ describe("QuizContinuationMotivationView", () => {
     expect(leaderboard).toHaveAttribute("style", expect.stringContaining("--quiz-continuation-delay: 0ms"));
     expect(speech).toHaveAttribute("style", expect.stringContaining("--quiz-continuation-delay: 90ms"));
     expect(actions).toHaveAttribute("style", expect.stringContaining("--quiz-continuation-delay: 280ms"));
+
+    const additionPanel = document.body.querySelector("[data-continuation-card-additions]");
+    const additionTitle = additionPanel?.querySelector("h3");
+    const additionButtons = additionPanel?.querySelectorAll("[data-continuation-card-addition-enter]");
+    expect(additionTitle).toHaveClass("quiz-continuation-stagger-enter");
+    expect(additionTitle).toHaveAttribute("style", expect.stringContaining("--quiz-continuation-delay: 360ms"));
+    expect(additionButtons).toHaveLength(3);
+    expect(additionButtons?.[0]).toHaveClass("quiz-continuation-stagger-enter");
+    expect(additionButtons?.[0]).toHaveAttribute("style", expect.stringContaining("--quiz-continuation-delay: 440ms"));
+    expect(additionButtons?.[1]).toHaveAttribute("style", expect.stringContaining("--quiz-continuation-delay: 510ms"));
+    expect(additionButtons?.[2]).toHaveAttribute("style", expect.stringContaining("--quiz-continuation-delay: 580ms"));
   });
 
   it("keeps the leaderboard card last and replaces its placeholder when data arrives", () => {

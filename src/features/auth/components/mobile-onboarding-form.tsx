@@ -145,7 +145,9 @@ export function MobileOnboardingForm({
   function selectNativeLanguage(code: LanguageCode) {
     hasSelectedLanguageRef.current = true;
     setPreferredUiLocale(code);
-    setLocale(code);
+    // Keep this multi-step flow mounted; the next route refresh happens after
+    // the preferences have been submitted and the screen is ready to leave.
+    setLocale(code, { refreshServer: false });
     if (!isLoginLanguageRefresh) {
       void updateLanguagePreferenceAction({
         field: "preferred_ui_locale",
@@ -189,7 +191,7 @@ export function MobileOnboardingForm({
 
   function advanceLanguageStep() {
     if (step === "native") {
-      setLocale(preferredUiLocale);
+      setLocale(preferredUiLocale, { refreshServer: false });
       setStep("learning");
       return;
     }
@@ -212,7 +214,7 @@ export function MobileOnboardingForm({
 
     // These preferences are already stored locally; update the in-memory profile and continue
     // without waiting for the profile write to round-trip to Supabase.
-    setLocale(preferredUiLocale);
+    setLocale(preferredUiLocale, { refreshServer: false });
     writeLandingCardLanguage(preferredLanguageCode);
     updateProfileField({ preferredLanguageCode, preferredUiLocale });
     onComplete?.();
@@ -283,6 +285,8 @@ export function MobileOnboardingForm({
       data-mobile-onboarding-step={step}
       data-mobile-onboarding-visible-step={displayedStep}
       data-gateway-flow-screen
+      data-tap-vibration="firm"
+      data-flow-button-sound="auth"
       className="mx-auto flex h-[min(76vh,44rem)] min-h-0 w-full max-w-sm flex-col overflow-visible supports-[height:100dvh]:h-[min(76dvh,44rem)]"
     >
       <input type="hidden" name="preferredUiLocale" value={preferredUiLocale} />
@@ -387,7 +391,8 @@ export function MobileOnboardingForm({
               disabled={isStepTransitioning}
               onClick={advanceLanguageStep}
               className={cn(
-                "h-14 w-full rounded-lg px-5 text-base font-bold transition-transform active:scale-[0.99] disabled:opacity-70",
+                "h-14 w-full rounded-lg px-5 text-base font-bold transition-transform active:scale-[0.99]",
+                isLoginLanguageRefresh ? "disabled:opacity-100" : "disabled:opacity-70",
                 actionButtonClass,
               )}
             >
@@ -411,7 +416,9 @@ export function MobileOnboardingForm({
                 : undefined}
               className={cn(
                 "h-14 w-full text-base font-bold",
-                displayedStep === "picture" ? "disabled:opacity-100" : "disabled:opacity-70",
+                displayedStep === "picture" || isLoginLanguageRefresh
+                  ? "disabled:opacity-100"
+                  : "disabled:opacity-70",
                 actionButtonClass,
               )}
               pendingLabel={t("auth.onboarding.pending")}

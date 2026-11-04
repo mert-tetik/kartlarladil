@@ -3,7 +3,30 @@ const ROUTE_TRANSITION_CANCEL_EVENT = "foxiesdeck:route-transition-cancel";
 
 export const ROUTE_TRANSITION_COVER_DURATION_MS = 260;
 
-export function shouldAnimateRouteTransition(previousPathname: string, nextPathname: string) {
+let nextSkippedRouteTransitionPath: string | null = null;
+
+export function skipNextRouteTransitionTo(pathname: string) {
+  nextSkippedRouteTransitionPath = pathname;
+}
+
+export function consumeSkippedRouteTransition(pathname: string) {
+  const skippedPath = nextSkippedRouteTransitionPath;
+  nextSkippedRouteTransitionPath = null;
+  return skippedPath === pathname;
+}
+
+export function shouldAnimateRouteTransition(
+  previousPathname: string,
+  nextPathname: string,
+  options: { skipTransition?: boolean; authGatewayVisible?: boolean } = {},
+) {
+  if (
+    options.skipTransition ||
+    (nextPathname === "/" && options.authGatewayVisible)
+  ) {
+    return false;
+  }
+
   // Query-only state changes on the landing page (auth/tutorial/offer flags)
   // should not replay the whole landing entrance animation.
   return previousPathname !== nextPathname || nextPathname !== "/";

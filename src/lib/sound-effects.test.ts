@@ -38,6 +38,7 @@ const EFFECT_NAMES: SoundEffectName[] = [
   "result-medal-collect",
   "result-action-press",
   "result-card-reveal",
+  "quiz-result-point-award",
 ];
 
 describe("SOUND_EFFECT_SYNTHESIZERS", () => {

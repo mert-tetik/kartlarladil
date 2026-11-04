@@ -6,7 +6,7 @@ import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { EMPTY_PROGRESS_STATS, getNextRankProgress } from "@/features/progress/progress-stats";
-import { LegacyResultView, MobileQuizFeedback, QuizStation, ResultView } from "@/features/quiz/components/quiz-station";
+import { LegacyResultView, MobileQuizFeedback, QuizStation, ResultFlowView, ResultView } from "@/features/quiz/components/quiz-station";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
@@ -85,6 +85,12 @@ vi.mock("@/features/quiz/actions", () => ({
   awardChestPoints: vi.fn(async () => ({ success: true, points: 20 })),
   awardQuizStreakPoints: vi.fn(async () => ({ success: true, awarded: true, points: 20, streak: 5 })),
   awardQuizResultPoints: vi.fn(async () => ({ success: true, awarded: true, points: 5 })),
+  awardQuizPerformancePoints: vi.fn(async () => ({
+    success: true,
+    awarded: true,
+    rewards: { accuracyPoints: 35, timePoints: 35, correctPoints: 50, learnedPoints: 20 },
+    totalPoints: 140,
+  })),
   awardQuizBonusPoints: vi.fn(async () => ({ success: true, awarded: true, points: 5 })),
   claimQuizResultMedals: (...args: unknown[]) => claimQuizResultMedalsMock(...args),
 }));
@@ -858,6 +864,76 @@ describe("ResultView medal stages", () => {
     expect(screen.getByRole("button", { name: "Tekrar dene" })).toBeInTheDocument();
     expect(document.querySelector("[data-result-medal-center-flight]")).toBeInTheDocument();
     expect(onContinue).not.toHaveBeenCalled();
+
+    geometrySpy.mockRestore();
+  });
+
+  it("keeps the motivation screen visible while the main-menu route transition is pending", () => {
+    vi.useFakeTimers();
+    const geometrySpy = mockMedalGeometry();
+    const onExit = vi.fn();
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={null}>
+          <ResultFlowView
+            mode="active"
+            selectedLanguage="en"
+            results={{
+              correct: [],
+              incorrect: VOCABULARY_CARDS.slice(0, 1),
+              learned: [],
+            }}
+            selectedCount={1}
+            chestOpened={false}
+            showChestRewardGate
+            chestTier={null}
+            remainingActiveCards={1}
+            onContinue={vi.fn()}
+            onRestart={vi.fn()}
+            onExit={onExit}
+          />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Devam et" }));
+    act(() => {
+      vi.advanceTimersByTime(360);
+    });
+    act(() => {
+      vi.advanceTimersByTime(2500);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Madalyaları al" }));
+
+    const medalCollector = document.querySelector<HTMLButtonElement>(
+      "[data-result-medal-center-collector]",
+    );
+    expect(medalCollector).toBeInTheDocument();
+    fireEvent.pointerDown(medalCollector!);
+    fireEvent.pointerDown(medalCollector!);
+    fireEvent.pointerDown(medalCollector!);
+
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    const chestGate = document.querySelector<HTMLElement>("[data-quiz-chest-reward-layer]");
+    expect(chestGate).toBeInTheDocument();
+    fireEvent.click(chestGate!.querySelector("button")!);
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+
+    expect(document.querySelector("[data-quiz-continuation-motivation]")).toBeInTheDocument();
+    fireEvent.click(document.querySelector('[data-continuation-action="menu"]')!);
+
+    expect(onExit).toHaveBeenCalledTimes(1);
+    expect(document.querySelector("[data-quiz-continuation-motivation]")).toBeInTheDocument();
+    act(() => {
+      vi.advanceTimersByTime(290);
+    });
+    expect(document.querySelector("[data-quiz-continuation-motivation]")).toBeInTheDocument();
 
     geometrySpy.mockRestore();
   });

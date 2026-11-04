@@ -118,7 +118,7 @@ import {
   useAuthSession,
   useRequireAuthAction,
 } from "@/features/auth/auth-client";
-import { getPointsForTier, RANK_ACCENT_COLORS } from "@/features/progress/progress-stats";
+import { getPointsForTier, getRankForPoints, RANK_ACCENT_COLORS } from "@/features/progress/progress-stats";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { QuizMobileActionPortal } from "@/features/quiz/components/quiz-mobile-action-portal";
 import { QuizWordButton } from "@/features/quiz/components/quiz-word-button";
@@ -192,6 +192,13 @@ import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/component
 import { RewardMedalHud } from "@/features/progress/components/reward-medal-hud";
 import { MainPointsDisplay } from "@/features/progress/components/main-points-display";
 import { RewardScatter } from "@/features/progress/components/reward-scatter";
+import { QuizPerformanceRewardSequence } from "@/features/quiz/components/quiz-performance-reward-sequence";
+import {
+  getQuizPerformanceRewardBreakdown,
+  isQuizPerformanceContinueLocked as getIsQuizPerformanceContinueLocked,
+  QUIZ_PERFORMANCE_REWARD_CONTINUE_FAILSAFE_MS,
+  type QuizPerformanceRankUp,
+} from "@/features/quiz/quiz-performance-rewards";
 import { useRewardAnimationGate } from "@/features/progress/reward-animation-gate";
 import { GEM_ASSETS, GEM_COSTS } from "@/features/gems/gem-types";
 import type { RewardScatterRect } from "@/features/progress/reward-scatter";
@@ -607,6 +614,24 @@ export function QuizStation({
     rollbackGemSpend,
   } = useAuthSession();
   const { stats, refreshStats } = useProgressStats();
+  const handlePerformanceRewardError = useCallback(() => {
+    showMessage(t("inventory.error.operationFailed"), "error");
+  }, [showMessage, t]);
+  const handlePerformanceRewardPersisted = useCallback(async (pointsBeforeAward: number): Promise<QuizPerformanceRankUp | null> => {
+    const previousRank = getRankForPoints(pointsBeforeAward);
+    refreshLeaderboardPositions();
+    try {
+      await refreshStats();
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+    } catch {
+      return null;
+    }
+
+    const currentRank = statsRef.current.rank;
+    return currentRank.minPoints > previousRank.minPoints
+      ? { fromRank: previousRank, rank: currentRank }
+      : null;
+  }, [refreshStats]);
   const chestRewardsEnabled = mode === "active";
 
   const [phase, setPhase] = useState<QuizPhase>(initialLanguage ? "count" : "language");
@@ -993,6 +1018,22 @@ export function QuizStation({
     }
     if (isQuizStageSnapshot) {
       snapshot.setAttribute("data-quiz-transition-fallback-quiz-stage", "true");
+    }
+    if (source.matches("[data-quiz-celebration]")) {
+      // The learned-card root has its own background-flash animation, which
+      // otherwise overrides the generic fallback exit animation on the cloned
+      // root. Set the horizontal exit directly on this snapshot so the whole
+      // previous screen reliably moves left instead of replaying its flash.
+      snapshot.style.setProperty(
+        "background-color",
+        window.getComputedStyle(source).backgroundColor,
+        "important",
+      );
+      snapshot.style.setProperty(
+        "animation",
+        `quiz-transition-fallback-exit-left ${QUIZ_FLOW_TRANSITION_DURATION_MS}ms cubic-bezier(0.85, 0, 0.15, 1) both`,
+        "important",
+      );
     }
     if (fadeQuizTopBar) {
       const topBar = snapshot.querySelector<HTMLElement>("[data-mobile-quiz-top-bar]");
@@ -3657,7 +3698,11 @@ export function QuizStation({
             showChestRewardGate
             chestTier={awardedChestTier}
             chestTotalPoints={stats.totalPoints}
+            currentTotalPoints={stats.totalPoints}
             quizFlowTest={quizFlowTest}
+            onRewardError={handlePerformanceRewardError}
+            onRewardPersisted={handlePerformanceRewardPersisted}
+            onRewardRankUp={announceQuizRankUp}
             onChestRewardReady={awardedChestTier
               ? () => prepareChestReward(awardedChestTier.tier)
               : undefined}
@@ -6783,6 +6828,7 @@ function QuizViewportOverlay({
   return createPortal(
     <div
       data-quiz-overlay={overlay}
+      data-tap-vibration={overlay === "chest" ? "firm" : undefined}
       data-learn-quiz-page={learnPagePhase}
       className={className}
     >
@@ -6808,6 +6854,7 @@ type ResultFlowViewProps = {
   showChestRewardGate?: boolean;
   chestTier?: ChestTierDefinition | null;
   chestTotalPoints?: number;
+  currentTotalPoints?: number;
   quizFlowTest?: boolean;
   onChestRewardReady?: () => Promise<ChestRewardOutcome | null>;
   learnedCards?: readonly VocabularyCard[];
@@ -6822,6 +6869,9 @@ type ResultFlowViewProps = {
   nextRankIcon?: RankIconId | null;
   gainedGems?: number;
   onResultMessageComplete?: () => void;
+  onRewardError?: () => void;
+  onRewardPersisted?: (pointsBeforeAward: number) => Promise<QuizPerformanceRankUp | null>;
+  onRewardRankUp?: (rank: RankDefinition) => void;
   onContinue?: () => void;
   onRestart: () => void;
   onExit: () => void;
@@ -6833,6 +6883,7 @@ export function ResultFlowView({
   showChestRewardGate = false,
   chestTier = null,
   chestTotalPoints = 0,
+  currentTotalPoints = chestTotalPoints,
   onChestRewardReady,
   learnedCards = [],
   advancedCards = [],
@@ -6993,8 +7044,9 @@ export function ResultFlowView({
     if (resultFlowCompletedRef.current) return;
 
     resultFlowCompletedRef.current = true;
-    setContinuationMotivationVisible(false);
-    setMotivationEntering(false);
+    // Keep the motivation screen mounted while the route transition covers
+    // this page. Navigation is intentionally delayed until the cover finishes;
+    // hiding this layer immediately exposes the medal stage underneath it.
     resultProps.onExit();
   };
 
@@ -7042,6 +7094,7 @@ export function ResultFlowView({
             <ResultView
               {...resultProps}
               earnedPoints={earnedPoints}
+              currentTotalPoints={currentTotalPoints}
               onResultActionPress={playResultActionPress}
               onContinue={handleResultContinue}
               showMedalHud={!chestGateVisible && !continuationMotivationVisible}
@@ -7082,6 +7135,7 @@ export function ResultFlowView({
       <ResultView
         {...resultProps}
         earnedPoints={earnedPoints}
+        currentTotalPoints={currentTotalPoints}
         onResultActionPress={playResultActionPress}
         onContinue={handleResultContinue}
         showMedalHud={!chestGateVisible && !continuationMotivationVisible}
@@ -7150,6 +7204,10 @@ export function ResultView({
   chestOpened,
   quizFlowTest = false,
   earnedPoints = 0,
+  currentTotalPoints = 0,
+  onRewardError,
+  onRewardPersisted,
+  onRewardRankUp,
   onResultActionPress,
   onContinue,
   showMedalHud = true,
@@ -7162,6 +7220,10 @@ export function ResultView({
   chestOpened: boolean;
   quizFlowTest?: boolean;
   earnedPoints?: number;
+  currentTotalPoints?: number;
+  onRewardError?: () => void;
+  onRewardPersisted?: (pointsBeforeAward: number) => Promise<QuizPerformanceRankUp | null>;
+  onRewardRankUp?: (rank: RankDefinition) => void;
   onResultActionPress?: () => void;
   onContinue?: () => void;
   showMedalHud?: boolean;
@@ -7197,6 +7259,8 @@ export function ResultView({
   const [medalFlightRequests, setMedalFlightRequests] = useState<ResultMedalFlightRequest[]>([]);
   const [resultMedalStage, setResultMedalStage] = useState<"summary" | "medals">("summary");
   const [isResultSummaryExiting, setIsResultSummaryExiting] = useState(false);
+  const [resultSummaryEntered, setResultSummaryEntered] = useState(false);
+  const [performancePointsArrived, setPerformancePointsArrived] = useState(0);
   const [medalRevealComplete, setMedalRevealComplete] = useState(false);
   const [medalClaimButtonVisible, setMedalClaimButtonVisible] = useState(false);
   const [openMenu, setOpenMenu] = useState<
@@ -7227,6 +7291,81 @@ export function ResultView({
   const medalAdvanceScheduledRef = useRef(false);
   const medalContinueNotifiedRef = useRef(false);
   const isResultTest = !quizSessionId;
+
+  const performanceRewardInput = useMemo(() => {
+    if (!selectedCount) return null;
+    const bonusCorrect = results.bonusCorrect ?? 0;
+    const bonusIncorrect = results.bonusIncorrect ?? 0;
+
+    return {
+      selectedCount,
+      durationSeconds: Math.max(0, Math.round(quizDurationSeconds)),
+      correctAnswerCount: results.correct.length + bonusCorrect,
+      answeredCount: results.correct.length + results.incorrect.length + bonusCorrect + bonusIncorrect,
+      correctCardCount: results.correct.length,
+      learnedCardCount: results.learned.length,
+    };
+  }, [quizDurationSeconds, results.bonusCorrect, results.bonusIncorrect, results.correct.length, results.incorrect.length, results.learned.length, selectedCount]);
+
+  const hasPerformanceRewardSequence = Boolean(
+    mode === "active" &&
+    !quizFlowTest &&
+    user &&
+    quizSessionId &&
+    performanceRewardInput &&
+    (getQuizPerformanceRewardBreakdown(performanceRewardInput)?.totalPoints ?? 0) > 0,
+  );
+  const [performanceRewardsAnimationComplete, setPerformanceRewardsAnimationComplete] = useState(false);
+  const [performanceRewardRankCheckComplete, setPerformanceRewardRankCheckComplete] = useState(false);
+  const [performanceRewardRankUp, setPerformanceRewardRankUp] = useState<QuizPerformanceRankUp | null>(null);
+  const [performanceRankOverlayPresented, setPerformanceRankOverlayPresented] = useState(false);
+  const [performanceRewardSafetyElapsed, setPerformanceRewardSafetyElapsed] = useState(false);
+  const isPerformanceContinueLocked = getIsQuizPerformanceContinueLocked({
+    hasRewardSequence: hasPerformanceRewardSequence,
+    animationsComplete: performanceRewardsAnimationComplete,
+    rankCheckComplete: performanceRewardRankCheckComplete,
+    rankUp: performanceRewardRankUp,
+    rankOverlayPresented: performanceRankOverlayPresented,
+    failsafeElapsed: performanceRewardSafetyElapsed,
+  });
+
+  const handlePerformancePointsArrive = useCallback((amount: number) => {
+    setPerformancePointsArrived((current) => current + amount);
+  }, []);
+
+  const handlePerformanceRewardsFinished = useCallback(() => {
+    setPerformanceRewardsAnimationComplete(true);
+  }, []);
+
+  const handlePerformanceRankCheckComplete = useCallback((rankUp: QuizPerformanceRankUp | null) => {
+    setPerformanceRewardRankUp(rankUp);
+    setPerformanceRewardRankCheckComplete(true);
+    if (rankUp) {
+      onRewardRankUp?.(rankUp.rank);
+    }
+  }, [onRewardRankUp]);
+
+  const handlePerformanceRankOverlayPresented = useCallback(() => {
+    setPerformanceRankOverlayPresented(true);
+  }, []);
+
+  const handlePerformanceRankOverlayClose = useCallback(() => {
+    setPerformanceRewardRankUp(null);
+    setPerformanceRankOverlayPresented(false);
+  }, []);
+
+  useEffect(() => {
+    const safetyTimer = window.setTimeout(() => {
+      setPerformanceRewardSafetyElapsed(true);
+    }, QUIZ_PERFORMANCE_REWARD_CONTINUE_FAILSAFE_MS);
+    return () => window.clearTimeout(safetyTimer);
+  }, []);
+
+  useEffect(() => {
+    if (resultSummaryEntered || resultMedalStage === "medals") return;
+    const fallbackTimer = window.setTimeout(() => setResultSummaryEntered(true), 1100);
+    return () => window.clearTimeout(fallbackTimer);
+  }, [resultMedalStage, resultSummaryEntered]);
 
   useEffect(() => {
     return () => {
@@ -7525,7 +7664,7 @@ export function ResultView({
     {
       key: "points",
       label: formatSuperWaterUppercaseText(locale, t("quiz.resultTotalXp")),
-      value: formatSuperWaterText(locale, formatNumber(locale, totalPointsEarned)),
+      value: formatSuperWaterText(locale, formatNumber(locale, totalPointsEarned + performancePointsArrived)),
       icon: Star,
       className: "border-yellow-400 bg-transparent text-yellow-300",
       headerClassName: "bg-yellow-400",
@@ -7556,14 +7695,22 @@ export function ResultView({
   const isMedalStage = resultMedalStage === "medals";
   const isCollectingMedals = claimingMedals && !claimedMedals;
   const handleResultPrimaryAction = useCallback(() => {
+    if (
+      !isMedalStage &&
+      (isPerformanceContinueLocked || (isResultSummaryExiting && !performanceRewardSafetyElapsed))
+    ) return;
+
+    if (!isMedalStage && isResultSummaryExiting && resultSummaryExitTimerRef.current !== null) {
+      window.clearTimeout(resultSummaryExitTimerRef.current);
+      resultSummaryExitTimerRef.current = null;
+    }
+
     onResultActionPress?.();
     if (!onResultActionPress) {
       playSoundEffect("result-action-press");
     }
 
     if (!isMedalStage) {
-      if (isResultSummaryExiting) return;
-
       setIsResultSummaryExiting(true);
       resultSummaryExitTimerRef.current = window.setTimeout(() => {
         resultSummaryExitTimerRef.current = null;
@@ -7574,7 +7721,7 @@ export function ResultView({
     }
 
     collectMedals();
-  }, [collectMedals, isMedalStage, isResultSummaryExiting, onResultActionPress]);
+  }, [collectMedals, isMedalStage, isPerformanceContinueLocked, isResultSummaryExiting, onResultActionPress, performanceRewardSafetyElapsed]);
 
   return (
     <div
@@ -7708,6 +7855,14 @@ export function ResultView({
             style={{
               "--result-stagger-delay": "460ms",
             } as CSSProperties}
+            onAnimationEnd={(event) => {
+              if (
+                event.target === event.currentTarget &&
+                event.animationName === "result-stagger-scale-in"
+              ) {
+                setResultSummaryEntered(true);
+              }
+            }}
           >
             {isMedalStage ? (
               <button
@@ -7739,11 +7894,13 @@ export function ResultView({
                 key="continue"
                 type="button"
                 onClick={handleResultPrimaryAction}
-                disabled={isResultSummaryExiting}
+                disabled={(isResultSummaryExiting && !performanceRewardSafetyElapsed) || isPerformanceContinueLocked}
+                aria-busy={isPerformanceContinueLocked}
                 data-no-tap-vibrate
                 data-result-primary-action
+                data-performance-rewards-locked={isPerformanceContinueLocked ? "true" : "false"}
                 className={cn(
-                  "pointer-events-auto flex h-14 w-[calc(100%-2rem)] max-w-[400px] items-center justify-center rounded-xl bg-emerald-500 px-5 text-lg font-bold text-white shadow-[0_6px_0_rgba(0,0,0,0.22)] transition-transform active:translate-y-1 active:shadow-[0_2px_0_rgba(0,0,0,0.22)] sm:h-16 sm:text-xl",
+                  "pointer-events-auto flex h-14 w-[calc(100%-2rem)] max-w-[400px] items-center justify-center rounded-xl bg-emerald-500 px-5 text-lg font-bold text-white shadow-[0_6px_0_rgba(0,0,0,0.22)] transition-[opacity,transform] active:translate-y-1 active:shadow-[0_2px_0_rgba(0,0,0,0.22)] disabled:pointer-events-none disabled:opacity-60 sm:h-16 sm:text-xl",
                   canUseSuperWater(locale) && "font-super-water",
                 )}
               >
@@ -7760,6 +7917,37 @@ export function ResultView({
           cards={menuConfig[openMenu].cards}
           tone={menuConfig[openMenu].tone}
           onClose={() => setOpenMenu(null)}
+        />
+      ) : null}
+
+      {performanceRewardRankUp &&
+      (performanceRewardsAnimationComplete || performanceRewardSafetyElapsed) ? (
+        <RankUpMenu
+          rank={performanceRewardRankUp.rank}
+          fromRank={performanceRewardRankUp.fromRank}
+          onClose={handlePerformanceRankOverlayClose}
+          onOpen={handlePerformanceRankOverlayPresented}
+          zIndex={300}
+        />
+      ) : null}
+
+      {!isMedalStage &&
+      mode === "active" &&
+      !quizFlowTest &&
+      user &&
+      quizSessionId &&
+      performanceRewardInput ? (
+        <QuizPerformanceRewardSequence
+          sessionId={quizSessionId}
+          input={performanceRewardInput}
+          currentTotalPoints={currentTotalPoints}
+          entered={resultSummaryEntered}
+          exiting={isResultSummaryExiting}
+          onPointsArrive={handlePerformancePointsArrive}
+          onRewardsFinished={handlePerformanceRewardsFinished}
+          onRankCheckComplete={handlePerformanceRankCheckComplete}
+          onAwardError={onRewardError}
+          onAwardPersisted={onRewardPersisted}
         />
       ) : null}
 

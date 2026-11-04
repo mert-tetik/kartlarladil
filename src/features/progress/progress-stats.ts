@@ -10,10 +10,10 @@ import type {
 } from "@/types/domain";
 
 export const TIER_POINTS: TierPoints = {
-  A1: 10,
-  A2: 20,
-  B1: 40,
-  B2: 50,
+  A1: 50,
+  A2: 50,
+  B1: 75,
+  B2: 75,
   C1: 100,
 };
 

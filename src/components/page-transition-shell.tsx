@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import {
   ROUTE_TRANSITION_COVER_DURATION_MS,
   cancelPendingNavigationTransition,
+  consumeSkippedRouteTransition,
   shouldAnimateRouteTransition,
   subscribeRouteTransition,
 } from "@/lib/route-transition";
@@ -164,7 +165,14 @@ export function PageTransitionShell({ children }: { children: ReactNode }) {
     const previousPathname = previousPathnameRef.current;
     previousPathnameRef.current = pathname;
 
-    if (!shouldAnimateRouteTransition(previousPathname, pathname)) {
+    const isAuthLandingHandoff =
+      pathname === "/" && Boolean(document.querySelector("[data-mobile-auth-gateway]"));
+    const shouldSkipTransition = consumeSkippedRouteTransition(pathname);
+
+    if (!shouldAnimateRouteTransition(previousPathname, pathname, {
+      skipTransition: shouldSkipTransition,
+      authGatewayVisible: isAuthLandingHandoff,
+    })) {
       transitionStartedAtRef.current = null;
       applyRouteTransitionPhase("idle");
       setTransitionPhase("idle");

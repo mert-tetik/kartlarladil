@@ -4,6 +4,7 @@ import {
   CARD_SPEECH_STATUS_EVENT,
   getSpeechLanguage,
   speakText,
+  stopSpeakingText,
   type CardSpeechStatusDetail,
 } from "@/features/cards/card-speech";
 
@@ -23,22 +24,61 @@ describe("card speech", () => {
   });
 
   it("forwards native TTS start and end callbacks to the UI", () => {
-    const speakWithLifecycle = vi.fn(
-      (_text: string, _languageTag: string, _rate: number, _requestId: string) => true,
-    );
+    const speakWithLifecycle = vi.fn(() => true);
     window.FoxiesDeckNativeSpeech = { speak: vi.fn(() => true), speakWithLifecycle, stop: vi.fn() };
     const statuses: CardSpeechStatusDetail[] = [];
     const handleStatus = (event: Event) => statuses.push((event as CustomEvent<CardSpeechStatusDetail>).detail);
     window.addEventListener(CARD_SPEECH_STATUS_EVENT, handleStatus);
 
     expect(speakText("hola", "es")).toBe(true);
-    const requestId = speakWithLifecycle.mock.calls[0]![3];
+    const requestId = (speakWithLifecycle.mock.calls[0] as unknown[])[3] as string;
     window.FoxiesDeckNativeSpeechStatus?.(requestId, "start");
     window.FoxiesDeckNativeSpeechStatus?.(requestId, "end");
 
     expect(statuses.map(({ state }) => state)).toEqual(["start", "end"]);
     expect(statuses[0]).toMatchObject({ text: "hola", language: "es" });
     window.removeEventListener(CARD_SPEECH_STATUS_EVENT, handleStatus);
+  });
+
+  it("stops native speech and ends its pending lifecycle request", () => {
+    const speakWithLifecycle = vi.fn(() => true);
+    const stop = vi.fn();
+    window.FoxiesDeckNativeSpeech = { speak: vi.fn(() => true), speakWithLifecycle, stop };
+    const statuses: CardSpeechStatusDetail[] = [];
+    const handleStatus = (event: Event) => statuses.push((event as CustomEvent<CardSpeechStatusDetail>).detail);
+    window.addEventListener(CARD_SPEECH_STATUS_EVENT, handleStatus);
+
+    speakText("welcome", "en");
+    stopSpeakingText();
+
+    expect(stop).toHaveBeenCalledOnce();
+    expect(statuses).toEqual([{ text: "welcome", language: "en", state: "end" }]);
+    window.removeEventListener(CARD_SPEECH_STATUS_EVENT, handleStatus);
+  });
+
+  it("cancels browser speech and clears an autoplay-blocked request", () => {
+    class MockSpeechSynthesisUtterance {
+      lang = "";
+      rate = 1;
+      onerror: ((event: SpeechSynthesisErrorEvent) => void) | null = null;
+
+      constructor(public text: string) {}
+    }
+
+    const cancel = vi.fn();
+    const speak = vi.fn();
+    vi.stubGlobal("SpeechSynthesisUtterance", MockSpeechSynthesisUtterance);
+    vi.stubGlobal("speechSynthesis", { speak, resume: vi.fn(), cancel });
+    speakText("continue", "en");
+    const utterance = speak.mock.calls[0]?.[0] as MockSpeechSynthesisUtterance;
+    utterance.onerror?.({ error: "not-allowed" } as SpeechSynthesisErrorEvent);
+    cancel.mockClear();
+
+    stopSpeakingText();
+    fireEvent.pointerUp(window, { pointerType: "touch" });
+
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(speak).toHaveBeenCalledOnce();
   });
 
   it("uses the stable language voice on native shells even for character profiles", () => {

@@ -29,6 +29,9 @@ function LocaleProbe() {
       <button type="button" onClick={() => setLocale("de")}>
         Set German
       </button>
+      <button type="button" onClick={() => setLocale("de", { refreshServer: false })}>
+        Set German locally
+      </button>
     </>
   );
 }
@@ -98,6 +101,23 @@ describe("LocaleProvider", () => {
     await user.click(screen.getByRole("button", { name: "Set German" }));
 
     expect(screen.getByTestId("locale")).toHaveTextContent("de");
+    expect(document.cookie).toContain(`${LOCALE_COOKIE_NAME}=de`);
+    expect(refreshMock).not.toHaveBeenCalled();
+  });
+
+  it("persists a local locale change without refreshing the server route", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <LocaleProbe />
+      </LocaleProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Set German locally" }));
+
+    expect(screen.getByTestId("locale")).toHaveTextContent("de");
+    expect(window.localStorage.getItem(LOCALE_STORAGE_KEY)).toBe("de");
     expect(document.cookie).toContain(`${LOCALE_COOKIE_NAME}=de`);
     expect(refreshMock).not.toHaveBeenCalled();
   });

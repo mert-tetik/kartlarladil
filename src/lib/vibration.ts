@@ -15,11 +15,13 @@ declare global {
   }
 }
 
-export type VibrationPatternName = "tap" | "reward-arrival" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result" | "draw" | "chest-tap" | "chest-open" | "streak-break" | "streak-reward-tap" | "streak-count-reveal" | "streak-shockwave" | "streak-exit" | "result-medal-collect" | "word-challenge-correct" | "word-challenge-incorrect" | "tutorial-next";
+export type VibrationPatternName = "tap" | "firm-tap" | "reward-arrival" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result" | "draw" | "chest-tap" | "chest-land" | "chest-open" | "streak-break" | "streak-reward-tap" | "streak-count-reveal" | "streak-shockwave" | "streak-exit" | "result-medal-collect" | "word-challenge-correct" | "word-challenge-incorrect" | "tutorial-next";
 
 export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]> = {
   /** Light tap for generic presses. */
   tap: [22],
+  /** Firm confirmation pulse for primary flow actions. */
+  "firm-tap": [58],
   /** Very short, low-strength arrival pulse for reward scatter targets. */
   "reward-arrival": [18],
   /** Short, solid feedback when a card flips. */
@@ -40,6 +42,8 @@ export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]>
   "tutorial-next": [72],
   /** Thud when the chest is tapped. */
   "chest-tap": [45],
+  /** Solid impact synchronized with the chest hitting the ground. */
+  "chest-land": [110],
   /** Strong, triumphant burst when the chest opens. */
   "chest-open": [90, 35, 120],
   /** Heavy multi-pulse impact when a streak reward breaks apart. */

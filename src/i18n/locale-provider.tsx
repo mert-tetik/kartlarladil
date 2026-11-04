@@ -14,7 +14,7 @@ import type { LocaleCode } from "@/types/domain";
 
 interface LocaleContextValue {
   locale: LocaleCode;
-  setLocale: (locale: LocaleCode) => void;
+  setLocale: (locale: LocaleCode, options?: { refreshServer?: boolean }) => void;
   t: (key: TranslationKey, values?: TranslationValues) => string;
 }
 
@@ -52,7 +52,7 @@ export function LocaleProvider({
   const value = useMemo<LocaleContextValue>(
     () => ({
       locale,
-      setLocale(nextLocale) {
+      setLocale(nextLocale, { refreshServer = true } = {}) {
         persistLocalePreference(nextLocale);
 
         if (nextLocale === locale) {
@@ -60,7 +60,9 @@ export function LocaleProvider({
         }
 
         setLocaleState(nextLocale);
-        router.refresh();
+        if (refreshServer) {
+          router.refresh();
+        }
       },
       t(key, values) {
         return translate(locale, key, values);

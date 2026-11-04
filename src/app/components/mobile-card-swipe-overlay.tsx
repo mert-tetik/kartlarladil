@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import { Check, X } from "lucide-react";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { localCardRepository } from "@/features/cards/card-repository";
+import { takeRandomCardsInTierOrder } from "@/app/components/mobile-card-swipe-deck";
 import { cancelCardPronunciation } from "@/features/cards/card-pronunciation-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { countActiveCardsForLanguage } from "@/features/inventory/active-card-limits";
@@ -72,6 +73,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
   const swipeInteractionActiveRef = useRef(false);
   const cardEntranceCompleteRef = useRef(false);
   const sessionSeenIdsRef = useRef(new Set<string>());
+  const nextTierIndexRef = useRef(0);
   const dragPosition = useRef({ x: 0, y: 0 });
   const queuedDragPosition = useRef({ x: 0, y: 0 });
   const dragFrame = useRef<number | null>(null);
@@ -125,6 +127,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
     sessionSeenIdsRef.current.clear();
     const resetTimer = window.setTimeout(() => {
       setDeck([]);
+      nextTierIndexRef.current = 0;
       setOutgoing(null);
       setIncoming("idle");
       setIncomingDirection(null);
@@ -162,18 +165,14 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
     const choices = localCardRepository
       .list({ language })
       .filter((candidate) => !excludedIds.has(candidate.sourceKey) && !excludedIds.has(candidate.id));
-    const additions: VocabularyCard[] = [];
-    const sampleSize = Math.min(needed, choices.length);
-
-    // Partial Fisher–Yates sampling makes every eligible card equally likely,
-    // without imposing a tier order or shuffling the entire language catalog.
-    for (let index = 0; index < sampleSize; index += 1) {
-      const randomIndex = index + Math.floor(Math.random() * (choices.length - index));
-      [choices[index], choices[randomIndex]] = [choices[randomIndex], choices[index]];
-      additions.push(choices[index]);
-    }
+    const { cards: additions, nextTierIndex } = takeRandomCardsInTierOrder(
+      choices,
+      needed,
+      nextTierIndexRef.current,
+    );
 
     if (additions.length > 0) {
+      nextTierIndexRef.current = nextTierIndex;
       setDeck((current) => {
         const deckIsUnchanged = current.length === currentDeck.length
           && current.every((candidate, index) => candidate === currentDeck[index]);

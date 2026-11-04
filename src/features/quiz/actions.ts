@@ -9,6 +9,10 @@ import { getChestRewardPoints } from "@/features/quiz/chest-rewards";
 import { getQuizStreakRewardPoints, getRewardableQuizStreak } from "@/features/quiz/streak-rewards";
 import { getQuizResultRewardPoints } from "@/features/quiz/result-rewards";
 import {
+  getQuizPerformanceRewardBreakdown,
+  type QuizPerformanceRewardInput,
+} from "@/features/quiz/quiz-performance-rewards";
+import {
   getBonusQuestionPoints,
   type BonusQuestionKind,
 } from "@/features/quiz/bonus-question-constants";
@@ -48,6 +52,19 @@ export interface AwardQuizResultPointsResult {
   success: boolean;
   awarded?: boolean;
   points?: number;
+  error?: string;
+}
+
+export interface AwardQuizPerformancePointsResult {
+  success: boolean;
+  awarded?: boolean;
+  rewards?: {
+    accuracyPoints: number;
+    timePoints: number;
+    correctPoints: number;
+    learnedPoints: number;
+  };
+  totalPoints?: number;
   error?: string;
 }
 
@@ -214,6 +231,70 @@ export async function awardQuizResultPoints(
   revalidatePath("/profile");
 
   return { success: true, awarded: Boolean(data), points };
+}
+
+export async function awardQuizPerformancePoints(
+  sessionId: string,
+  input: QuizPerformanceRewardInput,
+): Promise<AwardQuizPerformancePointsResult> {
+  if (!QUIZ_SESSION_ID_PATTERN.test(sessionId)) {
+    return { success: false, error: "invalid_session" };
+  }
+
+  const expectedRewards = getQuizPerformanceRewardBreakdown(input);
+  if (!expectedRewards) {
+    return { success: false, error: "invalid_result" };
+  }
+  if (expectedRewards.totalPoints <= 0) {
+    return { success: true, awarded: false, rewards: expectedRewards, totalPoints: 0 };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "unauthorized" };
+  }
+
+  const { data, error } = await supabase.rpc("award_quiz_performance_points", {
+    p_user_id: user.id,
+    p_session_id: sessionId,
+    p_selected_count: input.selectedCount,
+    p_duration_seconds: input.durationSeconds,
+    p_correct_answer_count: input.correctAnswerCount,
+    p_answered_count: input.answeredCount,
+    p_correct_card_count: input.correctCardCount,
+    p_learned_card_count: input.learnedCardCount,
+  }).maybeSingle<{
+    awarded: boolean;
+    accuracy_points: number;
+    time_points: number;
+    correct_points: number;
+    learned_points: number;
+    total_points: number;
+  }>();
+
+  if (error || !data) {
+    return { success: false, error: "database_error" };
+  }
+
+  revalidatePath("/learn");
+  revalidatePath("/profile");
+
+  return {
+    success: true,
+    awarded: data.awarded,
+    rewards: {
+      accuracyPoints: data.accuracy_points,
+      timePoints: data.time_points,
+      correctPoints: data.correct_points,
+      learnedPoints: data.learned_points,
+    },
+    totalPoints: data.total_points,
+  };
 }
 
 export async function claimQuizResultMedals(

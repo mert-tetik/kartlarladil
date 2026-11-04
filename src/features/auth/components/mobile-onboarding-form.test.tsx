@@ -11,6 +11,20 @@ import type { AuthShellUser } from "@/features/auth/auth-types";
 import { MobileOnboardingForm } from "@/features/auth/components/mobile-onboarding-form";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
+const navigationMocks = vi.hoisted(() => ({ refresh: vi.fn() }));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: navigationMocks.refresh,
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+  }),
+  usePathname: () => "/",
+}));
+
 vi.mock("@/features/auth/actions", () => ({
   completeOnboardingAction: vi.fn(),
   updateLanguagePreferenceAction: vi.fn().mockResolvedValue(undefined),
@@ -34,6 +48,7 @@ const testUser: AuthShellUser = {
 describe("MobileOnboardingForm", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    navigationMocks.refresh.mockClear();
   });
 
   it("defaults to English unless English is the selected native language", async () => {
@@ -56,6 +71,7 @@ describe("MobileOnboardingForm", () => {
 
     await selectNativeLanguage("de");
     expect(container.querySelector<HTMLInputElement>('input[name="preferredLanguageCode"]')).toHaveValue("en");
+    expect(navigationMocks.refresh).not.toHaveBeenCalled();
   });
 
   it("uses the country default and guides the user through language and avatar steps", async () => {
@@ -202,13 +218,18 @@ describe("MobileOnboardingForm", () => {
 
     const form = container.querySelector("form") as HTMLFormElement;
     expect(form).toHaveAttribute("data-mobile-onboarding-mode", "login-language-refresh");
+    expect(form).toHaveAttribute("data-tap-vibration", "firm");
     expect(form).toHaveAttribute("data-mobile-onboarding-step", "native");
     await selectLanguage("en");
+    expect(navigationMocks.refresh).not.toHaveBeenCalled();
     expect(updateLanguagePreferenceAction).not.toHaveBeenCalled();
     const advanceButton = Array.from(form.querySelectorAll("button")).find((button) => !button.hasAttribute("aria-pressed"));
+    expect(advanceButton).toHaveClass("disabled:opacity-100");
     await user.click(advanceButton as HTMLButtonElement);
 
     expect(form).toHaveAttribute("data-mobile-onboarding-step", "learning");
+    expect(advanceButton).toBeDisabled();
+    expect(advanceButton).toHaveClass("disabled:opacity-100");
     await waitFor(() => {
       expect(container.querySelector('[data-onboarding-language-flag="en"]')).not.toBeInTheDocument();
     });
@@ -257,6 +278,8 @@ describe("MobileOnboardingForm", () => {
 
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect(submitButton).toBeDisabled();
+    expect(submitButton).toHaveClass("disabled:opacity-100");
+    expect(submitButton).not.toHaveClass("disabled:opacity-70");
     expect(submitButton).toHaveAttribute("aria-busy", "true");
     expect(screen.getByText("Saving...")).toHaveClass("font-super-water");
     expect(submitButton.querySelector("svg.animate-spin")).toBeInTheDocument();

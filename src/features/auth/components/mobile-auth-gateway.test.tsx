@@ -3,6 +3,7 @@ import { renderToString } from "react-dom/server";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileAuthGateway } from "@/features/auth/components/mobile-auth-gateway";
+import { consumeSkippedRouteTransition } from "@/lib/route-transition";
 
 const mocks = vi.hoisted(() => ({
   activateTutorial: vi.fn(),
@@ -11,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   clearUser: vi.fn(),
   authUser: { profile: { onboardingCompleted: true } } as { profile: { onboardingCompleted: boolean } } | null,
   isSessionReady: true,
+  pathname: "/",
   effectivePlan: "free" as "free" | "basic",
   router: {
     refresh: vi.fn(),
@@ -23,7 +25,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/",
+  usePathname: () => mocks.pathname,
   useRouter: () => mocks.router,
   useSearchParams: () => new URLSearchParams(window.location.search),
 }));
@@ -120,6 +122,7 @@ describe("MobileAuthGateway returning-login flow", () => {
     window.sessionStorage.clear();
     mocks.authUser = { profile: { onboardingCompleted: true } };
     mocks.isSessionReady = true;
+    mocks.pathname = "/";
     mocks.effectivePlan = "free";
     window.history.replaceState({}, "", "/?mobileLanguageRefresh=1&showOffer=1");
     Object.defineProperty(window, "innerWidth", {
@@ -153,6 +156,18 @@ describe("MobileAuthGateway returning-login flow", () => {
     expect(mocks.activateTutorial).toHaveBeenCalledOnce();
     await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/"));
     expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
+  });
+
+  it("skips the landing entrance when the auth gateway exits to the home route", async () => {
+    const user = userEvent.setup();
+    mocks.pathname = "/login";
+    window.history.replaceState({}, "", "/login?showOffer=1");
+    render(<MobileAuthGateway countryCode="US" />);
+
+    await user.click(await screen.findByTestId("mobile-subscription-offer"));
+    await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/"), { timeout: 1500 });
+
+    expect(consumeSkippedRouteTransition("/")).toBe(true);
   });
 
   it("opens the mobile login screen when the logout redirect marker is present", async () => {

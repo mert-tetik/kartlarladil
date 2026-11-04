@@ -1,7 +1,8 @@
 import type { LanguageCode, Tier } from "@/types/domain";
 import type { GameLevelConfig, GameName } from "./game-types";
 
-const TIER_BASE_POINTS: Record<Tier, number> = {
+// Separate arcade-level reward scale; learned-card points live in progress-stats.ts.
+const GAME_LEVEL_BASE_POINTS: Record<Tier, number> = {
   A1: 10,
   A2: 20,
   B1: 40,
@@ -27,7 +28,7 @@ export function getCardTiersForLevel(level: number): Tier[] {
 
 export function getPointsForLevel(level: number): number {
   const highestTier = getHighestTierForLevel(level);
-  const base = TIER_BASE_POINTS[highestTier];
+  const base = GAME_LEVEL_BASE_POINTS[highestTier];
   // Small level multiplier beyond the free limit to keep higher levels rewarding.
   const multiplier =
     level <= FREE_GAME_LEVEL_LIMIT

@@ -65,11 +65,11 @@ and each slot has a local fallback.
 
 Puan ve rank ayri mutable sayac olarak tutulmaz. `ProgressStats` ogrenilmis kartlar ve tier puanlarindan turetilir:
 
-- A1 = 10
-- A2 = 20
-- B1 = 40
-- B2 = 70
-- C1 = 110
+- A1 = 50
+- A2 = 50
+- B1 = 75
+- B2 = 75
+- C1 = 100
 
 Navbar, account menu ve `/profile` ayni progress kaynagini kullanir.
 

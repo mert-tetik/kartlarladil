@@ -118,7 +118,7 @@ describe("MobileCardSwipeOverlay", () => {
     expect(closeIcon).toHaveClass("size-7", "stroke-[2.75]");
   });
 
-  it("draws from the whole language pool instead of restarting at the first tier", async () => {
+  it("starts the random swipe sequence at A1", async () => {
     vi.mocked(Math.random).mockReturnValue(0.999);
     render(<MobileCardSwipeOverlay open language="en" onClose={vi.fn()} />);
 
@@ -126,8 +126,7 @@ describe("MobileCardSwipeOverlay", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
 
-    expect(document.querySelector("[data-vocabulary-card='C1']")).toBeInTheDocument();
-    expect(document.querySelector("[data-vocabulary-card='A1']")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-vocabulary-card='A1']")).toBeInTheDocument();
   });
 
   it("waits for the first tutorial prompt to disappear before starting the swipe demo", async () => {

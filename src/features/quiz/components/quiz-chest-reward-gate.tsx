@@ -14,10 +14,13 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { formatNumber } from "@/i18n/labels";
 import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { vibrate } from "@/lib/vibration";
 import { cn } from "@/lib/utils";
 
 const CHEST_OPENING_CHEST_MOVE_MS = 760;
 const CHEST_OPENING_OVERLAY_READY_MS = 800;
+const CHEST_REWARD_DROP_DELAY_MS = 600;
+const CHEST_REWARD_DROP_DURATION_MS = 180;
 const MISSED_CLOSE_STEP_MS = 150;
 const MISSED_CLOSE_ELEMENT_MS = 150;
 const MISSED_CLOSE_DURATION_MS = MISSED_CLOSE_STEP_MS * 3 + MISSED_CLOSE_ELEMENT_MS;
@@ -61,6 +64,8 @@ const { locale } = useLocale();
   const [chestOpeningMotion, setChestOpeningMotion] = useState<ChestOpeningMotion | null>(null);
   const [missedClosing, setMissedClosing] = useState(false);
   const chestMotionRef = useRef<HTMLDivElement | null>(null);
+  const chestLandingHandledRef = useRef(false);
+  const chestLandingTimeoutRef = useRef<number | null>(null);
   const openingStartRef = useRef<(() => void) | null>(null);
   const openingFrameRef = useRef<number | null>(null);
   const openingReadyTimeoutRef = useRef<number | null>(null);
@@ -134,11 +139,32 @@ const { locale } = useLocale();
   const formatCopy = (text: string) =>
     canUseSuperWater(locale) ? formatSuperWaterText(locale, text) : text;
 
-  const handleChestLanding = () => {
+  const handleChestLanding = useCallback(() => {
+    if (chestLandingHandledRef.current) return;
+
+    chestLandingHandledRef.current = true;
+    chestLandingTimeoutRef.current = null;
     setChestLanded(true);
     setLandingCrackVisible(true);
     playSoundEffect("chest-crack");
-  };
+    vibrate("chest-land");
+  }, []);
+
+  useEffect(() => {
+    if (!tier || chestLandingHandledRef.current) return;
+
+    chestLandingTimeoutRef.current = window.setTimeout(
+      handleChestLanding,
+      CHEST_REWARD_DROP_DELAY_MS + CHEST_REWARD_DROP_DURATION_MS,
+    );
+
+    return () => {
+      if (chestLandingTimeoutRef.current !== null) {
+        window.clearTimeout(chestLandingTimeoutRef.current);
+        chestLandingTimeoutRef.current = null;
+      }
+    };
+  }, [handleChestLanding, tier]);
 
   const rewardGate = (
     <div
@@ -179,7 +205,6 @@ const { locale } = useLocale();
                 !chestLanded && "quiz-chest-reward-drop",
                 "relative mx-auto size-[clamp(13rem,56vw,23rem)] self-center",
               )}
-              onAnimationEnd={handleChestLanding}
             >
               {landingCrackVisible ? (
                 <div
@@ -321,7 +346,7 @@ const { locale } = useLocale();
   );
 
   return (
-    <div className="relative h-full min-h-full w-full overflow-hidden bg-[var(--background)]">
+    <div className="relative h-full min-h-full w-full overflow-hidden bg-[var(--background)]" data-tap-vibration="firm">
       <div
         className={cn(
           "absolute inset-0 z-0",
