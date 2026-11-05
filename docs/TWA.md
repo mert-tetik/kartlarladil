@@ -124,8 +124,8 @@ The current release defaults are `com.LigidTools.Glidecore`, version name
 
 ```bash
 TWA_PACKAGE_ID=com.LigidTools.Glidecore
-TWA_VERSION_CODE=181
-TWA_VERSION_NAME=4.3.67
+TWA_VERSION_CODE=183
+TWA_VERSION_NAME=4.3.69
 ```
 
 All signed Android/AAB builds must use exactly

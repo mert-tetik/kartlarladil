@@ -238,3 +238,18 @@ describe("Native WebView bootstrap suppression", () => {
     expect(launcherSource).not.toContain("getComputedStyle(node).position==='fixed'");
   });
 });
+
+describe("Native launch readiness watchdog", () => {
+  it("releases the native loader when web readiness signals never arrive", () => {
+    const launcherSource = fs.readFileSync(
+      path.join(PROJECT_ROOT, "scripts", "android-template", "LauncherActivity.java"),
+      "utf8",
+    );
+
+    expect(launcherSource).toContain("NATIVE_LAUNCH_READINESS_TIMEOUT_MS = 6500L");
+    expect(launcherSource).toContain("nativeLaunchReadinessHandler.postDelayed(");
+    expect(launcherSource).toContain("releaseNativeLaunchOverlayAfterTimeout");
+    expect(launcherSource).toContain("nativeLoadingEssentialDataReady = true;");
+    expect(launcherSource).toContain("nativeLaunchReadinessHandler.removeCallbacks(nativeLaunchReadinessTimeout)");
+  });
+});
