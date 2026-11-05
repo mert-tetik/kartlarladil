@@ -16,8 +16,10 @@ import android.view.animation.PathInterpolator;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * The launch loader is drawn before the remote WebView exists. Its card face
@@ -177,19 +179,61 @@ public final class NativeLoadingIndicatorView extends View {
         );
         if (count == 0) return;
 
-        loadingCardTerms = new String[count];
-        loadingCardTranslations = new String[count];
-        loadingCardPronunciations = new String[count];
-        loadingCardExamples = new String[count];
-        loadingCardTiers = new String[count];
+        List<String> mergedTerms = new ArrayList<>(8);
+        List<String> mergedTranslations = new ArrayList<>(8);
+        List<String> mergedPronunciations = new ArrayList<>(8);
+        List<String> mergedExamples = new ArrayList<>(8);
+        List<String> mergedTiers = new ArrayList<>(8);
+        Set<String> seenTerms = new HashSet<>();
         for (int index = 0; index < count; index++) {
-            loadingCardTerms[index] = safeText(terms[index]);
-            loadingCardTranslations[index] = safeText(translations[index], loadingCardTerms[index]);
-            loadingCardPronunciations[index] = safeText(pronunciations[index], loadingCardTerms[index]);
-            loadingCardExamples[index] = safeText(examples[index]);
-            loadingCardTiers[index] = safeTier(tiers[index]);
+            appendUniqueLoadingCard(
+                    terms[index], translations[index], pronunciations[index], examples[index], tiers[index],
+                    seenTerms, mergedTerms, mergedTranslations, mergedPronunciations, mergedExamples, mergedTiers
+            );
         }
+
+        // A short deck response must not collapse the carousel to four items:
+        // top it up with the native, localized catalog fallback already shown
+        // before the WebView bridge arrived.
+        for (int index = 0; index < loadingCardTerms.length && mergedTerms.size() < 8; index++) {
+            appendUniqueLoadingCard(
+                    loadingCardTerms[index], loadingCardTranslations[index], loadingCardPronunciations[index],
+                    loadingCardExamples[index], loadingCardTiers[index], seenTerms,
+                    mergedTerms, mergedTranslations, mergedPronunciations, mergedExamples, mergedTiers
+            );
+        }
+
+        if (mergedTerms.isEmpty()) return;
+        loadingCardTerms = mergedTerms.toArray(new String[0]);
+        loadingCardTranslations = mergedTranslations.toArray(new String[0]);
+        loadingCardPronunciations = mergedPronunciations.toArray(new String[0]);
+        loadingCardExamples = mergedExamples.toArray(new String[0]);
+        loadingCardTiers = mergedTiers.toArray(new String[0]);
         postInvalidateOnAnimation();
+    }
+
+    private static void appendUniqueLoadingCard(
+            String term,
+            String translation,
+            String pronunciation,
+            String example,
+            String tier,
+            Set<String> seenTerms,
+            List<String> terms,
+            List<String> translations,
+            List<String> pronunciations,
+            List<String> examples,
+            List<String> tiers
+    ) {
+        if (terms.size() >= 8) return;
+        String safeTerm = safeText(term).trim();
+        if (safeTerm.isEmpty() || !seenTerms.add(safeTerm.toLowerCase(Locale.ROOT))) return;
+
+        terms.add(safeTerm);
+        translations.add(safeText(translation, safeTerm));
+        pronunciations.add(safeText(pronunciation, safeTerm));
+        examples.add(safeText(example));
+        tiers.add(safeTier(tier));
     }
 
     public void startAnimating() {

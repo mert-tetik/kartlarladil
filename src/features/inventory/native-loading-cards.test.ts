@@ -84,6 +84,49 @@ describe("native loading card selection", () => {
     expect(new Set(completed.map((card) => card.sourceKey)).size).toBe(8);
   });
 
+  it("tops a four-card deck up to eight distinct terms for the native carousel", () => {
+    const deckCardsInCatalog = VOCABULARY_CARDS
+      .filter((card) => card.language === "en" && card.termKind === "word")
+      .slice(0, 4);
+    const deckCards = selectNativeLoadingDeckCards(
+      deckCardsInCatalog.map((card) => ({
+        cardId: card.sourceKey,
+        status: "active" as const,
+        correctCount: 0,
+        addedAt: "2026-11-05T00:00:00.000Z",
+      })),
+      "en",
+      "tr",
+      "2026-11-05",
+      "user-with-four-cards",
+    );
+
+    const completed = completeNativeLoadingCards(deckCards, "en", "tr", "2026-11-05");
+
+    expect(deckCards).toHaveLength(4);
+    expect(completed).toHaveLength(8);
+    expect(new Set(completed.map((card) => card.sourceKey)).size).toBe(8);
+    expect(new Set(completed.map((card) => card.term.trim().toLowerCase())).size).toBe(8);
+  });
+
+  it("replaces repeated deck terms with unique catalog fallbacks", () => {
+    const englishWord = VOCABULARY_CARDS.find((card) => card.language === "en" && card.termKind === "word");
+    if (!englishWord) throw new Error("Expected an English word card in the catalog");
+    const repeatedDeckCards = Array.from({ length: 4 }, (_, index) => ({
+      sourceKey: `custom:duplicate-term-${index}`,
+      term: englishWord.term,
+      translation: englishWord.translation,
+      pronunciation: englishWord.pronunciation,
+      example: englishWord.example,
+      tier: englishWord.tier,
+    }));
+
+    const completed = completeNativeLoadingCards(repeatedDeckCards, "en", "tr", "2026-11-05");
+
+    expect(completed).toHaveLength(8);
+    expect(new Set(completed.map((card) => card.term.trim().toLowerCase())).size).toBe(8);
+  });
+
   it("uses cached deck cards in their saved order and fills missing visual-test slots from the catalog", () => {
     const deckCards = VOCABULARY_CARDS
       .filter((card) => card.language === "en" && card.termKind === "word")

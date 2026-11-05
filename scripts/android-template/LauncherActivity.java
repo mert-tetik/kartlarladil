@@ -403,6 +403,17 @@ public class LauncherActivity extends Activity {
 
     private void handleNativePageCommitVisible() {
         nativeLoadingPageCommitted = true;
+        if (isOfflineScreenVisible()) {
+            // The bundled offline shell does not boot the remote React app, so
+            // it cannot send the regular bootstrap/cards/essential-data
+            // bridge signals. Its first committed frame is the ready screen.
+            nativeLoadingCardsReceived = true;
+            nativeLoadingBootstrapReady = true;
+            nativeLoadingEssentialDataReady = true;
+            maybeHideNativeLaunchOverlay();
+            return;
+        }
+
         setNativeLoadingState("Checking the foxie guest list...", 68);
         maybeHideNativeLaunchOverlay();
         suppressWebBootstrapOverlay();

@@ -168,12 +168,26 @@ export function completeNativeLoadingCards(
   locale: LocaleCode,
   dateKey = getNativeLoadingDateKey(),
 ): NativeLoadingCard[] {
-  const selected = deckCards.slice(0, MAX_LOADING_CARDS);
+  const selected: NativeLoadingCard[] = [];
   const selectedKeys = new Set(selected.map((card) => card.sourceKey));
+  const selectedTerms = new Set<string>();
+
+  for (const card of deckCards) {
+    const termKey = card.term.trim().toLowerCase();
+    if (!termKey || selectedKeys.has(card.sourceKey) || selectedTerms.has(termKey)) continue;
+    selected.push(card);
+    selectedKeys.add(card.sourceKey);
+    selectedTerms.add(termKey);
+    if (selected.length >= MAX_LOADING_CARDS) return selected;
+  }
 
   for (const card of selectCatalogFallbackCards(selectedKeys, learningLanguage, dateKey)) {
-    selected.push(toLoadingCard(card, locale));
+    const loadingCard = toLoadingCard(card, locale);
+    const termKey = loadingCard.term.trim().toLowerCase();
+    if (!termKey || selectedTerms.has(termKey)) continue;
+    selected.push(loadingCard);
     selectedKeys.add(card.sourceKey);
+    selectedTerms.add(termKey);
     if (selected.length >= MAX_LOADING_CARDS) break;
   }
 
