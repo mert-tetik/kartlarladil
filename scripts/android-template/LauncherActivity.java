@@ -15,7 +15,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.provider.MediaStore;
 import android.view.Window;
 import android.view.WindowInsets;
@@ -49,8 +48,6 @@ import java.util.Arrays;
 
 public class LauncherActivity extends Activity {
     private static final int AUDIO_PERMISSION_REQUEST_CODE = 4101;
-    private static final String NATIVE_LAUNCH_TAG = "FoxiesDeckLaunch";
-    private static final long NATIVE_LAUNCH_READINESS_TIMEOUT_MS = 6500L;
     private WebView webView;
     private FrameLayout contentRoot;
     private FrameLayout nativeLaunchOverlay;
@@ -81,8 +78,6 @@ public class LauncherActivity extends Activity {
     private int nativeLoadingProgressPercent = 8;
     private final Handler nativeLoadingTestHandler = new Handler(Looper.getMainLooper());
     private final Runnable nativeLoadingTestRunnable = this::advanceNativeLoadingTest;
-    private final Handler nativeLaunchReadinessHandler = new Handler(Looper.getMainLooper());
-    private final Runnable nativeLaunchReadinessTimeout = this::releaseNativeLaunchOverlayAfterTimeout;
     private final OnBackInvokedCallback androidBackCallback = this::handleBackPressed;
     private final NativeLoadingBridge nativeLoadingBridge = new NativeLoadingBridge();
     private static final int FILE_CHOOSER_REQUEST_CODE = 4102;
@@ -419,11 +414,6 @@ public class LauncherActivity extends Activity {
             return;
         }
 
-        nativeLaunchReadinessHandler.removeCallbacks(nativeLaunchReadinessTimeout);
-        nativeLaunchReadinessHandler.postDelayed(
-                nativeLaunchReadinessTimeout,
-                NATIVE_LAUNCH_READINESS_TIMEOUT_MS
-        );
         setNativeLoadingState("Checking the foxie guest list...", 68);
         maybeHideNativeLaunchOverlay();
         suppressWebBootstrapOverlay();
@@ -435,26 +425,6 @@ public class LauncherActivity extends Activity {
                 }
             }, 220L);
         }
-    }
-
-    private void releaseNativeLaunchOverlayAfterTimeout() {
-        if (nativeLaunchOverlay == null || !nativeLoadingPageCommitted) return;
-        if (nativeLoadingCardsReceived
-                && nativeLoadingBootstrapReady
-                && nativeLoadingEssentialDataReady) return;
-
-        Log.w(NATIVE_LAUNCH_TAG,
-                "Web page committed but launch data did not become ready in time; "
-                        + "releasing loader (cards=" + nativeLoadingCardsReceived
-                        + ", bootstrap=" + nativeLoadingBootstrapReady
-                        + ", essentialData=" + nativeLoadingEssentialDataReady + ").");
-        // The native loader must never block the website's own landing/auth
-        // flow indefinitely. The WebView remains live and late bridge signals
-        // can still update it after the app screen is revealed.
-        nativeLoadingCardsReceived = true;
-        nativeLoadingBootstrapReady = true;
-        nativeLoadingEssentialDataReady = true;
-        maybeHideNativeLaunchOverlay();
     }
 
     private void suppressWebBootstrapOverlay() {
@@ -599,8 +569,6 @@ public class LauncherActivity extends Activity {
 
     private void hideNativeLaunchOverlay() {
         if (nativeLaunchOverlay == null || contentRoot == null) return;
-
-        nativeLaunchReadinessHandler.removeCallbacks(nativeLaunchReadinessTimeout);
 
         if (nativeLoadingView != null) {
             setNativeLoadingState("Cards are ready to play!", 100);
@@ -1047,7 +1015,6 @@ public class LauncherActivity extends Activity {
     @Override
     protected void onDestroy() {
         nativeLoadingTestHandler.removeCallbacks(nativeLoadingTestRunnable);
-        nativeLaunchReadinessHandler.removeCallbacks(nativeLaunchReadinessTimeout);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(androidBackCallback);
         }

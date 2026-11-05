@@ -50,7 +50,6 @@ const LANGUAGE_CODES: LanguageCode[] = [
 const LOCALE_CODES: LocaleCode[] = LANGUAGE_CODES;
 const PROFILE_SELECT_BASE = "display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, quiz_result_points, game_points, gem_points, blue_gems, green_gems, purple_gems, push_marketing_enabled, leaderboard_visible, profile_picture_index";
 const PROFILE_SELECT_WITH_MEDALS = `${PROFILE_SELECT_BASE}, quiz_result_medals`;
-const AUTH_SESSION_READY_TIMEOUT_MS = 5000;
 
 function normalizeClientProfile(row: {
   display_name: string | null;
@@ -261,34 +260,6 @@ export function AuthSessionProvider({
       return;
     }
 
-    const fallbackProfile = normalizeClientProfile({
-      display_name: null,
-      preferred_language_code: null,
-      preferred_ui_locale: null,
-      preferred_tier: null,
-      onboarding_completed: true,
-      ai_practice_points: null,
-      chest_points: null,
-      streak_points: null,
-      mission_points: null,
-      quiz_result_points: null,
-      push_marketing_enabled: null,
-      leaderboard_visible: null,
-      profile_picture_index: null,
-    });
-    const fallbackUser: AuthShellUser = {
-      id: sessionUser.id,
-      email: sessionUser.email,
-      profile: fallbackProfile,
-    };
-    activeUserIdRef.current = sessionUser.id;
-    gemLedgerRef.current.reset(getGemBalances(fallbackProfile));
-    setUser(fallbackUser);
-    // A valid Auth session should unlock the app immediately; profile data is
-    // hydrated asynchronously so a slow profile query cannot trap the user in
-    // the auth-verification screen.
-    setIsSessionReady(true);
-
     let { data, error } = await client
       .from("user_profiles")
       .select(PROFILE_SELECT_WITH_MEDALS)
@@ -328,16 +299,6 @@ export function AuthSessionProvider({
       },
     });
   }, [client, getVisibleGemBalances]);
-
-  useEffect(() => {
-    if (user || isSessionReady) return;
-
-    const timeout = window.setTimeout(
-      () => setIsSessionReady(true),
-      AUTH_SESSION_READY_TIMEOUT_MS,
-    );
-    return () => window.clearTimeout(timeout);
-  }, [isSessionReady, user]);
 
   useEffect(() => {
     const previousUser = previousInitialUserRef.current;
