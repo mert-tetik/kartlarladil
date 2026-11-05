@@ -9,7 +9,7 @@ const sourceDirectories = [
 const outputRoot = path.resolve(
   process.argv[2] ?? "tmp/pricing-subscription-menu-edge-cleanup",
 );
-const onlyFrame = process.argv[3] ? `${Number.parseInt(process.argv[3])}.png` : null;
+const onlyFrame = process.argv[3] ? `${Number.parseInt(process.argv[3])}.webp` : null;
 
 function rgbToHsv(red, green, blue) {
   const r = red / 255;
@@ -126,7 +126,7 @@ async function processDirectory(directoryName) {
   await fs.mkdir(outputDirectory, { recursive: true });
 
   const frameNames = (await fs.readdir(sourceDirectory))
-    .filter((name) => /^\d+\.png$/i.test(name))
+    .filter((name) => /^\d+\.webp$/i.test(name))
     .sort((left, right) => Number.parseInt(left) - Number.parseInt(right))
     .filter((name) => !onlyFrame || name === onlyFrame);
 
@@ -158,7 +158,7 @@ async function processDirectory(directoryName) {
       await sharp(data, {
         raw: { width: info.width, height: info.height, channels: 4 },
       })
-        .png({ compressionLevel: 9, adaptiveFiltering: true })
+        .webp({ quality: 95, alphaQuality: 100, effort: 6 })
         .toFile(outputPath);
     }
   }

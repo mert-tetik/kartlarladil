@@ -227,7 +227,7 @@ export function LeaderboardPageClient({
                 ? "#f59e0b"
                 : "#facc15",
             ...(selectedMode === "points"
-              ? { backgroundImage: "url('/leaderboard/points-background.png')" }
+              ? { backgroundImage: "url('/leaderboard/points-background.webp')" }
               : {}),
           } as CSSProperties
         }

@@ -118,6 +118,41 @@ describe("GlobalTapVibration", () => {
     expect(vibrateMock).toHaveBeenCalledWith("tap");
   });
 
+  it("firm-vibrates auth and onboarding buttons before a handler can prevent the click", () => {
+    render(
+      <>
+        <GlobalTapVibration />
+        <div data-mobile-auth-gateway data-tap-vibration="firm">
+          <button type="button" onClick={(event) => event.preventDefault()}>
+            Choose native language
+          </button>
+        </div>
+      </>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Choose native language" }));
+
+    expect(vibrateMock).toHaveBeenCalledTimes(1);
+    expect(vibrateMock).toHaveBeenCalledWith("firm-tap");
+  });
+
+  it("does not double-vibrate ordinary auth gateway button clicks", () => {
+    render(
+      <>
+        <GlobalTapVibration />
+        <div data-mobile-auth-gateway data-tap-vibration="firm" data-flow-button-sound="auth">
+          <button type="button">Continue</button>
+        </div>
+      </>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(vibrateMock).toHaveBeenCalledTimes(1);
+    expect(vibrateMock).toHaveBeenCalledWith("firm-tap");
+    expect(playFlowButtonSoundMock).toHaveBeenCalledWith("auth");
+  });
+
   it("still sounds tutorial buttons that suppress haptics", () => {
     render(
       <>

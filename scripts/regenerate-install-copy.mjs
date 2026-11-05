@@ -15,13 +15,13 @@ const SOURCE = {
       {
         instruction:
           "FoxiesDeck açıkken tarayıcınızdaki üç nokta simgesine basın ve Ana ekrana ekle butonunu bulup basın. Eğer Ana ekrana ekle butonu gözükmüyorsa paylaş simgesine basıp bulun.",
-        image: "/install/add-to-home-screen-menu.png",
+        image: "/install/add-to-home-screen-menu.webp",
         imageAlt: "Tarayıcı menüsünde Ana ekrana ekle seçeneği",
       },
       {
         instruction:
           "Ana ekrana ekle butonunu bulup bastıktan sonra FoxiesDeck bir uygulama olarak ana ekranınıza eklenecek.",
-        image: "/install/home-screen-icon.png",
+        image: "/install/home-screen-icon.webp",
         imageAlt: "Ana ekrana eklenmiş FoxiesDeck uygulaması simgesi",
       },
     ],
@@ -34,13 +34,13 @@ const SOURCE = {
       {
         instruction:
           "While FoxiesDeck is open, tap the three-dot menu in your browser and find the Add to Home Screen button. If you don't see it, tap the share icon and look there.",
-        image: "/install/add-to-home-screen-menu.png",
+        image: "/install/add-to-home-screen-menu.webp",
         imageAlt: "Add to Home Screen option in the browser menu",
       },
       {
         instruction:
           "After tapping Add to Home Screen, FoxiesDeck will be added to your home screen as an app.",
-        image: "/install/home-screen-icon.png",
+        image: "/install/home-screen-icon.webp",
         imageAlt: "FoxiesDeck app icon on the home screen",
       },
     ],

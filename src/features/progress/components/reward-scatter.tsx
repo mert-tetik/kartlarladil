@@ -20,7 +20,7 @@ import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 
 const MAX_GEOMETRY_ATTEMPTS = 60;
-const MEDAL_IMAGE_SRC = "/quiz/result-cards/star.png?v=20261003-2";
+const MEDAL_IMAGE_SRC = "/quiz/result-cards/star.webp?v=20261003-2";
 
 export interface PointsScatterRequest {
   amount: number;

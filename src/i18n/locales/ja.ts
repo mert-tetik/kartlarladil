@@ -1015,7 +1015,7 @@ const dictionary = {
   "tutorial.cardModes.custom.description": "好きな単語のオリジナルカードを作成します。",
   "tutorial.cardModes.groups.title": "特定のカテゴリーの単語をまとめて追加",
   "tutorial.cardModes.groups.description": "テーマ別のカードグループをまとめて追加します。",
-  "tutorial.landingCardsAction": "今すぐ「カード」ボタンをタップしてください。",
+  "tutorial.landingCardsAction": "それでは、「カード」ボタンをタップしてください。",
   "tutorial.landingCardsMessage": "ここからコレクション内の単語を見ることができます！",
   "tutorial.collectionMessageButton": "わかりました",
   "tutorial.cardCollectionPrompt": "さあ、コレクションに単語を追加しましょう。",

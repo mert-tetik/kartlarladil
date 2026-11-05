@@ -1086,7 +1086,7 @@ const dictionary = {
   "tutorial.cardModes.custom.description": "Create your own card for any word you want.",
   "tutorial.cardModes.groups.title": "Add words from specific categories in bulk",
   "tutorial.cardModes.groups.description": "Add a complete topic-based group of cards at once.",
-  "tutorial.landingCardsAction": "Now tap the \"Cards\" button.",
+  "tutorial.landingCardsAction": "And now tap the \"Cards\" button.",
   "tutorial.landingCardsMessage": "You can see the words in your collection here!",
   "tutorial.collectionMessageButton": "Got it",
   "tutorial.cardCollectionPrompt": "Now add some words to your collection.",

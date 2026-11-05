@@ -362,7 +362,7 @@ export function MobileCardGroupSheet({
                         </div>
                         {isOwned ? (
                           <Image
-                            src="/card-icons/card-in-deck-tick.png"
+                            src="/card-icons/card-in-deck-tick.webp"
                             alt={t("cards.groups.inDeck")}
                             width={32}
                             height={32}

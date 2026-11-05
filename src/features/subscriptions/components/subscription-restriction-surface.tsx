@@ -21,8 +21,8 @@ export function SubscriptionRestrictionSurface({
 }: SubscriptionRestrictionSurfaceProps) {
   const { locale } = useLocale();
   const backgroundImage = locale === "tr"
-    ? "/subscription-restrictions/subscription-restriction-tr.png"
-    : "/subscription-restrictions/subscription-restriction-en.png";
+    ? "/subscription-restrictions/subscription-restriction-tr.webp"
+    : "/subscription-restrictions/subscription-restriction-en.webp";
 
   return (
     <section

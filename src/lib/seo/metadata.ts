@@ -19,7 +19,7 @@ export function buildMetadata({
   description,
   pathname,
   noIndex = false,
-  image = "/opengraph-image.png",
+  image = "/opengraph-image",
 }: BuildMetadataOptions): Metadata {
   const pageTitle = title ?? APP_NAME;
   const pageUrl = pathname ? `${SITE_URL}${pathname}` : SITE_URL;

@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { canUseSuperWater, formatSuperWaterUppercaseText } from "@/lib/super-water";
-import { getNativeMediaFallbackSource, isNativeMediaFallbackSource } from "@/lib/native-media-fallback";
+import { VideoFrameAtlasPlayer, type VideoFrameAtlasPlayerHandle } from "@/components/video-frame-atlas-player";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { AchievementCardSection } from "@/features/quiz/components/quiz-achievement-card-section";
 import type { VocabularyCard } from "@/types/domain";
@@ -34,10 +34,10 @@ const CELEBRATION_MESSAGE_EXIT_DURATION_MS = 420;
 const RESULT_SUMMARY_PANEL_ENTER_DURATION_MS = 1400;
 const RESULT_SUMMARY_CONTENT_DELAY_MS = 80;
 const CELEBRATION_COMPLETE_DELAY_MS = 500;
-const RESULT_MESSAGE_WAVE_SRC = "/quiz/result-message-wave-20261003-1.png";
+const RESULT_MESSAGE_WAVE_SRC = "/quiz/result-message-wave-20261003-1.webp";
 const RESULT_MESSAGE_WAVE_HEIGHT_CSS = "177.9167vw";
 const RESULT_MESSAGE_ACHIEVEMENT_ENTER_DURATION_MS = 620;
-const RESULT_MESSAGE_PARTICLE_SRC = "/quiz/result-message-bubble.png?v=20261008-1";
+const RESULT_MESSAGE_PARTICLE_SRC = "/quiz/result-message-bubble.webp?v=20261008-1";
 const RESULT_MESSAGE_PARTICLE_COUNT = 30;
 const RESULT_MESSAGE_PARTICLE_REVEAL_LEAD_MS = 80;
 const RESULT_MESSAGE_PARTICLE_SPAWN_RECT = {
@@ -122,16 +122,13 @@ export function ChestCelebrationView({
   const [summaryVisible, setSummaryVisible] = useState(false);
   const [summaryExiting, setSummaryExiting] = useState(false);
   const [closing, setClosing] = useState(false);
-  const [videoSource, setVideoSource] = useState(
-    "/quiz/result_message_video.mp4?v=20261008-1",
-  );
   const [videoUnavailable, setVideoUnavailable] = useState(false);
   const [messageParticles, setMessageParticles] = useState<ResultMessageParticle[]>([]);
   const [messageKey] = useState(() =>
     CELEBRATION_MESSAGE_KEYS[Math.floor(Math.random() * CELEBRATION_MESSAGE_KEYS.length)],
   );
   const completeRef = useRef(onComplete);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoRef = useRef<VideoFrameAtlasPlayerHandle | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoFinishedRef = useRef(false);
   const messageShownRef = useRef(false);
@@ -263,13 +260,13 @@ export function ChestCelebrationView({
     }, CELEBRATION_MESSAGE_DELAY_MS);
   };
 
-  const startSynchronizedAudio = () => {
+  const startSynchronizedAudio = (currentTime: number) => {
     const video = videoRef.current;
     const audio = audioRef.current;
     if (!video || !audio) return;
 
     try {
-      audio.currentTime = video.currentTime;
+      audio.currentTime = currentTime;
     } catch {
       // Seeking the separate audio track is best effort on older WebViews.
     }
@@ -277,21 +274,21 @@ export function ChestCelebrationView({
     void audio.play().catch(() => undefined);
   };
 
-  const syncSynchronizedAudio = (event: SyntheticEvent<HTMLVideoElement>) => {
+  const syncSynchronizedAudio = (currentTime: number) => {
     const audio = audioRef.current;
     if (!audio) return;
-    if (Math.abs(audio.currentTime - event.currentTarget.currentTime) > 0.18) {
+    if (Math.abs(audio.currentTime - currentTime) > 0.18) {
       try {
-        audio.currentTime = event.currentTarget.currentTime;
+        audio.currentTime = currentTime;
       } catch {
         // Keep the video usable if a WebView rejects a seek during startup.
       }
     }
   };
 
-  const handleVideoLoadedMetadata = (event: SyntheticEvent<HTMLVideoElement>) => {
-    const video = event.currentTarget;
-    if (!Number.isFinite(video.duration)) return;
+  const handleVideoReady = () => {
+    const video = videoRef.current;
+    if (!video || !Number.isFinite(video.duration)) return;
     earlyMessageTimerRef.current = window.setTimeout(
       showMessage,
       Math.max(0, video.duration * 1000 - CELEBRATION_MESSAGE_EARLY_START_MS),
@@ -299,10 +296,6 @@ export function ChestCelebrationView({
   };
 
   const handleVideoError = () => {
-    if (!isNativeMediaFallbackSource(videoSource)) {
-      setVideoSource(getNativeMediaFallbackSource(videoSource));
-      return;
-    }
     setVideoUnavailable(true);
     if (videoErrorTimerRef.current !== null) return;
     videoErrorTimerRef.current = window.setTimeout(
@@ -367,23 +360,20 @@ export function ChestCelebrationView({
         aria-hidden="true"
         data-chest-celebration-background
       >
-        {!videoUnavailable ? <video
+        {!videoUnavailable ? <VideoFrameAtlasPlayer
           ref={videoRef}
+          assetId="quiz-result-message"
           className={cn(
             "absolute inset-0 h-full w-full object-cover transition-opacity duration-[850ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
             viewVisible ? "opacity-100" : "opacity-0",
           )}
-          key={videoSource}
-          src={videoSource}
           autoPlay
-          muted
-          playsInline
           onEnded={finishVideo}
           onPlay={startSynchronizedAudio}
           onError={handleVideoError}
-          onLoadedMetadata={handleVideoLoadedMetadata}
           onTimeUpdate={syncSynchronizedAudio}
-          preload="auto"
+          onReady={handleVideoReady}
+          data-player-id="quiz-result-message"
           data-chest-celebration-video
         /> : null}
         <audio

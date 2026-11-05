@@ -120,12 +120,12 @@ by Google Play automatic protection; a bundle with minimum SDK 21 must not be
 uploaded. The build patcher enforces `minSdk 24` on every generated project.
 
 The current release defaults are `com.LigidTools.Glidecore`, version name
-`4.3.51`, and version code `165`. They can be overridden for a release with:
+`4.3.66`, and version code `180`. They can be overridden for a release with:
 
 ```bash
 TWA_PACKAGE_ID=com.LigidTools.Glidecore
-TWA_VERSION_CODE=165
-TWA_VERSION_NAME=4.3.51
+TWA_VERSION_CODE=180
+TWA_VERSION_NAME=4.3.66
 ```
 
 All signed Android/AAB builds must use exactly

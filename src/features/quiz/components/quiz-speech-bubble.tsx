@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Volume2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/i18n/locale-provider";
 import {
   getAiPracticeCharacters,
@@ -41,7 +41,6 @@ export function QuizSpeechBubble({
   termClassName,
   largeCharacter = false,
   showCharacter = true,
-  characterVideoSrc,
   characterFrameSources,
   showBubbleWhileCharacterLoads = false,
   characterClassName,
@@ -63,7 +62,6 @@ export function QuizSpeechBubble({
   termClassName?: string;
   largeCharacter?: boolean;
   showCharacter?: boolean;
-  characterVideoSrc?: string;
   characterFrameSources?: readonly string[];
   showBubbleWhileCharacterLoads?: boolean;
   characterClassName?: string;
@@ -75,7 +73,7 @@ export function QuizSpeechBubble({
   const characterName = getCharacterName(character, language);
   const voiceProfile = getCharacterVoiceProfile(character);
   const hasCharacterMedia = Boolean(
-    showCharacter && (characterVideoSrc || characterFrameSources?.length),
+    showCharacter && characterFrameSources?.length,
   );
   const [characterMediaReady, setCharacterMediaReady] = useState(!hasCharacterMedia);
   const arrowClassName = arrowPosition === "bottom"
@@ -105,14 +103,6 @@ export function QuizSpeechBubble({
               label={characterName}
               onReady={() => setCharacterMediaReady(true)}
               onError={() => setCharacterMediaReady(true)}
-            />
-          ) : characterVideoSrc ? (
-            <QuizSpeechCharacterVideo
-              key={characterVideoSrc}
-              src={characterVideoSrc}
-              label={characterName}
-              onReady={() => setCharacterMediaReady(true)}
-              onError={() => setCharacterMediaReady(false)}
             />
           ) : (
             <Image
@@ -180,76 +170,7 @@ export function QuizSpeechBubble({
   );
 }
 
-const CHARACTER_VIDEO_REPLAY_DELAY_MS = 4000;
-
-function QuizSpeechCharacterVideo({
-  src,
-  label,
-  onReady,
-  onError,
-}: {
-  src: string;
-  label: string;
-  onReady: () => void;
-  onError: () => void;
-}) {
-  const replayTimerRef = useRef<number | null>(null);
-  const [videoState, setVideoState] = useState<"pending" | "ready" | "unavailable">("pending");
-
-  const handleVideoReady = useCallback(() => {
-    setVideoState("ready");
-    onReady();
-  }, [onReady]);
-
-  useEffect(() => {
-    return () => {
-      if (replayTimerRef.current !== null) {
-        window.clearTimeout(replayTimerRef.current);
-      }
-    };
-  }, []);
-
-  function handleVideoError() {
-    if (replayTimerRef.current !== null) {
-      window.clearTimeout(replayTimerRef.current);
-      replayTimerRef.current = null;
-    }
-
-    setVideoState("unavailable");
-    onError();
-  }
-
-  function handleEnded(event: SyntheticEvent<HTMLVideoElement>) {
-    const video = event.currentTarget;
-    replayTimerRef.current = window.setTimeout(() => {
-      replayTimerRef.current = null;
-      video.currentTime = 0;
-      void video.play().catch(() => undefined);
-    }, CHARACTER_VIDEO_REPLAY_DELAY_MS);
-  }
-
-  if (videoState === "unavailable") return null;
-
-  return (
-    <video
-      src={src}
-      aria-label={label}
-      autoPlay
-      muted
-      playsInline
-      preload="auto"
-      onCanPlay={handleVideoReady}
-      onLoadedData={handleVideoReady}
-      onError={handleVideoError}
-      onEnded={handleEnded}
-      className={cn(
-        "absolute inset-0 size-full object-contain object-bottom transition-opacity duration-150",
-        videoState === "ready" ? "visible opacity-100" : "invisible opacity-0",
-      )}
-      data-quiz-speech-character-video
-    />
-  );
-}
+const CHARACTER_FRAME_REPLAY_DELAY_MS = 4000;
 
 function QuizSpeechCharacterFrames({
   frames,
@@ -296,7 +217,7 @@ function QuizSpeechCharacterFrames({
         const nextFrame = getNextLoadedQuizCountSelectionFrameIndex(currentFrame);
 
         if (nextFrame === 0 && currentFrame > 0 && areQuizCountSelectionFramesSettled()) {
-          idleUntil = now + CHARACTER_VIDEO_REPLAY_DELAY_MS;
+          idleUntil = now + CHARACTER_FRAME_REPLAY_DELAY_MS;
         } else if (nextFrame !== currentFrame) {
           currentFrame = nextFrame;
           frameStartedAt = now;

@@ -86,11 +86,11 @@ describe("MissionCard optimistic claim state", () => {
 
 describe("MissionCard locked reward artwork", () => {
   it.each([
-    [{ kind: "points", amount: 75 }, "/missions/mission-points-lock-v1.png", "h-[7.2rem]"],
-    [{ kind: "gems", gemType: "blue", amount: 2, pointEquivalent: 10 }, "/missions/mission-blue-gem-lock-v1.png", "h-[7.2rem]"],
-    [{ kind: "gems", gemType: "green", amount: 2, pointEquivalent: 40 }, "/missions/mission-green-gem-lock-v1.png", "h-[7.2rem]"],
-    [{ kind: "gems", gemType: "purple", amount: 2, pointEquivalent: 80 }, "/missions/mission-purple-gem-lock-v1.png", "h-[7.2rem]"],
-    [{ kind: "chest", tier: "wood" }, "/missions/mission-lock-icon-v3.png", "h-[6rem]"],
+    [{ kind: "points", amount: 75 }, "/missions/mission-points-lock-v1.webp", "h-[7.2rem]"],
+    [{ kind: "gems", gemType: "blue", amount: 2, pointEquivalent: 10 }, "/missions/mission-blue-gem-lock-v1.webp", "h-[7.2rem]"],
+    [{ kind: "gems", gemType: "green", amount: 2, pointEquivalent: 40 }, "/missions/mission-green-gem-lock-v1.webp", "h-[7.2rem]"],
+    [{ kind: "gems", gemType: "purple", amount: 2, pointEquivalent: 80 }, "/missions/mission-purple-gem-lock-v1.webp", "h-[7.2rem]"],
+    [{ kind: "chest", tier: "wood" }, "/missions/mission-lock-icon-v3.webp", "h-[6rem]"],
   ] as const)("uses the matching lock art for %o", (reward, imageSrc, imageHeightClass) => {
     const { container } = render(
       <LocaleProvider initialLocale="en">

@@ -599,8 +599,6 @@ export async function completeOnboardingAction(
     };
   }
 
-  revalidatePath("/", "layout");
-
   if (parsed.data.skipRedirect) {
     return {
       status: "success",
@@ -608,6 +606,7 @@ export async function completeOnboardingAction(
     };
   }
 
+  revalidatePath("/", "layout");
   redirect(nextPath);
 }
 

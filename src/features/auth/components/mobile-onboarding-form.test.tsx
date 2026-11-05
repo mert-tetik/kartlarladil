@@ -160,6 +160,14 @@ describe("MobileOnboardingForm", () => {
     const transition = form.querySelector<HTMLElement>("[data-gateway-flow-phase]");
     const action = form.querySelector<HTMLElement>("[data-gateway-flow-action]");
     expect(action).toBeInTheDocument();
+    expect(action).toHaveAttribute("data-gateway-flow-item");
+    expect(action).toHaveAttribute("data-gateway-flow-order", "2");
+    expect(
+      Array.from(
+        form.querySelectorAll<HTMLElement>("[data-gateway-flow-item]"),
+        (item) => item.dataset.gatewayFlowOrder,
+      ),
+    ).toEqual(["0", "1", "2"]);
     expect(transition).not.toContainElement(action);
 
     const continueButton = screen.getByRole("button", { name: "Dil seç" });
@@ -168,6 +176,7 @@ describe("MobileOnboardingForm", () => {
     expect(form).toHaveAttribute("data-mobile-onboarding-step", "learning");
     expect(form).toHaveAttribute("data-mobile-onboarding-visible-step", "native");
     expect(continueButton).toBeDisabled();
+    expect(continueButton).toHaveClass("disabled:opacity-100");
 
     await waitFor(() => {
       expect(form).toHaveAttribute("data-mobile-onboarding-visible-step", "learning");
@@ -219,6 +228,7 @@ describe("MobileOnboardingForm", () => {
     const form = container.querySelector("form") as HTMLFormElement;
     expect(form).toHaveAttribute("data-mobile-onboarding-mode", "login-language-refresh");
     expect(form).toHaveAttribute("data-tap-vibration", "firm");
+    expect(form).toHaveAttribute("data-flow-button-sound", "auth");
     expect(form).toHaveAttribute("data-mobile-onboarding-step", "native");
     await selectLanguage("en");
     expect(navigationMocks.refresh).not.toHaveBeenCalled();

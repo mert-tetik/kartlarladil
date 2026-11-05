@@ -14,11 +14,11 @@ interface GameShellProps {
 }
 
 export const GAME_BACKGROUND_SOURCES = {
-  memory: "/game-backgrounds/games-page-colorful-shapes.png",
-  wordChallenge: "/game-backgrounds/dogru-yanlis.png",
-  wordMatch: "/game-backgrounds/kelime-eslestirme.png",
-  levelComplete: "/game-backgrounds/yellow-game-bg.png",
-  levelFailed: "/game-backgrounds/dark-game-bg.png",
+  memory: "/game-backgrounds/games-page-colorful-shapes.webp",
+  wordChallenge: "/game-backgrounds/dogru-yanlis.webp",
+  wordMatch: "/game-backgrounds/kelime-eslestirme.webp",
+  levelComplete: "/game-backgrounds/yellow-game-bg.webp",
+  levelFailed: "/game-backgrounds/dark-game-bg.webp",
 } as const;
 
 export function GameShell({

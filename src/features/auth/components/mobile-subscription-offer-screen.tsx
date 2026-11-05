@@ -179,7 +179,7 @@ export function MobileSubscriptionOfferScreen({
               style={{ animationDelay: "530ms" }}
             >
               <Image
-                src="/subscriptions/serious-learner-basic-v2.png"
+                src="/subscriptions/serious-learner-basic-v2.webp"
                 alt=""
                 width={1254}
                 height={1254}

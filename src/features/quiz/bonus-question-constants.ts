@@ -4,7 +4,19 @@ export type BonusQuestionKind =
   | "category-sort"
   | "imposter";
 
-export const BONUS_QUESTION_PROBABILITY = 1 / 10;
+export const BONUS_QUESTION_PROBABILITY = 2 / 10;
+export const BONUS_QUESTION_LATE_PROBABILITY = 1 / 10;
+export const BONUS_QUESTION_EARLY_WINDOW = 10;
+
+/**
+ * The index is zero-based and counts regular quiz questions.
+ * The first ten regular questions use the higher probability.
+ */
+export function getBonusQuestionProbability(regularQuestionIndex: number): number {
+  return regularQuestionIndex < BONUS_QUESTION_EARLY_WINDOW
+    ? BONUS_QUESTION_PROBABILITY
+    : BONUS_QUESTION_LATE_PROBABILITY;
+}
 
 export const BONUS_QUESTION_TYPE_WEIGHTS: Record<BonusQuestionKind, number> = {
   matching: 0.4,

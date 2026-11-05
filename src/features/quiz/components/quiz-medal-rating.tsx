@@ -36,7 +36,7 @@ const DROP_DURATION_MS = 500;
 const STAGGER_MS = 120;
 const PLACEHOLDER_REVEAL_DURATION_MS = 360;
 const PLACEHOLDER_STAGGER_MS = 70;
-const MEDAL_IMAGE_SRC = "/quiz/result-cards/star.png?v=20261003-2";
+const MEDAL_IMAGE_SRC = "/quiz/result-cards/star.webp?v=20261003-2";
 
 export function QuizMedalRating({
   rating,

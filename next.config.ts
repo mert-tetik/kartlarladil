@@ -78,19 +78,19 @@ const nextConfig: NextConfig = {
         search: "",
       },
       {
-        pathname: "/quiz/bonus_img.png",
+        pathname: "/quiz/bonus_img.webp",
         search: "?v=20261001-1",
       },
       {
-        pathname: "/quiz/result-cards/star.png",
+        pathname: "/quiz/result-cards/star.webp",
         search: "?v=20261003-2",
       },
       {
-        pathname: "/quiz/quiz-word-repetition-teacher.png",
+        pathname: "/quiz/quiz-word-repetition-teacher.webp",
         search: "?v=20261008-2",
       },
       {
-        pathname: "/quiz/quiz-word-repetition-teacher-1.png",
+        pathname: "/quiz/quiz-word-repetition-teacher-1.webp",
         search: "?v=20261008-1",
       },
       {
@@ -98,11 +98,7 @@ const nextConfig: NextConfig = {
         search: "?v=20261005-1",
       },
       {
-        pathname: "/quiz/result-cards/star.png",
-        search: "?v=20261005-1",
-      },
-      {
-        pathname: "/leaderboard-icon.png",
+        pathname: "/quiz/result-cards/star.webp",
         search: "?v=20261005-1",
       },
       {
@@ -110,12 +106,12 @@ const nextConfig: NextConfig = {
         search: "?v=20261006-2",
       },
       {
-        pathname: "/mascots/tutorial-welcome/first-frame.png",
-        search: "?v=20261024-png-frames-2",
+        pathname: "/mascots/tutorial-welcome/first-frame.webp",
+        search: "?v=20261104-webp-frames-1",
       },
       {
-        pathname: "/mascots/tutorial-welcome/last-frame.png",
-        search: "?v=20261024-png-frames-2",
+        pathname: "/mascots/tutorial-welcome/last-frame.webp",
+        search: "?v=20261104-webp-frames-1",
       },
     ],
   },

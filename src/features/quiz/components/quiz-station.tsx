@@ -152,6 +152,7 @@ import {
 } from "@/features/quiz/components/bonus-question-view";
 import { QuizStreakCelebrationView } from "@/features/quiz/components/quiz-streak-celebration-view";
 import { QuizCompletionProgressView } from "@/features/quiz/components/quiz-completion-progress-view";
+import { prepareTierFlashTransitionSnapshot } from "@/features/quiz/quiz-transition-fallback";
 import { QuizWordRepetitionIntroView } from "@/features/quiz/components/quiz-word-repetition-intro-view";
 import { QuizWordRepetitionView } from "@/features/quiz/components/quiz-word-repetition-view";
 import { QuizMedalRating } from "@/features/quiz/components/quiz-medal-rating";
@@ -325,10 +326,10 @@ const QUIZ_COUNT_BUTTON_COLORS = [
 ] as const;
 
 const QUIZ_COUNT_IMAGE_PATHS: Record<number, string> = {
-  10: "/quiz/count-options/10.png",
-  20: "/quiz/count-options/20.png",
-  30: "/quiz/count-options/30.png",
-  50: "/quiz/count-options/50.png",
+  10: "/quiz/count-options/10.webp",
+  20: "/quiz/count-options/20.webp",
+  30: "/quiz/count-options/30.webp",
+  50: "/quiz/count-options/50.webp",
 };
 
 const QUIZ_COUNT_IMAGE_CIRCLE_CLASS =
@@ -1019,22 +1020,11 @@ export function QuizStation({
     if (isQuizStageSnapshot) {
       snapshot.setAttribute("data-quiz-transition-fallback-quiz-stage", "true");
     }
-    if (source.matches("[data-quiz-celebration]")) {
-      // The learned-card root has its own background-flash animation, which
-      // otherwise overrides the generic fallback exit animation on the cloned
-      // root. Set the horizontal exit directly on this snapshot so the whole
-      // previous screen reliably moves left instead of replaying its flash.
-      snapshot.style.setProperty(
-        "background-color",
-        window.getComputedStyle(source).backgroundColor,
-        "important",
-      );
-      snapshot.style.setProperty(
-        "animation",
-        `quiz-transition-fallback-exit-left ${QUIZ_FLOW_TRANSITION_DURATION_MS}ms cubic-bezier(0.85, 0, 0.15, 1) both`,
-        "important",
-      );
-    }
+    prepareTierFlashTransitionSnapshot(
+      source,
+      snapshot,
+      QUIZ_FLOW_TRANSITION_DURATION_MS,
+    );
     if (fadeQuizTopBar) {
       const topBar = snapshot.querySelector<HTMLElement>("[data-mobile-quiz-top-bar]");
       if (topBar) {
@@ -3736,6 +3726,7 @@ export function QuizStation({
       <RankUpMenu
         rank={pendingRankUp}
         fromRank={pendingRankUpFromRank ?? undefined}
+        firmCloseVibration
         onClose={() => {
           const completedRank = pendingRankUp;
           const returnTo = rankUpReturn;
@@ -4219,6 +4210,7 @@ export function CardProgressReveal({
     if (hasStarted) {
       // A second tap remains an intentional skip. The completion guard makes
       // it race-safe with animationend and the fallback timer.
+      vibrate("firm-tap");
       completeReveal();
       return;
     }
@@ -5160,7 +5152,7 @@ export function CountSelection({
             } as CSSProperties}
           >
             <Image
-              src="/quiz/cards_icon3.png"
+              src="/quiz/cards_icon3.webp"
               alt=""
               width={128}
               height={128}
@@ -5407,7 +5399,7 @@ export function MobileQuizTopBar({
             {questionPromptAccent ? (
               <span className="flex size-7 shrink-0 items-center justify-center">
                 <Image
-                  src="/card-status/kart_ogrenildi_madalyasi.png"
+                  src="/card-status/kart_ogrenildi_madalyasi.webp"
                   alt=""
                   width={28}
                   height={28}
@@ -6704,9 +6696,8 @@ export function CelebrationView({
 
     rewardAnimationGate.reset(false);
     setRewardStarted(true);
-    vibrate("learned");
+    vibrate("firm-tap");
     playSoundEffect("confetti");
-    vibrate("confetti");
     void confetti({
       particleCount: 140,
       spread: 80,
@@ -6729,6 +6720,8 @@ export function CelebrationView({
       role="button"
       tabIndex={0}
       aria-label={t("quiz.tapToContinue")}
+      data-tap-vibration="firm"
+      data-no-tap-vibrate
       onClick={handleStartReward}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -6828,7 +6821,7 @@ function QuizViewportOverlay({
   return createPortal(
     <div
       data-quiz-overlay={overlay}
-      data-tap-vibration={overlay === "chest" ? "firm" : undefined}
+      data-tap-vibration="firm"
       data-learn-quiz-page={learnPagePhase}
       className={className}
     >
@@ -7167,7 +7160,7 @@ export function ResultFlowView({
   );
 }
 
-const RESULT_MEDAL_IMAGE_SRC = "/quiz/result-cards/star.png?v=20261003-2";
+const RESULT_MEDAL_IMAGE_SRC = "/quiz/result-cards/star.webp?v=20261003-2";
 const RESULT_MEDAL_CENTER_ICON_SIZE = 58;
 const RESULT_MEDAL_COLLECT_PLAYBACK_RATE_STEP = 0.2;
 const RESULT_MEDAL_COLLECT_MAX_PLAYBACK_RATE = 2.5;
@@ -7896,7 +7889,6 @@ export function ResultView({
                 onClick={handleResultPrimaryAction}
                 disabled={(isResultSummaryExiting && !performanceRewardSafetyElapsed) || isPerformanceContinueLocked}
                 aria-busy={isPerformanceContinueLocked}
-                data-no-tap-vibrate
                 data-result-primary-action
                 data-performance-rewards-locked={isPerformanceContinueLocked ? "true" : "false"}
                 className={cn(
@@ -7925,6 +7917,7 @@ export function ResultView({
         <RankUpMenu
           rank={performanceRewardRankUp.rank}
           fromRank={performanceRewardRankUp.fromRank}
+          firmCloseVibration
           onClose={handlePerformanceRankOverlayClose}
           onOpen={handlePerformanceRankOverlayPresented}
           zIndex={300}
@@ -8077,6 +8070,7 @@ export function ResultView({
                       setMedalClaimError(false);
                       collectMedals();
                     }}
+                    data-no-tap-vibrate
                     className={cn(
                       "rounded-xl bg-[#f5a900] px-8 py-4 text-lg font-bold text-white shadow-[0_6px_0_rgba(0,0,0,0.22)] active:translate-y-1 active:shadow-[0_2px_0_rgba(0,0,0,0.22)]",
                       canUseSuperWater(locale) && "font-super-water",
@@ -8468,8 +8462,8 @@ function ResultCard({
         <span
           className="mx-auto size-8 shrink-0 bg-[#fbbf24] sm:size-9"
           style={{
-            maskImage: 'url("/quiz/result-learned-trophy.png")',
-            WebkitMaskImage: 'url("/quiz/result-learned-trophy.png")',
+            maskImage: 'url("/quiz/result-learned-trophy.webp")',
+            WebkitMaskImage: 'url("/quiz/result-learned-trophy.webp")',
             maskPosition: "center",
             WebkitMaskPosition: "center",
             maskRepeat: "no-repeat",
@@ -8591,6 +8585,7 @@ function ResultMenu({
     <div
       className="animate-screen-pop fixed inset-0 z-[300] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm max-lg:bg-background max-lg:p-0 max-lg:backdrop-blur-none"
       data-result-menu
+      data-tap-vibration="firm"
       onClick={onClose}
     >
       <div

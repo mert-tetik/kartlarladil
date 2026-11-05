@@ -72,6 +72,7 @@ public class LauncherActivity extends Activity {
     private boolean nativeLoadingPageCommitted;
     private boolean nativeLoadingCardsReceived;
     private boolean nativeLoadingBootstrapReady;
+    private boolean nativeLoadingEssentialDataReady;
     private String[] nativeLoadingStatuses;
     private String nativeLoadingFallbackStatus = "Foxies are stretching their tails...";
     private int nativeLoadingProgressPercent = 8;
@@ -185,19 +186,28 @@ public class LauncherActivity extends Activity {
     private void beginNativeLoadingVisualTest() {
         if (isFinishing() || nativeLoadingView == null) return;
 
+        String uiLocale = getNativeLoadingPreference(NATIVE_LOADING_UI_LOCALE, "en");
+        nativeLoadingView.setSuperWaterLocale(uiLocale);
+        nativeLoadingView.setLoadingTitle(NativeLoadingCatalog.getTitle(uiLocale));
+        nativeLoadingStatuses = NativeLoadingCatalog.getStatuses(uiLocale);
+
         // The visual test runs without a WebView bridge, so provide realistic
         // sample cards instead of exposing the renderer's placeholder values.
         nativeLoadingView.setLoadingCards(
-                new String[]{"bacteria", "card", "efficiency", "courtesy"},
-                new String[]{"bakteri", "kart", "verimlilik", "nezaket"},
-                new String[]{"baktıriya", "kart", "ifishınsi", "körtısi"},
+                new String[]{"bacteria", "card", "efficiency", "courtesy", "abandon", "ability", "able", "about"},
+                new String[]{"bakteri", "kart", "verimlilik", "nezaket", "terk etmek", "yetenek", "yapabilen", "hakkında"},
+                new String[]{"bak-teer-ee-uh", "kart", "ih-fish-uhn-see", "kur-tuh-see", "uh-ban-duhn", "uh-bil-uh-tee", "ay-buhl", "uh-bout"},
                 new String[]{
                         "Soap helps kill bacteria on your hands.",
                         "I sent a birthday card to my friend.",
                         "The new machine improved efficiency in the workshop.",
-                        "He held the door open as a courtesy."
+                        "He held the door open as a courtesy.",
+                        "I can't abandon my plan just because it's raining.",
+                        "I have the ability to learn fast.",
+                        "I'm able to meet you after work.",
+                        "Tell me about your trip."
                 },
-                new String[]{"B2", "A1", "C1", "C1"}
+                new String[]{"B2", "A1", "C1", "C1", "B2", "A2", "A2", "A1"}
         );
         nativeLoadingTestStep = 0;
         showNativeLoadingScreen();
@@ -448,7 +458,10 @@ public class LauncherActivity extends Activity {
     }
 
     private void maybeHideNativeLaunchOverlay() {
-        if (nativeLoadingPageCommitted && nativeLoadingCardsReceived && nativeLoadingBootstrapReady) {
+        if (nativeLoadingPageCommitted
+                && nativeLoadingCardsReceived
+                && nativeLoadingBootstrapReady
+                && nativeLoadingEssentialDataReady) {
             hideNativeLaunchOverlay();
         }
     }
@@ -499,7 +512,7 @@ public class LauncherActivity extends Activity {
         public void setCards(String cardsJson) {
             try {
                 JSONArray cards = new JSONArray(cardsJson);
-                int count = Math.min(4, cards.length());
+                int count = Math.min(8, cards.length());
                 String[] terms = new String[count];
                 String[] translations = new String[count];
                 String[] pronunciations = new String[count];
@@ -532,6 +545,14 @@ public class LauncherActivity extends Activity {
         @JavascriptInterface
         public void setBootstrapReady() {
             markNativeLoadingBootstrapReady();
+        }
+
+        @JavascriptInterface
+        public void setEssentialDataReady() {
+            runOnUiThread(() -> {
+                nativeLoadingEssentialDataReady = true;
+                maybeHideNativeLaunchOverlay();
+            });
         }
     }
 

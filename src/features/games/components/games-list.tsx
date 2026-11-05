@@ -5,9 +5,9 @@
 import { useEffect, useRef, useState } from "react";
 import Image, { type StaticImageData } from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import hafizaIcon from "@/assets/games/hafiza_oyunu.png";
-import wordChallengeIcon from "@/assets/games/kelime_meydan_okumasi.png";
-import wordMatchIcon from "@/assets/games/kelime_eslestirme.png";
+import hafizaIcon from "@/assets/games/hafiza_oyunu.webp";
+import wordChallengeIcon from "@/assets/games/kelime_meydan_okumasi.webp";
+import wordMatchIcon from "@/assets/games/kelime_eslestirme.webp";
 import { MobileLanguageBottomSheet } from "@/app/components/mobile-language-bottom-sheet";
 import { readLandingCardLanguage } from "@/app/components/landing-card-language";
 import { LanguageFlag } from "@/components/language-flag";
@@ -68,8 +68,8 @@ const GAMES: GameEntry[] = [
 ];
 
 const GAME_SELECTION_BACKGROUND_SOURCES: Partial<Record<GameName, string>> = {
-  wordChallenge: "/game-backgrounds/dogru-yanlis.png",
-  wordMatch: "/game-backgrounds/kelime-eslestirme.png",
+  wordChallenge: "/game-backgrounds/dogru-yanlis.webp",
+  wordMatch: "/game-backgrounds/kelime-eslestirme.webp",
 };
 
 const TIER_TEXT_COLORS: Record<Tier, string> = {
@@ -398,7 +398,7 @@ export function GamesList() {
               />
               <span aria-hidden="true" className="pointer-events-none absolute inset-0">
                 <Image
-                  src="/pricing-buttons/pricing-active-button-v2.png"
+                  src="/pricing-buttons/pricing-active-button-v2.webp"
                   alt=""
                   fill
                   sizes="208px"

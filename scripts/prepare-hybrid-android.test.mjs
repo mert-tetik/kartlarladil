@@ -15,4 +15,13 @@ describe("offline Android media requirements", () => {
     expect(() => assertRequiredOfflineMedia(incompleteMedia))
       .toThrow("/flags/language/ja.png");
   });
+
+  it("requires the tutorial welcome atlas in the install-time Android media pack", () => {
+    const incompleteMedia = REQUIRED_OFFLINE_MEDIA_URLS.filter(
+      (url) => url !== "/video-frame-atlases/tutorial-welcome/atlas-013.webp",
+    );
+
+    expect(() => assertRequiredOfflineMedia(incompleteMedia))
+      .toThrow("/video-frame-atlases/tutorial-welcome/atlas-013.webp");
+  });
 });

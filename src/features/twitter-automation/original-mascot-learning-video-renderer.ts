@@ -532,11 +532,13 @@ function drawOriginalMascotFrame(
 
 function getSpeakerMascotSource(scenes: readonly OriginalMascotLearningVideoScene[]) {
   const scene = scenes.find((scene): scene is Extract<OriginalMascotLearningVideoScene, { kind: "sentence-translation" }> => scene.kind === "sentence-translation");
-  return scene ? `/mascot-variations/${encodeURIComponent(scene.speakerMascot)}` : null;
+  return scene
+    ? `/mascot-variations/${encodeURIComponent(scene.speakerMascot.replace(/\.png$/iu, ""))}.webp`
+    : null;
 }
 
 function getFlagSource(language?: LanguageCode) {
-  return language ? `/flags/language/${language}.png` : null;
+  return language ? `/flags/language/${language}.webp` : null;
 }
 
 async function loadOriginalMascotVideoAssets(scenes: readonly OriginalMascotLearningVideoScene[], language?: LanguageCode, nativeLanguage?: LanguageCode, signal?: AbortSignal): Promise<OriginalMascotVideoAssets> {
@@ -544,9 +546,9 @@ async function loadOriginalMascotVideoAssets(scenes: readonly OriginalMascotLear
   const learningFlagSource = getFlagSource(language);
   const nativeFlagSource = getFlagSource(nativeLanguage);
   const [original, mascot4, mascot18, splash, speaker, learningFlag, nativeFlag] = await Promise.all([
-    loadImage("/mascot-variations/Original.png", signal),
+    loadImage("/mascot-variations/Original.webp", signal),
     loadImage("/mascots/mascot4.webp", signal),
-    loadImage("/mascots/mascot18.png", signal),
+    loadImage("/mascots/mascot18.webp", signal),
     loadImage("/splash.png", signal),
     speakerSource ? loadImage(speakerSource, signal) : Promise.resolve(null),
     learningFlagSource ? loadImage(learningFlagSource, signal) : Promise.resolve(null),

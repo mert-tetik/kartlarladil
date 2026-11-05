@@ -29,7 +29,7 @@ export function LanguageFlag({
       )}
     >
       <Image
-        src={`/flags/language/${language.code}.png`}
+        src={`/flags/language/${language.code}.webp`}
         alt={language.nativeName}
         fill
         unoptimized

@@ -71,11 +71,11 @@ const navItems: readonly NavItem[] = [
 ];
 
 const mobileNavItems: readonly NavItem[] = [
-  { href: "/games", labelKey: "nav.games", mobileLabelKey: "nav.gamesShort", icon: Gamepad2, mobileImageSrc: "/mobile-nav-icons/game.png?v=20261006-2" },
-  { href: "/ai-practice", labelKey: "nav.aiPractice", mobileLabelKey: "nav.aiPracticeShort", icon: MessageCircle, mobileImageSrc: "/mobile-nav-icons/practice.png?v=20261006-2" },
-  { href: "/", labelKey: "nav.home", icon: Home, mobileImageSrc: "/mobile-nav-icons/home.png?v=20261006-2" },
-  { href: "/ask", labelKey: "nav.ask", mobileLabelKey: "nav.askShort", icon: CircleHelp, mobileImageSrc: "/mobile-nav-icons/question-mark.png?v=20261006-2" },
-  { href: "/pricing", labelKey: "nav.pricing", mobileLabel: "Premium", icon: Flame, mobileImageSrc: "/mobile-nav-icons/fire.png?v=20261006-2" },
+  { href: "/games", labelKey: "nav.games", mobileLabelKey: "nav.gamesShort", icon: Gamepad2, mobileImageSrc: "/mobile-nav-icons/game.webp?v=20261006-2" },
+  { href: "/ai-practice", labelKey: "nav.aiPractice", mobileLabelKey: "nav.aiPracticeShort", icon: MessageCircle, mobileImageSrc: "/mobile-nav-icons/practice.webp?v=20261006-2" },
+  { href: "/", labelKey: "nav.home", icon: Home, mobileImageSrc: "/mobile-nav-icons/home.webp?v=20261006-2" },
+  { href: "/ask", labelKey: "nav.ask", mobileLabelKey: "nav.askShort", icon: CircleHelp, mobileImageSrc: "/mobile-nav-icons/question-mark.webp?v=20261006-2" },
+  { href: "/pricing", labelKey: "nav.pricing", mobileLabel: "Premium", icon: Flame, mobileImageSrc: "/mobile-nav-icons/fire.webp?v=20261006-2" },
 ];
 
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
@@ -218,7 +218,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
               className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-white transition-colors hover:bg-white/10 lg:hidden"
             >
               <Image
-                src="/mobile-nav-icons/color-palette.png?v=20261006-2"
+                src="/mobile-nav-icons/color-palette.webp?v=20261006-2"
                 alt=""
                 aria-hidden="true"
                 width={128}
@@ -339,7 +339,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                   >
                     {showPaidPremiumImage ? (
                       <Image
-                        src={`/subscriptions/plan-${paidPlan}-v2.png`}
+                        src={`/subscriptions/plan-${paidPlan}-v2.webp`}
                         alt={t(`pricing.${paidPlan}`)}
                         width={1489}
                         height={450}

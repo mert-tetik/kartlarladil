@@ -70,7 +70,7 @@ export default async function AddToHomeScreenPage() {
         </p>
 
         <Image
-          src="/install/instruction.png"
+          src="/install/instruction.webp"
           alt={t("install.addToHomeScreen.guideImageAlt")}
           width={432}
           height={656}

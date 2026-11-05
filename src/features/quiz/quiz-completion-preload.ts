@@ -2,27 +2,29 @@ import { CHEST_TIER_ARTWORK, CHEST_TIER_OPENING_AUDIO, type ChestTier } from "@/
 import { preloadChestOpeningFrames } from "@/features/quiz/chest-opening-frames";
 import { RANK_ICON_ASSETS } from "@/features/progress/rank-icons";
 import { GEM_ASSETS } from "@/features/gems/gem-types";
+import { preloadVideoFrameAtlas } from "@/components/video-frame-atlas-player";
+import type { VideoFrameAtlasAssetId } from "@/lib/video-frame-atlas-assets";
 import { preloadSoundEffects, type SoundEffectName } from "@/lib/sound-effects";
 import type { RankIconId } from "@/types/domain";
 
 const PRELOAD_TIMEOUT_MS = 1_200;
 
 const COMPLETION_IMAGE_SOURCES = [
-  "/quiz/result-cards/star.png?v=20261003-2",
-  "/chests/crack.png",
-  "/rank-up/kurdele-v1.png",
-  "/pricing-buttons/pricing-active-button-v2.png",
-  "/quiz/result-message-wave-20261003-1.png",
+  "/quiz/result-cards/star.webp?v=20261003-2",
+  "/chests/crack.webp",
+  "/rank-up/kurdele-v1.webp",
+  "/pricing-buttons/pricing-active-button-v2.webp",
+  "/quiz/result-message-wave-20261003-1.webp",
   ...Object.values(GEM_ASSETS),
 ] as const;
 
-const COMPLETION_VIDEO_SOURCES = [
-  "/quiz/streak-reward-background-20260921-intro.mp4?v=20261007-2",
-  "/quiz/streak-reward-background-20260921-continuation.mp4?v=20261007-2",
-  "/rank-up/rank-up-background-first.mp4?v=20261007-2",
-  "/rank-up/rank-up-background-loopedvideo.mp4?v=20261007-1",
-  "/quiz/result_message_video.mp4?v=20261007-2",
-] as const;
+const COMPLETION_FRAME_ATLAS_IDS = [
+  "quiz-streak-intro",
+  "quiz-streak-continuation",
+  "rank-up-first",
+  "rank-up-loop",
+  "quiz-result-message",
+] as const satisfies readonly VideoFrameAtlasAssetId[];
 
 const COMPLETION_AUDIO_SOURCES = [
   "/quiz/result-message-video-audio.m4a?v=20261007-2",
@@ -43,7 +45,6 @@ const COMPLETION_SOUND_EFFECTS = [
 ] as const satisfies readonly SoundEffectName[];
 
 const scheduledImageSources = new Set<string>();
-const scheduledVideoSources = new Set<string>();
 const scheduledAudioSources = new Set<string>();
 const preloadedImages = new Map<string, HTMLImageElement>();
 const preloadedMedia = new Map<string, HTMLMediaElement>();
@@ -74,12 +75,11 @@ function preloadImageSource(source: string) {
   void image.decode?.().catch(() => undefined);
 }
 
-function preloadMediaSource(source: string, kind: "audio" | "video") {
-  const scheduledSources = kind === "audio" ? scheduledAudioSources : scheduledVideoSources;
-  if (scheduledSources.has(source) || typeof document === "undefined") return;
-  scheduledSources.add(source);
+function preloadAudioSource(source: string) {
+  if (scheduledAudioSources.has(source) || typeof document === "undefined") return;
+  scheduledAudioSources.add(source);
 
-  const media = document.createElement(kind);
+  const media = document.createElement("audio");
   media.preload = "auto";
   media.muted = true;
   media.setAttribute("playsinline", "true");
@@ -106,8 +106,8 @@ export function preloadQuizCompletionAssets({
       preloadImageSource(source);
     }
 
-    for (const source of COMPLETION_VIDEO_SOURCES) {
-      preloadMediaSource(source, "video");
+    for (const assetId of COMPLETION_FRAME_ATLAS_IDS) {
+      void preloadVideoFrameAtlas(assetId, 1);
     }
 
     for (const tier of chestTiers) {
@@ -115,7 +115,7 @@ export function preloadQuizCompletionAssets({
     }
 
     for (const source of [...COMPLETION_AUDIO_SOURCES, ...chestAudio]) {
-      preloadMediaSource(source, "audio");
+      preloadAudioSource(source);
     }
 
     preloadSoundEffects(COMPLETION_SOUND_EFFECTS);

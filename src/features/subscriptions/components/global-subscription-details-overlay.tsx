@@ -68,8 +68,8 @@ const PLAN_COLOR: Record<Exclude<SubscriptionPlan, "free">, string> = {
 };
 
 const PLAN_BUTTON_IMAGE: Record<Exclude<SubscriptionPlan, "free">, { src: string; width: number; height: number }> = {
-  basic: { src: "/subscriptions/plan-basic-v2.png", width: 1489, height: 450 },
-  pro: { src: "/subscriptions/plan-pro-v2.png", width: 1338, height: 511 },
+  basic: { src: "/subscriptions/plan-basic-v2.webp", width: 1489, height: 450 },
+  pro: { src: "/subscriptions/plan-pro-v2.webp", width: 1338, height: 511 },
 };
 
 const FRAME_COUNT = 50;
@@ -383,7 +383,7 @@ function SubscriptionDetailsFrameAnimation({
     const images = Array.from({ length: FRAME_COUNT }, (_, index) => {
       const image = new window.Image();
       image.decoding = "async";
-      image.src = `${frameBasePath}/${index + 1}.png`;
+      image.src = `${frameBasePath}/${index + 1}.webp`;
       return image;
     });
 
@@ -425,7 +425,7 @@ function SubscriptionDetailsFrameAnimation({
     <div aria-hidden="true" className={cn("subscription-details-frame-layer", plan === "pro" && "subscription-details-frame-layer--pro", isClosing && "subscription-details-frame-layer--closing")}>
       {/* This frame strip is intentionally swapped at 45 FPS; optimizing each frame would add request latency. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`${frameBasePath}/${frameIndex}.png`} alt="" draggable={false} style={{ filter: "none" }} />
+      <img src={`${frameBasePath}/${frameIndex}.webp`} alt="" draggable={false} style={{ filter: "none" }} />
     </div>
   );
 }

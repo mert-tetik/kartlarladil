@@ -1015,7 +1015,7 @@ const dictionary = {
   "tutorial.cardModes.custom.description": "Crie seu próprio cartão para qualquer palavra.",
   "tutorial.cardModes.groups.title": "Adicione palavras de categorias específicas em conjunto",
   "tutorial.cardModes.groups.description": "Adicione de uma vez um grupo completo de cartões por tema.",
-  "tutorial.landingCardsAction": "Agora toque no botão «Cartões».",
+  "tutorial.landingCardsAction": "E agora toque no botão «Cartões».",
   "tutorial.landingCardsMessage": "Aqui você pode ver as palavras da sua coleção!",
   "tutorial.collectionMessageButton": "Entendi",
   "tutorial.cardCollectionPrompt": "Agora adicione palavras à sua coleção.",

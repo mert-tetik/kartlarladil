@@ -6,14 +6,14 @@ import { cn } from "@/lib/utils";
 import { formatGameTime } from "../game-timer";
 
 const GAME_HEADER_ITEM_STYLE = {
-  backgroundImage: "url('/game-backgrounds/plank-var-bg.png')",
+  backgroundImage: "url('/game-backgrounds/plank-var-bg.webp')",
   backgroundPosition: "center",
   backgroundRepeat: "no-repeat",
   backgroundSize: "100% 100%",
 } as const;
 
 const GAME_HEADER_PLANK_STYLE = {
-  backgroundImage: "url('/game-backgrounds/plank.png')",
+  backgroundImage: "url('/game-backgrounds/plank.webp')",
   backgroundPosition: "center",
   backgroundRepeat: "no-repeat",
   backgroundSize: "100% 100%",

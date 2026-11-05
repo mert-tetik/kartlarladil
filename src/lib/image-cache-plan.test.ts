@@ -6,8 +6,8 @@ import {
 
 const assets = [
   { url: "/splash.png", revision: "splash-v1" },
-  { url: "/mascots/mascot1.png", revision: "mascot-v1" },
-  { url: "/ranks/rank1.png", revision: "rank-v1" },
+  { url: "/mascots/mascot1.webp", revision: "mascot-v1" },
+  { url: "/ranks/rank1.webp", revision: "rank-v1" },
 ];
 
 const manifest: ImageCacheManifest = {
@@ -34,14 +34,14 @@ describe("image cache plan", () => {
   it("only recaches missing or changed assets after an update", () => {
     const nextAssets = [
       assets[0],
-      { url: "/mascots/mascot1.png", revision: "mascot-v2" },
+      { url: "/mascots/mascot1.webp", revision: "mascot-v2" },
       assets[2],
     ];
 
     expect(
       getAssetsRequiringCache({
         candidates: nextAssets,
-        cachedPaths: new Set(["/splash.png", "/mascots/mascot1.png"]),
+        cachedPaths: new Set(["/splash.png", "/mascots/mascot1.webp"]),
         cachedManifest: manifest,
       }),
     ).toEqual([nextAssets[1], nextAssets[2]]);

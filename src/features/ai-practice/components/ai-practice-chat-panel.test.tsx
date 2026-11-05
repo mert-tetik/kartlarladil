@@ -103,7 +103,7 @@ describe("AiPracticeChatPanel", () => {
     expect(screen.getByAltText("Restaurant server")).toBeVisible();
     expect(screen.getByAltText("Restaurant server")).toHaveAttribute(
       "src",
-      "/ai-characters/scenarios/restaurant-order-v2.png",
+      "/ai-characters/scenarios/restaurant-order-v2.webp",
     );
   });
 

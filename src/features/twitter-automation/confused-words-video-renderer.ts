@@ -376,7 +376,7 @@ async function loadConfusedWordsAssets(options: ConfusedWordsVideoRenderOptions)
     loadImage("/splash.png", signal),
     loadImage("/mascots/mascot3.webp", signal),
     loadImage("/mascots/mascot4.webp", signal),
-    loadImage("/mascots/mascot18.png", signal),
+    loadImage("/mascots/mascot18.webp", signal),
     ...normalizedCardUrls.map((url) => loadImage(url, signal)),
   ]);
   return {

@@ -1015,7 +1015,7 @@ const dictionary = {
   "tutorial.cardModes.custom.description": "أنشئ بطاقتك الخاصة لأي كلمة تريدها.",
   "tutorial.cardModes.groups.title": "أضف كلمات من فئات محددة دفعة واحدة",
   "tutorial.cardModes.groups.description": "أضف مجموعة بطاقات كاملة حسب الموضوع دفعة واحدة.",
-  "tutorial.landingCardsAction": "اضغط الآن على زر «البطاقات».",
+  "tutorial.landingCardsAction": "والآن اضغط على زر «البطاقات».",
   "tutorial.landingCardsMessage": "يمكنك من هنا رؤية الكلمات الموجودة في مجموعتك!",
   "tutorial.collectionMessageButton": "فهمت",
   "tutorial.cardCollectionPrompt": "أضف الآن كلمات إلى مجموعتك.",

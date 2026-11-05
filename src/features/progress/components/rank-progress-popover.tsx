@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
+import { VideoFrameAtlasPlayer, type VideoFrameAtlasPlayerHandle } from "@/components/video-frame-atlas-player";
 import type { ProgressStats, RankDefinition } from "@/types/domain";
 
 const SCORE_GAIN_ANIMATION_MS = 700;
@@ -381,12 +382,14 @@ export function RankUpMenu({
   onClose,
   onOpen,
   zIndex = 50,
+  firmCloseVibration = false,
 }: {
   rank: RankDefinition;
   fromRank?: RankDefinition;
   onClose: () => void;
   onOpen?: () => void;
   zIndex?: number;
+  firmCloseVibration?: boolean;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -397,8 +400,8 @@ export function RankUpMenu({
   const [closing, setClosing] = useState(false);
   const [backgroundClosing, setBackgroundClosing] = useState(false);
   const [backgroundLoopVisible, setBackgroundLoopVisible] = useState(false);
-  const backgroundFirstVideoRef = useRef<HTMLVideoElement>(null);
-  const backgroundLoopVideoRef = useRef<HTMLVideoElement>(null);
+  const backgroundFirstVideoRef = useRef<VideoFrameAtlasPlayerHandle>(null);
+  const backgroundLoopVideoRef = useRef<VideoFrameAtlasPlayerHandle>(null);
   const backgroundLoopRequestedRef = useRef(false);
   const foregroundCloseTimerRef = useRef<number | null>(null);
   const backgroundCloseTimerRef = useRef<number | null>(null);
@@ -410,6 +413,10 @@ export function RankUpMenu({
   function handleClose() {
     if (closing) {
       return;
+    }
+
+    if (firmCloseVibration) {
+      vibrate("firm-tap");
     }
 
     setClosing(true);
@@ -437,10 +444,7 @@ export function RankUpMenu({
       return;
     }
 
-    const playResult = backgroundFirstVideoRef.current?.play();
-    if (playResult && typeof playResult.catch === "function") {
-      void playResult.catch(() => undefined);
-    }
+    void backgroundFirstVideoRef.current?.play();
   }, [revealed]);
 
   const startBackgroundLoop = () => {
@@ -450,12 +454,7 @@ export function RankUpMenu({
     const loopVideo = backgroundLoopVideoRef.current;
     if (!loopVideo) return;
 
-    const playResult = loopVideo.play();
-    if (playResult && typeof playResult.catch === "function") {
-      void playResult.catch(() => {
-        backgroundLoopRequestedRef.current = false;
-      });
-    }
+    void loopVideo.play();
   };
 
   const revealBackgroundLoop = () => {
@@ -490,32 +489,26 @@ export function RankUpMenu({
         )}
         aria-hidden="true"
       >
-        <video
+        <VideoFrameAtlasPlayer
           ref={backgroundFirstVideoRef}
-          src="/rank-up/rank-up-background-first.mp4?v=20261007-2"
-          muted
-          playsInline
-          preload="auto"
+          assetId="rank-up-first"
+          data-player-id="rank-up-first"
           onEnded={startBackgroundLoop}
-          aria-hidden="true"
           data-rank-up-background-first
           className="absolute inset-0 z-10 size-full object-cover object-center"
           style={{ filter: "hue-rotate(-30deg) saturate(1.35)" }}
         />
-        <video
+        <VideoFrameAtlasPlayer
           ref={backgroundLoopVideoRef}
-          src="/rank-up/rank-up-background-loopedvideo.mp4?v=20261007-1"
-          muted
-          playsInline
+          assetId="rank-up-loop"
+          data-player-id="rank-up-loop"
           loop
-          preload="auto"
           onPlaying={revealBackgroundLoop}
-          onCanPlay={() => {
+          onReady={() => {
             if (backgroundLoopRequestedRef.current) {
               startBackgroundLoop();
             }
           }}
-          aria-hidden="true"
           data-rank-up-background-loop
           className={cn(
             "absolute inset-0 size-full object-cover object-center",
@@ -584,6 +577,7 @@ export function RankUpMenu({
             <button
               type="button"
               onClick={handleClose}
+              data-no-tap-vibrate={firmCloseVibration ? "" : undefined}
               className={cn(
                 "rank-up-sequence-item rank-up-sequence-action relative isolate mt-8 inline-flex h-16 w-[12.38rem] shrink-0 items-center justify-center overflow-hidden rounded-full border border-transparent px-4 text-center text-2xl font-semibold text-white transition-[filter,transform] hover:brightness-105 active:scale-[0.98]",
                 revealed && "rank-up-sequence-item--visible",
@@ -594,7 +588,7 @@ export function RankUpMenu({
             >
               <span aria-hidden="true" className="pointer-events-none absolute inset-0">
                 <Image
-                  src="/pricing-buttons/pricing-active-button-v2.png"
+                  src="/pricing-buttons/pricing-active-button-v2.webp"
                   alt=""
                   fill
                   sizes="(max-width: 1023px) calc(100vw - 3rem), 420px"
@@ -692,7 +686,7 @@ function ConvexRankTitle({
   return (
     <div className="relative mx-auto w-full max-w-[22rem]" style={{ aspectRatio: "1325 / 395" }}>
       <Image
-        src="/rank-up/kurdele-v1.png"
+        src="/rank-up/kurdele-v1.webp"
         alt=""
         fill
         sizes="(max-width: 640px) calc(100vw - 3rem), 352px"

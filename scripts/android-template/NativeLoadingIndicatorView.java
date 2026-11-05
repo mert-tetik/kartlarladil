@@ -12,6 +12,7 @@ import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
+import android.view.animation.PathInterpolator;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
@@ -24,6 +25,15 @@ import java.util.Locale;
  * does not need a network request or a second WebView.
  */
 public final class NativeLoadingIndicatorView extends View {
+    private static final long CARD_CYCLE_DURATION_MS = 2000L;
+    private static final long CARD_HOLD_DURATION_MS = 420L;
+    private static final long CARD_MOTION_DURATION_MS = 400L;
+    private static final long CARD_STAGGER_DURATION_MS = 130L;
+    private static final long CARD_GROUP_MOTION_DURATION_MS =
+            CARD_MOTION_DURATION_MS + CARD_STAGGER_DURATION_MS * 3L;
+    private static final long CARD_ENTER_START_MS =
+            CARD_HOLD_DURATION_MS + CARD_GROUP_MOTION_DURATION_MS;
+
     private final Paint dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint titlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -32,17 +42,19 @@ public final class NativeLoadingIndicatorView extends View {
     private final RectF shadowBounds = new RectF();
     private final RectF cardBounds = new RectF();
     private final Typeface superWaterTypeface;
+    private final PathInterpolator cardMotionInterpolator = new PathInterpolator(0.68f, 0f, 0.32f, 1f);
     private ValueAnimator animator;
     private float animationProgress;
+    private int loadingCardGroupIndex;
     private float loadingProgress = 0.08f;
     private String superWaterLocale = "en";
     private String loadingTitle = "WORDS OF THE DAY";
     private String loadingStatus = "Foxies are stretching their tails...";
-    private String[] loadingCardTerms = {"learn", "play", "word", "card"};
-    private String[] loadingCardTranslations = {"learn", "play", "word", "card"};
-    private String[] loadingCardPronunciations = {"learn", "play", "word", "card"};
-    private String[] loadingCardExamples = {"", "", "", ""};
-    private String[] loadingCardTiers = {"A1", "A2", "B1", "B2"};
+    private String[] loadingCardTerms = {"learn", "play", "word", "card", "about", "able", "abandon", "ability"};
+    private String[] loadingCardTranslations = {"learn", "play", "word", "card", "about", "able", "abandon", "ability"};
+    private String[] loadingCardPronunciations = {"learn", "play", "word", "card", "about", "able", "abandon", "ability"};
+    private String[] loadingCardExamples = {"", "", "", "", "", "", "", ""};
+    private String[] loadingCardTiers = {"A1", "A2", "B1", "B2", "A1", "A2", "B2", "A2"};
 
     public NativeLoadingIndicatorView(Context context) {
         super(context);
@@ -157,7 +169,7 @@ public final class NativeLoadingIndicatorView extends View {
         if (terms == null || translations == null || pronunciations == null || examples == null || tiers == null) return;
 
         int count = Math.min(
-                4,
+                8,
                 Math.min(
                         Math.min(Math.min(terms.length, translations.length), Math.min(pronunciations.length, examples.length)),
                         tiers.length
@@ -182,12 +194,18 @@ public final class NativeLoadingIndicatorView extends View {
 
     public void startAnimating() {
         if (animator != null) return;
-        animator = ValueAnimator.ofFloat(0f, 1f);
-        animator.setDuration(1000L);
+        // Two card groups share one continuous timeline. Keeping the group
+        // index and per-group progress in the same update avoids a one-frame
+        // mismatch at repeat boundaries.
+        animator = ValueAnimator.ofFloat(0f, 2f);
+        animator.setDuration(CARD_CYCLE_DURATION_MS * 2L);
         animator.setRepeatCount(ValueAnimator.INFINITE);
         animator.setInterpolator(new LinearInterpolator());
         animator.addUpdateListener(valueAnimator -> {
-            animationProgress = (float) valueAnimator.getAnimatedValue();
+            float animationValue = (float) valueAnimator.getAnimatedValue();
+            int groupIndex = (int) animationValue;
+            loadingCardGroupIndex = groupIndex % 2;
+            animationProgress = animationValue - groupIndex;
             invalidate();
         });
         animator.start();
@@ -199,6 +217,7 @@ public final class NativeLoadingIndicatorView extends View {
             animator = null;
         }
         animationProgress = 0f;
+        loadingCardGroupIndex = 0;
     }
 
     @Override
@@ -259,23 +278,69 @@ public final class NativeLoadingIndicatorView extends View {
         drawFittedText(canvas, loadingTitle, centerX, titleBaseline, titlePaint, getWidth() - 48f * density);
 
         float cardsLeft = (getWidth() - gridWidth) / 2f;
-        for (int index = 0; index < loadingCardTerms.length && index < 4; index++) {
-            int row = index / 2;
-            int column = index % 2;
+        Path cardViewport = new Path();
+        cardViewport.moveTo(0f, 0f);
+        cardViewport.lineTo(getWidth(), 0f);
+        cardViewport.lineTo(getWidth(), splitY - curveHeight * 0.55f);
+        cardViewport.cubicTo(
+                getWidth() * 0.70f,
+                splitY + curveHeight * 0.5f,
+                getWidth() * 0.25f,
+                splitY - curveHeight,
+                0f,
+                splitY - curveHeight * 0.25f
+        );
+        cardViewport.close();
+        canvas.save();
+        canvas.clipPath(cardViewport);
+        int sourceGroup = loadingCardGroupIndex;
+        int destinationGroup = 1 - sourceGroup;
+        float elapsedMs = animationProgress * CARD_CYCLE_DURATION_MS;
+        for (int slot = 0; slot < 4; slot++) {
+            int row = slot / 2;
+            int column = slot % 2;
             float cellLeft = cardsLeft + column * (cardCellWidth + cardGap);
             float cardLeft = cellLeft + (cardCellWidth - cardWidth) / 2f;
             float cardTop = cardsTop + row * (cardCellHeight + cardGap);
             cardBounds.set(cardLeft, cardTop, cardLeft + cardWidth, cardTop + cardHeight);
-            drawLoadingCard(
-                    canvas,
-                    cardBounds,
-                    loadingCardTerms[index],
-                    loadingCardTranslations[index],
-                    loadingCardPronunciations[index],
-                    loadingCardExamples[index],
-                    loadingCardTiers[index]
-            );
+            int sourceIndex = (sourceGroup * 4 + slot) % loadingCardTerms.length;
+            int destinationIndex = (destinationGroup * 4 + slot) % loadingCardTerms.length;
+            float travelDistance = getWidth() + cardWidth;
+
+            if (elapsedMs < CARD_HOLD_DURATION_MS) {
+                drawLoadingCardAt(canvas, cardBounds, sourceIndex, 0f);
+                continue;
+            }
+
+            if (elapsedMs < CARD_ENTER_START_MS) {
+                float exitElapsedMs = elapsedMs
+                        - CARD_HOLD_DURATION_MS
+                        - slot * CARD_STAGGER_DURATION_MS;
+                if (exitElapsedMs <= 0f) {
+                    drawLoadingCardAt(canvas, cardBounds, sourceIndex, 0f);
+                } else if (exitElapsedMs < CARD_MOTION_DURATION_MS) {
+                    float progress = exitElapsedMs / CARD_MOTION_DURATION_MS;
+                    float easedProgress = cardMotionInterpolator.getInterpolation(progress);
+                    drawLoadingCardAt(canvas, cardBounds, sourceIndex, -travelDistance * easedProgress);
+                }
+                continue;
+            }
+
+            float enterElapsedMs = elapsedMs
+                    - CARD_ENTER_START_MS
+                    - slot * CARD_STAGGER_DURATION_MS;
+            if (enterElapsedMs <= 0f) {
+                continue;
+            }
+            if (enterElapsedMs >= CARD_MOTION_DURATION_MS) {
+                drawLoadingCardAt(canvas, cardBounds, destinationIndex, 0f);
+            } else {
+                float progress = enterElapsedMs / CARD_MOTION_DURATION_MS;
+                float easedProgress = cardMotionInterpolator.getInterpolation(progress);
+                drawLoadingCardAt(canvas, cardBounds, destinationIndex, travelDistance * (1f - easedProgress));
+            }
         }
+        canvas.restore();
 
         float lowerCenterY = splitY + (getHeight() - splitY) / 2f - 4f * density;
         float indicatorWidth = 72f * density;
@@ -284,7 +349,8 @@ public final class NativeLoadingIndicatorView extends View {
         float indicatorLift = 4f * density;
         float shadowCenterY = lowerCenterY - 43f * density - indicatorLift;
         for (int index = 0; index < dotCenters.length; index++) {
-            float phase = (animationProgress + index * 0.18f) % 1f;
+            float dotProgress = (animationProgress * 2f) % 1f;
+            float phase = (dotProgress + index * 0.18f) % 1f;
             float bounce = (float) Math.sin(phase * Math.PI);
             float dotCenterX = left + dotCenters[index] * density;
             float centerY = lowerCenterY - 48f * density - indicatorLift - 24f * density * bounce;
@@ -319,6 +385,22 @@ public final class NativeLoadingIndicatorView extends View {
         canvas.drawRoundRect(progressBounds, progressHeight / 2f, progressHeight / 2f, progressTrack);
         progressBounds.right = progressLeft + progressWidth * loadingProgress;
         canvas.drawRoundRect(progressBounds, progressHeight / 2f, progressHeight / 2f, progressFill);
+    }
+
+    private void drawLoadingCardAt(Canvas canvas, RectF bounds, int index, float translateX) {
+        int safeIndex = Math.max(0, Math.min(index, loadingCardTerms.length - 1));
+        canvas.save();
+        canvas.translate(translateX, 0f);
+        drawLoadingCard(
+                canvas,
+                bounds,
+                loadingCardTerms[safeIndex],
+                loadingCardTranslations[safeIndex],
+                loadingCardPronunciations[safeIndex],
+                loadingCardExamples[safeIndex],
+                loadingCardTiers[safeIndex]
+        );
+        canvas.restore();
     }
 
     private void drawLoadingCard(Canvas canvas, RectF bounds, String term, String translation, String pronunciation, String example, String tier) {

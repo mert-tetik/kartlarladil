@@ -111,9 +111,9 @@ const MOBILE_TOP_ACTION_LABEL_CLASSNAME =
 const MOBILE_RANK_MIN_HEIGHT =
   "calc(clamp(1.5rem, calc(100dvh - 35rem), 20rem) + 4rem)";
 const MOBILE_GEM_COUNTERS = [
-  { type: "blue", src: "/gems/blue-gem.png", alt: "Blue gems" },
-  { type: "green", src: "/gems/green-gem.png", alt: "Green gems" },
-  { type: "purple", src: "/gems/purple-gem.png", alt: "Purple gems" },
+  { type: "blue", src: "/gems/blue-gem.webp", alt: "Blue gems" },
+  { type: "green", src: "/gems/green-gem.webp", alt: "Green gems" },
+  { type: "purple", src: "/gems/purple-gem.webp", alt: "Purple gems" },
 ] as const;
 const LANDING_EMPTY_ACTIONS_TEST_PARAM = "landing-empty-actions-test";
 type LandingEmptyActionsTestVariant = "active" | "learned";
@@ -791,7 +791,7 @@ export function MobileLandingDashboard() {
         data-tutorial-target="leaderboard"
       >
         <Image
-          src="/leaderboard-icon-v20261006-2.png"
+          src="/leaderboard-icon-v20261006-2.webp"
           alt=""
           aria-hidden="true"
           width={31}
@@ -919,7 +919,7 @@ export function MobileLandingDashboard() {
         data-route-transition-surface
       >
         <Image
-          src="/day-streak/day-streak-icon-v20261006.png"
+          src="/day-streak/day-streak-icon-v20261006.webp"
           alt=""
           aria-hidden="true"
           width={256}
@@ -959,7 +959,7 @@ export function MobileLandingDashboard() {
         data-route-transition-surface
       >
         <Image
-          src="/leaderboard/series-leaderboard-icon-v20261006-4.png"
+          src="/leaderboard/series-leaderboard-icon-v20261006-4.webp"
           alt=""
           aria-hidden="true"
           width={256}

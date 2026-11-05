@@ -46,13 +46,13 @@ const MISSION_GEM_GRADIENTS = {
 } as const;
 
 const MISSION_LOCK_ASSETS = {
-  points: "/missions/mission-points-lock-v1.png",
+  points: "/missions/mission-points-lock-v1.webp",
   gems: {
-    blue: "/missions/mission-blue-gem-lock-v1.png",
-    green: "/missions/mission-green-gem-lock-v1.png",
-    purple: "/missions/mission-purple-gem-lock-v1.png",
+    blue: "/missions/mission-blue-gem-lock-v1.webp",
+    green: "/missions/mission-green-gem-lock-v1.webp",
+    purple: "/missions/mission-purple-gem-lock-v1.webp",
   },
-  fallback: "/missions/mission-lock-icon-v3.png",
+  fallback: "/missions/mission-lock-icon-v3.webp",
 } as const;
 
 export function getMissionLockImageSrc(reward: MissionReward) {
@@ -203,7 +203,7 @@ export function MissionCard({
                 "relative flex aspect-square w-[3.5rem] items-center justify-center bg-contain bg-center bg-no-repeat",
                 canUseSuperWater(locale) && "font-super-water",
               )}
-              style={{ backgroundImage: 'url("/missions/mission-claim-bubble-check-v4.png")' }}
+              style={{ backgroundImage: 'url("/missions/mission-claim-bubble-check-v4.webp")' }}
             />
           </div>
         )}

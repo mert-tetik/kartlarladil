@@ -165,6 +165,48 @@ describe("awardQuizPerformancePoints", () => {
       p_learned_card_count: 1,
     });
   });
+
+  it("persists rewards for a quiz with only three cards", async () => {
+    const sessionId = "00000000-0000-4000-8000-000000000042";
+    const input = {
+      selectedCount: 3,
+      durationSeconds: 60,
+      correctAnswerCount: 8,
+      answeredCount: 10,
+      correctCardCount: 2,
+      learnedCardCount: 1,
+    };
+
+    mockRpc.mockReturnValue({
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: {
+          awarded: true,
+          accuracy_points: 40,
+          time_points: 33,
+          correct_points: 20,
+          learned_points: 20,
+          total_points: 113,
+        },
+        error: null,
+      }),
+    });
+
+    await expect(awardQuizPerformancePoints(sessionId, input)).resolves.toMatchObject({
+      success: true,
+      awarded: true,
+      totalPoints: 113,
+    });
+    expect(mockRpc).toHaveBeenCalledWith("award_quiz_performance_points", {
+      p_user_id: "user-1",
+      p_session_id: sessionId,
+      p_selected_count: 3,
+      p_duration_seconds: 60,
+      p_correct_answer_count: 8,
+      p_answered_count: 10,
+      p_correct_card_count: 2,
+      p_learned_card_count: 1,
+    });
+  });
 });
 
 describe("claimQuizResultMedals", () => {

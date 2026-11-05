@@ -255,7 +255,7 @@ function GroupIcon({ icon, size }: { icon: AutomationGroupIcon; size: "trigger" 
 
 function LanguageFlag({ language }: { language: LanguageCode }) {
   const selectedLanguage = LANGUAGE_BY_CODE[language];
-  return <Image alt={`${selectedLanguage.name} flag`} className="rounded-full object-contain" height={28} src={`/flags/language/${selectedLanguage.code}.png`} unoptimized width={28} />;
+  return <Image alt={`${selectedLanguage.name} flag`} className="rounded-full object-contain" height={28} src={`/flags/language/${selectedLanguage.code}.webp`} unoptimized width={28} />;
 }
 
 function AutomationLanguageSelect({ label, onChange, value }: { label: string; onChange: (value: LanguageSelection) => void; value: LanguageSelection }) {

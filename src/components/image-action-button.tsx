@@ -5,10 +5,10 @@ import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 export const RESULT_BUTTON_IMAGES = {
-  leaderboard: "/result-buttons/leaderboard_button.png",
-  menu: "/result-buttons/menu_button.png",
-  play: "/result-buttons/play_button.png",
-  replay: "/result-buttons/replay_button.png",
+  leaderboard: "/result-buttons/leaderboard_button.webp",
+  menu: "/result-buttons/menu_button.webp",
+  play: "/result-buttons/play_button.webp",
+  replay: "/result-buttons/replay_button.webp",
 } as const;
 
 interface ImageActionButtonProps

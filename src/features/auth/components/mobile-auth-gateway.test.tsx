@@ -1,8 +1,9 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileAuthGateway } from "@/features/auth/components/mobile-auth-gateway";
+import { GATEWAY_FLOW_EXIT_DURATION_MS } from "@/features/auth/components/gateway-flow-transition";
 import { consumeSkippedRouteTransition } from "@/lib/route-transition";
 
 const mocks = vi.hoisted(() => ({
@@ -13,7 +14,8 @@ const mocks = vi.hoisted(() => ({
   authUser: { profile: { onboardingCompleted: true } } as { profile: { onboardingCompleted: boolean } } | null,
   isSessionReady: true,
   pathname: "/",
-  effectivePlan: "free" as "free" | "basic",
+  effectivePlan: "free" as "free" | "basic" | null,
+  isEntitlementsLoading: false,
   router: {
     refresh: vi.fn(),
     push: vi.fn(),
@@ -23,6 +25,14 @@ const mocks = vi.hoisted(() => ({
     forward: vi.fn(),
   },
 }));
+
+function mockGoogleAuthExitAnimationStyles() {
+  vi.spyOn(window, "getComputedStyle").mockImplementation(() => ({
+    animationName: "gateway-flow-item-exit",
+    animationDuration: `${GATEWAY_FLOW_EXIT_DURATION_MS}ms`,
+    animationDelay: "0s",
+  }) as CSSStyleDeclaration);
+}
 
 vi.mock("next/navigation", () => ({
   usePathname: () => mocks.pathname,
@@ -46,8 +56,8 @@ vi.mock("@/features/auth/auth-client", () => ({
 
 vi.mock("@/features/subscriptions/subscription-client", () => ({
   useSubscription: () => ({
-    entitlements: { effectivePlan: mocks.effectivePlan },
-    isLoading: false,
+    entitlements: mocks.effectivePlan ? { effectivePlan: mocks.effectivePlan } : null,
+    isLoading: mocks.isEntitlementsLoading,
     error: null,
     refreshEntitlements: vi.fn(),
     presentPurchaseSuccess: vi.fn(),
@@ -82,14 +92,20 @@ vi.mock("@/features/auth/components/mobile-onboarding-form", () => ({
     mode?: "initial" | "login-language-refresh";
     onComplete?: () => void;
   }) => (
-    <button
-      data-testid="mobile-login-language-refresh"
-      data-onboarding-mode={mode ?? "initial"}
-      onClick={onComplete}
-      type="button"
-    >
-      Complete language choices
-    </button>
+    <>
+      <h2 data-gateway-flow-item data-gateway-flow-order="0">Native language</h2>
+      <div data-gateway-flow-item data-gateway-flow-order="1">Language choices</div>
+      <button
+        data-gateway-flow-item
+        data-gateway-flow-order="2"
+        data-testid="mobile-login-language-refresh"
+        data-onboarding-mode={mode ?? "initial"}
+        onClick={onComplete}
+        type="button"
+      >
+        Complete language choices
+      </button>
+    </>
   ),
 }));
 
@@ -110,7 +126,13 @@ vi.mock("@/features/auth/components/mobile-auth-screen", () => ({
 }));
 
 vi.mock("@/features/auth/components/mobile-google-auth-loading", () => ({
-  MobileGoogleAuthLoading: () => <div data-testid="mobile-google-auth-loading" />,
+  MobileGoogleAuthLoading: () => (
+    <div
+      data-gateway-flow-screen
+      data-gateway-flow-screen-exit
+      data-testid="mobile-google-auth-loading"
+    />
+  ),
 }));
 
 describe("MobileAuthGateway returning-login flow", () => {
@@ -124,6 +146,7 @@ describe("MobileAuthGateway returning-login flow", () => {
     mocks.isSessionReady = true;
     mocks.pathname = "/";
     mocks.effectivePlan = "free";
+    mocks.isEntitlementsLoading = false;
     window.history.replaceState({}, "", "/?mobileLanguageRefresh=1&showOffer=1");
     Object.defineProperty(window, "innerWidth", {
       configurable: true,
@@ -133,6 +156,8 @@ describe("MobileAuthGateway returning-login flow", () => {
 
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
     window.sessionStorage.clear();
     window.history.replaceState({}, "", "/");
   });
@@ -147,15 +172,76 @@ describe("MobileAuthGateway returning-login flow", () => {
 
     await user.click(languageRefresh);
 
-    expect(mocks.router.replace).toHaveBeenCalledWith("/?showOffer=1");
     expect(await screen.findByTestId("mobile-subscription-offer")).toBeInTheDocument();
+    expect(window.location.search).toBe("");
+    expect(mocks.router.replace).not.toHaveBeenCalled();
     expect(mocks.resetTutorial).toHaveBeenCalledOnce();
 
     await user.click(screen.getByTestId("mobile-subscription-offer"));
 
     expect(mocks.activateTutorial).toHaveBeenCalledOnce();
-    await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/"));
+    await waitFor(() => expect(screen.queryByTestId("mobile-subscription-offer")).not.toBeInTheDocument());
+    expect(window.location.pathname).toBe("/");
+    expect(mocks.router.replace).not.toHaveBeenCalled();
     expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
+  });
+
+  it("shows the offer immediately after login completion while entitlements are unresolved", async () => {
+    const user = userEvent.setup();
+    mocks.effectivePlan = null;
+    mocks.isEntitlementsLoading = true;
+    window.history.replaceState({}, "", "/?mobileLanguageRefresh=1&showOffer=1");
+    const view = render(<MobileAuthGateway countryCode="US" />);
+
+    await user.click(await screen.findByTestId("mobile-login-language-refresh"));
+
+    expect(await screen.findByTestId("mobile-subscription-offer")).toBeInTheDocument();
+    expect(mocks.router.replace).not.toHaveBeenCalled();
+    expect(window.location.search).toBe("");
+
+    mocks.effectivePlan = "free";
+    mocks.isEntitlementsLoading = false;
+    view.rerender(<MobileAuthGateway countryCode="US" />);
+
+    expect(screen.getByTestId("mobile-subscription-offer")).toBeInTheDocument();
+  });
+
+  it("shows the offer immediately when onboarding completes before subscription data arrives", async () => {
+    const user = userEvent.setup();
+    mocks.authUser = { profile: { onboardingCompleted: false } };
+    mocks.effectivePlan = null;
+    mocks.isEntitlementsLoading = true;
+    window.history.replaceState({}, "", "/");
+
+    render(<MobileAuthGateway countryCode="US" />);
+
+    await user.click(await screen.findByTestId("mobile-login-language-refresh"));
+
+    expect(await screen.findByTestId("mobile-subscription-offer")).toBeInTheDocument();
+    expect(mocks.router.replace).not.toHaveBeenCalled();
+  });
+
+  it("skips the offer for a known paid user and resumes the tutorial flow", async () => {
+    const user = userEvent.setup();
+    mocks.effectivePlan = "basic";
+    window.history.replaceState({}, "", "/?mobileLanguageRefresh=1&showOffer=1");
+
+    render(<MobileAuthGateway countryCode="US" />);
+
+    await user.click(await screen.findByTestId("mobile-login-language-refresh"));
+
+    await waitFor(() => expect(mocks.activateTutorial).toHaveBeenCalledOnce());
+    expect(screen.queryByTestId("mobile-subscription-offer")).not.toBeInTheDocument();
+    expect(window.location.search).toBe("");
+    expect(mocks.router.replace).not.toHaveBeenCalled();
+  });
+
+  it("does not show the serious-learner offer later without a login-flow trigger", () => {
+    window.history.replaceState({}, "", "/");
+
+    render(<MobileAuthGateway countryCode="US" />);
+
+    expect(screen.queryByTestId("mobile-subscription-offer")).not.toBeInTheDocument();
   });
 
   it("skips the landing entrance when the auth gateway exits to the home route", async () => {
@@ -191,7 +277,8 @@ describe("MobileAuthGateway returning-login flow", () => {
       "initial",
     );
     expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
-    await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/"));
+    await waitFor(() => expect(window.location.search).toBe(""));
+    expect(mocks.router.replace).not.toHaveBeenCalled();
   });
 
   it("does not render the auth gateway for a completed authenticated user with a stale marker", async () => {
@@ -199,7 +286,8 @@ describe("MobileAuthGateway returning-login flow", () => {
 
     render(<MobileAuthGateway countryCode="US" />);
 
-    await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/"));
+    await waitFor(() => expect(window.location.search).toBe(""));
+    expect(mocks.router.replace).not.toHaveBeenCalled();
     expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
     expect(screen.queryByTestId("mobile-login-language-refresh")).not.toBeInTheDocument();
     expect(screen.queryByTestId("mobile-subscription-offer")).not.toBeInTheDocument();
@@ -237,6 +325,71 @@ describe("MobileAuthGateway returning-login flow", () => {
     expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
   });
 
+  it("waits for the Google verification scale-out to finish before staging onboarding from top to bottom", () => {
+    vi.useFakeTimers();
+    mockGoogleAuthExitAnimationStyles();
+    mocks.authUser = null;
+    mocks.isSessionReady = false;
+    window.history.replaceState({}, "", "/");
+
+    const view = render(<MobileAuthGateway countryCode="US" />);
+    const verificationScreen = screen.getByTestId("mobile-google-auth-loading");
+
+    mocks.authUser = { profile: { onboardingCompleted: false } };
+    mocks.isSessionReady = true;
+    view.rerender(<MobileAuthGateway countryCode="US" />);
+
+    const exitingTransition = verificationScreen.closest("[data-gateway-flow-phase]");
+    expect(exitingTransition).toHaveAttribute("data-gateway-flow-phase", "exit");
+    expect(screen.queryByTestId("mobile-login-language-refresh")).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(GATEWAY_FLOW_EXIT_DURATION_MS - 1);
+    });
+    expect(verificationScreen).toBeInTheDocument();
+    expect(screen.queryByTestId("mobile-login-language-refresh")).not.toBeInTheDocument();
+
+    act(() => {
+      const animationEndEvent = new Event("animationend", { bubbles: true });
+      Object.defineProperty(animationEndEvent, "animationName", {
+        value: "gateway-flow-item-exit",
+      });
+      verificationScreen.dispatchEvent(animationEndEvent);
+    });
+
+    const onboardingAction = screen.getByTestId("mobile-login-language-refresh");
+    expect(verificationScreen).not.toBeInTheDocument();
+    expect(onboardingAction.closest("[data-gateway-flow-phase]")?.querySelectorAll("[data-gateway-flow-item]")).toHaveLength(3);
+    expect(
+      Array.from(
+        onboardingAction.closest("[data-gateway-flow-phase]")?.querySelectorAll<HTMLElement>("[data-gateway-flow-item]") ?? [],
+        (item) => item.dataset.gatewayFlowOrder,
+      ),
+    ).toEqual(["0", "1", "2"]);
+  });
+
+  it("falls back to the exit timeout if the browser never dispatches animationend", () => {
+    vi.useFakeTimers();
+    mockGoogleAuthExitAnimationStyles();
+    mocks.authUser = null;
+    mocks.isSessionReady = false;
+    window.history.replaceState({}, "", "/");
+
+    const view = render(<MobileAuthGateway countryCode="US" />);
+    const verificationScreen = screen.getByTestId("mobile-google-auth-loading");
+
+    mocks.authUser = { profile: { onboardingCompleted: false } };
+    mocks.isSessionReady = true;
+    view.rerender(<MobileAuthGateway countryCode="US" />);
+
+    act(() => {
+      vi.advanceTimersByTime(GATEWAY_FLOW_EXIT_DURATION_MS + 100);
+    });
+
+    expect(verificationScreen).not.toBeInTheDocument();
+    expect(screen.getByTestId("mobile-login-language-refresh")).toBeInTheDocument();
+  });
+
   it("keeps the offer visible while a successful purchase refreshes entitlements during exit", async () => {
     const user = userEvent.setup();
     window.history.replaceState({}, "", "/?showOffer=1");
@@ -249,7 +402,8 @@ describe("MobileAuthGateway returning-login flow", () => {
 
     expect(screen.getByTestId("mobile-subscription-offer")).toBeInTheDocument();
     expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
-    await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/"));
+    await waitFor(() => expect(screen.queryByTestId("mobile-subscription-offer")).not.toBeInTheDocument());
+    expect(mocks.router.replace).not.toHaveBeenCalled();
     expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
   });
 
@@ -266,7 +420,8 @@ describe("MobileAuthGateway returning-login flow", () => {
 
     expect(await screen.findByTestId("mobile-google-auth-loading")).toBeInTheDocument();
     expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
-    await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/"));
+    await waitFor(() => expect(window.location.search).toBe(""));
+    expect(mocks.router.replace).not.toHaveBeenCalled();
 
     mocks.authUser = { profile: { onboardingCompleted: true } };
     mocks.isSessionReady = true;

@@ -513,7 +513,7 @@ export function MobileRankInfoSheet({
                       ) : null}
                       {isLocked ? (
                         <Image
-                          src="/missions/mission-lock-icon-v3.png"
+                          src="/missions/mission-lock-icon-v3.webp"
                           alt=""
                           width={512}
                           height={512}

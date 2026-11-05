@@ -14,7 +14,7 @@ import { useLocale } from "@/i18n/locale-provider";
 import { vibrate } from "@/lib/vibration";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
-import { getNativeMediaFallbackSource, isNativeMediaFallbackSource } from "@/lib/native-media-fallback";
+import { VideoFrameAtlasPlayer, type VideoFrameAtlasPlayerHandle } from "@/components/video-frame-atlas-player";
 
 interface QuizStreakRewardViewProps {
   streak: number;
@@ -27,12 +27,8 @@ interface QuizStreakRewardViewProps {
   onComplete: () => void;
 }
 
-const STREAK_REWARD_INTRO_VIDEO_SOURCE =
-  "/quiz/streak-reward-background-20260921-intro.mp4?v=20261007-2";
 const STREAK_REWARD_INTRO_AUDIO_SOURCE =
   "/quiz/streak-reward-intro-audio.m4a?v=20261007-2";
-const STREAK_REWARD_CONTINUATION_VIDEO_SOURCE =
-  "/quiz/streak-reward-background-20260921-continuation.mp4?v=20261007-2";
 const STREAK_REWARD_CONTINUATION_AUDIO_SOURCE =
   "/quiz/streak-reward-background-20260921-continuation-audio.m4a?v=20261007-2";
 const VIDEO_AUDIO_FADE_IN_DURATION_MS = 500;
@@ -59,11 +55,11 @@ export function QuizStreakRewardView({
   const { user, refreshProfile, updateProfileField } = useAuthSession();
   const rewardRef = useRef<HTMLDivElement>(null);
   const scoreRef = useRef<HTMLSpanElement>(null);
-  const introVideoRef = useRef<HTMLVideoElement>(null);
+  const introVideoRef = useRef<VideoFrameAtlasPlayerHandle>(null);
   const introAudioRef = useRef<HTMLAudioElement>(null);
-  const continuationVideoRef = useRef<HTMLVideoElement>(null);
+  const continuationVideoRef = useRef<VideoFrameAtlasPlayerHandle>(null);
   const continuationAudioRef = useRef<HTMLAudioElement>(null);
-  const activeVideoRef = useRef<HTMLVideoElement | null>(null);
+  const activeVideoRef = useRef<VideoFrameAtlasPlayerHandle | null>(null);
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
   const completedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
@@ -92,10 +88,6 @@ export function QuizStreakRewardView({
   const [gemRewards, setGemRewards] = useState<GemRewards>([]);
   const [rewardStarted, setRewardStarted] = useState(false);
   const [videoExiting, setVideoExiting] = useState(false);
-  const [introVideoSource, setIntroVideoSource] = useState(STREAK_REWARD_INTRO_VIDEO_SOURCE);
-  const [continuationVideoSource, setContinuationVideoSource] = useState(
-    STREAK_REWARD_CONTINUATION_VIDEO_SOURCE,
-  );
   const [introVideoUnavailable, setIntroVideoUnavailable] = useState(false);
   const [continuationVideoUnavailable, setContinuationVideoUnavailable] = useState(false);
   const [continuationVisible, setContinuationVisible] = useState(false);
@@ -366,20 +358,18 @@ export function QuizStreakRewardView({
     );
   }, [startBreak, startVideoAudioFadeOut]);
 
-  const handleIntroVideoPlay = useCallback(() => {
+  const handleIntroVideoPlay = useCallback((currentTime: number) => {
     const video = introVideoRef.current;
     if (!video) return;
 
     activeVideoRef.current = video;
     activeAudioRef.current = introAudioRef.current;
     videoPlaybackStartedRef.current = true;
-    video.muted = true;
-    video.volume = 0;
     startVideoAudioFadeIn(introAudioRef.current);
     if (!introAudioStartedRef.current && introAudioRef.current) {
       introAudioStartedRef.current = true;
       try {
-        introAudioRef.current.currentTime = video.currentTime;
+        introAudioRef.current.currentTime = currentTime;
       } catch {
         // Audio/video synchronization is best effort on older WebViews.
       }
@@ -388,12 +378,12 @@ export function QuizStreakRewardView({
     }
   }, [startVideoAudioFadeIn]);
 
-  const handleIntroVideoTimeUpdate = useCallback(() => {
+  const handleIntroVideoTimeUpdate = useCallback((currentTime: number) => {
     const video = introVideoRef.current;
     const audio = introAudioRef.current;
-    if (video && audio && introAudioStartedRef.current && Math.abs(audio.currentTime - video.currentTime) > 0.16) {
+    if (video && audio && introAudioStartedRef.current && Math.abs(audio.currentTime - currentTime) > 0.16) {
       try {
-        audio.currentTime = video.currentTime;
+        audio.currentTime = currentTime;
       } catch {
         // Keep the intro usable if a WebView rejects a seek during playback.
       }
@@ -402,7 +392,7 @@ export function QuizStreakRewardView({
     if (
       video &&
       video.duration > 0 &&
-      video.duration - video.currentTime <= STREAK_REWARD_INTRO_AUDIO_FADE_OUT_DURATION_MS / 1000
+      video.duration - currentTime <= STREAK_REWARD_INTRO_AUDIO_FADE_OUT_DURATION_MS / 1000
     ) {
       startIntroAudioFadeOut();
     }
@@ -412,29 +402,27 @@ export function QuizStreakRewardView({
     startIntroAudioFadeOut();
   }, [startIntroAudioFadeOut]);
 
-  const handleContinuationVideoPlay = useCallback(() => {
+  const handleContinuationVideoPlay = useCallback((currentTime: number) => {
     const video = continuationVideoRef.current;
     if (!video) return;
 
     activeVideoRef.current = video;
     activeAudioRef.current = continuationAudioRef.current;
     videoPlaybackStartedRef.current = true;
-    video.muted = true;
-    video.volume = 0;
     const audio = continuationAudioRef.current;
     if (audio) {
       if (!continuationAudioStartedRef.current) {
         continuationAudioStartedRef.current = true;
         try {
-          audio.currentTime = video.currentTime;
+          audio.currentTime = currentTime;
         } catch {
           // Seeking the separate track is best effort on older WebViews.
         }
         audio.volume = VIDEO_AUDIO_MAX_VOLUME;
         void audio.play().catch(() => undefined);
-      } else if (Math.abs(audio.currentTime - video.currentTime) > 0.16) {
+      } else if (Math.abs(audio.currentTime - currentTime) > 0.16) {
         try {
-          audio.currentTime = video.currentTime;
+          audio.currentTime = currentTime;
         } catch {
           // Keep the video usable if a WebView rejects a seek during startup.
         }
@@ -445,12 +433,12 @@ export function QuizStreakRewardView({
     }
   }, [scheduleVideoFade]);
 
-  const handleContinuationVideoTimeUpdate = useCallback(() => {
+  const handleContinuationVideoTimeUpdate = useCallback((currentTime: number) => {
     const video = continuationVideoRef.current;
     const audio = continuationAudioRef.current;
-    if (video && audio && continuationAudioStartedRef.current && Math.abs(audio.currentTime - video.currentTime) > 0.16) {
+    if (video && audio && continuationAudioStartedRef.current && Math.abs(audio.currentTime - currentTime) > 0.16) {
       try {
-        audio.currentTime = video.currentTime;
+        audio.currentTime = currentTime;
       } catch {
         // Keep the video usable if a WebView rejects a seek during startup.
       }
@@ -464,21 +452,13 @@ export function QuizStreakRewardView({
   }, [startBreak]);
 
   const handleIntroVideoError = useCallback(() => {
-    if (!isNativeMediaFallbackSource(introVideoSource)) {
-      setIntroVideoSource(getNativeMediaFallbackSource(introVideoSource));
-      return;
-    }
     setIntroVideoUnavailable(true);
-  }, [introVideoSource]);
+  }, []);
 
   const handleContinuationVideoError = useCallback(() => {
-    if (!isNativeMediaFallbackSource(continuationVideoSource)) {
-      setContinuationVideoSource(getNativeMediaFallbackSource(continuationVideoSource));
-      return;
-    }
     setContinuationVideoUnavailable(true);
     if (interactionStartedRef.current) startBreak();
-  }, [continuationVideoSource, startBreak]);
+  }, [startBreak]);
 
   const handleScreenActivate = useCallback(() => {
     if (completedRef.current || interactionStartedRef.current) return;
@@ -503,10 +483,7 @@ export function QuizStreakRewardView({
     }
 
     setContinuationVisible(true);
-    const playResult = continuationVideoRef.current.play();
-    if (typeof playResult?.catch === "function") {
-      void playResult.catch(() => startBreak());
-    }
+    continuationVideoRef.current.play();
   }, [continuationVideoUnavailable, startBreak, startIntroAudioFadeOut, startRewardScatter]);
 
   useEffect(() => {
@@ -560,26 +537,22 @@ export function QuizStreakRewardView({
       }}
     >
       {!introVideoUnavailable ? (
-        <video
+        <VideoFrameAtlasPlayer
           ref={introVideoRef}
+          assetId="quiz-streak-intro"
           className={cn(
             "pointer-events-none absolute inset-0 h-full w-full object-cover",
             continuationVisible || videoExiting
               ? "opacity-0"
               : "animate-streak-reward-video-enter",
           )}
-          key={introVideoSource}
-          src={introVideoSource}
           autoPlay
-          muted
-          playsInline
-          preload="auto"
           onPlay={handleIntroVideoPlay}
           onPlaying={handleIntroVideoPlay}
           onTimeUpdate={handleIntroVideoTimeUpdate}
           onEnded={handleIntroVideoEnded}
           onError={handleIntroVideoError}
-          aria-hidden="true"
+          data-player-id="quiz-streak-intro"
         />
       ) : null}
       <audio
@@ -589,8 +562,9 @@ export function QuizStreakRewardView({
         aria-hidden="true"
       />
       {!continuationVideoUnavailable ? (
-        <video
+        <VideoFrameAtlasPlayer
           ref={continuationVideoRef}
+          assetId="quiz-streak-continuation"
           className={cn(
             "pointer-events-none absolute inset-0 h-full w-full object-cover",
             videoExiting
@@ -599,21 +573,12 @@ export function QuizStreakRewardView({
                 ? "opacity-100"
                 : "opacity-0",
           )}
-          key={continuationVideoSource}
-          src={continuationVideoSource}
-          muted
-          playsInline
-          preload="auto"
-          onLoadedMetadata={(event) => {
-            event.currentTarget.muted = true;
-            event.currentTarget.volume = 0;
-          }}
           onPlay={handleContinuationVideoPlay}
           onPlaying={handleContinuationVideoPlay}
           onTimeUpdate={handleContinuationVideoTimeUpdate}
           onEnded={handleContinuationVideoEnded}
           onError={handleContinuationVideoError}
-          aria-hidden="true"
+          data-player-id="quiz-streak-continuation"
         />
       ) : null}
       <audio

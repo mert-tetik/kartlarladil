@@ -41,6 +41,23 @@ describe("getQuizPerformanceRewardBreakdown", () => {
     });
   });
 
+  it("awards performance points when a learner studies fewer than ten cards", () => {
+    expect(getQuizPerformanceRewardBreakdown({
+      selectedCount: 3,
+      durationSeconds: 60,
+      correctAnswerCount: 8,
+      answeredCount: 10,
+      correctCardCount: 2,
+      learnedCardCount: 1,
+    })).toEqual({
+      accuracyPoints: 40,
+      timePoints: 33,
+      correctPoints: 20,
+      learnedPoints: 20,
+      totalPoints: 113,
+    });
+  });
+
   it("skips empty categories and returns zero when no answers were given", () => {
     expect(getQuizPerformanceRewardBreakdown({
       selectedCount: 10,
@@ -60,7 +77,15 @@ describe("getQuizPerformanceRewardBreakdown", () => {
 
   it("rejects invalid or impossible result values", () => {
     expect(getQuizPerformanceRewardBreakdown({
-      selectedCount: 11,
+      selectedCount: 0,
+      durationSeconds: 0,
+      correctAnswerCount: 0,
+      answeredCount: 0,
+      correctCardCount: 0,
+      learnedCardCount: 0,
+    })).toBeNull();
+    expect(getQuizPerformanceRewardBreakdown({
+      selectedCount: 51,
       durationSeconds: 0,
       correctAnswerCount: 0,
       answeredCount: 0,

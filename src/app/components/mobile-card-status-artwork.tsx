@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils";
 export type MobileCardStatus = "active" | "learned";
 
 const STATUS_ARTWORK: Record<MobileCardStatus, { src: string; alt: string }> = {
-  active: { src: "/card-status/kart_ogreniliyor_madalyasi.png", alt: "" },
-  learned: { src: "/card-status/kart_ogrenildi_madalyasi.png", alt: "" },
+  active: { src: "/card-status/kart_ogreniliyor_madalyasi.webp", alt: "" },
+  learned: { src: "/card-status/kart_ogrenildi_madalyasi.webp", alt: "" },
 };
 
 export function MobileCardStatusArtwork({

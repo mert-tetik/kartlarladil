@@ -1014,7 +1014,7 @@ const dictionary = {
   "tutorial.cardModes.custom.description": "Erstelle eine eigene Karte für jedes gewünschte Wort.",
   "tutorial.cardModes.groups.title": "Füge Wörter aus bestimmten Kategorien gesammelt hinzu",
   "tutorial.cardModes.groups.description": "Füge eine ganze thematische Kartengruppe auf einmal hinzu.",
-  "tutorial.landingCardsAction": "Tippe jetzt auf die Schaltfläche \"Karten\".",
+  "tutorial.landingCardsAction": "Und jetzt tippe auf die Schaltfläche \"Karten\".",
   "tutorial.landingCardsMessage": "Hier kannst du die Wörter in deiner Sammlung sehen!",
   "tutorial.collectionMessageButton": "Verstanden",
   "tutorial.cardCollectionPrompt": "Füge jetzt Wörter zu deiner Sammlung hinzu.",

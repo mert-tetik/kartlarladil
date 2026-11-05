@@ -1,13 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { readLandingCardLanguage } from "@/app/components/landing-card-language";
 import { useLocale } from "@/i18n/locale-provider";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
-import { selectNativeLoadingVocabularyCards } from "@/features/inventory/native-loading-cards";
+import {
+  getNativeLoadingDateKey,
+  selectNativeLoadingVocabularyCards,
+  selectNativeLoadingVocabularyCardsFromDeckCache,
+} from "@/features/inventory/native-loading-cards";
+import { readNativeLoadingDailyDeckCards } from "@/features/inventory/native-loading-daily-cache";
 import { getNativeLoadingStatuses, getNativeLoadingTitle } from "@/features/inventory/native-loading-copy";
-import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
+import { NativeLoadingCardCarousel } from "@/app/components/native-loading-card-carousel";
 import { formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
 
 const LOADING_PROGRESS = [8, 24, 48, 60, 68, 76, 88, 100] as const;
@@ -17,8 +22,9 @@ const STEP_DELAY_MS = 1200;
 export function NativeLoadingVisualTest() {
   const [stepIndex, setStepIndex] = useState(0);
   const { locale } = useLocale();
+  const localizedStatuses = useMemo(() => getNativeLoadingStatuses(locale), [locale]);
   const step = {
-    status: getNativeLoadingStatuses(locale)[stepIndex],
+    status: localizedStatuses[stepIndex],
     progress: LOADING_PROGRESS[stepIndex],
   };
   const { user } = useAuthSession();
@@ -33,8 +39,18 @@ export function NativeLoadingVisualTest() {
 
   useEffect(() => {
     const learningLanguage = user?.profile.preferredLanguageCode ?? readLandingCardLanguage() ?? locale;
-    setLoadingCards(selectNativeLoadingVocabularyCards(inventory, learningLanguage));
-  }, [inventory, locale, user?.profile.preferredLanguageCode]);
+    const dateKey = getNativeLoadingDateKey();
+    const profileId = user?.id ?? "guest";
+    const cachedDeckCards = readNativeLoadingDailyDeckCards({
+      profileId,
+      learningLanguage,
+      locale,
+      dateKey,
+    });
+    setLoadingCards(cachedDeckCards !== null
+      ? selectNativeLoadingVocabularyCardsFromDeckCache(cachedDeckCards, learningLanguage, dateKey)
+      : selectNativeLoadingVocabularyCards(inventory, learningLanguage, dateKey, profileId));
+  }, [inventory, locale, user?.id, user?.profile.preferredLanguageCode]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -57,23 +73,7 @@ export function NativeLoadingVisualTest() {
         >
           {formatSuperWaterUppercaseText(locale, getNativeLoadingTitle(locale))}
         </p>
-        <div className="mt-[10px] grid aspect-[300/424] w-full max-w-[300px] flex-none grid-cols-2 grid-rows-2 gap-2" data-native-loading-cards>
-          {loadingCards.map((card) => (
-            <div
-              className="min-h-0 min-w-0"
-              key={card.sourceKey}
-              style={{ transform: "scale(0.94)", transformOrigin: "top center" }}
-            >
-              <VocabularyCardView
-                card={card}
-                className="h-full w-full"
-                compact
-                showActions={false}
-                staticFace
-              />
-            </div>
-          ))}
-        </div>
+        <NativeLoadingCardCarousel cards={loadingCards} />
       </section>
 
       <section className="relative flex h-[calc(38%-30px)] shrink-0 items-center justify-center bg-[#fe6507] px-6 [padding-bottom:env(safe-area-inset-bottom)]">

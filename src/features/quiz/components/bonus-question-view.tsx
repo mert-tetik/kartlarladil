@@ -39,7 +39,7 @@ import {
 const SENTENCE_TOKEN_ANIMATION_MS = 360;
 const AUTO_PLACED_SENTENCE_TOKEN_COUNT = 3;
 const CATEGORY_WORD_ANIMATION_MS = 260;
-const BONUS_REWARD_IMAGE = "/quiz/bonus_img.png?v=20261001-1";
+const BONUS_REWARD_IMAGE = "/quiz/bonus_img.webp?v=20261001-1";
 let bonusRewardImagePreload: HTMLImageElement | null = null;
 const BONUS_INTRO_FRAME_COUNT = 13;
 const BONUS_INTRO_FRAME_DURATION_MS = 1_000 / 22;
@@ -48,7 +48,7 @@ const BONUS_INTRO_TEXT_ENTRY_DELAY_MS = 220;
 const BONUS_INTRO_TEXT_EXIT_DELAY_MS = 40;
 const BONUS_INTRO_TEXT_ANIMATION_DURATION_MS = 230;
 const BONUS_INTRO_TEXT_STAGGER_MS = 14;
-const BONUS_INTRO_SPRITE_IMAGE = "/quiz/bonus-intro-sprite.png";
+const BONUS_INTRO_SPRITE_IMAGE = "/quiz/bonus-intro-sprite.webp";
 const BONUS_INTRO_FRAME_WIDTH = 480;
 const BONUS_INTRO_FRAME_HEIGHT = 854;
 const BONUS_INTRO_SPRITE_COLUMNS = 4;

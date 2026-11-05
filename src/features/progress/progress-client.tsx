@@ -78,7 +78,7 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
   const migrateLocalInventoryToCloud = useInventoryStore((state) => state.migrateLocalInventoryToCloud);
   const setActiveCardLimit = useInventoryStore((state) => state.setActiveCardLimit);
   const { entitlements } = useSubscription();
-  const migrationStartedRef = useRef(false);
+  const migrationStartedForUserRef = useRef<string | null>(null);
   const trackedPointsRef = useRef<number | null>(null);
   const trackedPointsOwnerRef = useRef<string>("guest");
   // Read browser-only cached stats after hydration so the server and the
@@ -94,7 +94,7 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isVisualTestMode) {
-      migrationStartedRef.current = false;
+      migrationStartedForUserRef.current = null;
       setCloudEnabled(false);
       setActiveCardLimit(null);
       return;
@@ -104,7 +104,7 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
     setActiveCardLimit(entitlements?.limits.activeCards ?? null);
 
     if (!user) {
-      migrationStartedRef.current = false;
+      migrationStartedForUserRef.current = null;
 
       if (ownerUserId) {
         clearLocalInventory();
@@ -113,11 +113,11 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
   }, [isVisualTestMode, setCloudEnabled, setActiveCardLimit, user, ownerUserId, clearLocalInventory, entitlements]);
 
   useEffect(() => {
-    if (isVisualTestMode || !user || !hydrated || migrationStartedRef.current) {
+    if (isVisualTestMode || !user || !hydrated || migrationStartedForUserRef.current === user.id) {
       return;
     }
 
-    migrationStartedRef.current = true;
+    migrationStartedForUserRef.current = user.id;
     const migrationKey = `${CLOUD_MIGRATION_KEY}:${user.id}`;
 
     void (async () => {
@@ -137,9 +137,12 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
 
         if (!useInventoryStore.getState().cloudError) {
           window.localStorage.setItem(migrationKey, "1");
-          state.setOwnerUserId(user.id);
         }
 
+        // Keep this device's local inventory associated with the active account
+        // even if migration fails, so startup can release to the offline fallback.
+        // The migration key stays unset so a later launch retries the cloud copy.
+        state.setOwnerUserId(user.id);
         return;
       }
 

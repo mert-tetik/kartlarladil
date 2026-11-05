@@ -17,7 +17,12 @@ export function OnboardingForm({ nextPath, countryCode }: { nextPath: string; co
   const defaults = getOnboardingLanguageDefaults(countryCode, detectedLocale);
 
   return (
-    <form action={formAction} className="space-y-6" data-onboarding-form>
+    <form
+      action={formAction}
+      className="space-y-6"
+      data-onboarding-form
+      data-flow-button-sound="auth"
+    >
       <input type="hidden" name="next" value={nextPath} />
       <FormMessage state={state} />
 
@@ -31,7 +36,7 @@ export function OnboardingForm({ nextPath, countryCode }: { nextPath: string; co
         tierError={state.fieldErrors?.preferredTier?.[0]}
       />
 
-      <SubmitButton className="w-full" pendingLabel={t("auth.onboarding.pending")}>
+      <SubmitButton className="w-full disabled:opacity-100" pendingLabel={t("auth.onboarding.pending")}>
         {t("auth.onboarding.continue")}
       </SubmitButton>
     </form>

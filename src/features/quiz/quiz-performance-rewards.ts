@@ -1,4 +1,3 @@
-import { QUIZ_COUNT_OPTIONS } from "@/features/quiz/chest-rewards";
 import { getRankForPoints } from "@/features/progress/progress-stats";
 import type { RankDefinition } from "@/types/domain";
 
@@ -85,7 +84,8 @@ export function getQuizPerformanceRewardBreakdown(
 
   if (
     !Number.isInteger(selectedCount) ||
-    !QUIZ_COUNT_OPTIONS.includes(selectedCount as (typeof QUIZ_COUNT_OPTIONS)[number]) ||
+    selectedCount < 1 ||
+    selectedCount > 50 ||
     !Number.isFinite(durationSeconds) ||
     !Number.isInteger(durationSeconds) ||
     durationSeconds < 0 ||

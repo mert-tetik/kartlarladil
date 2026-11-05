@@ -39,7 +39,7 @@ describe("AI practice situations", () => {
 
   it("uses a dedicated profession portrait for every situation", () => {
     for (const scenario of getAiPracticeScenarios()) {
-      expect(scenario.characterImageSrc).toBe(`/ai-characters/scenarios/${scenario.id}-v2.png`);
+      expect(scenario.characterImageSrc).toBe(`/ai-characters/scenarios/${scenario.id}-v2.webp`);
     }
   });
 

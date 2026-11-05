@@ -1,6 +1,7 @@
 import {
   deleteAccountAction,
   logoutAction,
+  completeOnboardingAction,
   signInWithGoogleAction,
   updateLanguagePreferenceAction,
   updateMobileLoginLanguagePreferencesAction,
@@ -21,6 +22,7 @@ const mockUpdate = vi.hoisted(() => vi.fn());
 const mockEq = vi.hoisted(() => vi.fn());
 const mockSelect = vi.hoisted(() => vi.fn());
 const mockMaybeSingle = vi.hoisted(() => vi.fn());
+const mockUpsert = vi.hoisted(() => vi.fn());
 const mockCookieStore = vi.hoisted(() => ({
   getAll: vi.fn(),
   delete: vi.fn(),
@@ -388,5 +390,32 @@ describe("updateMobileLoginLanguagePreferencesAction", () => {
 
     expect(result.status).toBe("error");
     expect(mockFrom).not.toHaveBeenCalled();
+  });
+});
+
+describe("completeOnboardingAction mobile flow", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "user-1", email: "test@example.com" } },
+      error: null,
+    });
+    mockUpsert.mockResolvedValue({ error: null });
+    mockFrom.mockReturnValue({ upsert: mockUpsert });
+  });
+
+  it("does not revalidate the landing layout when the mobile flow stays mounted", async () => {
+    const formData = new FormData();
+    formData.set("preferredLanguageCode", "en");
+    formData.set("preferredUiLocale", "tr");
+    formData.set("preferredTier", "all");
+    formData.set("profilePictureIndex", "0");
+    formData.set("skipRedirect", "on");
+
+    const result = await completeOnboardingAction({ status: "idle", message: "" }, formData);
+
+    expect(result.status).toBe("success");
+    expect(mockUpsert).toHaveBeenCalledOnce();
+    expect(vi.mocked(revalidatePath)).not.toHaveBeenCalledWith("/", "layout");
   });
 });

@@ -16,7 +16,7 @@ describe("bonus reward media preload", () => {
     preloadBonusRewardImage();
 
     expect(imageConstructor).toHaveBeenCalledOnce();
-    expect(image.src).toContain("/quiz/bonus_img.png?v=20261001-1");
+    expect(image.src).toContain("/quiz/bonus_img.webp?v=20261001-1");
     expect(image.decoding).toBe("async");
   });
 });

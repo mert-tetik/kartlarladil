@@ -35,7 +35,7 @@ const FOX_OUTLINE = "M10 22 13 5l18 12a24 24 0 0 1 14 0L63 5l3 17c1 14-7 26-20 3
 const FOX_FACE = "M27 34h.1M49 34h.1M35 40q3 3 6 0";
 const CARD_SHELL_PATH = "M55 4C28 4 8 23 8 52v466c0 27 18 43 45 43h294c27 0 45-16 45-43V52c0-29-20-48-47-48H55Z";
 const CARD_BACK_PANEL_PATH = "M58 30C40 30 27 45 27 65v439c0 21 14 35 36 35h274c22 0 36-14 36-35V65c0-20-14-35-36-35H58Z";
-const LEARNED_CARD_MEDAL_SRC = "/card-status/kart_ogrenildi_madalyasi.png";
+const LEARNED_CARD_MEDAL_SRC = "/card-status/kart_ogrenildi_madalyasi.webp";
 const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 function GlassShellGradient({ id, palette }: { id: string; palette: CardDesignTierPalette }) {

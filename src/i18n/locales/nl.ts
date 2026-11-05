@@ -1015,7 +1015,7 @@ const dictionary = {
   "tutorial.cardModes.custom.description": "Maak je eigen kaart voor elk woord dat je wilt.",
   "tutorial.cardModes.groups.title": "Voeg woorden uit specifieke categorieën tegelijk toe",
   "tutorial.cardModes.groups.description": "Voeg in één keer een volledige thematische kaartgroep toe.",
-  "tutorial.landingCardsAction": "Tik nu op de knop ‘Kaarten’.",
+  "tutorial.landingCardsAction": "En tik nu op de knop ‘Kaarten’.",
   "tutorial.landingCardsMessage": "Hier kun je de woorden in je collectie bekijken!",
   "tutorial.collectionMessageButton": "Begrepen",
   "tutorial.cardCollectionPrompt": "Voeg nu woorden toe aan je verzameling.",

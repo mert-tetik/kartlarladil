@@ -19,7 +19,7 @@ describe("MemoryCard game-specific design", () => {
 
     expect(screen.getByRole("button", { name: "Reveal memory card" })).toHaveAttribute("data-card-face", "back");
     expect(container.querySelector(".fd-card-design")).not.toBeInTheDocument();
-    expect(container.querySelector("[style*='memory-cards/B1.png']")).toBeInTheDocument();
+    expect(container.querySelector("[style*='memory-cards/B1.webp']")).toBeInTheDocument();
 
     rerender(
       <LocaleProvider initialLocale="en">

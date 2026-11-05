@@ -12,7 +12,7 @@ function getPackagedOfflineAssets(): Map<string, PackagedOfflineAsset> {
     ["/offline-shell/index.html", { file: "offline-shell/index.html", contentType: "text/html; charset=utf-8" }],
     ["/offline-shell/offline-shell.js", { file: "offline-shell/offline-shell.js", contentType: "application/javascript; charset=utf-8" }],
     ["/offline-shell/super-water.ttf", { file: "offline-shell/super-water.ttf", contentType: "font/ttf" }],
-    ["/missions/cikinti-v2.png", { file: "missions/cikinti-v2.png", contentType: "image/png" }],
+    ["/missions/cikinti-v2.webp", { file: "missions/cikinti-v2.png", contentType: "image/png" }],
   ]);
   for (const language of OFFLINE_LANGUAGE_CODES) {
     assets.set(`/flags/language/${language}.png`, {

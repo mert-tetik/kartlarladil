@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "generate:card-examples": "node scripts/generate-card-example-sentences.mjs",
+    "generate:video-frame-atlases": "node scripts/generate-video-frame-atlases.mjs",
     "generate:card-pronunciations": "node scripts/generate-card-pronunciations.mjs",
     "generate:card-pronunciations:batch": "node scripts/generate-card-pronunciations-batch.mjs",
     "generate:card-definitions:batch": "node scripts/generate-card-definitions-batch.mjs",

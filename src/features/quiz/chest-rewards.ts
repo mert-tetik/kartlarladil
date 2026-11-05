@@ -35,12 +35,12 @@ export const CHEST_TIER_BORDER_CLASSES: Record<ChestTier, string> = {
 };
 
 export const CHEST_TIER_ARTWORK: Record<ChestTier, string> = {
-  wood: "/chests/wooden_chest.png",
-  iron: "/chests/iron_chest.png",
-  gold: "/chests/gold_chest.png",
-  diamond: "/chests/diamond_chest.png",
-  emerald: "/chests/emerald_chest.png",
-  ruby: "/chests/ruby_chest.png",
+  wood: "/chests/wooden_chest.webp",
+  iron: "/chests/iron_chest.webp",
+  gold: "/chests/gold_chest.webp",
+  diamond: "/chests/diamond_chest.webp",
+  emerald: "/chests/emerald_chest.webp",
+  ruby: "/chests/ruby_chest.webp",
 };
 
 export const CHEST_TIER_PREVIEW_ARTWORK: Record<ChestTier, string> = {

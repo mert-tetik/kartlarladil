@@ -224,7 +224,7 @@ export const VocabularyCardView = memo(function VocabularyCardView({
         } : undefined}
       />
 
-      {isFaceUp && showActions ? (
+      {isFaceUp && showActions && !showProgress ? (
         <Button
           aria-label={`${card.term} ${t("cards.ask")}`}
           className="absolute right-[7%] top-[5%] z-10 size-8 rounded-full border border-white/70 bg-black/15 p-0 text-white backdrop-blur-sm hover:bg-black/25"

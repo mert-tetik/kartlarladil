@@ -271,15 +271,15 @@ export function MobileLandingCardCenter({
           </button>
           <div ref={drawActionRef} className="relative">
             <button type="button" onClick={onOpenDraw} aria-label={t("nav.cardDraw")} data-tutorial-target="landing-draw-cards" className="inline-flex size-10 items-center justify-center transition-transform active:scale-[0.92]">
-              <Image src="/card-icons/draw_cards_button.png" alt="" width={40} height={40} className="size-10 translate-y-0.5 object-contain" aria-hidden="true" />
+              <Image src="/card-icons/draw_cards_button.webp" alt="" width={40} height={40} className="size-10 translate-y-0.5 object-contain" aria-hidden="true" />
             </button>
             <MobileEmptyDeckPointer enabled={showEmptyDeckPointer} anchorRef={drawActionRef} />
           </div>
           <button type="button" onClick={onOpenCreate} aria-label={t("cards.createCustom")} data-tutorial-target="landing-create-card" className="inline-flex size-10 items-center justify-center transition-transform active:scale-[0.92]">
-            <Image src="/card-icons/add_custom_card_button.png" alt="" width={40} height={40} className="size-10 object-contain" aria-hidden="true" />
+            <Image src="/card-icons/add_custom_card_button.webp" alt="" width={40} height={40} className="size-10 object-contain" aria-hidden="true" />
           </button>
           <button type="button" onClick={onOpenGroups} aria-label={t("cards.groups.title")} data-tutorial-target="landing-card-groups" className="inline-flex size-10 items-center justify-center transition-transform active:scale-[0.92]">
-            <Image src="/card-icons/add_cards_with_groups.png" alt="" width={40} height={40} className="size-10 object-contain" aria-hidden="true" />
+            <Image src="/card-icons/add_cards_with_groups.webp" alt="" width={40} height={40} className="size-10 object-contain" aria-hidden="true" />
           </button>
         </div>
       </div>

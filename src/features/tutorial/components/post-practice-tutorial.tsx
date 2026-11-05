@@ -8,31 +8,31 @@ import { cn } from "@/lib/utils";
 
 const TUTORIAL_SCREENS = [
   {
-    image: "/tutorial-post-practice/first-screen.png",
+    image: "/tutorial-post-practice/first-screen.webp",
     text: "Kartları destene ekle!",
   },
   {
-    image: "/tutorial-post-practice/second-screen.png",
+    image: "/tutorial-post-practice/second-screen.webp",
     text: "Her bir kartın öğrenilme eşiği vardır!",
   },
   {
-    image: "/tutorial-post-practice/third-screen.png",
+    image: "/tutorial-post-practice/third-screen.webp",
     text: 'Bir kartı öğrenmek için "Öğrenmeye Başla" butonu ile quizleri tamamla.',
   },
   {
-    image: "/tutorial-post-practice/fourth-screen.png",
+    image: "/tutorial-post-practice/fourth-screen.webp",
     text: "Kartın öğrenme eşiği kadar quiz çözdükten sonra kart otomatik olarak öğrenilir!",
   },
   {
-    image: "/tutorial-post-practice/fifth-screen.png",
+    image: "/tutorial-post-practice/fifth-screen.webp",
     text: "Öğrenilen kartlar \"Öğrenildi\" destende ayrı olarak gözükür.",
   },
   {
-    image: "/tutorial-post-practice/sixth-screen.png",
+    image: "/tutorial-post-practice/sixth-screen.webp",
     text: "Kart öğrendikçe puan kazan ve rütbe atla!",
   },
   {
-    image: "/tutorial-post-practice/seventh-screen.png",
+    image: "/tutorial-post-practice/seventh-screen.webp",
     text: "Kart destelerini ana sayfadan görebilirsin.",
   },
 ];

@@ -8,6 +8,7 @@ export function MobileGoogleAuthLoading() {
   return (
     <div
       data-gateway-flow-screen
+      data-gateway-flow-screen-exit
       data-google-auth-loading
       className="mx-auto flex w-full max-w-sm flex-col items-center text-center"
       role="status"
@@ -17,7 +18,7 @@ export function MobileGoogleAuthLoading() {
         aria-hidden="true"
         className="mb-6 size-10 animate-spin rounded-full border-4 border-border border-t-foreground"
       />
-      <p data-gateway-flow-item data-gateway-flow-order="0" className="text-base font-semibold text-foreground">
+      <p className="text-base font-semibold text-foreground">
         {t("auth.google.completing")}
       </p>
     </div>

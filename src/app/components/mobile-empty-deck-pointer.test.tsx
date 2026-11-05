@@ -30,7 +30,7 @@ describe("MobileEmptyDeckPointer", () => {
     expect(pointer).toHaveClass("pointer-events-none", "absolute");
     expect(pointer).toHaveClass("empty-deck-pointer-anchor");
     expect(pointer.querySelector("img")).toHaveClass("empty-deck-pointer-image");
-    expect(pointer.querySelector("img")).toHaveAttribute("src", expect.stringContaining("pointer-icon.png"));
+    expect(pointer.querySelector("img")).toHaveAttribute("src", expect.stringContaining("pointer-icon.webp"));
   });
 
   it("hides while the landing tutorial is open", async () => {

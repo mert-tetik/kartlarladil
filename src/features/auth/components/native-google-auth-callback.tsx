@@ -35,13 +35,19 @@ function getInitialCallbackPayload(): NativeGoogleAuthCallbackPayload | null {
   return { code, next, error, errorDescription };
 }
 
-function clearNativeCallbackQuery() {
-  const url = new URL(window.location.href);
-  url.searchParams.delete("nativeAuthCode");
-  url.searchParams.delete("nativeAuthNext");
-  url.searchParams.delete("nativeAuthError");
-  url.searchParams.delete("nativeAuthErrorDescription");
-  window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+function replaceAppUrl(router: { replace: (href: string) => void }, destination: string) {
+  const currentUrl = new URL(window.location.href);
+  const targetUrl = new URL(destination, currentUrl.origin);
+  const target = `${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`;
+
+  if (targetUrl.origin === currentUrl.origin && targetUrl.pathname === currentUrl.pathname) {
+    // App Router's native History API integration updates useSearchParams
+    // without requesting the same server route again.
+    window.history.replaceState(window.history.state, "", target);
+    return;
+  }
+
+  router.replace(target);
 }
 
 function getCallbackKey(payload: NativeGoogleAuthCallbackPayload) {
@@ -63,8 +69,10 @@ export function NativeGoogleAuthCallback() {
 
     if (payload.error || !code) {
       clearGoogleAuthPending();
-      clearNativeCallbackQuery();
-      router.replace(`/?mobile-gateway-login=1&message=${encodeURIComponent(t("auth.message.googleFailed"))}`);
+      replaceAppUrl(
+        router,
+        `/?mobile-gateway-login=1&message=${encodeURIComponent(t("auth.message.googleFailed"))}`,
+      );
       return;
     }
 
@@ -77,18 +85,15 @@ export function NativeGoogleAuthCallback() {
       }
 
       const nextPath = getSafeNextPath(payload.next, "/");
-      clearNativeCallbackQuery();
-      // Always notify the App Router after removing the native callback query.
-      // A direct history.replaceState does not reliably update useSearchParams,
-      // so skipping this when the path appears unchanged can leave the mobile
-      // gateway stuck on its loading screen.
-      router.replace(nextPath);
+      replaceAppUrl(router, nextPath);
       // AuthSessionProvider clears the pending marker after it has loaded the
       // profile. Keeping it until then prevents the login screen from flashing.
     } catch {
       clearGoogleAuthPending();
-      clearNativeCallbackQuery();
-      router.replace(`/?mobile-gateway-login=1&message=${encodeURIComponent(t("auth.message.googleFailed"))}`);
+      replaceAppUrl(
+        router,
+        `/?mobile-gateway-login=1&message=${encodeURIComponent(t("auth.message.googleFailed"))}`,
+      );
     }
   }, [router, t]);
 

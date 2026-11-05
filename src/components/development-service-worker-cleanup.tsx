@@ -2,8 +2,6 @@
 
 import { useEffect } from "react";
 
-const CLEANUP_RELOAD_KEY = "foxiesdeck:dev-service-worker-cleaned";
-
 export function DevelopmentServiceWorkerCleanup() {
   useEffect(() => {
     if (process.env.NODE_ENV !== "development" || !("serviceWorker" in navigator)) return;
@@ -21,10 +19,7 @@ export function DevelopmentServiceWorkerCleanup() {
         await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
       }
 
-      if (cancelled || sessionStorage.getItem(CLEANUP_RELOAD_KEY) === "1") return;
-
-      sessionStorage.setItem(CLEANUP_RELOAD_KEY, "1");
-      window.location.reload();
+      if (cancelled) return;
     })().catch((error) => {
       console.warn("[FoxiesDeck dev] Could not clear the stale service worker.", error);
     });

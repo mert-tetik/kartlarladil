@@ -23,8 +23,8 @@ import {
   type BonusQuestionKind,
 } from "@/features/quiz/bonus-questions";
 import {
-  BONUS_QUESTION_PROBABILITY,
   BONUS_QUESTION_TYPE_WEIGHTS,
+  getBonusQuestionProbability,
 } from "@/features/quiz/bonus-question-constants";
 import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data";
 import type { InventoryCard, LanguageCode, LocaleCode, PracticeMode, VocabularyCard } from "@/types/domain";
@@ -311,7 +311,7 @@ export async function buildQuizPool(
         }
       }
       const selectedForMaxDeck = Boolean(
-        selectedFallback && (forceBonusAfterEachQuestion || Math.random() < BONUS_QUESTION_PROBABILITY),
+        selectedFallback && (forceBonusAfterEachQuestion || Math.random() < getBonusQuestionProbability(index)),
       );
       if (selectedForMaxDeck && selectedKind !== "matching") usedNonMatchingBonusKinds.add(selectedKind);
       const bonusPlan = { index, kind: selectedKind, fallback: selectedFallback, selectedForMaxDeck };

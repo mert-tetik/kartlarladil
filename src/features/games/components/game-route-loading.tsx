@@ -1,9 +1,9 @@
 "use client";
 
 import Image, { type StaticImageData } from "next/image";
-import hafizaIcon from "@/assets/games/hafiza_oyunu.png";
-import wordChallengeIcon from "@/assets/games/kelime_meydan_okumasi.png";
-import wordMatchIcon from "@/assets/games/kelime_eslestirme.png";
+import hafizaIcon from "@/assets/games/hafiza_oyunu.webp";
+import wordChallengeIcon from "@/assets/games/kelime_meydan_okumasi.webp";
+import wordMatchIcon from "@/assets/games/kelime_eslestirme.webp";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { formatSuperWaterText } from "@/lib/super-water";
 import type { GameName } from "../game-types";

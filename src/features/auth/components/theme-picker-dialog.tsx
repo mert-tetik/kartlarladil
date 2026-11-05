@@ -269,7 +269,7 @@ function ThemeButton({ item, selected, locked, pending, onSelect }: ThemeButtonP
       >
         {locked ? (
           <Image
-            src="/missions/mission-lock-icon-v3.png"
+            src="/missions/mission-lock-icon-v3.webp"
             alt=""
             width={56}
             height={56}

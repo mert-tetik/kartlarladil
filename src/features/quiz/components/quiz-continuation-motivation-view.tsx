@@ -72,18 +72,18 @@ const LEADERBOARD_DISPLAY_CONFIG = [
 }>;
 
 const MOTIVATION_IMAGES: Record<QuizContinuationMotivation["id"], string> = {
-  nearLearned: "/quiz/continuation-motivations/almost-learned-card-ref-20261004.png?v=20261005-1",
-  nearLevelUp: "/quiz/continuation-motivations/level-up-card-ref-20261004.png?v=20261005-1",
-  nextRank: "/quiz/continuation-motivations/next-rank-classic-v2-20261004.png?v=20261005-1",
-  missedChest: "/quiz/continuation-motivations/missed-chest-classic-v2-20261004.png?v=20261005-1",
-  accuracy: "/quiz/continuation-motivations/accuracy-classic-v2-20261004.png?v=20261005-1",
-  mistakes: "/quiz/continuation-motivations/mistakes-card-ref-20261004.png?v=20261005-1",
-  remainingCards: "/quiz/continuation-motivations/waiting-cards-card-ref-20261004.png?v=20261005-1",
-  xp: "/quiz/continuation-motivations/xp-classic-v2-20261004.png?v=20261005-1",
-  gems: "/quiz/continuation-motivations/gems-classic-v2-20261004.png?v=20261005-1",
-  leaderboard: "/leaderboard-icon-v20261006-2.png",
-  medals: "/quiz/result-cards/star.png?v=20261005-1",
-  drawCards: "/quiz/continuation-motivations/draw-cards-card-ref-20261004.png?v=20261005-1",
+  nearLearned: "/quiz/continuation-motivations/almost-learned-card-ref-20261004.webp?v=20261005-1",
+  nearLevelUp: "/quiz/continuation-motivations/level-up-card-ref-20261004.webp?v=20261005-1",
+  nextRank: "/quiz/continuation-motivations/next-rank-classic-v2-20261004.webp?v=20261005-1",
+  missedChest: "/quiz/continuation-motivations/missed-chest-classic-v2-20261004.webp?v=20261005-1",
+  accuracy: "/quiz/continuation-motivations/accuracy-classic-v2-20261004.webp?v=20261005-1",
+  mistakes: "/quiz/continuation-motivations/mistakes-card-ref-20261004.webp?v=20261005-1",
+  remainingCards: "/quiz/continuation-motivations/waiting-cards-card-ref-20261004.webp?v=20261005-1",
+  xp: "/quiz/continuation-motivations/xp-classic-v2-20261004.webp?v=20261005-1",
+  gems: "/quiz/continuation-motivations/gems-classic-v2-20261004.webp?v=20261005-1",
+  leaderboard: "/leaderboard-icon-v20261006-2.webp",
+  medals: "/quiz/result-cards/star.webp?v=20261005-1",
+  drawCards: "/quiz/continuation-motivations/draw-cards-card-ref-20261004.webp?v=20261005-1",
 };
 
 const CONTINUATION_TITLE_KEYS = [
@@ -265,9 +265,9 @@ export function QuizContinuationMotivationView({
               <Image
                 src={
                   isReviewQuiz
-                    ? "/quiz/continuation-motivations/review-motivation-character.png?v=20261005-1"
+                    ? "/quiz/continuation-motivations/review-motivation-character.webp?v=20261005-1"
                     : hasMoreCardsToLearn
-                    ? "/quiz/continuation-motivations/continue-motivation-character.png?v=20261005-1"
+                    ? "/quiz/continuation-motivations/continue-motivation-character.webp?v=20261005-1"
                     : "/mascots/mascot3.webp"
                 }
                 alt=""
@@ -405,7 +405,7 @@ export function QuizContinuationMotivationView({
               <ImageActionButton
                 imageSrc={
                   isReviewQuiz
-                    ? "/result-buttons/replay_button_blue.png"
+                    ? "/result-buttons/replay_button_blue.webp"
                     : RESULT_BUTTON_IMAGES.play
                 }
                 imageSizes="80px"

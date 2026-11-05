@@ -382,7 +382,12 @@ export function MobileOnboardingForm({
         </>
       </GatewayFlowTransition>
 
-      <div data-gateway-flow-action className="relative z-10 shrink-0 pt-5">
+      <div
+        data-gateway-flow-action
+        data-gateway-flow-item
+        data-gateway-flow-order="2"
+        className="relative z-10 shrink-0 pt-5"
+      >
         <FormMessage state={state} />
         {!shouldSubmit ? (
           <div className={cn("mobile-primary-action-depth w-full rounded-lg", actionDepthClass)}>
@@ -391,8 +396,7 @@ export function MobileOnboardingForm({
               disabled={isStepTransitioning}
               onClick={advanceLanguageStep}
               className={cn(
-                "h-14 w-full rounded-lg px-5 text-base font-bold transition-transform active:scale-[0.99]",
-                isLoginLanguageRefresh ? "disabled:opacity-100" : "disabled:opacity-70",
+                "h-14 w-full rounded-lg px-5 text-base font-bold transition-transform active:scale-[0.99] disabled:opacity-100",
                 actionButtonClass,
               )}
             >
@@ -415,10 +419,7 @@ export function MobileOnboardingForm({
                 }
                 : undefined}
               className={cn(
-                "h-14 w-full text-base font-bold",
-                displayedStep === "picture" || isLoginLanguageRefresh
-                  ? "disabled:opacity-100"
-                  : "disabled:opacity-70",
+                "h-14 w-full text-base font-bold disabled:opacity-100",
                 actionButtonClass,
               )}
               pendingLabel={t("auth.onboarding.pending")}

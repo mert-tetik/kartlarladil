@@ -39,9 +39,9 @@ function AccountSubscriptionPlanImage({ mobile = false, onClose }: { mobile?: bo
   const t = useT();
   const effectivePlan = entitlements?.effectivePlan ?? "free";
   const planImage = effectivePlan === "basic"
-    ? { src: "/subscriptions/plan-basic-v2.png", width: 1489, height: 450 }
+    ? { src: "/subscriptions/plan-basic-v2.webp", width: 1489, height: 450 }
     : effectivePlan === "pro"
-      ? { src: "/subscriptions/plan-pro-v2.png", width: 1338, height: 511 }
+      ? { src: "/subscriptions/plan-pro-v2.webp", width: 1338, height: 511 }
       : null;
 
   if (!planImage) return null;

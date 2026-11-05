@@ -1,24 +1,89 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LandingTutorial } from "@/features/tutorial/landing-tutorial";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 import { TUTORIAL_CARD_LAYER_REQUESTED_EVENT } from "@/features/tutorial/tutorial-card-session";
-import { speakText, stopSpeakingText } from "@/features/cards/card-speech";
+import { playTutorialSpeech, preloadTutorialSpeech, stopTutorialSpeech } from "@/features/tutorial/tutorial-speech";
 import { vibrate } from "@/lib/vibration";
 
 const {
   playFlowButtonSoundMock,
   resetFlowButtonSoundMock,
-  speakTextMock,
-  stopSpeakingTextMock,
+  playTutorialSpeechMock,
+  preloadTutorialSpeechMock,
+  stopTutorialSpeechMock,
+  frameAtlasPlayerMock,
 } = vi.hoisted(() => ({
   playFlowButtonSoundMock: vi.fn(),
   resetFlowButtonSoundMock: vi.fn(),
-  speakTextMock: vi.fn(),
-  stopSpeakingTextMock: vi.fn(),
+  playTutorialSpeechMock: vi.fn(),
+  preloadTutorialSpeechMock: vi.fn(),
+  stopTutorialSpeechMock: vi.fn(),
+  frameAtlasPlayerMock: {
+    play: vi.fn(),
+    pause: vi.fn(),
+    seek: vi.fn(),
+    onEnded: undefined as (() => void) | undefined,
+    onPlay: undefined as ((currentTime: number) => void) | undefined,
+    onError: undefined as (() => void) | undefined,
+    onReady: undefined as (() => void) | undefined,
+    preload: vi.fn<(assetId: string, count: number) => Promise<boolean>>(),
+    ready: true,
+  },
 }));
+
+vi.mock("@/components/video-frame-atlas-player", async () => {
+  const React = await vi.importActual<typeof import("react")>("react");
+  type MockPlayerHandle = {
+    play: () => void;
+    pause: () => void;
+    seek: (seconds: number) => void;
+    currentTime: number;
+    duration: number;
+    paused: boolean;
+    ended: boolean;
+  };
+  type MockPlayerProps = {
+    assetId: string;
+    onReady?: () => void;
+    onPlay?: (currentTime: number) => void;
+    onEnded?: () => void;
+    onError?: () => void;
+    "data-player-id"?: string;
+    className?: string;
+  };
+  return {
+    preloadVideoFrameAtlas: (assetId: string, count: number) => frameAtlasPlayerMock.preload(assetId, count),
+    VideoFrameAtlasPlayer: React.forwardRef<MockPlayerHandle, MockPlayerProps>(function MockVideoFrameAtlasPlayer(props, ref) {
+      const { assetId, className, onReady, onPlay, onEnded, onError } = props;
+      React.useImperativeHandle(ref, () => ({
+        play: frameAtlasPlayerMock.play,
+        pause: frameAtlasPlayerMock.pause,
+        seek: frameAtlasPlayerMock.seek,
+        currentTime: 0,
+        duration: 97 / 45,
+        paused: true,
+        ended: false,
+      }));
+      React.useEffect(() => {
+        frameAtlasPlayerMock.onReady = onReady;
+        if (frameAtlasPlayerMock.ready) onReady?.();
+      }, [onReady]);
+      React.useEffect(() => {
+        frameAtlasPlayerMock.onPlay = onPlay;
+        frameAtlasPlayerMock.onEnded = onEnded;
+        frameAtlasPlayerMock.onError = onError;
+      }, [onEnded, onError, onPlay]);
+      return React.createElement("canvas", {
+        "data-video-frame-atlas-player": assetId,
+        "data-player-id": props["data-player-id"],
+        className,
+      });
+    }),
+  };
+});
 
 vi.mock("@/i18n/locale-provider", () => ({
   useLocale: () => ({ locale: "en" }),
@@ -30,9 +95,16 @@ vi.mock("@/lib/flow-button-sound", () => ({
   playFlowButtonSound: (...args: unknown[]) => playFlowButtonSoundMock(...args),
   resetFlowButtonSoundSequence: (...args: unknown[]) => resetFlowButtonSoundMock(...args),
 }));
-vi.mock("@/features/cards/card-speech", () => ({
-  speakText: speakTextMock,
-  stopSpeakingText: stopSpeakingTextMock,
+vi.mock("@/features/tutorial/tutorial-speech", () => ({
+  getTutorialSpeechKeyForTranslationKey: (translationKey: string) => ({
+    "tutorial.cardCollectionPrompt": "card-collection-prompt",
+    "tutorial.landingCardsAction": "landing-cards-action",
+    "tutorial.landingCardsMessage": "landing-cards-message",
+    "tutorial.landingStartLearningAction": "landing-start-learning-action",
+  }[translationKey] ?? null),
+  playTutorialSpeech: playTutorialSpeechMock,
+  preloadTutorialSpeech: preloadTutorialSpeechMock,
+  stopTutorialSpeech: stopTutorialSpeechMock,
 }));
 
 function TutorialFixture({ cardSwipeEntryComplete = true }: { cardSwipeEntryComplete?: boolean } = {}) {
@@ -112,10 +184,20 @@ describe("LandingTutorial", () => {
 
   beforeEach(() => {
     vi.mocked(vibrate).mockClear();
-    vi.mocked(speakText).mockClear();
-    vi.mocked(stopSpeakingText).mockClear();
+    vi.mocked(playTutorialSpeech).mockClear();
+    vi.mocked(preloadTutorialSpeech).mockClear();
+    vi.mocked(stopTutorialSpeech).mockClear();
     playFlowButtonSoundMock.mockClear();
     resetFlowButtonSoundMock.mockClear();
+    frameAtlasPlayerMock.play.mockClear();
+    frameAtlasPlayerMock.pause.mockClear();
+    frameAtlasPlayerMock.seek.mockClear();
+    frameAtlasPlayerMock.onEnded = undefined;
+    frameAtlasPlayerMock.onPlay = undefined;
+    frameAtlasPlayerMock.onError = undefined;
+    frameAtlasPlayerMock.onReady = undefined;
+    frameAtlasPlayerMock.preload.mockReset().mockResolvedValue(true);
+    frameAtlasPlayerMock.ready = true;
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
     Object.defineProperty(window, "innerHeight", { configurable: true, value: 844 });
     Object.defineProperty(HTMLElement.prototype, "getBoundingClientRect", {
@@ -130,6 +212,7 @@ describe("LandingTutorial", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     Object.defineProperty(HTMLElement.prototype, "getBoundingClientRect", { configurable: true, value: originalRect });
@@ -138,11 +221,17 @@ describe("LandingTutorial", () => {
 
   it("shows two welcome screens before the choice screen and omits the old description", async () => {
     useTutorialStore.setState({ active: true, completed: false, introSeen: false, step: 0, testMode: false });
+    frameAtlasPlayerMock.ready = false;
+    let resolveInitialAtlases: ((ready: boolean) => void) | undefined;
+    frameAtlasPlayerMock.preload.mockReturnValue(new Promise((resolve) => {
+      resolveInitialAtlases = resolve;
+    }));
     render(<TutorialFixture />);
 
     expect(await screen.findByRole("status", { name: "Starting tutorial" })).toBeInTheDocument();
     const firstWelcome = await screen.findByRole("dialog", { name: "tutorial.welcome" });
     expect(firstWelcome).toBeInTheDocument();
+    await waitFor(() => expect(playTutorialSpeech).toHaveBeenCalledWith("welcome", "en"));
     const welcomeRevealCircle = firstWelcome.querySelector(".tutorial-origin-overlay__circle");
     const welcomeViewport = firstWelcome.querySelector(".tutorial-origin-overlay__viewport");
     expect(welcomeRevealCircle).toBeInTheDocument();
@@ -153,7 +242,7 @@ describe("LandingTutorial", () => {
     expect(document.querySelector("[data-tutorial-welcome-content] [data-tutorial-welcome-step-title]")).toBe(firstWelcomeTitle);
     expect(firstWelcomeTitle).not.toHaveClass("absolute");
     expect(document.querySelector("[data-tutorial-welcome-description]")).not.toBeInTheDocument();
-    expect(decodeURIComponent(document.querySelector("[data-tutorial-welcome-first-frame]")?.getAttribute("src") ?? "")).toContain("tutorial-welcome/first-frame.png?v=20261024-png-frames-2");
+    expect(decodeURIComponent(document.querySelector("[data-tutorial-welcome-first-frame]")?.getAttribute("src") ?? "")).toContain("tutorial-welcome/first-frame.webp?v=20261104-webp-frames-1");
     const mediaAnchor = document.querySelector("[data-tutorial-welcome-media]");
     expect(mediaAnchor).toHaveStyle({ top: "calc(50% - 6.25rem)" });
     expect(document.querySelector("[data-tutorial-welcome-media-spacer]")).toBeInTheDocument();
@@ -162,37 +251,38 @@ describe("LandingTutorial", () => {
     const mediaPause = vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
 
     const firstNextButton = screen.getByRole("button", { name: "tutorial.next" });
+    expect(frameAtlasPlayerMock.preload).toHaveBeenCalledWith("tutorial-welcome", 2);
     expect(firstNextButton).toHaveClass("text-lg", "font-super-water");
+    expect(firstNextButton).toBeDisabled();
+    expect(firstNextButton).toHaveAttribute("aria-busy", "true");
+    expect(firstNextButton.querySelector("svg.animate-spin")).toBeInTheDocument();
+    await act(async () => {
+      resolveInitialAtlases?.(true);
+      await Promise.resolve();
+    });
+    expect(firstNextButton).toBeDisabled();
+    act(() => frameAtlasPlayerMock.onReady?.());
+    await waitFor(() => expect(firstNextButton).toBeEnabled());
     fireEvent.click(firstNextButton);
     expect(vibrate).toHaveBeenCalledWith("tutorial-next");
     const secondWelcome = screen.getByRole("dialog", { name: "tutorial.welcomeAddCards" });
     expect(secondWelcome).toBe(firstWelcome);
-    expect(document.querySelector("[data-tutorial-welcome-video-poster]")).toBeInTheDocument();
+    expect(document.querySelector("[data-tutorial-welcome-frame-poster]")).not.toBeInTheDocument();
     expect(document.querySelector("[data-landing-tutorial-transition]")).not.toBeInTheDocument();
     expect(document.querySelector("[data-tutorial-welcome-description]")).not.toBeInTheDocument();
-    const video = document.querySelector("[data-tutorial-welcome-video]") as HTMLVideoElement;
+    const framePlayer = document.querySelector('[data-video-frame-atlas-player="tutorial-welcome"]') as HTMLCanvasElement;
     expect(document.querySelector("[data-tutorial-welcome-media]")).toBe(mediaAnchor);
-    expect(video).toHaveClass("scale-[1.5]");
-    expect(video.getAttribute("src")).toBe("/mascots/tutorial-welcome/mascot-transparent.webm?v=20261024-45fps-1");
-    expect(video.getAttribute("poster")).toBe("/mascots/tutorial-welcome/first-frame.png?v=20261024-png-frames-2");
+    expect(framePlayer).toHaveClass("scale-[1.5]");
+    expect(document.querySelector("video")).not.toBeInTheDocument();
     expect(document.querySelector("[data-tutorial-welcome-audio]")?.getAttribute("src")).toBe("/mascots/tutorial-welcome/mascot-audio.m4a?v=20261024-45fps-1");
-    expect(videoPlay).toHaveBeenCalledTimes(2);
-    Object.defineProperty(video, "videoWidth", { configurable: true, value: 940 });
-    Object.defineProperty(video, "videoHeight", { configurable: true, value: 900 });
-    Object.defineProperty(video, "requestVideoFrameCallback", {
-      configurable: true,
-      value: (callback: () => void) => { callback(); return 1; },
-    });
-    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
-      drawImage: vi.fn(),
-      getImageData: () => ({ data: [0, 0, 0, 0] }),
-    } as unknown as CanvasRenderingContext2D);
-    fireEvent.loadedData(video);
-    fireEvent.playing(video);
+    expect(frameAtlasPlayerMock.play).toHaveBeenCalledTimes(1);
+    expect(videoPlay).not.toHaveBeenCalled();
+    act(() => frameAtlasPlayerMock.onPlay?.(0));
+    expect(videoPlay).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("heading", { name: "tutorial.welcomeAddCards" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "tutorial.next" })).not.toBeInTheDocument();
     expect(document.querySelector("[data-tutorial-welcome-last-frame]")).not.toBeInTheDocument();
-    fireEvent.ended(video);
+    act(() => frameAtlasPlayerMock.onEnded?.());
 
     await waitFor(() => {
       const addCardsTitle = screen.getByRole("heading", { name: "tutorial.welcomeAddCards" });
@@ -203,12 +293,14 @@ describe("LandingTutorial", () => {
       const addCardsNextButton = screen.getByRole("button", { name: "tutorial.addCards" });
       expect(addCardsNextButton).toHaveClass("tutorial-welcome-ui-scale-in", "text-lg", "font-super-water");
       expect(addCardsNextButton).toHaveStyle({ translate: "0 35px" });
-      expect(document.querySelector("[data-tutorial-welcome-video]")).toBe(video);
-      expect(document.querySelector("[data-tutorial-welcome-fallback-animation]")).not.toBeInTheDocument();
-      expect(document.querySelector("[data-tutorial-welcome-video-poster]")).not.toBeInTheDocument();
-    expect(document.querySelector("[data-tutorial-welcome-video]")).not.toHaveClass("opacity-0");
+      expect(document.querySelector('[data-video-frame-atlas-player="tutorial-welcome"]')).toBe(framePlayer);
+      expect(document.querySelector("[data-tutorial-welcome-last-frame]")).not.toBeInTheDocument();
+      expect(document.querySelector("[data-tutorial-welcome-frame-poster]")).not.toBeInTheDocument();
+      expect(framePlayer).not.toHaveClass("opacity-0");
     }, { timeout: 3_000 });
-    expect(mediaPause).toHaveBeenCalled();
+    expect(playTutorialSpeech).toHaveBeenCalledWith("welcome-add-cards", "en");
+    expect(mediaPause).toHaveBeenCalledTimes(1);
+    expect(frameAtlasPlayerMock.pause).toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "tutorial.addCards" }));
     const cardModesScreen = await screen.findByRole("dialog", { name: "tutorial.cardModes.title" }, { timeout: 5_000 });
@@ -222,30 +314,44 @@ describe("LandingTutorial", () => {
     expect(firstChoice).not.toBeDisabled();
   });
 
-  it("uses the transparent animated-frame fallback when the browser rejects the video", async () => {
+  it("shows the final still immediately if frame atlases fail to load", async () => {
     useTutorialStore.setState({ active: true, completed: false, introSeen: false, step: 0, testMode: false });
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ blob: async () => new Blob() }));
-    const mediaPlay = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
-    const mediaPause = vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
     render(<TutorialFixture />);
 
     await screen.findByRole("dialog", { name: "tutorial.welcome" }, { timeout: 3_500 });
-    const video = document.querySelector("[data-tutorial-welcome-video]") as HTMLVideoElement;
-    fireEvent.error(video);
+    act(() => frameAtlasPlayerMock.onError?.());
     fireEvent.click(screen.getByRole("button", { name: "tutorial.next" }));
 
     expect(await screen.findByRole("dialog", { name: "tutorial.welcomeAddCards" })).toBeInTheDocument();
-    expect(document.querySelector("[data-tutorial-welcome-fallback-animation]")?.getAttribute("src")).toContain("mascot-animation-fallback.webp?v=20261024-45fps-1");
-    expect(mediaPlay).toHaveBeenCalledTimes(1);
-    expect(mediaPause).toHaveBeenCalled();
-    expect(screen.queryByRole("heading", { name: "tutorial.welcomeAddCards" })).not.toBeInTheDocument();
+    expect(document.querySelector("video")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "tutorial.welcomeAddCards" })).toBeInTheDocument();
+    expect(document.querySelector("[data-tutorial-welcome-last-frame]")).toBeInTheDocument();
+    expect(document.querySelector('[data-video-frame-atlas-player="tutorial-welcome"]')).toHaveClass("opacity-0");
+  });
+
+  it("falls back instead of leaving the welcome flow stuck when the first atlas is slow", async () => {
+    useTutorialStore.setState({ active: true, completed: false, introSeen: false, step: 0, testMode: false });
+    frameAtlasPlayerMock.ready = false;
+    const videoPlay = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
+    render(<TutorialFixture />);
+
+    await screen.findByRole("dialog", { name: "tutorial.welcome" }, { timeout: 3_500 });
+    const nextButton = screen.getByRole("button", { name: "tutorial.next" });
+    expect(nextButton).toBeDisabled();
+    act(() => frameAtlasPlayerMock.onError?.());
+    await waitFor(() => expect(nextButton).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "tutorial.next" }));
+    expect(videoPlay).not.toHaveBeenCalled();
 
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "tutorial.welcomeAddCards" })).toBeInTheDocument();
-      expect(document.querySelector("[data-tutorial-welcome-fallback-animation]")).not.toBeInTheDocument();
       expect(document.querySelector("[data-tutorial-welcome-last-frame]")).toBeInTheDocument();
-      expect(document.querySelector("[data-tutorial-welcome-video]")).toHaveClass("opacity-0");
-    }, { timeout: 3_000 });
+    }, { timeout: 3_500 });
+    expect(frameAtlasPlayerMock.pause).toHaveBeenCalled();
+
+    act(() => frameAtlasPlayerMock.onPlay?.(0));
+    expect(videoPlay).not.toHaveBeenCalled();
   });
 
   it("renders exactly three card mode choices and blocks the landing below them", async () => {
@@ -299,7 +405,7 @@ describe("LandingTutorial", () => {
     expect(await screen.findByText("close layer", {}, { timeout: 3_500 })).toBeInTheDocument();
     expect(document.querySelector("[data-landing-tutorial-choice-screen]")).not.toBeInTheDocument();
     const layerPrompt = await screen.findByTestId("tutorial-layer-message", {}, { timeout: 2_000 });
-    expect(speakText).toHaveBeenCalledWith("tutorial.cardCollectionPrompt", "en");
+    expect(playTutorialSpeech).toHaveBeenCalledWith("card-collection-prompt", "en");
     const character = layerPrompt.querySelector("[data-tutorial-layer-message-character]");
     const bubble = layerPrompt.querySelector("[data-tutorial-layer-message-bubble]");
     expect(character).toBeInTheDocument();
@@ -309,9 +415,9 @@ describe("LandingTutorial", () => {
     expect(layerPrompt).toHaveClass("tutorial-origin-overlay--closing");
     expect(character).toBeInTheDocument();
     expect(bubble).toBeInTheDocument();
-    const stopsBeforeAutomaticClose = vi.mocked(stopSpeakingText).mock.calls.length;
+    const stopsBeforeAutomaticClose = vi.mocked(stopTutorialSpeech).mock.calls.length;
     await waitFor(() => expect(screen.queryByTestId("tutorial-layer-message")).not.toBeInTheDocument(), { timeout: 4_000 });
-    expect(stopSpeakingText).toHaveBeenCalledTimes(stopsBeforeAutomaticClose);
+    expect(stopTutorialSpeech).toHaveBeenCalledTimes(stopsBeforeAutomaticClose);
 
     fireEvent.click(screen.getByRole("button", { name: "close layer" }));
     await waitFor(() => expect(useTutorialStore.getState().step).toBe(1), { timeout: 2_500 });
@@ -417,9 +523,9 @@ describe("LandingTutorial", () => {
     expect(message?.querySelector("[data-tutorial-message-tail] path[data-tutorial-message-tail-outline]")).toHaveAttribute("stroke-linecap", "butt");
     expect(message?.style.transform).toBe("");
     expect(document.querySelector("#mobile-card-center-content")).toBeInTheDocument();
-    expect(speakText).toHaveBeenCalledWith("tutorial.landingCardsMessage", "en");
+    expect(playTutorialSpeech).toHaveBeenCalledWith("landing-cards-message", "en");
     fireEvent.click(screen.getByRole("button", { name: "tutorial.collectionMessageButton" }));
-    expect(stopSpeakingText).toHaveBeenCalledOnce();
+    expect(stopTutorialSpeech).toHaveBeenCalledOnce();
   });
 
   it("speaks target callouts in the selected UI language and leaves speech running when a target closes the screen", async () => {
@@ -427,11 +533,11 @@ describe("LandingTutorial", () => {
     render(<TutorialFixture />);
 
     await waitFor(() => expect(document.querySelector("[data-landing-tutorial-message]")).toBeInTheDocument());
-    expect(speakText).toHaveBeenCalledWith("tutorial.landingCardsAction", "en");
+    expect(playTutorialSpeech).toHaveBeenCalledWith("landing-cards-action", "en");
     expect(resetFlowButtonSoundMock).toHaveBeenCalledWith("tutorial");
 
     fireEvent.click(screen.getByRole("button", { name: "cards" }));
-    expect(stopSpeakingText).not.toHaveBeenCalled();
+    expect(stopTutorialSpeech).not.toHaveBeenCalled();
     expect(playFlowButtonSoundMock).toHaveBeenCalledWith("tutorial");
     expect(playFlowButtonSoundMock).toHaveBeenCalledOnce();
   });
@@ -451,7 +557,7 @@ describe("LandingTutorial", () => {
     expect(arrow).toBeInTheDocument();
     expect(spotlight).toHaveClass("border-brand");
     expect(spotlight).not.toHaveClass("border-red-500");
-    expect(arrow?.getAttribute("src")).toContain("arrow.png");
+    expect(arrow?.getAttribute("src")).toContain("arrow.webp");
     expect(arrow).toHaveAttribute("width", "433");
     expect(arrow).toHaveAttribute("height", "305");
     expect(Number(arrow?.getAttribute("width")) / Number(arrow?.getAttribute("height"))).toBeCloseTo(433 / 305);

@@ -149,7 +149,7 @@ function PointerImage({
         className="empty-deck-pointer-image"
         height={64}
         priority
-        src="/pointer-icon.png"
+        src="/pointer-icon.webp"
         width={64}
       />
     </span>

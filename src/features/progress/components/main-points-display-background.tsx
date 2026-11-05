@@ -27,7 +27,7 @@ export function MainPointsDisplayBackground({
     >
       <div className="absolute inset-0 flex">
         <Image
-          src="/main-points-display-background-left.png"
+          src="/main-points-display-background-left.webp"
           alt=""
           width={83}
           height={160}
@@ -35,7 +35,7 @@ export function MainPointsDisplayBackground({
           aria-hidden="true"
         />
         <Image
-          src="/main-points-display-background-center.png"
+          src="/main-points-display-background-center.webp"
           alt=""
           width={251}
           height={160}
@@ -43,7 +43,7 @@ export function MainPointsDisplayBackground({
           aria-hidden="true"
         />
         <Image
-          src="/main-points-display-background-right.png"
+          src="/main-points-display-background-right.webp"
           alt=""
           width={83}
           height={160}

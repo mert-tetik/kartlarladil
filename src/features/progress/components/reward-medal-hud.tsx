@@ -5,7 +5,7 @@ import { useCallback, useRef, useState, type Ref } from "react";
 import { useOptionalAuthSession } from "@/features/auth/auth-client";
 import { cn } from "@/lib/utils";
 
-export const RESULT_MEDAL_IMAGE_SRC = "/quiz/result-cards/star.png?v=20261003-2";
+export const RESULT_MEDAL_IMAGE_SRC = "/quiz/result-cards/star.webp?v=20261003-2";
 
 export interface MedalHudPulse {
   key: number;

@@ -1015,7 +1015,7 @@ const dictionary = {
   "tutorial.cardModes.custom.description": "Создай карточку для любого нужного слова.",
   "tutorial.cardModes.groups.title": "Добавь слова из выбранных категорий сразу",
   "tutorial.cardModes.groups.description": "Добавь целую тематическую группу карточек за один раз.",
-  "tutorial.landingCardsAction": "Теперь нажми кнопку «Карточки».",
+  "tutorial.landingCardsAction": "А теперь нажми кнопку «Карточки».",
   "tutorial.landingCardsMessage": "Здесь ты можешь увидеть слова из своей коллекции!",
   "tutorial.collectionMessageButton": "Понятно",
   "tutorial.cardCollectionPrompt": "Теперь добавь слова в свою коллекцию.",

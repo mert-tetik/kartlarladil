@@ -7,7 +7,7 @@ describe("ChestIcon", () => {
 
     expect(container.querySelectorAll("[data-chest-artwork]")).toHaveLength(1);
     expect(container.querySelector("[data-chest-artwork]")?.getAttribute("src")).toContain(
-      "wooden_chest.png",
+      "wooden_chest.webp",
     );
   });
 

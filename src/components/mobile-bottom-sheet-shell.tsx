@@ -388,8 +388,8 @@ export function MobileBottomSheetShell({
                 className="absolute inset-0"
                 style={{
               backgroundColor: toneStyles.protrusionColor,
-                  maskImage: "url('/missions/cikinti-v2.png')",
-                  WebkitMaskImage: "url('/missions/cikinti-v2.png')",
+                  maskImage: "url('/missions/cikinti-v2.webp')",
+                  WebkitMaskImage: "url('/missions/cikinti-v2.webp')",
                   maskPosition: "center",
                   WebkitMaskPosition: "center",
                   maskRepeat: "no-repeat",

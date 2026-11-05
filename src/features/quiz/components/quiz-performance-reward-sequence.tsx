@@ -73,6 +73,12 @@ export function QuizPerformanceRewardSequence({
   const scheduleStartedRef = useRef(false);
   const persistStartedSessionRef = useRef<string | null>(null);
   const startedCategoriesRef = useRef(new Set<RewardCategory>());
+  const arrivedPointsByCategoryRef = useRef<Record<RewardCategory, number>>({
+    accuracy: 0,
+    time: 0,
+    correct: 0,
+    learned: 0,
+  });
   const completedCategoriesRef = useRef(new Set<RewardCategory>());
   const sequenceTimerRef = useRef<number | null>(null);
   const exitTimerRef = useRef<number | null>(null);
@@ -243,12 +249,20 @@ export function QuizPerformanceRewardSequence({
     vibrate("result");
   }, []);
 
-  const handlePointsArrive = useCallback((amount: number) => {
-    if (exitingRef.current || amount <= 0) return;
-    setArrivedPoints((current) => current + amount);
+  const handlePointsArrive = useCallback((category: RewardCategory, cumulativeAmount: number) => {
+    if (exitingRef.current || cumulativeAmount <= 0) return;
+
+    // RewardScatter reports the category's cumulative amount on every arrival.
+    // Convert it to this flight's delta before adding it to the session total.
+    const previousAmount = arrivedPointsByCategoryRef.current[category];
+    if (cumulativeAmount <= previousAmount) return;
+
+    const flightAmount = cumulativeAmount - previousAmount;
+    arrivedPointsByCategoryRef.current[category] = cumulativeAmount;
+    setArrivedPoints((current) => current + flightAmount);
     setScorePulse((current) => current + 1);
     pulseElement(document.querySelector<HTMLElement>('[data-result-stat="points"]'));
-    onPointsArrive(amount);
+    onPointsArrive(flightAmount);
   }, [onPointsArrive]);
 
   const handlePointsComplete = useCallback((category: RewardCategory) => {
@@ -302,12 +316,12 @@ export function QuizPerformanceRewardSequence({
             startDelayMs: request.startDelayMs,
             iconSize: 30,
             zIndex: 270,
-            arrivalSoundEffect: false,
-            vibrateOnArrival: false,
+            arrivalSoundEffect: "points",
+            vibrateOnArrival: true,
           }}
           flightExit={exiting}
           onPointsStart={() => handlePointsStart(request.id)}
-          onPointsArrive={handlePointsArrive}
+          onPointsArrive={(amount) => handlePointsArrive(request.id, amount)}
           onPointsComplete={() => handlePointsComplete(request.id)}
         />
       ))}

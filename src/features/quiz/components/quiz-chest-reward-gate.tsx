@@ -214,7 +214,7 @@ const { locale } = useLocale();
                   )}
                 >
                   <Image
-                    src="/chests/crack.png"
+                    src="/chests/crack.webp"
                     alt=""
                     fill
                     sizes="(max-width: 640px) 98vw, 640px"

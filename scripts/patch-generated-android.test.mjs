@@ -111,6 +111,10 @@ describe("reproducible Android Firebase bootstrap", () => {
         "app",
       );
       const applicationSource = fs.readFileSync(path.join(packageJavaDir, "Application.java"), "utf8");
+      const nativeLoadingCatalogSource = fs.readFileSync(
+        path.join(packageJavaDir, "NativeLoadingCatalog.java"),
+        "utf8",
+      );
       const patchedGradle = fs.readFileSync(path.join(projectDir, "app", "build.gradle"), "utf8");
       const patchedManifest = fs.readFileSync(
         path.join(projectDir, "app", "src", "main", "AndroidManifest.xml"),
@@ -124,6 +128,9 @@ describe("reproducible Android Firebase bootstrap", () => {
       expect(applicationSource).toContain("package com.example.app;");
       expect(applicationSource).toContain("FirebaseApp.initializeApp(this);");
       expect(applicationSource).toContain("FirebaseAnalytics.Event.APP_OPEN");
+      expect(nativeLoadingCatalogSource).toContain("random.nextInt(index + 1)");
+      expect(nativeLoadingCatalogSource).toContain("Foxy is getting ready to open");
+      expect(nativeLoadingCatalogSource).toContain("new String[Math.min(8, candidates.length)]");
       expect(patchedGradle).toContain("id 'com.google.gms.google-services'");
       expect(patchedGradle).toContain("implementation 'com.google.firebase:firebase-analytics'");
       expect(patchedManifest).toContain('android:name="com.example.app.Application"');
@@ -186,6 +193,34 @@ describe("Native loading visual test mode", () => {
     expect(launcherSource).toContain("Foxies are stretching their tails...");
     expect(launcherSource).toContain("Cards are ready to play!");
     expect(launcherSource).toContain("int[] progress = {8, 24, 48, 60, 68, 76, 88, 100}");
+  });
+
+  it("passes eight cards into the native renderer and staggers their two groups", () => {
+    const launcherSource = fs.readFileSync(
+      path.join(PROJECT_ROOT, "scripts", "android-template", "LauncherActivity.java"),
+      "utf8",
+    );
+    const indicatorSource = fs.readFileSync(
+      path.join(PROJECT_ROOT, "scripts", "android-template", "NativeLoadingIndicatorView.java"),
+      "utf8",
+    );
+    const patcherSource = fs.readFileSync(
+      path.join(PROJECT_ROOT, "scripts", "patch-generated-android.mjs"),
+      "utf8",
+    );
+
+    expect(launcherSource).toContain('new String[]{"bacteria", "card", "efficiency", "courtesy", "abandon", "ability", "able", "about"}');
+    expect(launcherSource).toContain("int count = Math.min(8, cards.length());");
+    expect(indicatorSource).toContain("new PathInterpolator(0.68f, 0f, 0.32f, 1f)");
+    expect(indicatorSource).toContain("CARD_HOLD_DURATION_MS = 420L");
+    expect(indicatorSource).toContain("CARD_MOTION_DURATION_MS = 400L");
+    expect(indicatorSource).toContain("CARD_STAGGER_DURATION_MS = 130L");
+    expect(indicatorSource).toContain("float enterElapsedMs = elapsedMs");
+    expect(indicatorSource).not.toContain(
+      "drawLoadingCardAt(canvas, cardBounds, sourceIndex, -travelDistance * easedProgress);\n                drawLoadingCardAt",
+    );
+    expect(patcherSource).toContain(".slice(0, 8)");
+    expect(patcherSource).toContain("String[] translations = new String[8];");
   });
 });
 

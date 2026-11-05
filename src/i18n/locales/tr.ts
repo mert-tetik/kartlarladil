@@ -1088,7 +1088,7 @@ const dictionary = {
   "tutorial.cardModes.custom.description": "İstediğin kelime için kendi kartını oluştur.",
   "tutorial.cardModes.groups.title": "Belirli kategorilerden kelimeleri topluca ekle",
   "tutorial.cardModes.groups.description": "Konuya göre hazırlanmış kartları topluca ekle.",
-  "tutorial.landingCardsAction": "Şimdi \"Kartlar\" butonuna bas.",
+  "tutorial.landingCardsAction": "Ve şimdi de \"Kartlar\" butonuna bas.",
   "tutorial.landingCardsMessage": "Buradan koleksiyonundaki kelimeleri görebilirsin!",
   "tutorial.collectionMessageButton": "Anladım",
   "tutorial.cardCollectionPrompt": "Şimdi koleksiyonuna kelimeler ekle.",

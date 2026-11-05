@@ -245,6 +245,35 @@ function saveWebChoice() {
   window.sessionStorage.setItem(WEB_CHOICE_KEY, "true");
 }
 
+function replaceUrlWithoutQueryParams(paramsToRemove: readonly string[]) {
+  if (typeof window === "undefined") return;
+
+  const url = new URL(window.location.href);
+  let changed = false;
+
+  for (const param of paramsToRemove) {
+    if (!url.searchParams.has(param)) continue;
+    url.searchParams.delete(param);
+    changed = true;
+  }
+
+  if (!changed) return;
+
+  window.history.replaceState(
+    window.history.state,
+    "",
+    `${url.pathname}${url.search}${url.hash}`,
+  );
+}
+
+function clearCompletedAuthFlowParams() {
+  replaceUrlWithoutQueryParams([
+    MOBILE_GATEWAY_LOGIN_PARAM,
+    MOBILE_LOGIN_LANGUAGE_REFRESH_PARAM,
+    "showOffer",
+  ]);
+}
+
 export function MobileAuthGateway({ countryCode }: { countryCode: string | null }) {
   const { user, clearUser, isSessionReady } = useAuthSession();
   const { entitlements, isLoading: isEntitlementsLoading } = useSubscription();
@@ -290,12 +319,13 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
 
   const navigateHomeWithoutEntrance = useCallback(() => {
     const currentUrl = new URL(window.location.href);
+    clearCompletedAuthFlowParams();
+
     if (currentUrl.pathname !== "/") {
       skipNextRouteTransitionTo("/");
     }
-    if (currentUrl.pathname === "/" && !currentUrl.search && !currentUrl.hash) {
-      return;
-    }
+    if (currentUrl.pathname === "/") return;
+
     router.replace("/");
   }, [router]);
 
@@ -375,14 +405,13 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   );
   const needsOnboarding = Boolean(user && !hasCompletedOnboarding);
   const isAlreadySubscribed =
-    !isEntitlementsLoading && entitlements?.effectivePlan != null && entitlements.effectivePlan !== "free";
+    entitlements?.effectivePlan != null && entitlements.effectivePlan !== "free";
   const isOfferTriggered = searchParams.get("showOffer") === "1" || offerTriggered;
   const isRankUpTestMode = searchParams.get("rank-up-test") === "1" || searchParams.get("rank-up-test") === "true";
   const isOfferEligible = Boolean(
     user &&
     hasCompletedOnboarding &&
     !offerSeen &&
-    !isEntitlementsLoading &&
     isOfferTriggered &&
     !isAlreadySubscribed,
   );
@@ -416,10 +445,8 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   useEffect(() => {
     if (!mounted || !user || !shouldOpenMobileGatewayLogin) return;
 
-    const url = new URL(window.location.href);
-    url.searchParams.delete(MOBILE_GATEWAY_LOGIN_PARAM);
-    router.replace(`${url.pathname}${url.search}${url.hash}`);
-  }, [mounted, router, shouldOpenMobileGatewayLogin, user]);
+    replaceUrlWithoutQueryParams([MOBILE_GATEWAY_LOGIN_PARAM]);
+  }, [mounted, shouldOpenMobileGatewayLogin, user]);
 
   useEffect(() => {
     if (!mounted || !user || needsOnboarding) return;
@@ -461,6 +488,9 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     if (isOfferEligible || offerActive) return;
 
     loginFlowResumeConsumedRef.current = true;
+    setOfferSeen(true);
+    setOfferTriggered(false);
+    setOfferActive(false);
     activateTutorial();
     setResumeLoginFlowAfterLanguageRefresh(false);
     navigateHomeWithoutEntrance();
@@ -497,7 +527,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     setLogoutLoginRequested(false);
   }, [user]);
 
-  const shouldShowOffer = isOfferEligible || offerActive;
+  const shouldShowOffer = !isAlreadySubscribed && (isOfferEligible || offerActive);
   const shouldRenderOffer = Boolean(user && (shouldShowOffer || offerExitPending));
 
   const isPublicMobilePath = PUBLIC_MOBILE_PATHS.some(
@@ -518,6 +548,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       needsAuth ||
       needsOnboarding ||
       shouldRefreshLoginLanguages ||
+      resumeLoginFlowAfterLanguageRefresh ||
       shouldShowOffer ||
       isMobileResetPasswordPath ||
       isMobileUpdatePasswordPath ||
@@ -542,12 +573,8 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
 
   const shouldKeepBootstrapVisible = shouldKeepMobileGatewayBootstrapVisible({
     mounted,
-    isMobileViewport,
     isPublicMobilePath,
     isRankUpTestMode,
-    isOfferTriggered,
-    isEntitlementsLoading,
-    isLoginLanguageRefresh: shouldRefreshLoginLanguages,
   });
 
   useEffect(() => {
@@ -590,12 +617,13 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     window.sessionStorage.removeItem(MOBILE_LOGIN_TUTORIAL_RESET_KEY);
     // Prepare a fresh tutorial, but do not display it above the subscription offer.
     resetTutorial();
+    loginFlowResumeConsumedRef.current = false;
     setOnboardingCompletedInSession(true);
     setOfferTriggered(true);
-    setOfferActive(true);
-    if (searchParams.get(MOBILE_LOGIN_LANGUAGE_REFRESH_PARAM) === "1") {
-      router.replace("/?showOffer=1");
-    }
+    setOfferSeen(false);
+    setOfferActive(!isAlreadySubscribed);
+    setResumeLoginFlowAfterLanguageRefresh(true);
+    clearCompletedAuthFlowParams();
   }
 
   function handleLoginLanguageRefreshComplete() {
@@ -603,8 +631,11 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
     loginFlowResumeConsumedRef.current = false;
     setNeedsLoginLanguageRefresh(false);
     setResumeLoginFlowAfterLanguageRefresh(true);
+    setOfferTriggered(true);
+    setOfferSeen(false);
+    setOfferActive(!isAlreadySubscribed);
     resetTutorial();
-    router.replace("/?showOffer=1");
+    clearCompletedAuthFlowParams();
   }
 
   function handleContinueFree() {
@@ -748,6 +779,17 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
           transitionKey="subscription-offer"
         >
           <MobileSubscriptionOfferScreen onContinueFree={handleContinueFree} />
+        </GatewayShell>
+      );
+    } else if (resumeLoginFlowAfterLanguageRefresh) {
+      gateway = (
+        <GatewayShell
+          centered
+          isTestMode={isTestMode}
+          showBackground={false}
+          transitionKey="post-auth-flow-resume"
+        >
+          <MobilePasswordRecoveryLoading />
         </GatewayShell>
       );
     } else if (isIosTestMode && !hasChosenWeb) {

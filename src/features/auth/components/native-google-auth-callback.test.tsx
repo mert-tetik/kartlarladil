@@ -28,7 +28,7 @@ describe("NativeGoogleAuthCallback", () => {
     window.history.replaceState({}, "", "/?nativeAuthCode=oauth-code&nativeAuthNext=%2F%3FshowOffer%3D1");
   });
 
-  it("exchanges the callback code in the existing browser client without a page reload", async () => {
+  it("exchanges the callback code and updates the same route without a server navigation", async () => {
     mocks.exchangeCodeForSession.mockResolvedValue({ error: null });
 
     render(<NativeGoogleAuthCallback />);
@@ -38,7 +38,7 @@ describe("NativeGoogleAuthCallback", () => {
     });
 
     expect(mocks.exchangeCodeForSession).toHaveBeenCalledWith("oauth-code");
-    expect(window.location.search).toBe("");
-    expect(mocks.replace).toHaveBeenCalledWith("/?showOffer=1");
+    expect(window.location.search).toBe("?showOffer=1");
+    expect(mocks.replace).not.toHaveBeenCalled();
   });
 });

@@ -10,8 +10,9 @@ const CRITICAL_IMAGE_URLS = new Set([
   "/AppLogdfo.png",
   "/mascots/mascot1.webp",
   "/mascots/mascot5.webp",
-  "/mission-icon.png",
-  "/score-icon.png",
+  "/video-frame-atlases/tutorial-welcome/atlas-001.webp",
+  "/mission-icon-v20261006-2.webp",
+  "/score-icon.webp",
   "/splash.png",
   "/ai-characters/campus-friend.webp",
   "/ai-characters/friendly-worker.webp",
@@ -23,8 +24,8 @@ const CRITICAL_IMAGE_URLS = new Set([
   "/ai-characters/study-buddy.webp",
   "/ai-characters/warm-grandmother.webp",
   "/ai-characters/wise-elder.webp",
-  "/quiz/quiz-word-repetition-teacher.png",
-  "/quiz/quiz-word-repetition-teacher-1.png",
+  "/quiz/quiz-word-repetition-teacher.webp",
+  "/quiz/quiz-word-repetition-teacher-1.webp",
 ]);
 
 async function collectImages(directory) {

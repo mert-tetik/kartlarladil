@@ -191,7 +191,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "restaurant-order",
     characterId: "friendly-worker",
-    characterImageSrc: "/ai-characters/scenarios/restaurant-order-v2.png",
+    characterImageSrc: "/ai-characters/scenarios/restaurant-order-v2.webp",
     titleByLocale: {
       en: "Order at a restaurant",
       tr: "Restoranda sipariş ver",
@@ -231,7 +231,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "hotel-check-in",
     characterId: "gentle-companion",
-    characterImageSrc: "/ai-characters/scenarios/hotel-check-in-v2.png",
+    characterImageSrc: "/ai-characters/scenarios/hotel-check-in-v2.webp",
     titleByLocale: {
       en: "Check in at a hotel",
       tr: "Otele giriş yap",
@@ -271,7 +271,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "shopping-help",
     characterId: "campus-friend",
-    characterImageSrc: "/ai-characters/scenarios/shopping-help-v2.png",
+    characterImageSrc: "/ai-characters/scenarios/shopping-help-v2.webp",
     titleByLocale: {
       en: "Get help while shopping",
       tr: "Alışverişte yardım iste",
@@ -311,7 +311,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "job-interview",
     characterId: "wise-elder",
-    characterImageSrc: "/ai-characters/scenarios/job-interview-v2.png",
+    characterImageSrc: "/ai-characters/scenarios/job-interview-v2.webp",
     titleByLocale: {
       en: "Go to a job interview",
       tr: "İş görüşmesine katıl",
@@ -351,7 +351,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "doctor-visit",
     characterId: "warm-grandmother",
-    characterImageSrc: "/ai-characters/scenarios/doctor-visit-v2.png",
+    characterImageSrc: "/ai-characters/scenarios/doctor-visit-v2.webp",
     titleByLocale: {
       en: "Talk to a doctor",
       tr: "Doktorla konuş",
@@ -391,7 +391,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "asking-directions",
     characterId: "gothic-calm",
-    characterImageSrc: "/ai-characters/scenarios/asking-directions-v2.png",
+    characterImageSrc: "/ai-characters/scenarios/asking-directions-v2.webp",
     titleByLocale: {
       en: "Ask for directions",
       tr: "Yol tarifi iste",
@@ -431,7 +431,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "apartment-viewing",
     characterId: "wise-elder",
-    characterImageSrc: "/ai-characters/scenarios/apartment-viewing-v2.png",
+    characterImageSrc: "/ai-characters/scenarios/apartment-viewing-v2.webp",
     titleByLocale: {
       en: "View and rent an apartment",
       tr: "Ev kirala ve evi gör",
@@ -471,7 +471,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "pharmacy-help",
     characterId: "warm-grandmother",
-    characterImageSrc: "/ai-characters/scenarios/pharmacy-help-v2.png",
+    characterImageSrc: "/ai-characters/scenarios/pharmacy-help-v2.webp",
     titleByLocale: {
       en: "Ask for medicine at a pharmacy",
       tr: "Eczaneden ilaç iste",
@@ -511,7 +511,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "party-introduction",
     characterId: "campus-friend",
-    characterImageSrc: "/ai-characters/scenarios/party-introduction-v2.png",
+    characterImageSrc: "/ai-characters/scenarios/party-introduction-v2.webp",
     titleByLocale: {
       en: "Meet someone at a party",
       tr: "Partide biriyle tanış",
@@ -551,7 +551,7 @@ const SCENARIO_DATA: readonly AiPracticeScenario[] = [
   {
     id: "airport-check-in",
     characterId: "friendly-worker",
-    characterImageSrc: "/ai-characters/scenarios/airport-check-in-v2.png",
+    characterImageSrc: "/ai-characters/scenarios/airport-check-in-v2.webp",
     titleByLocale: {
       en: "Check in and pass security at the airport",
       tr: "Havaalanında check-in ve güvenlik",

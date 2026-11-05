@@ -3,7 +3,7 @@ import path from "node:path";
 import sharp from "sharp";
 
 const rawRoot = path.resolve("tmp/quiz-feedback-mascots-raw");
-const outputRoot = path.resolve("public/quiz-feedback-mascots-v1");
+const outputRoot = path.resolve("tmp/quiz-feedback-mascots-processed");
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));

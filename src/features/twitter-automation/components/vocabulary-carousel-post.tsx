@@ -11,11 +11,11 @@ type VocabularyCarouselPostProps = {
 };
 
 const TIER_BACKGROUND_IMAGES = {
-  A1: "/colored-backgrounds/green.png",
-  A2: "/colored-backgrounds/blue.png",
-  B1: "/colored-backgrounds/purple.png",
-  B2: "/colored-backgrounds/yellow.png",
-  C1: "/colored-backgrounds/red.png",
+  A1: "/colored-backgrounds/green.webp",
+  A2: "/colored-backgrounds/blue.webp",
+  B1: "/colored-backgrounds/purple.webp",
+  B2: "/colored-backgrounds/yellow.webp",
+  C1: "/colored-backgrounds/red.webp",
 } as const;
 
 const TIER_ACCENTS = {

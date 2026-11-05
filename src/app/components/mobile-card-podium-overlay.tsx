@@ -43,16 +43,16 @@ const CARD_PODIUM_SNAP_DURATION = 240;
 const PODIUM_CENTER_SLOT_INDEX = 4;
 const PODIUM_SLOT_OFFSETS = [-4, -3, -2, -1, 0, 1, 2, 3, 4] as const;
 const PODIUM_IMAGE_BY_TIER: Record<InventoryCardView["card"]["tier"], string> = {
-  A1: "/card-podiums/a1-green-v2.png",
-  A2: "/card-podiums/a2-turquoise-v2.png",
-  B1: "/card-podiums/b1-purple-v2.png",
-  B2: "/card-podiums/b2-orange-v2.png",
-  C1: "/card-podiums/c1-red-v2.png",
+  A1: "/card-podiums/a1-green-v2.webp",
+  A2: "/card-podiums/a2-turquoise-v2.webp",
+  B1: "/card-podiums/b1-purple-v2.webp",
+  B2: "/card-podiums/b2-orange-v2.webp",
+  C1: "/card-podiums/c1-red-v2.webp",
 };
 
 const CARD_STATUS_BADGE_BY_STATUS = {
-  active: "/card-status/kart_ogreniliyor_madalyasi.png",
-  learned: "/card-status/kart_ogrenildi_madalyasi.png",
+  active: "/card-status/kart_ogreniliyor_madalyasi.webp",
+  learned: "/card-status/kart_ogrenildi_madalyasi.webp",
 } as const;
 
 type ReviewSection = "active" | "learned";

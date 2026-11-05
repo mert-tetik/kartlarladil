@@ -7,6 +7,7 @@
  * Play Asset Pack.
  */
 import fs from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { runInNewContext } from "node:vm";
@@ -455,6 +456,9 @@ function buildNativeLoadingCatalogSource() {
   const cards = loadVocabularyCardsForNativeFallback();
   const languages = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"];
   const locales = languages;
+  const localizedStatusCopy = JSON.parse(
+    readFileSync(path.join(ROOT, "src", "features", "inventory", "native-loading-status-copy.json"), "utf8"),
+  );
   const titles = [
     "GÜNÜN KELİMELERİ",
     "WORDS OF THE DAY",
@@ -471,7 +475,7 @@ function buildNativeLoadingCatalogSource() {
     "오늘의 단어",
     "每日单词",
   ];
-  const statuses = [
+  const fallbackStatuses = [
     ["Foxie'ler kuyruklarını esnetiyor...", "Kart mağarası uyanıyor...", "Kelime destesi karıştırılıyor...", "Tilki misafir listesi kontrol ediliyor...", "Hoş geldin kapısı açılıyor!", "Kelime kapısı açılıyor...", "Rahat çevrimdışı yoluna geçiliyor...", "Kartlar oynamaya hazır!"],
     ["Foxies are stretching their tails...", "Waking up the card cave...", "Shuffling the word deck...", "Checking the foxie guest list...", "Opening the welcome gate!", "Opening the word door...", "Taking the cozy offline path...", "Cards are ready to play!"],
     ["Die Foxies strecken ihre Schwänze...", "Die Kartenhöhle wacht auf...", "Das Wortdeck wird gemischt...", "Die Foxie-Gästeliste wird geprüft...", "Das Willkommenstor öffnet sich!", "Die Worttür wird geöffnet...", "Der gemütliche Offline-Weg beginnt...", "Die Karten sind spielbereit!"],
@@ -487,10 +491,17 @@ function buildNativeLoadingCatalogSource() {
     ["여우들이 꼬리를 쭉 펴고 있어요...", "카드 동굴이 깨어나고 있어요...", "단어 덱을 섞고 있어요...", "여우 손님 목록을 확인해요...", "환영의 문을 열어요!", "단어 문을 열고 있어요...", "편안한 오프라인 길로 가고 있어요...", "카드가 플레이할 준비를 마쳤어요!"],
     ["小狐狸正在伸展尾巴...", "卡片洞穴正在苏醒...", "正在洗牌单词卡组...", "正在检查小狐狸的客人名单...", "欢迎大门打开啦！", "正在打开单词之门...", "正在走上舒适的离线路...", "卡片已经准备好玩啦！"],
   ];
+  const statuses = locales.map((locale, index) => {
+    const messages = localizedStatusCopy[locale] ?? fallbackStatuses[index];
+    if (!Array.isArray(messages) || messages.length < 8 || messages.some((message) => typeof message !== "string" || !message.trim())) {
+      throw new Error(`Native loading status copy must contain at least eight non-empty ${locale} messages.`);
+    }
+    return messages;
+  });
   const cardsByLanguage = languages.map((language) => {
     const languageCards = cards
       .filter((card) => card.language === language && card.termKind === "word")
-      .slice(0, 4)
+      .slice(0, 8)
       .map((card) => ({
         term: card.term,
         pronunciation: card.pronunciation || card.term,
@@ -499,8 +510,8 @@ function buildNativeLoadingCatalogSource() {
         translations: locales.map((locale) => card.translations[locale] || card.term),
       }));
 
-    if (languageCards.length < 4) {
-      throw new Error(`The vocabulary catalog does not contain four ${language} word cards for native loading fallback.`);
+    if (languageCards.length < 8) {
+      throw new Error(`The vocabulary catalog does not contain eight ${language} word cards for native loading fallback.`);
     }
     return languageCards;
   });
@@ -544,7 +555,7 @@ ${translations.map((languageTranslations) => `        {\n${languageTranslations.
     static void applyFallback(NativeLoadingIndicatorView view, String learningLanguage, String uiLocale) {
         int languageIndex = indexOf(LANGUAGES, learningLanguage, 1);
         int localeIndex = indexOf(LOCALES, getStudyLocale(LANGUAGES[languageIndex], uiLocale), 0);
-        String[] translations = new String[4];
+        String[] translations = new String[8];
         for (int index = 0; index < translations.length; index++) {
             translations[index] = TRANSLATIONS[languageIndex][index][localeIndex];
         }
@@ -559,7 +570,17 @@ ${translations.map((languageTranslations) => `        {\n${languageTranslations.
     }
 
     static String[] getStatuses(String uiLocale) {
-        return STATUSES[indexOf(LOCALES, uiLocale, 1)];
+        String[] candidates = STATUSES[indexOf(LOCALES, uiLocale, 1)].clone();
+        java.util.Random random = new java.util.Random();
+        for (int index = candidates.length - 1; index > 0; index--) {
+            int randomIndex = random.nextInt(index + 1);
+            String temporary = candidates[index];
+            candidates[index] = candidates[randomIndex];
+            candidates[randomIndex] = temporary;
+        }
+        String[] selected = new String[Math.min(8, candidates.length)];
+        System.arraycopy(candidates, 0, selected, 0, selected.length);
+        return selected;
     }
 
     static String getTitle(String uiLocale) {

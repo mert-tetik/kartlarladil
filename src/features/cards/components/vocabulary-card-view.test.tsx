@@ -175,6 +175,7 @@ describe("VocabularyCardView", () => {
     );
 
     expect(container.querySelector("[data-card-progress]")).toHaveTextContent("1/4");
+    expect(screen.queryByRole("button", { name: `${testCard.term} Sor` })).not.toBeInTheDocument();
     expect(screen.getByTestId("card-pronunciation")).toBeVisible();
     expect(screen.getByTestId("card-reference-example")).toBeVisible();
   });
@@ -198,6 +199,16 @@ describe("VocabularyCardView", () => {
     expect(container.querySelector("[data-card-progress][role='progressbar']")).toHaveAttribute("aria-valuenow", "2");
     expect(container.querySelector("[data-card-progress]")).toHaveAttribute("data-progress-animation-active", "true");
     expect(container.querySelector("[data-card-progress] [data-progress-indicator-overlay]")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: `${testCard.term} Sor` })).not.toBeInTheDocument();
+  });
+
+  it("does not render the ask button in the progress badge corner when only footer progress is supplied", () => {
+    const { container } = renderCard(
+      <VocabularyCardView card={testCard} footerProgressCount={1} />,
+    );
+
+    expect(container.querySelector("[data-card-progress]")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: `${testCard.term} Sor` })).not.toBeInTheDocument();
   });
 
   it("opens the ask overlay with the card language and term", async () => {

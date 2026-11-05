@@ -1015,7 +1015,7 @@ const dictionary = {
   "tutorial.cardModes.custom.description": "为你想要的任何单词创建专属卡片。",
   "tutorial.cardModes.groups.title": "批量添加特定类别的单词",
   "tutorial.cardModes.groups.description": "一次性添加完整的主题卡片分组。",
-  "tutorial.landingCardsAction": "现在点击“卡片”按钮。",
+  "tutorial.landingCardsAction": "现在，点击“卡片”按钮。",
   "tutorial.landingCardsMessage": "你可以在这里查看收藏中的单词！",
   "tutorial.collectionMessageButton": "明白了",
   "tutorial.cardCollectionPrompt": "现在把一些单词添加到你的收藏中吧。",

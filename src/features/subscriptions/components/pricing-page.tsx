@@ -83,22 +83,22 @@ const PRICING_PURCHASE_BUTTON_CLASS =
   "relative isolate overflow-hidden !bg-transparent !text-white hover:brightness-105";
 const PRICING_PURCHASE_CTA_CLASS = "h-16 !text-2xl";
 
-const PRICING_ACTIVE_BUTTON_IMAGE = "/pricing-buttons/pricing-active-button-v2.png";
+const PRICING_ACTIVE_BUTTON_IMAGE = "/pricing-buttons/pricing-active-button-v2.webp";
 const PRICING_PLAN_BUTTON_IMAGES: Record<Exclude<SubscriptionPlan, "free">, { src: string; width: number; height: number }> = {
   basic: {
-    src: "/subscriptions/plan-basic-v2.png",
+    src: "/subscriptions/plan-basic-v2.webp",
     width: 1489,
     height: 450,
   },
   pro: {
-    src: "/subscriptions/plan-pro-v2.png",
+    src: "/subscriptions/plan-pro-v2.webp",
     width: 1338,
     height: 511,
   },
 };
 const PRICING_PLAN_BUTTON_BACKGROUND_IMAGES: Record<Exclude<SubscriptionPlan, "free">, string> = {
-  basic: "/pricing-buttons/pricing-pro-basic-button-v2.png",
-  pro: "/pricing-buttons/pricing-pro-active-button-v2.png",
+  basic: "/pricing-buttons/pricing-pro-basic-button-v2.webp",
+  pro: "/pricing-buttons/pricing-pro-active-button-v2.webp",
 };
 
 const ACTIVE_SUBSCRIPTION_SURFACE_CLASS: Record<Exclude<SubscriptionPlan, "free">, string> = {
@@ -352,8 +352,8 @@ function ActiveSubscriptionPricingView({
 }) {
   const t = useT();
   const planImage = plan === "basic"
-    ? { src: "/subscriptions/plan-basic-v2.png", width: 1489, height: 450 }
-    : { src: "/subscriptions/plan-pro-v2.png", width: 1338, height: 511 };
+    ? { src: "/subscriptions/plan-basic-v2.webp", width: 1489, height: 450 }
+    : { src: "/subscriptions/plan-pro-v2.webp", width: 1338, height: 511 };
   const usesSuperWater = canUseSuperWater(locale);
 
   return (
@@ -518,8 +518,8 @@ function PricingDotsBackground({ plan }: { plan: Exclude<SubscriptionPlan, "free
       className="pointer-events-none absolute inset-0 z-0 opacity-30"
       style={{
         backgroundColor: plan === "basic" ? "#2563eb" : "#9333ea",
-        maskImage: "url('/pricing-page-dots.png')",
-        WebkitMaskImage: "url('/pricing-page-dots.png')",
+        maskImage: "url('/pricing-page-dots.webp')",
+        WebkitMaskImage: "url('/pricing-page-dots.webp')",
         maskRepeat: "repeat",
         WebkitMaskRepeat: "repeat",
         maskSize: "auto",
@@ -1423,7 +1423,7 @@ function SubscriptionDetailsFrameAnimation({
       (_, index) => {
         const image = new window.Image();
         image.decoding = "async";
-        image.src = `${frameBasePath}/${index + 1}.png`;
+        image.src = `${frameBasePath}/${index + 1}.webp`;
         return image;
       },
     );
@@ -1488,7 +1488,7 @@ function SubscriptionDetailsFrameAnimation({
       {/* Frame animation intentionally swaps a new image every frame; next/image optimization adds avoidable latency. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={`${frameBasePath}/${frameIndex}.png`}
+        src={`${frameBasePath}/${frameIndex}.webp`}
         alt=""
         draggable={false}
         style={{ filter: "none" }}
@@ -1634,49 +1634,49 @@ function getMobileOptionPriceValue({
 const MOBILE_PERK_ARTWORK = [
   {
     id: "new-cards",
-    image: "/pricing-perks/learn-cards-transparent.png",
+    image: "/pricing-perks/learn-cards-transparent.webp",
     titleKey: "pricing.featureCards",
     descriptionKey: "pricing.featureCardsDescription",
   },
   {
     id: "learn-cards",
-    image: "/pricing-perks/new-cards-transparent.png",
+    image: "/pricing-perks/new-cards-transparent.webp",
     titleKey: "pricing.featureLearned",
     descriptionKey: "pricing.featureLearnedDescription",
   },
   {
     id: "review-cards",
-    image: "/pricing-perks/review-cards2-transparent.png",
+    image: "/pricing-perks/review-cards2-transparent.webp",
     titleKey: "pricing.featureLearnedReview",
     descriptionKey: "pricing.featureLearnedReviewDescription",
   },
   {
     id: "games",
-    image: "/pricing-perks/games-transparent.png",
+    image: "/pricing-perks/games-transparent.webp",
     titleKey: "pricing.featureGames",
     descriptionKey: "pricing.featureGamesDescription",
   },
   {
     id: "practice",
-    image: "/pricing-perks/practice-transparent.png",
+    image: "/pricing-perks/practice-transparent.webp",
     titleKey: "nav.aiPractice",
     descriptionKey: "pricing.featureAiDaily",
   },
   {
     id: "themes",
-    image: "/pricing-perks/themes2-transparent.png",
+    image: "/pricing-perks/themes2-transparent.webp",
     titleKey: "pricing.featureThemes",
     descriptionKey: "pricing.featureThemesDescription",
   },
   {
     id: "priority-support",
-    image: "/pricing-perks/priority-support-transparent.png",
+    image: "/pricing-perks/priority-support-transparent.webp",
     titleKey: "pricing.featurePrioritySupport",
     descriptionKey: "pricing.featurePrioritySupportDescription",
   },
   {
     id: "scenario-ai",
-    image: "/pricing-perks/durum-ai-practice-transparent.png",
+    image: "/pricing-perks/durum-ai-practice-transparent.webp",
     titleKey: "pricing.featureAiScenarios",
     descriptionKey: "pricing.featureAiScenariosDescription",
   },
@@ -1685,7 +1685,7 @@ const MOBILE_PERK_ARTWORK = [
 const PRO_MOBILE_PERK_ARTWORK = [
   {
     id: "unlimited-text-translation",
-    image: "/pricing-perks/unlimited-text-translation.png",
+    image: "/pricing-perks/unlimited-text-translation.webp",
     titleKey: "pricing.featureUnlimitedTextTranslation",
     descriptionKey: "pricing.featureUnlimitedTextTranslation",
   },

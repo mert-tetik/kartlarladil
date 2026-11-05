@@ -13,11 +13,11 @@ interface MemoryCardProps {
 }
 
 const MEMORY_CARD_BACKGROUNDS = {
-  A1: "/game-backgrounds/memory-cards/A1.png",
-  A2: "/game-backgrounds/memory-cards/A2.png",
-  B1: "/game-backgrounds/memory-cards/B1.png",
-  B2: "/game-backgrounds/memory-cards/B2.png",
-  C1: "/game-backgrounds/memory-cards/C1.png",
+  A1: "/game-backgrounds/memory-cards/A1.webp",
+  A2: "/game-backgrounds/memory-cards/A2.webp",
+  B1: "/game-backgrounds/memory-cards/B1.webp",
+  B2: "/game-backgrounds/memory-cards/B2.webp",
+  C1: "/game-backgrounds/memory-cards/C1.webp",
 } as const;
 
 export function MemoryCard({ item, onClick, disabled, revealAll }: MemoryCardProps) {
