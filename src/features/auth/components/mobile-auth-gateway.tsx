@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import type { ReactNode } from "react";
+import { cloneElement, Component } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { MobileAppChoiceScreen } from "@/features/auth/components/mobile-app-choice-screen";
@@ -14,6 +15,7 @@ import { MobilePasswordRecoveryLoading } from "@/features/auth/components/mobile
 import { MobileGoogleAuthLoading } from "@/features/auth/components/mobile-google-auth-loading";
 import {
   GatewayFlowTransition,
+  GATEWAY_FLOW_EXIT_DURATION_MS,
   type GatewayFlowPhase,
 } from "@/features/auth/components/gateway-flow-transition";
 import { SERIOUS_LEARNER_EXIT_UNMOUNT_DELAY_MS } from "@/features/auth/serious-learner-animation";
@@ -84,6 +86,18 @@ function OnboardingBackground({ className }: { className?: string }) {
   );
 }
 
+type GatewayShellProps = {
+  children: ReactNode;
+  isTestMode: boolean;
+  transitionKey: string;
+  isExiting?: boolean;
+  centered?: boolean;
+  showBackground?: boolean;
+  fullBleed?: boolean;
+  transparentBackground?: boolean;
+  flowButtonSound?: "auth";
+};
+
 function GatewayShell({
   children,
   isTestMode,
@@ -94,17 +108,7 @@ function GatewayShell({
   fullBleed = false,
   transparentBackground = false,
   flowButtonSound,
-}: {
-  children: ReactNode;
-  isTestMode: boolean;
-  transitionKey: string;
-  isExiting?: boolean;
-  centered?: boolean;
-  showBackground?: boolean;
-  fullBleed?: boolean;
-  transparentBackground?: boolean;
-  flowButtonSound?: "auth";
-}) {
+}: GatewayShellProps) {
   const contentPanelRef = useRef<HTMLDivElement | null>(null);
   const [flowPhase, setFlowPhase] = useState<GatewayFlowPhase>("enter");
   const [displayedLayout, setDisplayedLayout] = useState(() => ({ centered, showBackground, fullBleed }));
@@ -164,15 +168,22 @@ function GatewayShell({
   return (
     <div
       data-mobile-auth-gateway
+      data-gateway-shell-closing={isExiting ? "true" : "false"}
+      data-gateway-shell-opaque={transparentBackground ? "false" : "true"}
       data-tap-vibration="firm"
       data-flow-button-sound={flowButtonSound}
       className={cn(
         "fixed inset-0 isolate overflow-hidden",
-        transparentBackground ? "z-[220] bg-transparent" : "z-[100] bg-background",
+        transparentBackground ? "z-[220] bg-transparent" : "z-[100]",
         !isTestMode && "max-lg:block lg:hidden",
         flowPhase === "exit" ? "gateway-flow-shell--exit" : "gateway-flow-shell--enter",
       )}
     >
+      <div
+        aria-hidden="true"
+        data-gateway-shell-backdrop
+        className={cn("pointer-events-none absolute inset-0 z-0", !transparentBackground && "bg-background")}
+      />
       {(displayedLayout.centered || displayedLayout.fullBleed) && displayedLayout.showBackground ? (
         <OnboardingBackground className="absolute inset-x-0 top-0 z-0 h-1/2" />
       ) : null}
@@ -210,6 +221,76 @@ function GatewayShell({
       )}
     </div>
   );
+}
+
+type GatewayPresenceProps = {
+  gateway: ReactElement<GatewayShellProps> | null;
+};
+
+type GatewayPresenceState = {
+  retainedGateway: ReactElement<GatewayShellProps> | null;
+  shouldFadeOnClose: boolean;
+  isClosing: boolean;
+};
+
+class GatewayPresence extends Component<GatewayPresenceProps, GatewayPresenceState> {
+  state: GatewayPresenceState = {
+    retainedGateway: this.props.gateway,
+    shouldFadeOnClose: Boolean(this.props.gateway && !this.props.gateway.props.transparentBackground),
+    isClosing: false,
+  };
+
+  private closeTimer: number | null = null;
+
+  static getDerivedStateFromProps(
+    props: GatewayPresenceProps,
+    state: GatewayPresenceState,
+  ): Partial<GatewayPresenceState> | null {
+    if (props.gateway) {
+      if (props.gateway === state.retainedGateway && !state.isClosing) return null;
+
+      return {
+        retainedGateway: props.gateway,
+        shouldFadeOnClose: !props.gateway.props.transparentBackground,
+        isClosing: false,
+      };
+    }
+
+    if (state.isClosing || !state.retainedGateway) return null;
+    if (state.shouldFadeOnClose) return { isClosing: true };
+    return { retainedGateway: null, shouldFadeOnClose: false };
+  }
+
+  componentDidUpdate(_previousProps: GatewayPresenceProps, previousState: GatewayPresenceState) {
+    if (this.props.gateway) {
+      this.clearCloseTimer();
+      return;
+    }
+
+    if (this.state.isClosing && !previousState.isClosing) {
+      this.closeTimer = window.setTimeout(() => {
+        this.closeTimer = null;
+        this.setState({ retainedGateway: null, shouldFadeOnClose: false, isClosing: false });
+      }, GATEWAY_FLOW_EXIT_DURATION_MS + 50);
+    }
+  }
+
+  componentWillUnmount() {
+    this.clearCloseTimer();
+  }
+
+  private clearCloseTimer() {
+    if (this.closeTimer === null) return;
+    window.clearTimeout(this.closeTimer);
+    this.closeTimer = null;
+  }
+
+  render() {
+    const gateway = this.props.gateway ?? this.state.retainedGateway;
+    if (!gateway) return null;
+
+    return this.state.isClosing ? cloneElement(gateway, { isExiting: true }) : gateway;
+  }
 }
 
 const WEB_CHOICE_KEY = "foxiesdeck:mobile-web-choice";
@@ -851,7 +932,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
 
   return (
     <>
-      {gateway}
+      <GatewayPresence gateway={gateway as ReactElement<GatewayShellProps> | null} />
       {isPublicMobilePath || isNativeShell || isForcedMobileLogin || bootstrapPhase === "hidden" ? null : (
         <MobileGatewayBootstrap phase={bootstrapPhase} />
       )}

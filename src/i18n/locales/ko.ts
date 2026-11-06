@@ -594,6 +594,7 @@ const dictionary = {
   "quiz.noPracticeLanguagesDescription": "학습 페이지에서는 현재 사이트 언어와 같은 언어를 연습할 수 없습니다. 다른 언어 카드를 추가하거나 학습 페이지 밖에서 사이트 언어를 바꾸세요.",
   "quiz.noPracticeLanguagesTitle": "현재 사이트 언어로는 연습할 언어가 없습니다",
   "quiz.continue": "계속하기",
+  "quiz.missionRewardsTitle": "미션 보상 받기",
   "quiz.congratulations": "축하합니다!",
   "quiz.feedbackContinue": "계속",
   "quiz.correctAnswer": "정답",

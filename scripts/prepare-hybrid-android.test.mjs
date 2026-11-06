@@ -16,12 +16,17 @@ describe("offline Android media requirements", () => {
       .toThrow("/flags/language/ja.png");
   });
 
-  it("requires the tutorial welcome atlas in the install-time Android media pack", () => {
+  it("requires every tutorial welcome frame in the install-time Android media pack", () => {
+    const tutorialFrames = REQUIRED_OFFLINE_MEDIA_URLS.filter(
+      (url) => url.startsWith("/mascots/tutorial-welcome/frames/"),
+    );
+    expect(tutorialFrames).toHaveLength(97);
+
     const incompleteMedia = REQUIRED_OFFLINE_MEDIA_URLS.filter(
-      (url) => url !== "/video-frame-atlases/tutorial-welcome/atlas-013.webp",
+      (url) => url !== "/mascots/tutorial-welcome/frames/frame-048.webp",
     );
 
     expect(() => assertRequiredOfflineMedia(incompleteMedia))
-      .toThrow("/video-frame-atlases/tutorial-welcome/atlas-013.webp");
+      .toThrow("/mascots/tutorial-welcome/frames/frame-048.webp");
   });
 });

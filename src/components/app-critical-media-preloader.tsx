@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { preloadVideoFrameAtlas } from "@/components/video-frame-atlas-player";
+import { preloadWebpFrameSequence } from "@/components/webp-frame-sequence-player";
 import { preloadQuizCriticalMedia } from "@/features/quiz/quiz-video-preload";
 
 export function AppCriticalMediaPreloader() {
@@ -17,7 +17,7 @@ export function AppCriticalMediaPreloader() {
     };
 
     const startupFailsafe = window.setTimeout(startQuizPreload, 2500);
-    void preloadVideoFrameAtlas("tutorial-welcome", 2).finally(() => {
+    void preloadWebpFrameSequence("tutorial-welcome", 16).finally(() => {
       window.clearTimeout(startupFailsafe);
       startQuizPreload();
     });

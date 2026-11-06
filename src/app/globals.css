@@ -1274,6 +1274,21 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   will-change: opacity;
 }
 
+[data-gateway-shell-closing="true"][data-gateway-shell-opaque="true"] [data-gateway-shell-backdrop] {
+  animation: gateway-flow-shell-backdrop-exit 360ms cubic-bezier(0.85, 0, 0.15, 1) both;
+  will-change: opacity;
+}
+
+@keyframes gateway-flow-shell-backdrop-exit {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
 [data-gateway-flow-order="0"] {
   --gateway-flow-delay: 0ms;
   --gateway-flow-exit-delay: 180ms;
@@ -3484,6 +3499,10 @@ body [data-card-progress][data-progress-complete="true"] {
     animation-duration: 1ms;
   }
 
+  [data-gateway-shell-closing="true"][data-gateway-shell-opaque="true"] [data-gateway-shell-backdrop] {
+    opacity: 0;
+  }
+
   ::view-transition-old(root),
   ::view-transition-new(root) {
     animation: none;
@@ -3502,6 +3521,7 @@ body [data-card-progress][data-progress-complete="true"] {
   .gateway-flow-shell--exit [data-gateway-flow-visual],
   .gateway-flow-transition--enter [data-gateway-flow-visual],
   .gateway-flow-transition--exit [data-gateway-flow-visual],
+  [data-gateway-shell-closing="true"] [data-gateway-shell-backdrop],
   .animate-bonus-reward-pulse,
   .animate-bonus-reward-source-exit,
   .animate-bonus-sentence-token-enter,

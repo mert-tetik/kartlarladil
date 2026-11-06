@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createChestRewardPreview } from "@/features/gems/chest-reward-preview";
 import { CHEST_TIERS } from "@/features/quiz/chest-rewards";
 import { MissionRewardOverlay } from "./mission-reward-overlay";
 import { MissionDetailsOverlay, type MissionDetailsData } from "./mission-details-overlay";
 import { MissionCard } from "./mission-card";
 import { createMissionTestViewModels, type MissionTestViewModel } from "../mission-test-fixtures";
+import { useMissionDisplayOrder } from "../use-mission-display-order";
 import {
   completeMissionRewardAnimation,
   enqueueMissionRewardAnimation,
@@ -15,8 +16,24 @@ import {
   type MissionRewardAnimationMode,
 } from "../mission-reward-queue";
 
-export function MissionTestList({ seed }: { seed: number }) {
-  const [missions, setMissions] = useState<MissionTestViewModel[]>(() => createMissionTestViewModels(seed));
+interface MissionTestListProps {
+  seed: number;
+  claimableCount?: number;
+  claimableFirst?: boolean;
+  visible?: boolean;
+  onPendingChange?: (pending: boolean) => void;
+}
+
+export function MissionTestList({
+  seed,
+  claimableCount,
+  claimableFirst = false,
+  visible = true,
+  onPendingChange,
+}: MissionTestListProps) {
+  const [missions, setMissions] = useState<MissionTestViewModel[]>(() => (
+    createMissionTestViewModels(seed, claimableCount === undefined ? undefined : { claimableCount })
+  ));
   const [pendingMissionIds, setPendingMissionIds] = useState<Set<string>>(() => new Set());
   const pendingMissionIdsRef = useRef(new Set<string>());
   const [rewardQueue, setRewardQueue] = useState<MissionRewardAnimationEntry[]>([]);
@@ -25,6 +42,14 @@ export function MissionTestList({ seed }: { seed: number }) {
     sourceRect: DOMRect;
   } | null>(null);
   const rewardModes = getMissionRewardOverlayModes(rewardQueue);
+  const displayMissions = useMissionDisplayOrder(missions, {
+    enabled: claimableFirst,
+    visible,
+  });
+
+  useEffect(() => {
+    onPendingChange?.(rewardQueue.length > 0 || pendingMissionIds.size > 0);
+  }, [onPendingChange, pendingMissionIds.size, rewardQueue.length]);
 
   const handleClaim = useCallback((missionId: string, source?: DOMRect) => {
     if (pendingMissionIdsRef.current.has(missionId)) return;
@@ -107,7 +132,7 @@ export function MissionTestList({ seed }: { seed: number }) {
       className="flex min-w-0 flex-col"
     >
       <div className="grid grid-cols-2 gap-0 pb-8">
-        {missions.map((mission) => (
+        {displayMissions.map((mission) => (
           <MissionCard
             key={mission.missionId}
             missionId={mission.missionId}

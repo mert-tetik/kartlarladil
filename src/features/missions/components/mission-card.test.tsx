@@ -52,6 +52,7 @@ describe("MissionCard optimistic claim state", () => {
     );
 
     const card = screen.getByRole("button");
+    expect(card).not.toHaveClass("border", "border-white/15");
     expect(card).toHaveAttribute("data-mission-reward-kind", "gems");
     expect(card).toHaveAttribute("data-mission-reward-gem-type", "green");
     expect(card).toHaveAttribute("data-mission-reward-gem-amount", "4");

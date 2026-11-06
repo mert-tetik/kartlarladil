@@ -594,6 +594,7 @@ const dictionary = {
   "quiz.noPracticeLanguagesDescription": "Na stronie Nauki nie moÅ¼esz Ä‡wiczyÄ‡ tego samego jÄ™zyka co aktualny jÄ™zyk strony. Dodaj karty w innym jÄ™zyku albo zmieÅ„ jÄ™zyk strony poza stronÄ… Nauki.",
   "quiz.noPracticeLanguagesTitle": "Brak jÄ™zyków do Ä‡wiczeÅ„ dla tego jÄ™zyka strony",
   "quiz.continue": "Kontynuuj",
+  "quiz.missionRewardsTitle": "Odbierz nagrody za misje",
   "quiz.congratulations": "Gratulacje!",
   "quiz.feedbackContinue": "Dalej",
   "quiz.correctAnswer": "Poprawna odpowiedÅº",

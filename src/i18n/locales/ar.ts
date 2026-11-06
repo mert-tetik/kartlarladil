@@ -594,6 +594,7 @@ const dictionary = {
   "quiz.noPracticeLanguagesDescription": "في صفحة التعلّم لا يمكنك التدرب على نفس لغة الموقع الحالية. أضف بطاقات بلغة أخرى أو غيّر لغة الموقع خارج صفحة التعلّم.",
   "quiz.noPracticeLanguagesTitle": "لا توجد لغة تدريب متاحة مع لغة الموقع الحالية",
   "quiz.continue": "استمر",
+  "quiz.missionRewardsTitle": "استلم مكافآت المهام",
   "quiz.congratulations": "تهانينا!",
   "quiz.feedbackContinue": "متابعة",
   "quiz.correctAnswer": "الإجابة الصحيحة",

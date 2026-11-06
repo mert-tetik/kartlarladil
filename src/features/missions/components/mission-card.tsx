@@ -172,7 +172,7 @@ export function MissionCard({
         backgroundImage: getMissionCardBackground(index, false, reward),
       }}
       className={cn(
-        "relative flex min-w-0 flex-col overflow-visible border border-white/15 px-3 py-3 text-center text-white shadow-none transition-transform duration-300 ease-out outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-white",
+        "relative flex min-w-0 flex-col overflow-visible px-3 py-3 text-center text-white shadow-none transition-transform duration-300 ease-out outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-white",
         isClaimed && "mission-card--claimed",
         canUseSuperWater(locale) && "font-super-water",
         isClickable && "cursor-pointer active:scale-[0.98]",

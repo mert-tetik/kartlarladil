@@ -110,6 +110,10 @@ const nextConfig: NextConfig = {
         search: "?v=20261104-webp-frames-1",
       },
       {
+        pathname: "/mascots/tutorial-welcome/frames/**",
+        search: "?v=20261104-webp-frames-1",
+      },
+      {
         pathname: "/mascots/tutorial-welcome/last-frame.webp",
         search: "?v=20261104-webp-frames-1",
       },

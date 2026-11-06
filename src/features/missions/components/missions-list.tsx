@@ -17,6 +17,7 @@ import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { listUserMissionsAction } from "@/features/missions/mission-actions";
 import { enqueueMissionClaim, resumePendingMissionClaims } from "@/features/missions/mission-claim-queue";
 import { buildMissionViewModels } from "@/features/missions/mission-progress";
+import { useMissionDisplayOrder } from "@/features/missions/use-mission-display-order";
 import { useMissionClaimStore } from "@/features/missions/mission-claim-store";
 import { MISSIONS } from "@/features/missions/missions-data";
 import { CHEST_TIERS } from "@/features/quiz/chest-rewards";
@@ -47,10 +48,26 @@ export interface MissionViewModel extends UserMission {
   requirement: number;
 }
 
-export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (target: MissionNavigationTarget) => void }) {
+export interface MissionsListProps {
+  onMissionNavigate?: (target: MissionNavigationTarget) => void;
+  claimableFirst?: boolean;
+  visible?: boolean;
+  redirectWhenSignedOut?: boolean;
+  onInitialClaimableAvailabilityResolved?: (hasClaimableMissions: boolean) => void;
+  onPendingChange?: (pending: boolean) => void;
+}
+
+export function MissionsList({
+  onMissionNavigate,
+  claimableFirst = false,
+  visible = true,
+  redirectWhenSignedOut = true,
+  onInitialClaimableAvailabilityResolved,
+  onPendingChange,
+}: MissionsListProps) {
   const t = useT();
   const router = useRouter();
-  const { user, updateProfileField } = useAuthSession();
+  const { user, isSessionReady, updateProfileField } = useAuthSession();
   const cards = useInventoryStore((state) => state.cards);
   const hydrated = useInventoryStore((state) => state.hydrated);
   const getGameProgress = useGameProgressStore((state) => state.getProgress);
@@ -70,7 +87,19 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
     sourceRect: DOMRect;
   } | null>(null);
   const hasResumedPendingClaimsRef = useRef(false);
+  const initialAvailabilityResolvedRef = useRef(false);
+  const availabilityCallbackRef = useRef(onInitialClaimableAvailabilityResolved);
   const rewardModes = getMissionRewardOverlayModes(rewardQueue);
+
+  useEffect(() => {
+    availabilityCallbackRef.current = onInitialClaimableAvailabilityResolved;
+  }, [onInitialClaimableAvailabilityResolved]);
+
+  const reportInitialAvailability = useCallback((hasClaimableMissions: boolean) => {
+    if (initialAvailabilityResolvedRef.current) return;
+    initialAvailabilityResolvedRef.current = true;
+    availabilityCallbackRef.current?.(hasClaimableMissions);
+  }, []);
 
   function handleMissionNavigate(target: MissionNavigationTarget) {
     if (onMissionNavigate) {
@@ -110,6 +139,10 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
     },
     [historicalRewards, snapshot, claimedIds, user?.id],
   );
+  const displayMissions = useMissionDisplayOrder(missions, {
+    enabled: claimableFirst,
+    visible,
+  });
 
   const syncMissions = useCallback(async () => {
     if (!user) return;
@@ -117,6 +150,7 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
     const result = await listUserMissionsAction(snapshot);
 
     if (result.status === "success") {
+      reportInitialAvailability(result.missions.some((item) => item.status === "waiting"));
       const rewards = Object.fromEntries(
         result.missions
           .filter((item) => item.status === "claimed")
@@ -128,16 +162,25 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
         user.id,
       );
     } else if (result.message === "auth_required") {
-      navigateWithRouteTransition(() => router.replace("/login?next=/missions"));
+      reportInitialAvailability(false);
+      if (redirectWhenSignedOut) {
+        navigateWithRouteTransition(() => router.replace("/login?next=/missions"));
+      }
       return;
     } else {
+      reportInitialAvailability(false);
       showMessage(result.message ?? t("missions.loadError"), "error");
     }
-  }, [router, showMessage, snapshot, t, user, setClaimedIds]);
+  }, [redirectWhenSignedOut, reportInitialAvailability, router, showMessage, snapshot, t, user, setClaimedIds]);
 
   useEffect(() => {
+    if (!isSessionReady) return;
+
     if (!user) {
-      navigateWithRouteTransition(() => router.replace("/login?next=/missions"));
+      reportInitialAvailability(false);
+      if (redirectWhenSignedOut) {
+        navigateWithRouteTransition(() => router.replace("/login?next=/missions"));
+      }
       return;
     }
 
@@ -145,7 +188,7 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void syncMissions();
-  }, [hydrated, syncMissions, router, user]);
+  }, [hydrated, isSessionReady, redirectWhenSignedOut, reportInitialAvailability, syncMissions, router, user]);
 
   useEffect(() => {
     if (!user || hasResumedPendingClaimsRef.current) return;
@@ -240,6 +283,14 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
     setRewardQueue((queue) => completeMissionRewardAnimation(queue, missionId));
   }, []);
 
+  const hasPendingRewards = rewardQueue.length > 0 || (
+    Boolean(user) && pendingClaimOwnerId === user?.id && pendingClaimIds.size > 0
+  );
+
+  useEffect(() => {
+    onPendingChange?.(hasPendingRewards);
+  }, [hasPendingRewards, onPendingChange]);
+
   if (!user) {
     return null;
   }
@@ -256,7 +307,7 @@ export function MissionsList({ onMissionNavigate }: { onMissionNavigate?: (targe
   return (
     <>
       <div className={cn("grid grid-cols-2 gap-0 pb-8")}>
-        {missions.map((mission) => (
+        {displayMissions.map((mission) => (
           <MissionCard
             key={mission.missionId}
             missionId={mission.missionId}

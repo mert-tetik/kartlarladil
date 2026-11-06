@@ -4,8 +4,7 @@ import { MissionIcon } from "@/components/mission-icon";
 import { MobileBottomSheetShell } from "@/components/mobile-bottom-sheet-shell";
 import { useT } from "@/i18n/locale-provider";
 import type { MissionNavigationTarget } from "../mission-navigation";
-import { MissionsList } from "./missions-list";
-import { MissionTestList } from "./mission-test-list";
+import { MissionListContent } from "./mission-list-content";
 
 interface MissionsPanelProps {
   open: boolean;
@@ -38,7 +37,11 @@ export function MissionsPanel({
       tone="mission"
       contentClassName="overflow-y-auto overscroll-contain px-0 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
     >
-      {testMode ? <MissionTestList seed={testSeed} /> : <MissionsList onMissionNavigate={onMissionNavigate} />}
+      <MissionListContent
+        testMode={testMode}
+        testSeed={testSeed}
+        onMissionNavigate={onMissionNavigate}
+      />
     </MobileBottomSheetShell>
   );
 }

@@ -91,3 +91,21 @@ export function countWaitingMissions(
   return buildMissionViewModels(snapshot, claimedMissionIds).filter((item) => item.status === "waiting")
     .length;
 }
+
+export function prioritizeClaimableMissions<T extends { status: MissionStatus }>(
+  missions: readonly T[],
+): T[] {
+  const statusPriority: Record<MissionStatus, number> = {
+    waiting: 0,
+    locked: 1,
+    claimed: 2,
+  };
+
+  return missions
+    .map((mission, index) => ({ mission, index }))
+    .sort((left, right) => {
+      const statusOrder = statusPriority[left.mission.status] - statusPriority[right.mission.status];
+      return statusOrder || left.index - right.index;
+    })
+    .map(({ mission }) => mission);
+}

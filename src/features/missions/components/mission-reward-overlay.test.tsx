@@ -66,6 +66,50 @@ describe("MissionRewardOverlay", () => {
     expect(document.body.querySelectorAll(".animate-quiz-score-icon-flight").length).toBeGreaterThan(0);
   });
 
+  it("keeps the points and gem HUD mounted through its smooth exit transition", () => {
+    const onComplete = vi.fn();
+    const view = render(
+      <LocaleProvider initialLocale="en">
+        <MissionRewardOverlay
+          modes={[{ missionId: "points-exit", kind: "points", amount: 75 }]}
+          onComplete={onComplete}
+        />
+      </LocaleProvider>,
+    );
+
+    let stack = document.body.querySelector("[data-mission-points-flight-stack]");
+    expect(stack).toHaveClass("-translate-y-3", "opacity-0");
+
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    stack = document.body.querySelector("[data-mission-points-flight-stack]");
+    expect(stack).toHaveClass("translate-y-0", "opacity-100");
+
+    view.rerender(
+      <LocaleProvider initialLocale="en">
+        <MissionRewardOverlay modes={[]} onComplete={onComplete} />
+      </LocaleProvider>,
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(420);
+    });
+    stack = document.body.querySelector("[data-mission-points-flight-stack]");
+    expect(stack).toBeInTheDocument();
+    expect(stack).toHaveClass("-translate-y-3", "opacity-0");
+
+    act(() => {
+      vi.advanceTimersByTime(299);
+    });
+    expect(document.body.querySelector("[data-mission-points-flight-stack]")).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(document.body.querySelector("[data-mission-points-flight-stack]")).not.toBeInTheDocument();
+  });
+
   it("runs gem and point scatters concurrently toward the shared reward HUD", () => {
     const rectSpy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
       if (this.hasAttribute("data-reward-gem-target")) return new DOMRect(120, 60, 32, 32);

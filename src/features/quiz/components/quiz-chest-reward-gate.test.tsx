@@ -33,6 +33,9 @@ describe("QuizChestRewardGate", () => {
 
     try {
       expect(view.container.querySelector(".quiz-chest-reward-drop")).not.toBeNull();
+      expect(view.container.querySelector(".quiz-chest-reward-drop")?.parentElement?.className).toContain(
+        "-translate-y-[70px]",
+      );
       act(() => vi.advanceTimersByTime(779));
       expect(vibrate).not.toHaveBeenCalled();
       expect(playSoundEffect).not.toHaveBeenCalled();

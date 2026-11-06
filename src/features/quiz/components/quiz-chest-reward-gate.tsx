@@ -181,7 +181,7 @@ const { locale } = useLocale();
           <div
             ref={chestMotionRef}
             className={cn(
-              chestOpeningMotion && opening ? "fixed z-30 m-0" : "-translate-y-[90px]",
+              chestOpeningMotion && opening ? "fixed z-30 m-0" : "-translate-y-[70px]",
             )}
             style={
               chestOpeningMotion && opening

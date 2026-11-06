@@ -597,6 +597,7 @@ const dictionary = {
   "quiz.noPracticeLanguagesDescription": "You can't practice the same language as the current site language on Learn. Add cards in another language or change the site language outside Learn.",
   "quiz.noPracticeLanguagesTitle": "No practice languages available for this site language",
   "quiz.continue": "Continue",
+  "quiz.missionRewardsTitle": "Claim mission rewards",
   "quiz.congratulations": "Congratulations!",
   "quiz.feedbackContinue": "Continue",
   "quiz.correctAnswer": "Correct answer",

@@ -599,6 +599,7 @@ const dictionary = {
   "quiz.noPracticeLanguagesDescription": "Öğren sayfasında site diliyle aynı dilde alıştırma yapılamaz. Başka bir dilde kart ekle ya da site dilini Öğren sayfası dışında değiştir.",
   "quiz.noPracticeLanguagesTitle": "Bu site dili için kullanılabilir alıştırma dili yok",
   "quiz.continue": "Devam et",
+  "quiz.missionRewardsTitle": "Görev ödüllerini al",
   "quiz.congratulations": "Tebrikler!",
   "quiz.feedbackContinue": "Devam Et",
   "quiz.correctAnswer": "Doğru cevap",

@@ -22,6 +22,12 @@ describe("mission visual test fixtures", () => {
     expect(statuses).toEqual(new Set(["claimed", "waiting", "locked"]));
   });
 
+  it("creates exactly the requested number of claimable missions", () => {
+    const missions = createMissionTestViewModels(123, { claimableCount: 4 });
+
+    expect(missions.filter((mission) => mission.status === "waiting")).toHaveLength(4);
+  });
+
   it("uses complete progress for claimed and waiting missions and incomplete progress for locked missions", () => {
     for (const mission of createMissionTestViewModels(123)) {
       if (mission.status === "locked") {

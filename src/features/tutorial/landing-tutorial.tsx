@@ -3,7 +3,13 @@
 import Image from "next/image";
 import { LoaderCircle } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import { preloadVideoFrameAtlas, VideoFrameAtlasPlayer, type VideoFrameAtlasPlayerHandle } from "@/components/video-frame-atlas-player";
+import {
+  getWebpFrameSequenceFrameCount,
+  getWebpFrameSequenceFrameSource,
+  preloadWebpFrameSequence,
+  WebpFrameSequencePlayer,
+  type WebpFrameSequencePlayerHandle,
+} from "@/components/webp-frame-sequence-player";
 import { usePathname } from "next/navigation";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import type { TranslationKey, TranslationValues } from "@/i18n/dictionaries";
@@ -42,8 +48,7 @@ const TUTORIAL_ARROW_SOURCE_HEIGHT = 305;
 const TUTORIAL_START_DELAY_MS = 700;
 const WELCOME_ANIMATION_DURATION_MS = 2155;
 const WELCOME_STARTUP_TIMEOUT_MS = 2500;
-const WELCOME_ATLAS_PREPARATION_TIMEOUT_MS = 6000;
-const WELCOME_FRAME_ASSET_VERSION = "20261104-webp-frames-1";
+const WELCOME_FRAMES_PREPARATION_TIMEOUT_MS = 6000;
 const WELCOME_AUDIO_ASSET_VERSION = "20261024-45fps-1";
 const SCREEN_TRANSITION_MS = 1000;
 const SCREEN_SCROLL_DELAY_MS = 400;
@@ -744,35 +749,38 @@ function WelcomeTutorialScreen({ exiting, underlay, stage, label, nextLabel, onN
   const useSuperWater = canUseSuperWater(locale);
   const isAddCardsStage = stage === "add-cards";
   const [isPlaybackComplete, setIsPlaybackComplete] = useState(false);
-  const [hasFrameAtlasError, setHasFrameAtlasError] = useState(false);
-  const [initialAtlasesReady, setInitialAtlasesReady] = useState(false);
-  const [frameAtlasReady, setFrameAtlasReady] = useState(false);
-  const framePlayerRef = useRef<VideoFrameAtlasPlayerHandle>(null);
+  const [hasFrameSequenceError, setHasFrameSequenceError] = useState(false);
+  const [allFramesReady, setAllFramesReady] = useState(false);
+  const [frameSequenceReady, setFrameSequenceReady] = useState(false);
+  const framePlayerRef = useRef<WebpFrameSequencePlayerHandle>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const playbackStartedRef = useRef(false);
   const playbackCompletedRef = useRef(false);
   const playbackStartTimerRef = useRef<number | null>(null);
   const playbackEndTimerRef = useRef<number | null>(null);
   const lastSpokenWelcomeRef = useRef<string | null>(null);
-  const isWelcomePreparing = !isAddCardsStage && !hasFrameAtlasError && !(initialAtlasesReady && frameAtlasReady);
+  const isWelcomePreparing = !isAddCardsStage && !hasFrameSequenceError && !(allFramesReady && frameSequenceReady);
 
   useEffect(() => {
     if (isAddCardsStage) return;
 
     let cancelled = false;
     const preparationTimeout = window.setTimeout(() => {
-      if (!cancelled) setHasFrameAtlasError(true);
-    }, WELCOME_ATLAS_PREPARATION_TIMEOUT_MS);
+      if (!cancelled) setHasFrameSequenceError(true);
+    }, WELCOME_FRAMES_PREPARATION_TIMEOUT_MS);
 
-    void preloadVideoFrameAtlas("tutorial-welcome", 2).then((ready) => {
+    void preloadWebpFrameSequence(
+      "tutorial-welcome",
+      getWebpFrameSequenceFrameCount("tutorial-welcome"),
+    ).then((ready) => {
       if (cancelled) return;
       window.clearTimeout(preparationTimeout);
-      if (ready) setInitialAtlasesReady(true);
-      else setHasFrameAtlasError(true);
+      if (ready) setAllFramesReady(true);
+      else setHasFrameSequenceError(true);
     }).catch(() => {
       if (cancelled) return;
       window.clearTimeout(preparationTimeout);
-      setHasFrameAtlasError(true);
+      setHasFrameSequenceError(true);
     });
 
     return () => {
@@ -798,11 +806,11 @@ function WelcomeTutorialScreen({ exiting, underlay, stage, label, nextLabel, onN
       window.clearTimeout(playbackEndTimerRef.current);
       playbackEndTimerRef.current = null;
     }
-    if (showFinalFrameFallback) setHasFrameAtlasError(true);
+    if (showFinalFrameFallback) setHasFrameSequenceError(true);
     framePlayerRef.current?.pause();
     audioRef.current?.pause();
     setIsPlaybackComplete(true);
-  }, [setHasFrameAtlasError]);
+  }, [setHasFrameSequenceError]);
 
   const handleFramePlaybackStarted = useCallback(() => {
     if (playbackCompletedRef.current) {
@@ -836,7 +844,7 @@ function WelcomeTutorialScreen({ exiting, underlay, stage, label, nextLabel, onN
       if (playbackStartedRef.current) return;
       playbackStartedRef.current = true;
 
-      if (hasFrameAtlasError) {
+      if (hasFrameSequenceError) {
         finishPlayback(true);
         return;
       }
@@ -854,7 +862,7 @@ function WelcomeTutorialScreen({ exiting, underlay, stage, label, nextLabel, onN
     }
 
     onNext();
-  }, [exiting, finishPlayback, hasFrameAtlasError, isAddCardsStage, isWelcomePreparing, onNext]);
+  }, [exiting, finishPlayback, hasFrameSequenceError, isAddCardsStage, isWelcomePreparing, onNext]);
 
   useEffect(() => {
     if (underlay || exiting || (isAddCardsStage && !isPlaybackComplete)) {
@@ -886,19 +894,19 @@ function WelcomeTutorialScreen({ exiting, underlay, stage, label, nextLabel, onN
         className="tutorial-origin-overlay__item pointer-events-none absolute left-1/2 top-1/2 z-0 aspect-[47/45] w-[min(19rem,calc(100vw-3rem))] -translate-x-1/2 -translate-y-1/2"
         style={{ top: "calc(50% - 6.25rem)", animationDelay: exiting ? "0ms" : "520ms" }}
       >
-        {!isAddCardsStage ? <Image alt="" aria-hidden="true" data-tutorial-welcome-first-frame className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" height={900} priority src={`/mascots/tutorial-welcome/first-frame.webp?v=${WELCOME_FRAME_ASSET_VERSION}`} width={940} /> : null}
-        {isAddCardsStage && !isPlaybackComplete && (!frameAtlasReady || hasFrameAtlasError) ? <Image alt="" aria-hidden="true" data-tutorial-welcome-frame-poster className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" height={900} priority src={`/mascots/tutorial-welcome/first-frame.webp?v=${WELCOME_FRAME_ASSET_VERSION}`} width={940} /> : null}
-        {isAddCardsStage && isPlaybackComplete && hasFrameAtlasError ? <Image alt="" aria-hidden="true" data-tutorial-welcome-last-frame className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" height={900} priority src={`/mascots/tutorial-welcome/last-frame.webp?v=${WELCOME_FRAME_ASSET_VERSION}`} width={940} /> : null}
-        <VideoFrameAtlasPlayer
+        {!isAddCardsStage ? <Image alt="" aria-hidden="true" data-tutorial-welcome-first-frame className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" height={900} priority src={getWebpFrameSequenceFrameSource("tutorial-welcome", 0)} width={940} /> : null}
+        {isAddCardsStage && !isPlaybackComplete && (!frameSequenceReady || hasFrameSequenceError) ? <Image alt="" aria-hidden="true" data-tutorial-welcome-frame-poster className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" height={900} priority src={getWebpFrameSequenceFrameSource("tutorial-welcome", 0)} width={940} /> : null}
+        {isAddCardsStage && isPlaybackComplete && hasFrameSequenceError ? <Image alt="" aria-hidden="true" data-tutorial-welcome-last-frame className="absolute inset-0 z-10 h-full w-full origin-center scale-[1.5] object-contain" height={900} priority src={getWebpFrameSequenceFrameSource("tutorial-welcome", 96)} width={940} /> : null}
+        <WebpFrameSequencePlayer
           ref={framePlayerRef}
           assetId="tutorial-welcome"
-          className={cn("pointer-events-none absolute inset-0 h-full w-full origin-center scale-[1.5] object-contain", isAddCardsStage && frameAtlasReady && !hasFrameAtlasError ? "z-0 opacity-100" : "z-0 opacity-0")}
+          className={cn("pointer-events-none absolute inset-0 h-full w-full origin-center scale-[1.5] object-contain", isAddCardsStage && frameSequenceReady && !hasFrameSequenceError ? "z-0 opacity-100" : "z-0 opacity-0")}
           autoPlay={false}
-          onReady={() => setFrameAtlasReady(true)}
+          onReady={() => setFrameSequenceReady(true)}
           onPlay={handleFramePlaybackStarted}
           onEnded={finishPlayback}
           onError={() => {
-            setHasFrameAtlasError(true);
+            setHasFrameSequenceError(true);
             if (playbackStartedRef.current) finishPlayback(true);
           }}
           data-player-id="tutorial-welcome"

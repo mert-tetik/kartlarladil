@@ -145,6 +145,7 @@ import { QuizResultMessageView } from "@/features/quiz/components/quiz-result-me
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import { QuizChestRewardGate } from "@/features/quiz/components/quiz-chest-reward-gate";
 import { QuizContinuationMotivationView } from "@/features/quiz/components/quiz-continuation-motivation-view";
+import { QuizMissionRewardsView } from "@/features/quiz/components/quiz-mission-rewards-view";
 import type { QuizContinuationMotivationInput } from "@/features/quiz/quiz-continuation-motivations";
 import { QuizStartSplash } from "@/features/quiz/components/quiz-start-splash";
 import {
@@ -154,7 +155,10 @@ import {
 } from "@/features/quiz/components/bonus-question-view";
 import { QuizStreakCelebrationView } from "@/features/quiz/components/quiz-streak-celebration-view";
 import { QuizCompletionProgressView } from "@/features/quiz/components/quiz-completion-progress-view";
-import { prepareTierFlashTransitionSnapshot } from "@/features/quiz/quiz-transition-fallback";
+import {
+  prepareTierFlashTransitionSnapshot,
+  preserveStreakRewardHudInTransitionSnapshot,
+} from "@/features/quiz/quiz-transition-fallback";
 import { QuizWordRepetitionIntroView } from "@/features/quiz/components/quiz-word-repetition-intro-view";
 import { QuizWordRepetitionView } from "@/features/quiz/components/quiz-word-repetition-view";
 import { QuizMedalRating } from "@/features/quiz/components/quiz-medal-rating";
@@ -886,6 +890,7 @@ export function QuizStation({
     );
     snapshot.removeAttribute("style");
     snapshot.setAttribute("aria-hidden", "true");
+    preserveStreakRewardHudInTransitionSnapshot(source, snapshot);
 
     // The streak text may already be part-way through (or finished with) its
     // exit animation when the next screen transition starts. A cloned element
@@ -6702,6 +6707,7 @@ export function CelebrationView({
   const closeScheduledRef = useRef(false);
   const scoreRef = useRef<HTMLSpanElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
+  const learnedConfettiRef = useRef<ReturnType<typeof confetti.create> | null>(null);
   const gainedPoints = getPointsForTier(card.tier);
   const rewardAnimationGate = useRewardAnimationGate({
     onPointsComplete: () => {
@@ -6721,6 +6727,28 @@ export function CelebrationView({
     return () => window.clearTimeout(idleVibrationTimer);
   }, []);
 
+  useEffect(() => {
+    const canvas = document.createElement("canvas");
+    canvas.dataset.quizLearnedConfettiCanvas = "";
+    canvas.setAttribute("aria-hidden", "true");
+    canvas.style.position = "fixed";
+    canvas.style.inset = "0";
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+    canvas.style.pointerEvents = "none";
+    canvas.style.zIndex = "100";
+    document.body.appendChild(canvas);
+
+    const learnedConfetti = confetti.create(canvas, { resize: true });
+    learnedConfettiRef.current = learnedConfetti;
+
+    return () => {
+      learnedConfettiRef.current = null;
+      learnedConfetti.reset();
+      canvas.remove();
+    };
+  }, []);
+
   function handleStartReward() {
     if (rewardStarted) return;
 
@@ -6728,7 +6756,7 @@ export function CelebrationView({
     setRewardStarted(true);
     vibrate("firm-tap");
     playSoundEffect("confetti");
-    void confetti({
+    void learnedConfettiRef.current?.({
       particleCount: 140,
       spread: 80,
       origin: { y: 0.55 },
@@ -6932,6 +6960,8 @@ export function ResultFlowView({
   const resultActionPressIndexRef = useRef(0);
   const resultViewContinueConsumedRef = useRef(false);
   const resultFlowCompletedRef = useRef(false);
+  const missionAvailabilityStartedRef = useRef(false);
+  const missionAvailabilityHandledRef = useRef(false);
   const playResultActionPress = useCallback(() => {
     const pressIndex = resultActionPressIndexRef.current;
     resultActionPressIndexRef.current = (pressIndex + 1) % 3;
@@ -6944,6 +6974,8 @@ export function ResultFlowView({
     resultActionPressIndexRef.current = 0;
     resultViewContinueConsumedRef.current = false;
     resultFlowCompletedRef.current = false;
+    missionAvailabilityStartedRef.current = false;
+    missionAvailabilityHandledRef.current = false;
   }, [resultProps.quizSessionId]);
 
   const [messageStageVisible, setMessageStageVisible] = useState(showResultMessage);
@@ -6951,6 +6983,8 @@ export function ResultFlowView({
   const [chestGateVisible, setChestGateVisible] = useState(false);
   const [continuationMotivationVisible, setContinuationMotivationVisible] = useState(false);
   const [motivationEntering, setMotivationEntering] = useState(false);
+  const [missionAvailabilityChecking, setMissionAvailabilityChecking] = useState(false);
+  const [missionRewardsVisible, setMissionRewardsVisible] = useState(false);
 
   useEffect(() => {
     // Result state can be decided asynchronously while the result flow is
@@ -6988,8 +7022,9 @@ export function ResultFlowView({
       });
   const chestWasMissed =
     showChestRewardGate && resultProps.mode === "active" && chestTier === null;
-  const medalRating =
-    resultPerformance.accuracy >= 90
+  const medalRating = quizFlowTest
+    ? 5
+    : resultPerformance.accuracy >= 90
       ? 5
       : resultPerformance.accuracy >= 75
         ? 4
@@ -7046,7 +7081,34 @@ export function ResultFlowView({
   }, [onChestRewardReady, setChestRewardGemCount]);
 
   const handleChestGateComplete = () => {
+    if (missionAvailabilityStartedRef.current) return;
+    missionAvailabilityStartedRef.current = true;
+    setMissionAvailabilityChecking(true);
+  };
+
+  const handleMissionAvailabilityResolved = useCallback((hasClaimableMissions: boolean) => {
+    if (!missionAvailabilityStartedRef.current || missionAvailabilityHandledRef.current) return;
+    missionAvailabilityHandledRef.current = true;
+    setMissionAvailabilityChecking(false);
     setChestGateVisible(false);
+
+    if (hasClaimableMissions) {
+      setMissionRewardsVisible(true);
+      return;
+    }
+
+    setMotivationEntering(true);
+    setContinuationMotivationVisible(true);
+  }, [
+    setChestGateVisible,
+    setContinuationMotivationVisible,
+    setMissionAvailabilityChecking,
+    setMissionRewardsVisible,
+    setMotivationEntering,
+  ]);
+
+  const handleMissionRewardsContinue = () => {
+    setMissionRewardsVisible(false);
     setMotivationEntering(true);
     setContinuationMotivationVisible(true);
   };
@@ -7119,12 +7181,13 @@ export function ResultFlowView({
           >
             <ResultView
               {...resultProps}
+              quizFlowTest={quizFlowTest}
               earnedPoints={earnedPoints}
               currentTotalPoints={currentTotalPoints}
               performanceRewardTest={performanceRewardTest}
               onResultActionPress={playResultActionPress}
               onContinue={handleResultContinue}
-              showMedalHud={!chestGateVisible && !continuationMotivationVisible}
+              showMedalHud={!chestGateVisible && !missionAvailabilityChecking && !missionRewardsVisible && !continuationMotivationVisible}
             />
           </div>
         ) : null}
@@ -7140,6 +7203,15 @@ export function ResultFlowView({
               onRewardReady={onChestRewardReady ? handleChestRewardReady : undefined}
             />
           </div>
+        ) : null}
+        {resultStageVisible && (missionAvailabilityChecking || missionRewardsVisible) ? (
+          <QuizMissionRewardsView
+            visible={missionRewardsVisible}
+            testMode={quizFlowTest}
+            onInitialClaimableAvailabilityResolved={handleMissionAvailabilityResolved}
+            onContinue={handleMissionRewardsContinue}
+            onActionPress={playResultActionPress}
+          />
         ) : null}
         {resultStageVisible && continuationMotivationVisible ? (
           <QuizContinuationMotivationView
@@ -7161,12 +7233,13 @@ export function ResultFlowView({
     <div className="relative h-full w-full overflow-hidden" data-quiz-result-flow>
       <ResultView
         {...resultProps}
+        quizFlowTest={quizFlowTest}
         earnedPoints={earnedPoints}
         currentTotalPoints={currentTotalPoints}
         performanceRewardTest={performanceRewardTest}
         onResultActionPress={playResultActionPress}
         onContinue={handleResultContinue}
-        showMedalHud={!chestGateVisible && !continuationMotivationVisible}
+        showMedalHud={!chestGateVisible && !missionAvailabilityChecking && !missionRewardsVisible && !continuationMotivationVisible}
       />
       {chestGateVisible ? (
         <div className="absolute inset-0 z-40 overflow-hidden bg-[var(--background)]" data-quiz-chest-reward-layer>
@@ -7180,6 +7253,15 @@ export function ResultFlowView({
             onRewardReady={onChestRewardReady ? handleChestRewardReady : undefined}
           />
         </div>
+      ) : null}
+      {missionAvailabilityChecking || missionRewardsVisible ? (
+        <QuizMissionRewardsView
+          visible={missionRewardsVisible}
+          testMode={quizFlowTest}
+          onInitialClaimableAvailabilityResolved={handleMissionAvailabilityResolved}
+          onContinue={handleMissionRewardsContinue}
+          onActionPress={playResultActionPress}
+        />
       ) : null}
       {continuationMotivationVisible ? (
         <QuizContinuationMotivationView
@@ -7201,6 +7283,57 @@ const RESULT_MEDAL_COLLECT_PLAYBACK_RATE_STEP = 0.2;
 const RESULT_MEDAL_COLLECT_MAX_PLAYBACK_RATE = 2.5;
 const RESULT_MEDAL_HUD_PULSE_DURATION_MS = 350;
 const RESULT_SUMMARY_EXIT_DURATION_MS = QUIZ_FLOW_TRANSITION_DURATION_MS;
+const RESULT_MEDAL_PARTICLE_COUNT = 24;
+const RESULT_MEDAL_PARTICLE_LIFETIME_MS = 760;
+
+type ResultMedalParticle = {
+  startX: string;
+  startY: string;
+  x: number;
+  y: number;
+  rotation: number;
+  midX: number;
+  midY: number;
+  midRotation: number;
+  size: number;
+  duration: number;
+  delay: number;
+  color: string;
+};
+
+type ResultMedalParticleBurst = {
+  burstId: number;
+  center: RewardScatterRect;
+  particles: ResultMedalParticle[];
+};
+
+function createResultMedalParticles(): ResultMedalParticle[] {
+  const yellowColors = ["#fff176", "#ffeb3b", "#fdd835"];
+  return Array.from({ length: RESULT_MEDAL_PARTICLE_COUNT }, () => {
+    const startXValue = (Math.random() - 0.5) * 120;
+    const startYValue = (Math.random() - 0.5) * 72;
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 170 + Math.random() * 190;
+    const x = Math.cos(angle) * distance;
+    const y = Math.sin(angle) * distance;
+    const rotation = (Math.random() - 0.5) * 420;
+
+    return {
+      startX: startXValue + "px",
+      startY: startYValue + "px",
+      x,
+      y,
+      rotation,
+      midX: startXValue + (x - startXValue) * 0.42,
+      midY: startYValue + (y - startYValue) * 0.42,
+      midRotation: rotation * 0.42,
+      size: 10 + Math.round(Math.random() * 10),
+      duration: 440 + Math.round(Math.random() * 180),
+      delay: Math.round(Math.random() * 70),
+      color: yellowColors[Math.floor(Math.random() * yellowColors.length)],
+    };
+  });
+}
 
 type ResultMedalFlightRequest = {
   flightId: number;
@@ -7271,7 +7404,7 @@ export function ResultView({
     chestOpened,
   );
   const medalRating = useMemo(() => {
-    if (quizFlowTest) return 3;
+    if (quizFlowTest) return 5;
     if (!quizSessionId) return 3;
 
     const accuracy = performance.accuracy;
@@ -7303,6 +7436,7 @@ export function ResultView({
     totalMedals: number;
     remaining: number;
   } | null>(null);
+  const [medalParticleBursts, setMedalParticleBursts] = useState<ResultMedalParticleBurst[]>([]);
   const [medalClaimError, setMedalClaimError] = useState(false);
   const isMedalCenterFlightActive = medalCenterFlight !== null;
   const [medalCenterTapReady, setMedalCenterTapReady] = useState(false);
@@ -7313,6 +7447,8 @@ export function ResultView({
   const medalPulseTimerRef = useRef<number | null>(null);
   const resultSummaryExitTimerRef = useRef<number | null>(null);
   const medalFlightSequenceRef = useRef(0);
+  const medalParticleBurstSequenceRef = useRef(0);
+  const medalParticleBurstTimersRef = useRef(new Map<number, number>());
   const activeMedalFlightsRef = useRef(0);
   const medalRemainingRef = useRef(0);
   const medalCollectionInputCountRef = useRef(0);
@@ -7463,6 +7599,28 @@ export function ResultView({
     medalCollectSoundCountRef.current += 1;
   }, []);
 
+  useEffect(() => () => {
+    for (const timer of medalParticleBurstTimersRef.current.values()) {
+      window.clearTimeout(timer);
+    }
+    medalParticleBurstTimersRef.current.clear();
+  }, []);
+
+  const startMedalParticleBurst = useCallback((center: RewardScatterRect) => {
+    const burstId = ++medalParticleBurstSequenceRef.current;
+    setMedalParticleBursts((bursts) => [...bursts, {
+      burstId,
+      center,
+      particles: createResultMedalParticles(),
+    }]);
+
+    const timer = window.setTimeout(() => {
+      medalParticleBurstTimersRef.current.delete(burstId);
+      setMedalParticleBursts((bursts) => bursts.filter((burst) => burst.burstId !== burstId));
+    }, RESULT_MEDAL_PARTICLE_LIFETIME_MS);
+    medalParticleBurstTimersRef.current.set(burstId, timer);
+  }, []);
+
   const startMedalCollection = useCallback((
     currentMedals: number,
     totalMedals: number,
@@ -7519,6 +7677,7 @@ export function ResultView({
     medalRemainingRef.current = remaining - 1;
     playMedalCollectSound();
     vibrate("result-medal-collect");
+    startMedalParticleBurst(medalCenterFlight.center);
     setMedalCenterFlight((current) => current ? { ...current, remaining: current.remaining - 1 } : current);
     const flightRequest: ResultMedalFlightRequest = {
       flightId: ++medalFlightSequenceRef.current,
@@ -7530,7 +7689,7 @@ export function ResultView({
     };
     activeMedalFlightsRef.current += 1;
     setMedalFlightRequests((current) => [...current, flightRequest]);
-  }, [medalCenterFlight, medalCenterTapReady, playMedalCollectSound]);
+  }, [medalCenterFlight, medalCenterTapReady, playMedalCollectSound, startMedalParticleBurst]);
 
   const collectMedals = useCallback(() => {
     if (claimingMedals || claimedMedals) return;
@@ -8152,7 +8311,8 @@ export function ResultView({
                   <span
                     key={`center-medal-${index}`}
                     aria-hidden="true"
-                    className="result-medal-center-flight fixed left-0 top-0 block"
+                    className="result-medal-center-flight fixed left-0 top-0 z-[322] block"
+                    data-result-center-medal
                     style={{
                       width: RESULT_MEDAL_CENTER_ICON_SIZE,
                       height: RESULT_MEDAL_CENTER_ICON_SIZE,
@@ -8175,6 +8335,51 @@ export function ResultView({
                   </span>
                 );
               })}
+            </div>,
+            document.body,
+          )
+        : null}
+      {medalParticleBursts.length > 0 && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="pointer-events-none fixed inset-0 z-[150]"
+              data-result-medal-particle-layer
+              aria-hidden="true"
+            >
+              {medalParticleBursts.map((burst) => (
+                <span
+                  key={burst.burstId}
+                  className="pointer-events-none fixed block size-0"
+                  style={{
+                    left: burst.center.left + burst.center.width / 2,
+                    top: burst.center.top + burst.center.height / 2,
+                  }}
+                  data-result-medal-particle-burst={burst.burstId}
+                >
+                  {burst.particles.map((particle, index) => (
+                    <span
+                      key={burst.burstId + "-" + index}
+                      className="streak-count-particle absolute left-1/2 top-1/2 block rounded-[2px]"
+                      style={{
+                        width: particle.size,
+                        height: particle.size,
+                        backgroundColor: particle.color,
+                        animationDuration: particle.duration + "ms",
+                        animationDelay: particle.delay + "ms",
+                        "--particle-x": particle.x + "px",
+                        "--particle-y": particle.y + "px",
+                        "--particle-rotation": particle.rotation + "deg",
+                        "--particle-start-x": particle.startX,
+                        "--particle-start-y": particle.startY,
+                        "--particle-mid-x": particle.midX + "px",
+                        "--particle-mid-y": particle.midY + "px",
+                        "--particle-mid-rotation": particle.midRotation + "deg",
+                      } as CSSProperties}
+                      data-result-medal-particle-color="yellow"
+                    />
+                  ))}
+                </span>
+              ))}
             </div>,
             document.body,
           )

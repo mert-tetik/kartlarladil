@@ -6,7 +6,7 @@ import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { EMPTY_PROGRESS_STATS, getNextRankProgress } from "@/features/progress/progress-stats";
-import { LegacyResultView, MobileQuizFeedback, QuizStation, ResultFlowView, ResultView } from "@/features/quiz/components/quiz-station";
+import { CelebrationView, LegacyResultView, MobileQuizFeedback, QuizStation, ResultFlowView, ResultView } from "@/features/quiz/components/quiz-station";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
@@ -27,6 +27,13 @@ const progressStatsMock = vi.hoisted(() => ({
 }));
 
 const claimQuizResultMedalsMock = vi.hoisted(() => vi.fn());
+const learnedConfettiMock = vi.hoisted(() => {
+  const reset = vi.fn();
+  const instance = Object.assign(vi.fn(() => Promise.resolve()), { reset });
+  const create = vi.fn(() => instance);
+  const defaultConfetti = Object.assign(vi.fn(() => Promise.resolve()), { create });
+  return { create, defaultConfetti, instance, reset };
+});
 
 const routerMock = vi.hoisted(() => ({
   push: vi.fn(),
@@ -57,6 +64,10 @@ beforeEach(() => {
   progressStatsMock.refreshStats.mockReset();
   progressStatsMock.refreshStats.mockResolvedValue(undefined);
   claimQuizResultMedalsMock.mockReset();
+  learnedConfettiMock.create.mockClear();
+  learnedConfettiMock.defaultConfetti.mockClear();
+  learnedConfettiMock.instance.mockClear();
+  learnedConfettiMock.reset.mockClear();
   quizCountSelectionTestState.autoSelectCount = null;
 });
 
@@ -123,7 +134,7 @@ vi.mock("@/features/reviews/play-review-eligibility", () => ({
 }));
 
 vi.mock("canvas-confetti", () => ({
-  default: vi.fn(() => Promise.resolve()),
+  default: learnedConfettiMock.defaultConfetti,
 }));
 
 vi.mock("@/features/progress/progress-client", () => ({
@@ -557,6 +568,39 @@ describe("ResultView medal stages", () => {
     return vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(rect);
   }
 
+  it("shows five medals when the quiz-flow test mode reaches the result screen", () => {
+    vi.useFakeTimers();
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={null}>
+          <ResultFlowView
+            mode="active"
+            selectedLanguage="en"
+            results={{
+              correct: [],
+              incorrect: VOCABULARY_CARDS.slice(0, 1),
+              learned: [],
+            }}
+            selectedCount={1}
+            chestOpened={false}
+            quizFlowTest
+            onRestart={vi.fn()}
+            onExit={vi.fn()}
+          />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Devam et" }));
+    act(() => {
+      vi.advanceTimersByTime(360);
+    });
+
+    expect(document.querySelector('[data-quiz-medal-rating-value="5"]')).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-quiz-medal="filled"]')).toHaveLength(5);
+  });
+
   it("keeps the summary and medal collection screens separate", () => {
     vi.useFakeTimers();
 
@@ -716,8 +760,8 @@ describe("ResultView medal stages", () => {
           <ResultView
             mode="active"
             results={{
-              correct: [],
-              incorrect: VOCABULARY_CARDS.slice(0, 10),
+              correct: VOCABULARY_CARDS.slice(0, 9),
+              incorrect: VOCABULARY_CARDS.slice(9, 10),
               learned: [],
             }}
             selectedCount={10}
@@ -753,10 +797,40 @@ describe("ResultView medal stages", () => {
 
     expect(document.querySelector('[data-reward-flight-channel="medals"]')).not.toBeInTheDocument();
 
+    let randomValue = 0.013;
+    mathRandomSpy.mockImplementation(() => {
+      randomValue = (randomValue + 0.137) % 1;
+      return randomValue;
+    });
+
+    fireEvent.pointerDown(centerTap!);
     fireEvent.pointerDown(centerTap!);
 
     const medalFlight = document.querySelector('[data-reward-flight-channel="medals"]');
     expect(medalFlight).toBeInTheDocument();
+    expect(document.querySelectorAll("[data-result-medal-particle-burst]")).toHaveLength(2);
+    expect(document.querySelectorAll('[data-result-medal-particle-color="yellow"]')).toHaveLength(48);
+
+    const particleLayer = document.querySelector<HTMLElement>("[data-result-medal-particle-layer]");
+    const centerMedal = document.querySelector<HTMLElement>("[data-result-center-medal]");
+    expect((medalFlight as HTMLElement).style.zIndex).toBe("200");
+    expect(particleLayer?.className).toContain("z-[150]");
+    expect(document.querySelector("[data-main-medals-display]")?.parentElement?.className).toContain("z-[260]");
+    expect(centerMedal?.className).toContain("z-[322]");
+
+    const bursts = [...document.querySelectorAll<HTMLElement>("[data-result-medal-particle-burst]")];
+    const firstBurstParticles = [...bursts[0].querySelectorAll<HTMLElement>(".streak-count-particle")];
+    const firstBurstTrajectories = firstBurstParticles.map((particle) =>
+      `${particle.style.getPropertyValue("--particle-x")},${particle.style.getPropertyValue("--particle-y")}`,
+    );
+    expect(new Set(firstBurstTrajectories).size).toBeGreaterThan(1);
+    expect(Number.parseFloat(firstBurstParticles[0].style.width)).toBeGreaterThanOrEqual(10);
+    const firstParticleX = Number.parseFloat(firstBurstParticles[0].style.getPropertyValue("--particle-x"));
+    const firstParticleY = Number.parseFloat(firstBurstParticles[0].style.getPropertyValue("--particle-y"));
+    expect(Math.hypot(firstParticleX, firstParticleY)).toBeGreaterThanOrEqual(170);
+    expect(
+      bursts[1].querySelector<HTMLElement>(".streak-count-particle")?.style.getPropertyValue("--particle-x"),
+    ).not.toBe(firstBurstParticles[0].style.getPropertyValue("--particle-x"));
 
     expect(onContinue).not.toHaveBeenCalled();
     expect(document.querySelector("[data-result-medal-center-flight] button")).toBeInTheDocument();
@@ -771,7 +845,7 @@ describe("ResultView medal stages", () => {
     claimQuizResultMedalsMock.mockResolvedValueOnce({
       success: true,
       awarded: false,
-      medals: 3,
+      medals: 5,
       totalMedals: 17,
     });
 
@@ -802,7 +876,7 @@ describe("ResultView medal stages", () => {
       vi.advanceTimersByTime(360);
     });
     act(() => {
-      vi.advanceTimersByTime(2500);
+      vi.advanceTimersByTime(3500);
     });
     fireEvent.click(screen.getByRole("button", { name: "Madalyaları al" }));
 
@@ -812,8 +886,9 @@ describe("ResultView medal stages", () => {
 
     expect(claimQuizResultMedalsMock).toHaveBeenCalledWith(
       "00000000-0000-4000-8000-000000000001",
-      3,
+      5,
     );
+    expect(document.querySelector('[data-quiz-medal-rating-value="5"]')).toBeInTheDocument();
     expect(document.querySelector("[data-result-medal-center-flight]")).toBeInTheDocument();
     expect(onContinue).not.toHaveBeenCalled();
 
@@ -853,7 +928,7 @@ describe("ResultView medal stages", () => {
       vi.advanceTimersByTime(360);
     });
     act(() => {
-      vi.advanceTimersByTime(2500);
+      vi.advanceTimersByTime(3500);
     });
     fireEvent.click(screen.getByRole("button", { name: "Madalyaları al" }));
 
@@ -1826,6 +1901,29 @@ describe("QuizStation sound feedback", () => {
     expect(celebration?.querySelector("[data-card-progress-medal]")).toBeInTheDocument();
     expect(celebration?.querySelector("[data-card-progress]")).not.toBeInTheDocument();
     expect(celebration?.querySelector(`button[aria-label=\"${testCard.term} Sor\"]`)).not.toBeInTheDocument();
+  });
+
+  it("stops and removes its confetti canvas when the learned-card screen closes", () => {
+    const { unmount } = render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={null}>
+          <CelebrationView card={testCard} basePoints={0} onContinue={vi.fn()} />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    const canvas = document.querySelector<HTMLCanvasElement>("[data-quiz-learned-confetti-canvas]");
+    expect(canvas).toBeInTheDocument();
+
+    fireEvent.click(document.querySelector<HTMLElement>("[data-quiz-celebration]")!);
+
+    expect(learnedConfettiMock.create).toHaveBeenCalledWith(canvas, { resize: true });
+    expect(learnedConfettiMock.instance).toHaveBeenCalledWith(expect.objectContaining({ particleCount: 140 }));
+
+    unmount();
+
+    expect(learnedConfettiMock.reset).toHaveBeenCalledOnce();
+    expect(canvas).not.toBeInTheDocument();
   });
 
   it("renders the visual group question inside the Learn quiz flow", async () => {

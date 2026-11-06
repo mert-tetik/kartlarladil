@@ -6,7 +6,7 @@ import type { VocabularyCard } from "@/types/domain";
 
 const CARDS_PER_GROUP = 4;
 const GROUP_COUNT = 2;
-const CYCLE_MS = 2000;
+const CYCLE_MS = 3500;
 const CARD_MOTION_MS = 400;
 const STAGGER_MS = 130;
 const GROUP_MOTION_MS = CARD_MOTION_MS + STAGGER_MS * (CARDS_PER_GROUP - 1);

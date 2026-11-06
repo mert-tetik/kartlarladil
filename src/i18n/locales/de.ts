@@ -593,6 +593,7 @@ const dictionary = {
   "quiz.noPracticeLanguagesDescription": "Auf der Lernseite kannst du nicht dieselbe Sprache wie die aktuelle Sprache der Seite üben. Füge Karten in einer anderen Sprache hinzu oder ändere die Sprache der Seite außerhalb von Lernen.",
   "quiz.noPracticeLanguagesTitle": "Für diese Sprache der Seite ist keine Übungssprache verfügbar",
   "quiz.continue": "Fortfahren",
+  "quiz.missionRewardsTitle": "Missionsbelohnungen abholen",
   "quiz.congratulations": "Glückwunsch!",
   "quiz.feedbackContinue": "Weiter",
   "quiz.correctAnswer": "Richtige Antwort",

@@ -25,7 +25,6 @@ interface QuizStreakCelebrationViewProps {
 
 const STREAK_EXIT_DELAY_MS = 700;
 const STREAK_POST_SCATTER_DELAY_MS = 1000;
-const STREAK_REWARD_HUD_EXIT_DURATION_MS = 300;
 const STREAK_PARTICLE_COUNT = 24;
 
 type StreakParticle = {
@@ -101,7 +100,6 @@ export function QuizStreakCelebrationView({
   const [isPressed, setIsPressed] = useState(false);
   const [streakParticles, setStreakParticles] = useState<StreakParticle[]>([]);
   const [rewardStarted, setRewardStarted] = useState(false);
-  const [rewardHudExiting, setRewardHudExiting] = useState(false);
   const [displayPoints, setDisplayPoints] = useState(totalPoints);
   const [scorePulse, setScorePulse] = useState(0);
   const hasPointReward = rewardPoints > 0;
@@ -161,11 +159,8 @@ export function QuizStreakCelebrationView({
       completionFrameRef.current = window.requestAnimationFrame(() => {
         completionFrameRef.current = null;
         completionTimerRef.current = window.setTimeout(() => {
-          setRewardHudExiting(true);
-          completionTimerRef.current = window.setTimeout(() => {
-            completionTimerRef.current = null;
-            complete();
-          }, STREAK_REWARD_HUD_EXIT_DURATION_MS);
+          completionTimerRef.current = null;
+          complete();
         }, STREAK_POST_SCATTER_DELAY_MS);
       });
     });
@@ -266,11 +261,7 @@ export function QuizStreakCelebrationView({
         <div
           className={cn(
             "pointer-events-none absolute left-1/2 top-5 z-10 -translate-x-1/2 sm:top-8",
-            rewardHudExiting
-              ? "animate-streak-reward-hud-exit"
-              : rewardStarted
-                ? "animate-streak-reward-hud-enter"
-                : "opacity-0",
+            rewardStarted ? "animate-streak-reward-hud-enter" : "opacity-0",
           )}
           data-streak-reward-points
         >

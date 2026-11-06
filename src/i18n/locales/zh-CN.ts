@@ -594,6 +594,7 @@ const dictionary = {
   "quiz.noPracticeLanguagesDescription": "在学习页面中，你不能练习与当前网站语言相同的语言。请添加其他语言的卡片，或在离开学习页面后更改网站语言。",
   "quiz.noPracticeLanguagesTitle": "当前网站语言下没有可练习的语言",
   "quiz.continue": "继续",
+  "quiz.missionRewardsTitle": "领取任务奖励",
   "quiz.congratulations": "恭喜！",
   "quiz.feedbackContinue": "继续",
   "quiz.correctAnswer": "正确答案",

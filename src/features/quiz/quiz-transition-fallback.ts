@@ -19,3 +19,35 @@ export function prepareTierFlashTransitionSnapshot(
     "important",
   );
 }
+
+export function preserveStreakRewardHudInTransitionSnapshot(
+  source: HTMLElement,
+  snapshot: HTMLElement,
+) {
+  const sourceHuds = Array.from(
+    source.querySelectorAll<HTMLElement>("[data-streak-reward-points]"),
+  );
+  const snapshotHuds = Array.from(
+    snapshot.querySelectorAll<HTMLElement>("[data-streak-reward-points]"),
+  );
+
+  sourceHuds.forEach((sourceHud, index) => {
+    const snapshotHud = snapshotHuds[index];
+    if (!snapshotHud) return;
+
+    const computedStyle = window.getComputedStyle(sourceHud);
+    if (computedStyle.opacity === "0" || computedStyle.visibility === "hidden") {
+      snapshotHud.remove();
+      return;
+    }
+
+    snapshotHud.classList.remove(
+      "animate-streak-reward-hud-enter",
+      "animate-streak-reward-hud-exit",
+    );
+    snapshotHud.style.setProperty("animation", "none", "important");
+    snapshotHud.style.setProperty("opacity", computedStyle.opacity || "1", "important");
+    snapshotHud.style.setProperty("transform", computedStyle.transform || "none", "important");
+    snapshotHud.style.setProperty("visibility", computedStyle.visibility || "visible", "important");
+  });
+}

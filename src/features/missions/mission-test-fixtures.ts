@@ -47,7 +47,10 @@ function ensureStatusAtIndex(statuses: MissionStatus[], index: number, status: M
   [statuses[index], statuses[swapIndex]] = [statuses[swapIndex]!, statuses[index]!];
 }
 
-export function createMissionTestViewModels(seed: number): MissionTestViewModel[] {
+export function createMissionTestViewModels(
+  seed: number,
+  options?: { claimableCount?: number },
+): MissionTestViewModel[] {
   const random = createSeededRandom(seed);
   const statuses = createStatusBag(MISSIONS.length, random);
 
@@ -57,6 +60,29 @@ export function createMissionTestViewModels(seed: number): MissionTestViewModel[
   ensureStatusAtIndex(statuses, firstChestIndex, "waiting");
   ensureStatusAtIndex(statuses, firstPointsIndex, "waiting");
   ensureStatusAtIndex(statuses, firstGemIndex, "waiting");
+
+  if (options?.claimableCount !== undefined) {
+    const claimableCount = Math.max(0, Math.min(MISSIONS.length, Math.trunc(options.claimableCount)));
+    const preferredIndexes = Array.from(new Set([firstChestIndex, firstPointsIndex, firstGemIndex]))
+      .filter((index) => index >= 0);
+    const remainingIndexes = shuffle(
+      MISSIONS.map((_, index) => index).filter((index) => !preferredIndexes.includes(index)),
+      random,
+    );
+    const claimableIndexes = new Set([
+      ...preferredIndexes.slice(0, claimableCount),
+      ...remainingIndexes.slice(0, Math.max(0, claimableCount - preferredIndexes.length)),
+    ]);
+
+    MISSIONS.forEach((_, index) => {
+      if (claimableIndexes.has(index)) {
+        statuses[index] = "waiting";
+        return;
+      }
+
+      statuses[index] = random() < 0.5 ? "claimed" : "locked";
+    });
+  }
 
   return MISSIONS.map((definition, index) => {
     const status = statuses[index]!;

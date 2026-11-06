@@ -32,6 +32,9 @@ interface MissionRewardOverlayProps {
 const EXIT_DURATION_MS = 500;
 const POINT_DROP_DELAY_MS = 220;
 const POINT_CLOSE_DELAY_MS = 500;
+const REWARD_HUD_ENTER_DELAY_MS = 100;
+const REWARD_HUD_EXIT_DELAY_MS = 420;
+const REWARD_HUD_TRANSITION_MS = 300;
 
 function removeMissionAmount(current: Record<string, number>, missionId: string) {
   if (!(missionId in current)) return current;
@@ -128,6 +131,7 @@ function MissionScatterFlightStack({
   const authSession = useOptionalAuthSession();
   const scoreRef = useRef<HTMLSpanElement>(null);
   const visibilityTimerRef = useRef<number | null>(null);
+  const [present, setPresent] = useState(false);
   const [visible, setVisible] = useState(false);
   const [arrivedPointsByMission, setArrivedPointsByMission] = useState<Record<string, number>>({});
   const [arrivedGemsByMission, setArrivedGemsByMission] = useState<Record<string, number>>({});
@@ -152,11 +156,21 @@ function MissionScatterFlightStack({
     }
 
     if (hasActiveModes && !visible) {
-      visibilityTimerRef.current = window.setTimeout(() => setVisible(true), 100);
+      visibilityTimerRef.current = window.setTimeout(() => {
+        visibilityTimerRef.current = null;
+        setPresent(true);
+        setVisible(true);
+      }, REWARD_HUD_ENTER_DELAY_MS);
     } else if (!hasActiveModes && visible) {
       visibilityTimerRef.current = window.setTimeout(() => {
+        visibilityTimerRef.current = null;
         setVisible(false);
-      }, 420);
+      }, REWARD_HUD_EXIT_DELAY_MS);
+    } else if (!hasActiveModes && present) {
+      visibilityTimerRef.current = window.setTimeout(() => {
+        visibilityTimerRef.current = null;
+        setPresent(false);
+      }, REWARD_HUD_TRANSITION_MS);
     }
 
     return () => {
@@ -165,20 +179,20 @@ function MissionScatterFlightStack({
         visibilityTimerRef.current = null;
       }
     };
-  }, [hasActiveModes, visible]);
+  }, [hasActiveModes, present, visible]);
 
   useEffect(() => () => {
     if (visibilityTimerRef.current !== null) window.clearTimeout(visibilityTimerRef.current);
   }, []);
 
-  if (typeof document === "undefined" || (!hasActiveModes && !visible)) return null;
+  if (typeof document === "undefined" || (!hasActiveModes && !present)) return null;
 
   return createPortal(<>
     <div
       data-mission-points-flight-stack
       data-active-point-reward-count={activePointModes.length}
       data-active-gem-reward-count={activeGemModes.length}
-      className={cn("pointer-events-none fixed left-1/2 top-3 z-[70] -translate-x-1/2 transition-all duration-300", visible ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0")}
+      className={cn("pointer-events-none fixed left-1/2 top-3 z-[70] -translate-x-1/2 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]", visible ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0")}
     >
       <MainPointsDisplay
         targetRef={scoreRef}

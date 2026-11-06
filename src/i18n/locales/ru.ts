@@ -594,6 +594,7 @@ const dictionary = {
   "quiz.noPracticeLanguagesDescription": "На странице обучения нельзя практиковать тот же язык, что выбран как язык сайта. Добавьте карточки на другом языке или смените язык сайта вне страницы обучения.",
   "quiz.noPracticeLanguagesTitle": "Для текущего языка сайта нет доступных языков практики",
   "quiz.continue": "Продолжить",
+  "quiz.missionRewardsTitle": "Получить награды за задания",
   "quiz.congratulations": "Поздравляем!",
   "quiz.feedbackContinue": "Продолжить",
   "quiz.correctAnswer": "Правильный ответ",

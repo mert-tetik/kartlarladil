@@ -594,6 +594,7 @@ const dictionary = {
   "quiz.noPracticeLanguagesDescription": "Op de leerpagina kun je niet dezelfde taal oefenen als de huidige sitetaal. Voeg kaarten toe in een andere taal of wijzig de sitetaal buiten Leren.",
   "quiz.noPracticeLanguagesTitle": "Geen oefentaal beschikbaar voor deze sitetaal",
   "quiz.continue": "Doorgaan",
+  "quiz.missionRewardsTitle": "Missiebeloningen claimen",
   "quiz.congratulations": "Gefeliciteerd!",
   "quiz.feedbackContinue": "Doorgaan",
   "quiz.correctAnswer": "Correct antwoord",

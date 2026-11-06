@@ -33,7 +33,7 @@ describe("native loading card carousel", () => {
     expect(root.dataset.transitionPhase).toBe("hold");
     expect(readVisibleSourceKeys()).toEqual(cards.slice(0, 4).map((card) => card.sourceKey));
 
-    act(() => vi.advanceTimersByTime(420));
+    act(() => vi.advanceTimersByTime(1920));
     expect(root.dataset.transitionPhase).toBe("exit");
     expect(Array.from(root.querySelectorAll<HTMLElement>('[data-card-motion="exit"]'))
       .map((card) => card.dataset.cardSource)).toEqual(cards.slice(0, 4).map((card) => card.sourceKey));
@@ -65,7 +65,7 @@ describe("native loading card carousel", () => {
     expect(root.dataset.transitionPhase).toBe("hold");
     expect(readVisibleSourceKeys()).toEqual(cards.slice(4, 8).map((card) => card.sourceKey));
 
-    act(() => vi.advanceTimersByTime(420));
+    act(() => vi.advanceTimersByTime(1920));
     expect(root.dataset.transitionPhase).toBe("exit");
     expect(Array.from(root.querySelectorAll<HTMLElement>('[data-card-motion="exit"]'))
       .map((card) => card.dataset.cardSource)).toEqual(cards.slice(4, 8).map((card) => card.sourceKey));

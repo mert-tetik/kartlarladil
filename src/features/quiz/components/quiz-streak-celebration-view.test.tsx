@@ -7,6 +7,8 @@ import { QuizStreakCelebrationView } from "./quiz-streak-celebration-view";
 const mocks = vi.hoisted(() => ({
   playSoundEffect: vi.fn(),
   vibrate: vi.fn(),
+  onPointsComplete: null as null | (() => void),
+  onGemsComplete: null as null | (() => void),
 }));
 
 vi.mock("@/lib/sound-effects", () => ({
@@ -15,6 +17,17 @@ vi.mock("@/lib/sound-effects", () => ({
 
 vi.mock("@/lib/vibration", () => ({
   vibrate: mocks.vibrate,
+}));
+
+vi.mock("@/features/progress/components/reward-scatter", () => ({
+  RewardScatter: ({
+    onPointsComplete,
+    onGemsComplete,
+  }: { onPointsComplete?: () => void; onGemsComplete?: () => void }) => {
+    mocks.onPointsComplete = onPointsComplete ?? null;
+    mocks.onGemsComplete = onGemsComplete ?? null;
+    return null;
+  },
 }));
 
 describe("QuizStreakCelebrationView", () => {
@@ -30,6 +43,8 @@ describe("QuizStreakCelebrationView", () => {
     vi.useFakeTimers();
     mocks.playSoundEffect.mockReset();
     mocks.vibrate.mockReset();
+    mocks.onPointsComplete = null;
+    mocks.onGemsComplete = null;
   });
 
   afterEach(() => {
@@ -102,6 +117,33 @@ describe("QuizStreakCelebrationView", () => {
 
     expect(pointsHud).toHaveClass("animate-streak-reward-hud-enter");
     expect(pointsHud).toHaveAttribute("data-streak-reward-points");
+  });
+
+  it("keeps the points and gem HUD visible as the streak screen transitions away", () => {
+    const onComplete = vi.fn();
+    renderView({
+      streak: 5,
+      rewardPoints: 20,
+      totalPoints: 100,
+      gemRewards: [{ type: "blue", amount: 1 }],
+      gemBalances: { blue: 51, green: 31, purple: 16 },
+      onComplete,
+    });
+    const view = document.querySelector("[data-streak-celebration-view]")!;
+
+    fireEvent.pointerUp(view, { pointerType: "touch" });
+    const pointsHud = document.querySelector<HTMLElement>("[data-streak-reward-points]")!;
+    expect(pointsHud).toHaveClass("animate-streak-reward-hud-enter");
+
+    act(() => mocks.onPointsComplete?.());
+    act(() => mocks.onGemsComplete?.());
+    act(() => vi.advanceTimersByTime(40));
+    act(() => vi.advanceTimersByTime(1000));
+
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(pointsHud).toBeInTheDocument();
+    expect(pointsHud.querySelector('[data-reward-gem-hud-role="reward"]')).toBeInTheDocument();
+    expect(pointsHud).not.toHaveClass("animate-streak-reward-hud-exit");
   });
 
   it("renders the three gem displays with the reward HUD after the first tap", () => {

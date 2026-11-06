@@ -315,6 +315,33 @@ describe("MobileAuthGateway returning-login flow", () => {
     expect(screen.queryByTestId("mobile-app-choice")).not.toBeInTheDocument();
   });
 
+  it("fades the opaque gateway backdrop before removing the overlay after login", () => {
+    vi.useFakeTimers();
+    mocks.authUser = null;
+    window.history.replaceState({}, "", "/?mobile-gateway-login=1");
+    const view = render(<MobileAuthGateway countryCode="US" />);
+
+    expect(screen.getByTestId("mobile-auth-screen")).toBeInTheDocument();
+
+    mocks.authUser = { profile: { onboardingCompleted: true } };
+    view.rerender(<MobileAuthGateway countryCode="US" />);
+
+    const gateway = document.querySelector<HTMLElement>("[data-mobile-auth-gateway]");
+    expect(gateway).toHaveAttribute("data-gateway-shell-closing", "true");
+    expect(gateway).toHaveAttribute("data-gateway-shell-opaque", "true");
+    expect(gateway?.querySelector("[data-gateway-shell-backdrop]")).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(GATEWAY_FLOW_EXIT_DURATION_MS + 49);
+    });
+    expect(document.querySelector("[data-mobile-auth-gateway]")).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(document.querySelector("[data-mobile-auth-gateway]")).not.toBeInTheDocument();
+  });
+
   it("does not let a stale logout marker override an authenticated user", async () => {
     window.history.replaceState({}, "", "/?mobile-gateway-login=1");
     mocks.authUser = { profile: { onboardingCompleted: false } };

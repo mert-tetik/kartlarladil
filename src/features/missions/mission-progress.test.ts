@@ -6,6 +6,7 @@ import {
   computeMissionProgress,
   countWaitingMissions,
   deriveMissionStatus,
+  prioritizeClaimableMissions,
 } from "./mission-progress";
 import type { MissionProgressSnapshot } from "./mission-types";
 
@@ -116,5 +117,25 @@ describe("countWaitingMissions", () => {
     const claimedCount = 2;
     const expected = MISSIONS.length - claimedCount;
     expect(waiting).toBe(expected);
+  });
+});
+
+describe("prioritizeClaimableMissions", () => {
+  it("groups claimable, locked, and claimed missions while preserving each group's order", () => {
+    const missions = [
+      { id: "locked-first", status: "locked" as const },
+      { id: "waiting-first", status: "waiting" as const },
+      { id: "claimed", status: "claimed" as const },
+      { id: "waiting-second", status: "waiting" as const },
+      { id: "locked-second", status: "locked" as const },
+    ];
+
+    expect(prioritizeClaimableMissions(missions).map(({ id }) => id)).toEqual([
+      "waiting-first",
+      "waiting-second",
+      "locked-first",
+      "locked-second",
+      "claimed",
+    ]);
   });
 });

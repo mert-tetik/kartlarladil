@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Copies the web application's local media into the install-time Play Asset
  * Pack used by the Android WebView shell. The generated Android project is
@@ -32,15 +31,15 @@ const MEDIA_EXTENSIONS = new Set([
   ".woff2",
 ]);
 
-const TUTORIAL_WELCOME_ATLAS_COUNT = 13;
+const TUTORIAL_WELCOME_FRAME_COUNT = 97;
 
 export const REQUIRED_OFFLINE_MEDIA_URLS = [
   "ar", "de", "en", "es", "fr", "it", "ja", "ko", "nl", "pl", "pt", "ru", "tr", "zh-CN",
 ].map((language) => `/flags/language/${language}.png`).concat(
   "/missions/cikinti-v2.png",
   Array.from(
-    { length: TUTORIAL_WELCOME_ATLAS_COUNT },
-    (_, index) => `/video-frame-atlases/tutorial-welcome/atlas-${String(index + 1).padStart(3, "0")}.webp`,
+    { length: TUTORIAL_WELCOME_FRAME_COUNT },
+    (_, index) => `/mascots/tutorial-welcome/frames/frame-${String(index + 1).padStart(3, "0")}.webp`,
   ),
 );
 

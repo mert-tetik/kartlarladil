@@ -594,6 +594,7 @@ const dictionary = {
   "quiz.noPracticeLanguagesDescription": "Sur la page Apprendre, vous ne pouvez pas pratiquer la même langue que la langue actuelle du site. Ajoutez des cartes dans une autre langue ou changez la langue du site en dehors d'Apprendre.",
   "quiz.noPracticeLanguagesTitle": "Aucune langue d'entraînement disponible pour cette langue du site",
   "quiz.continue": "Continuer",
+  "quiz.missionRewardsTitle": "Récupérer les récompenses des missions",
   "quiz.congratulations": "Félicitations !",
   "quiz.feedbackContinue": "Continuer",
   "quiz.correctAnswer": "Réponse correcte",
