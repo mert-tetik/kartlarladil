@@ -100,12 +100,36 @@ describe("AccountMenu", () => {
     await waitFor(() => expect(matchMedia).toHaveBeenCalled());
     await user.click(screen.getByRole("button", { name: /hesap men\u00fcs\u00fc/i }));
 
+    expect(screen.getByRole("menu")).toHaveClass("animate-menu-pop");
     expect(screen.getByText("Test User")).toBeInTheDocument();
     expect(screen.getByText("test@example.com")).toBeInTheDocument();
     expect(document.querySelector('a[href="/profile"]')).not.toBeInTheDocument();
     expect(document.querySelector('a[href="/pricing"]')).not.toBeInTheDocument();
     expect(document.querySelector('a[href="/contact"]')).toBeInTheDocument();
     expect(screen.queryByText("A1")).not.toBeInTheDocument();
+  });
+
+  it("plays the close animation before removing the account menu", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <AuthSessionProvider user={testUser}>
+        <LocaleProvider initialLocale="tr">
+          <AccountMenu user={testUser} navbar />
+        </LocaleProvider>
+      </AuthSessionProvider>,
+    );
+
+    const trigger = screen.getByRole("button", { name: /hesap men\u00fcs\u00fc/i });
+    await user.click(trigger);
+    const menu = document.querySelector<HTMLElement>('[role="menu"]');
+    expect(menu).toHaveClass("animate-menu-pop");
+
+    await user.click(trigger);
+    expect(menu).toHaveClass("animate-menu-pop-out");
+    expect(menu).toHaveAttribute("aria-hidden", "true");
+    expect(menu).toHaveAttribute("inert");
+    await waitFor(() => expect(document.querySelector('[role="menu"]')).not.toBeInTheDocument());
   });
 
   it("requests mobile auth immediately when logout is clicked", async () => {

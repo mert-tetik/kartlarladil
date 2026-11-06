@@ -321,7 +321,7 @@ const dictionary = {
   "home.points.description": "Een kaart geeft pas punten nadat de quizdrempel is bereikt. Hardere tiers geven meer punten; je rang wordt bijgewerkt in de navigatiebalk, accountmenu en profielpagina.",
   "home.points.title": "Verdien punten en promoot jezelf.",
   "home.rankRoad.calculated": "Bereken van geleerde kaarten",
-  "home.rankRoad.description": "10 rangen voortgang van 0 tot 18.000 punten.",
+  "home.rankRoad.description": "10 rangen voortgang van 0 tot 100.000 punten.",
   "home.rankRoad.title": "Rang pad",
   "home.review.commentLabel": "Jouw feedback",
   "home.review.commentPlaceholder": "Wat vind je leuk? Wat kunnen we verbeteren?",

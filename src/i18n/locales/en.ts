@@ -319,7 +319,7 @@ const dictionary = {
   "home.points.description": "A card gives points only after its quiz threshold is complete. Harder tiers grant more points; your rank updates in the navbar, account menu, and profile page.",
   "home.points.title": "Earn points and rank up.",
   "home.rankRoad.calculated": "Calculated from learned cards",
-  "home.rankRoad.description": "10 ranks progress from 0 to 18,000 points.",
+  "home.rankRoad.description": "10 ranks progress from 0 to 100,000 points.",
   "home.rankRoad.title": "Rank path",
   "home.review.commentLabel": "Your feedback",
   "home.review.commentPlaceholder": "What do you like? What can we improve?",

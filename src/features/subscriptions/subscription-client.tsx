@@ -10,8 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { SubscriptionPurchaseSuccessDialog } from "@/features/subscriptions/components/subscription-purchase-success-dialog";
+import { usePathname } from "next/navigation";
 import {
   GlobalSubscriptionDetailsOverlay,
   type SubscriptionDetailsSelection,
@@ -35,7 +34,6 @@ interface SubscriptionContextValue {
   error: string | null;
   refreshEntitlements: () => Promise<UserEntitlements | null>;
   applyVerifiedEntitlements: (next: UserEntitlements) => void;
-  presentPurchaseSuccess: () => void;
   openSubscriptionDetails: (
     selection: SubscriptionDetailsSelection,
     options?: {
@@ -112,7 +110,6 @@ function SubscriptionProviderSession({
   userId: string | null;
   user: AuthShellUser | null;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const isVisualTestMode = isMissionVisualTestRoute(pathname);
   const [entitlements, setEntitlements] = useState<UserEntitlements | null>(() =>
@@ -122,7 +119,6 @@ function SubscriptionProviderSession({
     Boolean(userId && !readCachedEntitlements(userId)),
   );
   const [error, setError] = useState<string | null>(null);
-  const [purchaseSuccessOpen, setPurchaseSuccessOpen] = useState(false);
   const [subscriptionDetailsRequest, setSubscriptionDetailsRequest] = useState<SubscriptionDetailsRequest | null>(null);
   const entitlementsRef = useRef<UserEntitlements | null>(entitlements);
   const userIdRef = useRef<string | null>(userId);
@@ -266,10 +262,6 @@ function SubscriptionProviderSession({
     });
   }, [isVisualTestMode, refreshEntitlements, userId]);
 
-  const presentPurchaseSuccess = useCallback(() => {
-    setPurchaseSuccessOpen(true);
-  }, []);
-
   const openSubscriptionDetails = useCallback<SubscriptionContextValue["openSubscriptionDetails"]>(
     (selection, options) => {
       setSubscriptionDetailsRequest({
@@ -286,16 +278,9 @@ function SubscriptionProviderSession({
     setSubscriptionDetailsRequest(null);
   }, []);
 
-  const handlePurchaseSuccessContinue = useCallback(() => {
-    setPurchaseSuccessOpen(false);
-    if (pathname !== "/") {
-      router.replace("/");
-    }
-  }, [pathname, router]);
-
   return (
     <SubscriptionContext.Provider
-      value={{ entitlements, isLoading, error, refreshEntitlements, applyVerifiedEntitlements, presentPurchaseSuccess, openSubscriptionDetails }}
+      value={{ entitlements, isLoading, error, refreshEntitlements, applyVerifiedEntitlements, openSubscriptionDetails }}
     >
       {children}
       {subscriptionDetailsRequest ? (
@@ -306,17 +291,12 @@ function SubscriptionProviderSession({
             ? subscriptionDetailsRequest.currentPlan
             : entitlements?.effectivePlan ?? null}
           onClose={closeSubscriptionDetails}
-          onPresentPurchaseSuccess={presentPurchaseSuccess}
         />
       ) : null}
       <GooglePlayBillingSync
         disabled={isVisualTestMode}
         entitlements={entitlements}
         refreshEntitlements={refreshEntitlements}
-      />
-      <SubscriptionPurchaseSuccessDialog
-        open={purchaseSuccessOpen}
-        onContinue={handlePurchaseSuccessContinue}
       />
     </SubscriptionContext.Provider>
   );
@@ -327,13 +307,11 @@ function SubscriptionDetailsHost({
   user,
   currentPlan,
   onClose,
-  onPresentPurchaseSuccess,
 }: {
   request: SubscriptionDetailsRequest;
   user: AuthShellUser | null;
   currentPlan: SubscriptionPlan | null;
   onClose: () => void;
-  onPresentPurchaseSuccess: () => void;
 }) {
   const isTwa = useTwaMode();
   const googlePlayPricing = useGooglePlayPricing();
@@ -352,7 +330,6 @@ function SubscriptionDetailsHost({
       purchaseSupported={isSupported}
       onClose={onClose}
       onPurchaseSuccess={request.onPurchaseSuccess}
-      onPresentPurchaseSuccess={onPresentPurchaseSuccess}
     />
   );
 }

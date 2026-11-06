@@ -2,7 +2,7 @@ import { fireEvent, render, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/locale-provider";
-import { BonusQuestionView } from "@/features/quiz/components/bonus-question-view";
+import { BonusQuestionView, BonusRewardHud } from "@/features/quiz/components/bonus-question-view";
 import { speakCardTerm } from "@/features/cards/card-speech";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
@@ -62,6 +62,72 @@ describe("BonusQuestionView", () => {
     expect(container.querySelector("[data-bonus-reward-hud]")).not.toBeInTheDocument();
     expect(container.querySelector("[data-bonus-reward-source]")).toHaveAttribute("data-bonus-reward-source-state", "idle");
     expect(container.querySelector("[data-bonus-reward-source] img")).not.toHaveClass("animate-bonus-reward-source-exit");
+  });
+
+  it("slides the reward reveal in from the right as the bonus question exits left", () => {
+    const { container } = render(
+      <LocaleProvider initialLocale="en">
+        <BonusQuestionView
+          question={matchingQuestion}
+          showingAnswer
+          answerAccepted
+          rewardReady
+          showPointFlight={false}
+          rewardRevealVisible
+          onSubmit={vi.fn()}
+          onSkip={vi.fn()}
+          onNext={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(container.querySelector(".quiz-flow-exit-left")).toBeInTheDocument();
+    expect(document.body.querySelector("[data-bonus-reward-reveal]"))
+      .toHaveClass("quiz-flow-enter-right");
+  });
+
+  it("slides the bonus reward HUD left while it exits", () => {
+    render(
+      <LocaleProvider initialLocale="en">
+        <BonusRewardHud
+          totalPoints={42}
+          scorePulse={0}
+          gemBalances={{ blue: 2, green: 1, purple: 0 }}
+          exiting
+        />
+      </LocaleProvider>,
+    );
+
+    const hudLayer = document.body.querySelector("[data-bonus-reward-hud-layer]");
+    expect(hudLayer).toHaveClass("quiz-flow-exit-left");
+    expect(hudLayer).toHaveAttribute("data-bonus-reward-hud-exiting", "true");
+    expect(hudLayer?.querySelector("[data-bonus-reward-score]")).toBeInTheDocument();
+    expect(hudLayer?.querySelector('[data-reward-gem-hud-role="reward"]')).toBeInTheDocument();
+  });
+
+  it("bursts point and gem icons outward as soon as the reward is collected", () => {
+    render(
+      <LocaleProvider initialLocale="en">
+        <BonusQuestionView
+          question={matchingQuestion}
+          showingAnswer
+          answerAccepted
+          rewardReady
+          rewardRevealVisible
+          onSubmit={vi.fn()}
+          onSkip={vi.fn()}
+          onNext={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    const reveal = document.body.querySelector<HTMLElement>("[data-bonus-reward-reveal]");
+    expect(document.body.querySelector("[data-bonus-reward-burst]")).not.toBeInTheDocument();
+    fireEvent.pointerDown(reveal!);
+
+    const burst = document.body.querySelector("[data-bonus-reward-burst]");
+    expect(burst?.querySelectorAll('[data-bonus-reward-burst-particle="points"]')).toHaveLength(24);
+    expect(burst?.querySelectorAll('[data-bonus-reward-burst-particle="gem"]')).toHaveLength(12);
   });
 
   it("starts the source exit and keeps the reward HUD anchored to the source slot", () => {

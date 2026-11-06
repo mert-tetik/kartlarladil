@@ -36,6 +36,7 @@ export interface RewardScatterMotion {
   iconSize?: number;
   zIndex?: number;
   startDelayMs?: number;
+  flightStaggerMs?: number;
   placement?: RewardScatterPlacement;
 }
 
@@ -161,7 +162,8 @@ function getMotion(
     scatterY: fixedScatter?.y ?? -35 - Math.random() * 100,
     targetX: target.left + target.width / 2,
     targetY: target.top + target.height / 2,
-    delay: Math.round(ratio * SCORE_FLIGHT_LAST_START_MS) + (options.startDelayMs ?? 0),
+    delay: Math.round(ratio * (options.flightStaggerMs ?? SCORE_FLIGHT_LAST_START_MS))
+      + (options.startDelayMs ?? 0),
     iconSize: options.iconSize ?? 32,
     zIndex: options.zIndex ?? 50,
     arrivalSoundEffect: options.arrivalSoundEffect ?? "points",

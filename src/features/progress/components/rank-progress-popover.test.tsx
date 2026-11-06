@@ -145,11 +145,22 @@ describe("RankProgressPopover", () => {
     expect(within(rankUpDialog).queryByText("Mevcut")).not.toBeInTheDocument();
     expect(rankUpDialog.querySelector(".rank-up-close-control")).not.toBeInTheDocument();
 
-    fireEvent.click(within(rankUpDialog).getByRole("button"));
+    vi.clearAllMocks();
+    const continueButton = within(rankUpDialog).getByRole("button");
+    expect(continueButton).toHaveAttribute("data-no-tap-vibrate");
+    fireEvent.click(continueButton);
+    expect(playSoundEffect).toHaveBeenCalledWith("result-action-press");
+    expect(vibrate).toHaveBeenCalledWith("firm-tap");
 
     expect(screen.getByRole("dialog", { name: /Rütbe atlad/ })).toBeInTheDocument();
     act(() => {
-      vi.advanceTimersByTime(1140);
+      vi.advanceTimersByTime(620);
+    });
+    const baseBackground = rankUpDialog.querySelector("[data-rank-up-base-background]");
+    expect(baseBackground).toHaveClass("opacity-0");
+    expect(rankUpDialog).toBeInTheDocument();
+    act(() => {
+      vi.advanceTimersByTime(520);
     });
     expect(screen.queryByRole("dialog", { name: /Rütbe atlad/ })).not.toBeInTheDocument();
   });

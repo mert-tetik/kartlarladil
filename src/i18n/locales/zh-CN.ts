@@ -321,7 +321,7 @@ const dictionary = {
   "home.points.description": "卡片只有在其测验阈值完成后才会给予积分。更高的级别提供更多积分；您的等级在导航栏、账户菜单和个人资料页面中更新。",
   "home.points.title": "赚取积分并升级。",
   "home.rankRoad.calculated": "根据已学习的卡片计算",
-  "home.rankRoad.description": "10个等级从0到18,000积分进展。",
+  "home.rankRoad.description": "10个等级从0到100,000积分进展。",
   "home.rankRoad.title": "等级路径",
   "home.review.commentLabel": "您的反馈",
   "home.review.commentPlaceholder": "您喜欢什么？我们可以改进什么？",

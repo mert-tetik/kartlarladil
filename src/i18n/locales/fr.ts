@@ -321,7 +321,7 @@ const dictionary = {
   "home.points.description": "Une carte donne des points seulement après que son seuil de quiz soit atteint. Les niveaux plus difficiles accordent plus de points ; votre niveau se met à jour dans la barre de navigation, le menu du compte et la page de profil.",
   "home.points.title": "Gagnez des points et montez en niveau.",
   "home.rankRoad.calculated": "Calculé à partir des cartes apprises",
-  "home.rankRoad.description": "10 niveaux progressent de 0 à 18 000 points.",
+  "home.rankRoad.description": "10 niveaux progressent de 0 à 100 000 points.",
   "home.rankRoad.title": "Chemin de niveau",
   "home.review.commentLabel": "Vos commentaires",
   "home.review.commentPlaceholder": "Qu'est-ce que vous aimez ? Que pouvons-nous améliorer ?",

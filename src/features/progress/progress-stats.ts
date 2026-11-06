@@ -24,10 +24,10 @@ export const RANKS: RankDefinition[] = [
   { id: "dil-yolcusu", label: "Dil Yolcusu", minPoints: 1400, icon: "compass" },
   { id: "akici-ogrenci", label: "Akıcı Öğrenci", minPoints: 2800, icon: "graduation" },
   { id: "kelime-ustasi", label: "Kelime Ustası", minPoints: 7500, icon: "star" },
-  { id: "cok-dilli", label: "Çok Dilli", minPoints: 13500, icon: "languages" },
-  { id: "seckin-koleksiyoncu", label: "Seçkin Koleksiyoncu", minPoints: 22500, icon: "gem" },
-  { id: "dil-bilgesi", label: "Dil Bilgesi", minPoints: 36000, icon: "crown" },
-  { id: "efsane", label: "Efsane", minPoints: 54000, icon: "flame" },
+  { id: "cok-dilli", label: "Çok Dilli", minPoints: 20000, icon: "languages" },
+  { id: "seckin-koleksiyoncu", label: "Seçkin Koleksiyoncu", minPoints: 40000, icon: "gem" },
+  { id: "dil-bilgesi", label: "Dil Bilgesi", minPoints: 60000, icon: "crown" },
+  { id: "efsane", label: "Efsane", minPoints: 100000, icon: "flame" },
 ];
 
 export const RANK_ACCENT_COLORS = {

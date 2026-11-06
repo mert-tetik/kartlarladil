@@ -1,13 +1,29 @@
 import { render, screen } from "@testing-library/react";
 import type { FormEvent, ReactElement } from "react";
 import userEvent from "@testing-library/user-event";
-import { vi } from "vitest";
+import { beforeEach, vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { getCardTranslation, getCardTranslationMeanings } from "@/features/cards/card-localization";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
-const mockOpenAsk = vi.fn();
+type MockInventoryCard = {
+  cardId: string;
+  status: "active" | "learned";
+  correctCount: number;
+  addedAt: string;
+  learnedAt?: string;
+};
+
+const { inventoryCardsMock, mockOpenAsk } = vi.hoisted(() => ({
+  inventoryCardsMock: { value: [] as MockInventoryCard[] },
+  mockOpenAsk: vi.fn(),
+}));
+
+vi.mock("@/features/inventory/inventory-store", () => ({
+  useInventoryStore: (selector: (state: { cards: MockInventoryCard[] }) => unknown) =>
+    selector({ cards: inventoryCardsMock.value }),
+}));
 
 vi.mock("@/features/ask/components/ask-overlay-provider", () => ({
   useAskOverlay: () => ({ openAsk: mockOpenAsk }),
@@ -18,6 +34,10 @@ vi.mock("@/features/auth/auth-client", () => ({
 }));
 
 const testCard = VOCABULARY_CARDS.find((card) => card.language === "en" && card.tier === "A1")!;
+
+beforeEach(() => {
+  inventoryCardsMock.value = [];
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -199,6 +219,80 @@ describe("VocabularyCardView", () => {
     expect(container.querySelector("[data-card-progress][role='progressbar']")).toHaveAttribute("aria-valuenow", "2");
     expect(container.querySelector("[data-card-progress]")).toHaveAttribute("data-progress-animation-active", "true");
     expect(container.querySelector("[data-card-progress] [data-progress-indicator-overlay]")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: `${testCard.term} Sor` })).not.toBeInTheDocument();
+  });
+
+  it("looks up a deck card by source key when its caller omits inventory", () => {
+    inventoryCardsMock.value = [{
+      cardId: testCard.sourceKey,
+      status: "active",
+      correctCount: 2,
+      addedAt: "2026-07-19T00:00:00.000Z",
+    }];
+
+    const { container } = renderCard(<VocabularyCardView card={testCard} />);
+
+    expect(container.querySelector("[data-card-progress]")).toHaveTextContent("2/4");
+    expect(container.firstElementChild).toHaveAttribute("data-card-learning-status", "active");
+    expect(screen.queryByRole("button", { name: `${testCard.term} Sor` })).not.toBeInTheDocument();
+  });
+
+  it("shows the learned medal instead of the progress slice for learned deck cards", () => {
+    inventoryCardsMock.value = [{
+      cardId: testCard.id,
+      status: "learned",
+      correctCount: 1,
+      addedAt: "2026-07-19T00:00:00.000Z",
+      learnedAt: "2026-07-20T00:00:00.000Z",
+    }];
+
+    const { container } = renderCard(<VocabularyCardView card={testCard} />);
+
+    expect(container.querySelector("[data-card-progress-medal]")).toBeInTheDocument();
+    expect(container.querySelector("[data-card-progress]")).not.toBeInTheDocument();
+    expect(container.firstElementChild).toHaveAttribute("data-card-learning-status", "learned");
+    expect(screen.queryByRole("button", { name: `${testCard.term} Sor` })).not.toBeInTheDocument();
+  });
+
+  it("shows the learned medal when quiz progress reaches the tier requirement", () => {
+    const { container } = renderCard(
+      <VocabularyCardView card={testCard} footerProgressCount={4} />,
+    );
+
+    expect(container.querySelector("[data-card-progress-medal]")).toBeInTheDocument();
+    expect(container.querySelector("[data-card-progress]")).not.toBeInTheDocument();
+  });
+
+  it("keeps the completing progress slice visible until its animation finishes", () => {
+    inventoryCardsMock.value = [{
+      cardId: testCard.id,
+      status: "learned",
+      correctCount: 4,
+      addedAt: "2026-07-19T00:00:00.000Z",
+      learnedAt: "2026-07-20T00:00:00.000Z",
+    }];
+
+    const { container, rerender } = renderCard(
+      <VocabularyCardView card={testCard} footerProgressCount={4} progressAnimationActive />,
+    );
+
+    expect(container.querySelector("[data-card-progress]")).toBeInTheDocument();
+    expect(container.querySelector("[data-card-progress-medal]")).not.toBeInTheDocument();
+
+    rerender(
+      <LocaleProvider initialLocale="tr">
+        <VocabularyCardView card={testCard} footerProgressCount={4} />
+      </LocaleProvider>,
+    );
+
+    expect(container.querySelector("[data-card-progress-medal]")).toBeInTheDocument();
+    expect(container.querySelector("[data-card-progress]")).not.toBeInTheDocument();
+  });
+
+  it("shows a zero progress slice and hides Ask for an explicitly owned card without a record", () => {
+    const { container } = renderCard(<VocabularyCardView card={testCard} owned />);
+
+    expect(container.querySelector("[data-card-progress]")).toHaveTextContent("0/4");
     expect(screen.queryByRole("button", { name: `${testCard.term} Sor` })).not.toBeInTheDocument();
   });
 

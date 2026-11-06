@@ -84,6 +84,21 @@ describe("createRewardScatterFlights", () => {
     }));
   });
 
+  it("supports a result-specific delay between arriving point particles", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+
+    const flights = createRewardScatterFlights({
+      points: {
+        amount: 4,
+        source: { left: 10, top: 20, width: 30, height: 40 },
+        target: { left: 90, top: 100, width: 10, height: 10 },
+        flightStaggerMs: 1600,
+      },
+    });
+
+    expect(flights.map((flight) => flight.delay)).toEqual([0, 1600]);
+  });
+
   it("assigns each arriving point and gem flight its exact reward share", () => {
     vi.spyOn(Math, "random").mockReturnValue(0.5);
 

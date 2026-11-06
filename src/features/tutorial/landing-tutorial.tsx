@@ -149,6 +149,13 @@ export function LandingTutorial() {
   }, [isMobile, isVisible, locale, pathname]);
 
   useEffect(() => {
+    // Keep speech alive across tutorial screens. Only cancel it when the
+    // tutorial leaves its mobile landing scope entirely.
+    if (isVisible && isMobile && pathname === "/") return;
+    stopTutorialSpeech();
+  }, [isMobile, isVisible, pathname]);
+
+  useEffect(() => {
     if (!isTutorialButtonSoundFlowActive) {
       tutorialButtonSoundFlowActiveRef.current = false;
       return;
@@ -665,7 +672,6 @@ export function LandingTutorial() {
 
   function handleMessageContinue() {
     if (phaseRef.current !== "visible" || isMessageExiting) return;
-    stopTutorialSpeech();
     setIsMessageExiting(true);
     transitionTimerRef.current = window.setTimeout(() => {
       setIsMessageExiting(false);
@@ -847,7 +853,6 @@ function WelcomeTutorialScreen({ exiting, underlay, stage, label, nextLabel, onN
       return;
     }
 
-    stopTutorialSpeech();
     onNext();
   }, [exiting, finishPlayback, hasFrameAtlasError, isAddCardsStage, isWelcomePreparing, onNext]);
 

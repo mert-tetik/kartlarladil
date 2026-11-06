@@ -321,7 +321,7 @@ const dictionary = {
   "home.points.description": "カードは、クイズの閾値が完了した後にのみポイントを与えます。難しいティアはより多くのポイントを付与し、あなたのランクはナビゲーションバー、アカウントメニュー、プロフィールページで更新されます。",
   "home.points.title": "ポイントを獲得してランクアップ。",
   "home.rankRoad.calculated": "学習したカードから計算",
-  "home.rankRoad.description": "10ランクが0から18,000ポイントまで進行します。",
+  "home.rankRoad.description": "10ランクが0から100,000ポイントまで進行します。",
   "home.rankRoad.title": "ランクパス",
   "home.review.commentLabel": "あなたのフィードバック",
   "home.review.commentPlaceholder": "何が好きですか？改善できることはありますか？",

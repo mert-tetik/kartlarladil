@@ -23,7 +23,7 @@ export interface QuizPerformanceRankUp {
   rank: RankDefinition;
 }
 
-export const QUIZ_PERFORMANCE_REWARD_CONTINUE_FAILSAFE_MS = 3500;
+export const QUIZ_PERFORMANCE_REWARD_CONTINUE_FAILSAFE_MS = 5200;
 
 export function isQuizPerformanceContinueLocked({
   hasRewardSequence,

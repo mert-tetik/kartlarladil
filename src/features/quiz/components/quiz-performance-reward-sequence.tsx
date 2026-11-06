@@ -26,6 +26,58 @@ interface RewardRequest {
   startDelayMs: number;
 }
 
+const REWARD_CATEGORY_START_INTERVAL_MS = 700;
+const REWARD_POINT_ARRIVAL_STAGGER_MS = 1600;
+const REWARD_PULSE_SOUND_RATE_STEP = 0.2;
+const REWARD_PULSE_SOUND_MAX_RATE = 2.5;
+const REWARD_BOX_PULSE_DURATION_MS = 620;
+const REWARD_BOX_PULSE_STRENGTH = 1;
+const REWARD_BOX_PULSE_MAX_SCALE = 1.12;
+const REWARD_BOX_PULSE_SCALE = 1 + (REWARD_BOX_PULSE_MAX_SCALE - 1) * REWARD_BOX_PULSE_STRENGTH;
+const REWARD_BOX_PULSE_WHITENING_STRENGTH = REWARD_BOX_PULSE_MAX_SCALE > 1
+  ? Math.max(0, Math.min(1, (REWARD_BOX_PULSE_SCALE - 1) / (REWARD_BOX_PULSE_MAX_SCALE - 1)))
+  : 0;
+const REWARD_BOX_PULSE_SEGMENT_EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
+const REWARD_BOX_PULSE_PEAK_OFFSET = 0.35;
+const REWARD_BOX_PULSE_WHITE_HOLD_OFFSET = 0.45;
+const REWARD_BOX_PULSE_RELEASE_OFFSET = 0.72;
+const REWARD_BOX_PULSE_ANIMATION_OPTIONS: KeyframeAnimationOptions = {
+  duration: REWARD_BOX_PULSE_DURATION_MS,
+  // Keep offsets tied to real time; easing belongs to each keyframe segment.
+  easing: "linear",
+  fill: "none",
+};
+const POINTS_BOX_PULSE_SCALE = 1.075;
+const REWARD_PULSE_HIGHLIGHT_COLOR = "#fff";
+const REWARD_PULSE_COLOR_PROPERTIES = [
+  "color",
+  "fill",
+  "stroke",
+  "backgroundColor",
+  "borderTopColor",
+  "borderRightColor",
+  "borderBottomColor",
+  "borderLeftColor",
+  "outlineColor",
+  "textDecorationColor",
+  "textEmphasisColor",
+  "caretColor",
+  "accentColor",
+  "columnRuleColor",
+  "stopColor",
+  "floodColor",
+  "lightingColor",
+] as const;
+type RewardPulseColorProperty = (typeof REWARD_PULSE_COLOR_PROPERTIES)[number];
+type RewardPulsePaint = Partial<Record<RewardPulseColorProperty, string>>;
+const REWARD_PULSE_OPACITY_PROPERTIES = ["opacity", "fillOpacity", "strokeOpacity"] as const;
+type RewardPulseOpacityProperty = (typeof REWARD_PULSE_OPACITY_PROPERTIES)[number];
+type RewardPulseOpacity = Partial<Record<RewardPulseOpacityProperty, string>>;
+const activeBoxPulseAnimations = new WeakMap<Element, Animation>();
+const activeBoxColorAnimations = new WeakMap<Element, Animation>();
+const initialBoxPaints = new WeakMap<Element, RewardPulsePaint>();
+const initialBoxOpacities = new WeakMap<Element, RewardPulseOpacity>();
+
 export function QuizPerformanceRewardSequence({
   sessionId,
   input,
@@ -37,6 +89,7 @@ export function QuizPerformanceRewardSequence({
   onRankCheckComplete,
   onAwardError,
   onAwardPersisted,
+  testMode = false,
 }: {
   sessionId: string | null;
   input: QuizPerformanceRewardInput;
@@ -48,6 +101,7 @@ export function QuizPerformanceRewardSequence({
   onRankCheckComplete?: (rankUp: QuizPerformanceRankUp | null) => void;
   onAwardError?: () => void;
   onAwardPersisted?: (pointsBeforeAward: number) => Promise<QuizPerformanceRankUp | null>;
+  testMode?: boolean;
 }) {
   const { locale } = useLocale();
   const { user, updateProfileField, refreshProfile } = useAuthSession();
@@ -62,7 +116,11 @@ export function QuizPerformanceRewardSequence({
       ["learned", rewardBreakdown.learnedPoints],
     ] as const)
       .filter(([, amount]) => amount > 0)
-      .map(([id, amount], index) => ({ id, amount, startDelayMs: index * 400 }));
+      .map(([id, amount], index) => ({
+        id,
+        amount,
+        startDelayMs: index * REWARD_CATEGORY_START_INTERVAL_MS,
+      }));
   }, [rewardBreakdown]);
   const [requests, setRequests] = useState<RewardRequest[]>([]);
   const [arrivedPoints, setArrivedPoints] = useState(0);
@@ -72,6 +130,8 @@ export function QuizPerformanceRewardSequence({
   const targetRef = useRef<HTMLSpanElement>(null);
   const scheduleStartedRef = useRef(false);
   const persistStartedSessionRef = useRef<string | null>(null);
+  const testRankCheckStartedRef = useRef(false);
+  const rewardPulseCountRef = useRef(0);
   const startedCategoriesRef = useRef(new Set<RewardCategory>());
   const arrivedPointsByCategoryRef = useRef<Record<RewardCategory, number>>({
     accuracy: 0,
@@ -96,6 +156,13 @@ export function QuizPerformanceRewardSequence({
   }, [exiting]);
 
   useEffect(() => {
+    if (testMode) {
+      if (!testRankCheckStartedRef.current) {
+        testRankCheckStartedRef.current = true;
+        onRankCheckComplete?.(null);
+      }
+      return;
+    }
     if (!user || !sessionId || !rewardBreakdown || rewardBreakdown.totalPoints <= 0) return;
     if (persistStartedSessionRef.current === sessionId) return;
     persistStartedSessionRef.current = sessionId;
@@ -167,6 +234,7 @@ export function QuizPerformanceRewardSequence({
     rewardBreakdown,
     sessionId,
     safeCurrentTotalPoints,
+    testMode,
     updateProfileField,
     user,
   ]);
@@ -244,9 +312,8 @@ export function QuizPerformanceRewardSequence({
     const source = category === "correct" || category === "learned"
       ? document.querySelector<HTMLElement>(`[data-result-card="${category}"]`)
       : document.querySelector<HTMLElement>(`[data-result-stat="${category}"]`);
-    pulseElement(source);
-    playSoundEffect("quiz-result-point-award");
-    vibrate("result");
+    pulseRewardBox(source, rewardPulseCountRef);
+    vibrate("quiz-reward-pulse");
   }, []);
 
   const handlePointsArrive = useCallback((category: RewardCategory, cumulativeAmount: number) => {
@@ -261,7 +328,11 @@ export function QuizPerformanceRewardSequence({
     arrivedPointsByCategoryRef.current[category] = cumulativeAmount;
     setArrivedPoints((current) => current + flightAmount);
     setScorePulse((current) => current + 1);
-    pulseElement(document.querySelector<HTMLElement>('[data-result-stat="points"]'));
+    pulseRewardBox(
+      document.querySelector<HTMLElement>('[data-result-stat="points"]'),
+      rewardPulseCountRef,
+      false,
+    );
     onPointsArrive(flightAmount);
   }, [onPointsArrive]);
 
@@ -314,6 +385,7 @@ export function QuizPerformanceRewardSequence({
               : `[data-result-stat="${request.id}"]`),
             target: targetRef,
             startDelayMs: request.startDelayMs,
+            flightStaggerMs: REWARD_POINT_ARRIVAL_STAGGER_MS,
             iconSize: 30,
             zIndex: 270,
             arrivalSoundEffect: "points",
@@ -330,19 +402,112 @@ export function QuizPerformanceRewardSequence({
   );
 }
 
-function pulseElement(element: HTMLElement | null) {
+function pulseRewardBox(
+  element: HTMLElement | null,
+  pulseCountRef: { current: number },
+  flashWhite = true,
+) {
   if (!element) return;
 
-  const pulseFrames: Keyframe[] = [
-    { transform: "scale(1)" },
-    { transform: "scale(1.075)" },
-    { transform: "scale(1)" },
-  ];
+  if (flashWhite) {
+    const playbackRate = Math.min(
+      REWARD_PULSE_SOUND_MAX_RATE,
+      1 + pulseCountRef.current * REWARD_PULSE_SOUND_RATE_STEP,
+    );
+    pulseCountRef.current += 1;
+    playSoundEffect("quiz-reward-box-pulse", { playbackRate });
+  }
+
   if (typeof element.animate === "function") {
-    element.animate(pulseFrames, {
-      duration: 380,
-      easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-    });
+    activeBoxPulseAnimations.get(element)?.cancel();
+    const pulseAnimation = element.animate(
+        flashWhite
+        ? [
+            { transform: "scale(1)", offset: 0, easing: REWARD_BOX_PULSE_SEGMENT_EASING },
+            {
+              transform: `scale(${REWARD_BOX_PULSE_SCALE})`,
+              offset: REWARD_BOX_PULSE_PEAK_OFFSET,
+              easing: REWARD_BOX_PULSE_SEGMENT_EASING,
+            },
+            {
+              transform: "scale(1)",
+              offset: REWARD_BOX_PULSE_RELEASE_OFFSET,
+              easing: REWARD_BOX_PULSE_SEGMENT_EASING,
+            },
+            { transform: "scale(1)" },
+          ]
+        : [
+            { transform: "scale(1)" },
+            { transform: `scale(${POINTS_BOX_PULSE_SCALE})` },
+            { transform: "scale(1)" },
+          ],
+      flashWhite ? REWARD_BOX_PULSE_ANIMATION_OPTIONS : { duration: 380, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+    );
+    activeBoxPulseAnimations.set(element, pulseAnimation);
+
+    if (!flashWhite) return;
+
+    const colorTargets = [element, ...Array.from(element.querySelectorAll("*"))];
+    for (const target of colorTargets) {
+      if (typeof target.animate !== "function") continue;
+
+      const preserveTextColor = target.hasAttribute("data-result-stat-label");
+      activeBoxColorAnimations.get(target)?.cancel();
+      const targetStyle = window.getComputedStyle(target);
+      const currentPaint = readRewardPulsePaint(targetStyle);
+      const initialPaint = initialBoxPaints.get(target) ?? currentPaint;
+      initialBoxPaints.set(target, initialPaint);
+      const currentOpacity = readRewardPulseOpacity(targetStyle);
+      const initialOpacity = initialBoxOpacities.get(target) ?? currentOpacity;
+      initialBoxOpacities.set(target, initialOpacity);
+      const startFrame: Keyframe = {
+        offset: 0,
+        easing: REWARD_BOX_PULSE_SEGMENT_EASING,
+      };
+      const highlightFrame: Keyframe = {
+        offset: REWARD_BOX_PULSE_PEAK_OFFSET,
+        easing: REWARD_BOX_PULSE_SEGMENT_EASING,
+      };
+      const whiteHoldFrame: Keyframe = {
+        offset: REWARD_BOX_PULSE_WHITE_HOLD_OFFSET,
+        easing: REWARD_BOX_PULSE_SEGMENT_EASING,
+      };
+      const restoreFrame: Keyframe = { offset: REWARD_BOX_PULSE_RELEASE_OFFSET };
+      const finalFrame: Keyframe = {};
+
+      for (const property of REWARD_PULSE_COLOR_PROPERTIES) {
+        if (preserveTextColor && property === "color") continue;
+
+        const currentValue = currentPaint[property];
+        const initialValue = initialPaint[property] ?? currentValue;
+        if (!isVisiblePulseColor(currentValue) && !isVisiblePulseColor(initialValue)) continue;
+
+        const startValue = initialValue ?? currentValue ?? "";
+        const highlightColor = getRewardPulseHighlightColor(startValue);
+        startFrame[property] = startValue;
+        highlightFrame[property] = highlightColor;
+        whiteHoldFrame[property] = highlightColor;
+        restoreFrame[property] = initialValue ?? currentValue ?? "";
+        finalFrame[property] = initialValue ?? currentValue ?? "";
+      }
+
+      if (Object.keys(highlightFrame).length <= 2) continue;
+
+      for (const property of REWARD_PULSE_OPACITY_PROPERTIES) {
+        const restoreValue = initialOpacity[property] ?? "1";
+        startFrame[property] = restoreValue;
+        highlightFrame[property] = "1";
+        whiteHoldFrame[property] = "1";
+        restoreFrame[property] = restoreValue;
+        finalFrame[property] = restoreValue;
+      }
+
+      const colorAnimation = target.animate(
+        [startFrame, highlightFrame, whiteHoldFrame, restoreFrame, finalFrame],
+        REWARD_BOX_PULSE_ANIMATION_OPTIONS,
+      );
+      activeBoxColorAnimations.set(target, colorAnimation);
+    }
     return;
   }
 
@@ -352,4 +517,38 @@ function pulseElement(element: HTMLElement | null) {
   element.addEventListener("animationend", () => {
     element.classList.remove("quiz-performance-reward-pulse");
   }, { once: true });
+}
+
+function readRewardPulsePaint(style: CSSStyleDeclaration): RewardPulsePaint {
+  return Object.fromEntries(REWARD_PULSE_COLOR_PROPERTIES.map((property) => {
+    const cssProperty = property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+    const value = style.getPropertyValue(cssProperty);
+    return [property, resolveRewardPulseColor(value, style.color)];
+  })) as RewardPulsePaint;
+}
+
+function resolveRewardPulseColor(value: string, currentColor: string) {
+  return value.trim().toLowerCase() === "currentcolor" ? currentColor : value;
+}
+
+function readRewardPulseOpacity(style: CSSStyleDeclaration): RewardPulseOpacity {
+  return Object.fromEntries(REWARD_PULSE_OPACITY_PROPERTIES.map((property) => [
+    property,
+    style.getPropertyValue(property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)),
+  ])) as RewardPulseOpacity;
+}
+
+function getRewardPulseHighlightColor(currentColor: string) {
+  const whiteningStrength = REWARD_BOX_PULSE_WHITENING_STRENGTH;
+  if (whiteningStrength >= 1) return REWARD_PULSE_HIGHLIGHT_COLOR;
+  if (whiteningStrength <= 0) return currentColor;
+  return `color-mix(in srgb, ${currentColor}, ${REWARD_PULSE_HIGHLIGHT_COLOR} ${whiteningStrength * 100}%)`;
+}
+
+function isVisiblePulseColor(value: string | undefined) {
+  if (!value) return false;
+  const normalized = value.trim().toLowerCase();
+  if (["none", "transparent", "auto"].includes(normalized)) return false;
+  if (/^rgba\([^)]*,\s*0(?:\.0+)?\s*\)$/.test(normalized)) return false;
+  return !/\/\s*0(?:%|\.0+)?\s*\)$/.test(normalized);
 }

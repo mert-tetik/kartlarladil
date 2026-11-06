@@ -31,9 +31,6 @@ vi.mock("@/features/subscriptions/use-google-play-billing", () => ({
 }));
 vi.mock("@/features/install-app/use-twa-mode", () => ({ useTwaMode: () => mocks.isTwa }));
 vi.mock("@/features/subscriptions/use-google-play-pricing", () => ({ useGooglePlayPricing: () => null }));
-vi.mock("@/features/subscriptions/components/subscription-purchase-success-dialog", () => ({
-  SubscriptionPurchaseSuccessDialog: () => null,
-}));
 vi.mock("@/components/app-message-provider", () => ({ useAppMessage: () => ({ showMessage: vi.fn() }) }));
 vi.mock("@/lib/visual-test-mode", () => ({ isMissionVisualTestRoute: () => false }));
 

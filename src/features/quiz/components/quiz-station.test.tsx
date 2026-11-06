@@ -1821,7 +1821,11 @@ describe("QuizStation sound feedback", () => {
       await vi.advanceTimersByTimeAsync(QUIZ_BUTTON_FEEDBACK_DURATION_MS + 51);
     });
 
-    expect(document.querySelector("[data-quiz-celebration]")).toBeInTheDocument();
+    const celebration = document.querySelector("[data-quiz-celebration]");
+    expect(celebration).toBeInTheDocument();
+    expect(celebration?.querySelector("[data-card-progress-medal]")).toBeInTheDocument();
+    expect(celebration?.querySelector("[data-card-progress]")).not.toBeInTheDocument();
+    expect(celebration?.querySelector(`button[aria-label=\"${testCard.term} Sor\"]`)).not.toBeInTheDocument();
   });
 
   it("renders the visual group question inside the Learn quiz flow", async () => {

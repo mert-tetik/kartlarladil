@@ -72,6 +72,21 @@ describe("progress stats", () => {
     expect(progress.rankProgressPercent).toBe(75);
   });
 
+  it("uses the requested thresholds for the upper ranks", () => {
+    expect(RANKS.slice(6).map(({ id, minPoints }) => [id, minPoints])).toEqual([
+      ["cok-dilli", 20000],
+      ["seckin-koleksiyoncu", 40000],
+      ["dil-bilgesi", 60000],
+      ["efsane", 100000],
+    ]);
+
+    expect(getRankForPoints(19999).id).toBe("kelime-ustasi");
+    expect(getRankForPoints(20000).id).toBe("cok-dilli");
+    expect(getRankForPoints(40000).id).toBe("seckin-koleksiyoncu");
+    expect(getRankForPoints(60000).id).toBe("dil-bilgesi");
+    expect(getRankForPoints(100000).id).toBe("efsane");
+  });
+
   it("assigns one stable icon id to each rank", () => {
     const iconIds = new Set(RANKS.map((rank) => rank.icon));
 

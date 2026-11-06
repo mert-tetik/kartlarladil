@@ -321,7 +321,7 @@ const dictionary = {
   "home.points.description": "카드는 퀴즈 기준이 완료된 후에만 포인트를 제공합니다. 더 어려운 티어는 더 많은 포인트를 부여하며, 당신의 랭크는 네비게이션 바, 계정 메뉴 및 프로필 페이지에서 업데이트됩니다.",
   "home.points.title": "포인트를 얻고 랭크를 올리세요.",
   "home.rankRoad.calculated": "학습된 카드에서 계산됨",
-  "home.rankRoad.description": "10개의 랭크가 0에서 18,000 포인트까지 진행됩니다.",
+  "home.rankRoad.description": "10개의 랭크가 0에서 100,000 포인트까지 진행됩니다.",
   "home.rankRoad.title": "랭크 경로",
   "home.review.commentLabel": "당신의 피드백",
   "home.review.commentPlaceholder": "좋았던 점은 무엇인가요? 개선할 점은 무엇인가요?",

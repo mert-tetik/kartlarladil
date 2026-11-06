@@ -30,6 +30,7 @@ export type SoundEffectName =
   | "clock-tick-high"
   | "level-fail"
   | "mission-claim"
+  | "quiz-reward-box-pulse"
   | "gem-loot"
   | "gem-spend"
   | "result-medal-collect"
@@ -50,6 +51,7 @@ type PitchShiftableAudio = HTMLAudioElement & {
 };
 
 const SOUND_EFFECTS_ENABLED = true;
+const SOUND_EFFECT_MIN_READY_STATE = 3;
 const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   incorrect: "/sounds/false.mp3",
   learned: "/sounds/learned-elevenlabs-v1.mp3",
@@ -71,6 +73,8 @@ const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   "bonus-reward-loot": "/sounds/bonus-reward-loot-collect.mp3?v=20261008-1",
   "level-fail": "/sounds/level-fail-elevenlabs-v1.mp3",
   "mission-claim": "/sounds/stream.mp3",
+  // Source: user-provided Vadim Makes Sound confirmation selection SFX.
+  "quiz-reward-box-pulse": "/sounds/quiz-reward-box-pulse.mp3",
   "gem-loot": "/sounds/gem-collect-opengameart-v1.mp3",
   "gem-spend": "/sounds/gem-spend-freesound-v1.mp3",
   // Source: user-provided Downloads/koiroylers-get-coin-351945.mp3.
@@ -84,8 +88,30 @@ let audioContext: AudioContext | null = null;
 const preloadedSoundEffects = new Set<string>();
 const preloadedSoundEffectAudios = new Map<string, HTMLAudioElement>();
 
+function forgetPreloadedSoundEffect(source: string, audio: HTMLAudioElement) {
+  if (preloadedSoundEffectAudios.get(source) !== audio) return;
+
+  preloadedSoundEffectAudios.delete(source);
+  preloadedSoundEffects.delete(source);
+}
+
+function cacheAndLoadSoundEffect(source: string, audio: HTMLAudioElement) {
+  audio.preload = "auto";
+  preloadedSoundEffectAudios.set(source, audio);
+  preloadedSoundEffects.add(source);
+  audio.addEventListener("error", () => forgetPreloadedSoundEffect(source, audio), { once: true });
+
+  try {
+    audio.load();
+  } catch (error) {
+    forgetPreloadedSoundEffect(source, audio);
+    throw error;
+  }
+}
+
 export function preloadSoundEffects(effects: readonly SoundEffectName[]) {
   if (typeof window === "undefined") return;
+  if (typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent)) return;
 
   const audioWindow = window as BrowserAudioWindow;
   const AudioConstructor = audioWindow.Audio;
@@ -97,10 +123,7 @@ export function preloadSoundEffects(effects: readonly SoundEffectName[]) {
 
     try {
       const audio = new AudioConstructor(source);
-      audio.preload = "auto";
-      audio.load();
-      preloadedSoundEffectAudios.set(source, audio);
-      preloadedSoundEffects.add(source);
+      cacheAndLoadSoundEffect(source, audio);
     } catch {
       // Preloading is opportunistic and must never block the quiz flow.
     }
@@ -169,8 +192,25 @@ function playAudioFile(effect: SoundEffectName, playbackRate = 1) {
   }
 
   try {
-    const audio = preloadedSoundEffectAudios.get(src) ?? new AudioConstructor(src);
+    let audio = preloadedSoundEffectAudios.get(src);
+
+    // If this reward wasn't preloaded for any reason, start loading it now but
+    // use the synchronous Web Audio fallback for this tap instead of letting
+    // an unready media element silently stall.
+    if (effect === "bonus-reward-loot" && !audio) {
+      preloadSoundEffects([effect]);
+      return false;
+    }
+
+    audio ??= new AudioConstructor(src);
     audio.preload = "auto";
+
+    // `play()` can remain pending while the file is buffering and doesn't
+    // necessarily reject. Fall back immediately until enough data is ready.
+    if (effect === "bonus-reward-loot" && audio.readyState < SOUND_EFFECT_MIN_READY_STATE) {
+      return false;
+    }
+
     audio.pause();
     try {
       audio.currentTime = 0;
@@ -189,7 +229,7 @@ function playAudioFile(effect: SoundEffectName, playbackRate = 1) {
     if (playResult && typeof playResult.catch === "function") {
       void playResult.catch(() => {
         // Autoplay and network failures still get the Web Audio fallback.
-        playSynthesizedEffect(effect);
+        playSynthesizedEffect(effect, playbackRate);
       });
     }
 
@@ -754,20 +794,44 @@ function levelFail(context: AudioContext, now: number) {
   playNoise(context, { startTime: now, duration: 0.35, gain: 0.06, filterFrequency: 220 });
 }
 
-function missionClaim(context: AudioContext, now: number) {
+function missionClaim(context: AudioContext, now: number, playbackRate = 1) {
   // Thick, tactile reward thunk with a short golden tail.
+  const rate = Math.max(0.5, Math.min(playbackRate, 2.5));
   playTone(context, {
-    frequency: 170,
-    endFrequency: 108,
+    frequency: 170 * rate,
+    endFrequency: 108 * rate,
     startTime: now,
-    duration: 0.16,
+    duration: 0.16 / rate,
     gain: 0.14,
     type: "triangle",
   });
-  playNoise(context, { startTime: now, duration: 0.05, gain: 0.035, filterFrequency: 720 });
-  playTone(context, { frequency: SCALE.C4, startTime: now + 0.02, duration: 0.2, gain: 0.08, type: "sine" });
-  playTone(context, { frequency: SCALE.G4, startTime: now + 0.05, duration: 0.18, gain: 0.05, type: "triangle" });
-  playTone(context, { frequency: SCALE.C5, startTime: now + 0.1, duration: 0.18, gain: 0.028, type: "triangle" });
+  playNoise(context, {
+    startTime: now,
+    duration: 0.05 / rate,
+    gain: 0.035,
+    filterFrequency: 720 * rate,
+  });
+  playTone(context, {
+    frequency: SCALE.C4 * rate,
+    startTime: now + 0.02 / rate,
+    duration: 0.2 / rate,
+    gain: 0.08,
+    type: "sine",
+  });
+  playTone(context, {
+    frequency: SCALE.G4 * rate,
+    startTime: now + 0.05 / rate,
+    duration: 0.18 / rate,
+    gain: 0.05,
+    type: "triangle",
+  });
+  playTone(context, {
+    frequency: SCALE.C5 * rate,
+    startTime: now + 0.1 / rate,
+    duration: 0.18 / rate,
+    gain: 0.028,
+    type: "triangle",
+  });
 }
 
 function gemLoot(context: AudioContext, now: number) {
@@ -886,6 +950,7 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "clock-tick-high": clockTickHigh,
   "level-fail": levelFail,
   "mission-claim": missionClaim,
+  "quiz-reward-box-pulse": missionClaim,
   "gem-loot": gemLoot,
   "gem-spend": gemSpend,
   "result-medal-collect": resultMedalCollect,

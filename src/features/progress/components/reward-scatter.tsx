@@ -28,6 +28,7 @@ export interface PointsScatterRequest {
   target?: RewardScatterAnchor;
   targetSelector?: string;
   startDelayMs?: number;
+  flightStaggerMs?: number;
   placement?: RewardScatterPlacement;
   scatterOffset?: { x: number; y: number };
   iconCount?: number;
@@ -126,6 +127,7 @@ export function RewardScatter({
   const pointTarget = points?.target;
   const pointTargetSelector = points?.targetSelector;
   const pointDelay = points?.startDelayMs ?? 0;
+  const pointFlightStaggerMs = points?.flightStaggerMs;
   const pointPlacementKey = JSON.stringify(points?.placement ?? null);
   const pointScatterX = points?.scatterOffset?.x;
   const pointScatterY = points?.scatterOffset?.y;
@@ -197,6 +199,7 @@ export function RewardScatter({
           iconCount: pointIconCount,
           gemIcon: pointGemIcon,
           startDelayMs: 0,
+          flightStaggerMs: pointFlightStaggerMs,
           placement: parsePlacement(pointPlacementKey),
           scatterOffset: pointScatterX === undefined || pointScatterY === undefined
             ? undefined
@@ -233,7 +236,7 @@ export function RewardScatter({
     };
   // All request fields are expanded so parent re-renders do not restart a running scatter.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pointAmount, pointSource, pointTarget, pointTargetSelector, pointDelay, pointPlacementKey, pointScatterX, pointScatterY, pointIconCount, pointGemIcon, pointIconSize, pointZIndex, pointArrivalSoundEffect, pointVibrateOnArrival, flightExit]);
+  }, [pointAmount, pointSource, pointTarget, pointTargetSelector, pointDelay, pointFlightStaggerMs, pointPlacementKey, pointScatterX, pointScatterY, pointIconCount, pointGemIcon, pointIconSize, pointZIndex, pointArrivalSoundEffect, pointVibrateOnArrival, flightExit]);
 
   useEffect(() => {
     if (!gemRewards.length) return;

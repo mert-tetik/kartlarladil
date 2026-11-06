@@ -42,6 +42,7 @@ const COMPLETION_SOUND_EFFECTS = [
   "result-medal-collect",
   "word-repetition-complete",
   "bonus-reward-loot",
+  "quiz-reward-box-pulse",
 ] as const satisfies readonly SoundEffectName[];
 
 const scheduledImageSources = new Set<string>();

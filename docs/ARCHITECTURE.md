@@ -71,6 +71,8 @@ Puan ve rank ayri mutable sayac olarak tutulmaz. `ProgressStats` ogrenilmis kart
 - B2 = 75
 - C1 = 100
 
+Rank esikleri `RANKS` kaynaginda tanimlidir: `baslangic` = 0, `kart-ciragi` = 200, `kelime-toplayici` = 600, `dil-yolcusu` = 1400, `akici-ogrenci` = 2800, `kelime-ustasi` = 7500, `cok-dilli` = 20000, `seckin-koleksiyoncu` = 40000, `dil-bilgesi` = 60000, `efsane` = 100000.
+
 Navbar, account menu ve `/profile` ayni progress kaynagini kullanir.
 
 ## UI Boundaries

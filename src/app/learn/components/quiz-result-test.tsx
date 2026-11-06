@@ -52,6 +52,7 @@ export function QuizResultTest() {
             }}
             selectedCount={10}
             quizDurationSeconds={113}
+            performanceRewardTest
             chestOpened
             showChestRewardGate
             chestTier={null}

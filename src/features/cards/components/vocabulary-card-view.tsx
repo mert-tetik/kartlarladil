@@ -14,6 +14,7 @@ import { useAskOverlay } from "@/features/ask/components/ask-overlay-provider";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
 import { getCardDesignTierPalette } from "@/features/cards/card-design-tier-palette";
 import { isLearnedInventoryCard } from "@/features/inventory/inventory-selectors";
+import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { vibrate } from "@/lib/vibration";
 import { cn } from "@/lib/utils";
@@ -95,6 +96,10 @@ export const VocabularyCardView = memo(function VocabularyCardView({
   const t = useT();
   const { openAsk } = useAskOverlay();
   const requireAuth = useRequireAuthAction();
+  const storedInventory = useInventoryStore((state) => inventory === undefined
+    ? state.cards.find(({ cardId }) => cardId === card.id || cardId === card.sourceKey)
+    : undefined);
+  const resolvedInventory = inventory ?? storedInventory;
   const { pronunciation: resolvedPronunciation } = useCardPronunciation(card);
   const displayCard = resolvedPronunciation ? { ...card, pronunciation: resolvedPronunciation } : card;
   const [faceState, setFaceState] = useState<CardFaceState>(() => ({
@@ -129,14 +134,15 @@ export const VocabularyCardView = memo(function VocabularyCardView({
     groupImageSrc: cardGroup ? CARD_GROUP_IMAGE_PATHS[cardGroup.id] : undefined,
   };
   const requirement = TIER_REQUIREMENTS[card.tier];
-  const isLearned = isLearnedInventoryCard(inventory) || (
-    inventory !== undefined && inventory.correctCount >= requirement
-  );
-  const progressCount = footerProgressCount ?? inventory?.correctCount ?? 0;
+  const progressCount = footerProgressCount ?? resolvedInventory?.correctCount ?? 0;
+  const hasReachedRequirement = progressCount >= requirement;
+  const isLearned = (
+    isLearnedInventoryCard(resolvedInventory) || hasReachedRequirement
+  ) && !(progressAnimationActive && hasReachedRequirement);
   const progress = isLearned
     ? requirement
     : Math.min(requirement, Math.max(0, progressCount));
-  const showProgress = inventory !== undefined || footerProgressCount !== undefined;
+  const showProgress = resolvedInventory !== undefined || owned === true || footerProgressCount !== undefined;
   const showOwnedState = owned === true && !allowOwnedAdd;
   const palette = getCardDesignTierPalette(card.tier);
 
@@ -192,7 +198,7 @@ export const VocabularyCardView = memo(function VocabularyCardView({
     <article
       aria-label={card.term}
       data-card-face={isFaceUp ? "front" : "back"}
-      data-card-learning-status={isLearned ? "learned" : inventory ? "active" : "unowned"}
+      data-card-learning-status={isLearned ? "learned" : showProgress ? "active" : "unowned"}
       data-theme="default"
       {...flipRoleProps}
       onClick={handleCardClick}

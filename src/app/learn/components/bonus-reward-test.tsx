@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import {
   buildMatchingBonusQuestion,
@@ -14,6 +14,7 @@ import { useProgressStats } from "@/features/progress/progress-client";
 import { useLocale } from "@/i18n/locale-provider";
 
 const TEST_LANGUAGE = "en" as const;
+const REWARD_REVEAL_DELAY_MS = 700;
 const TEST_GEM_REWARDS = [
   { type: "blue" as const, amount: 2 },
   { type: "green" as const, amount: 1 },
@@ -25,10 +26,19 @@ export function BonusRewardTest() {
   const { stats } = useProgressStats();
   const session = useOptionalAuthSession();
   const [round, setRound] = useState(0);
+  const [rewardRevealVisible, setRewardRevealVisible] = useState(false);
   const [bonusPoints, setBonusPoints] = useState(0);
   const [gemBalances, setGemBalances] = useState<GemBalances | null>(null);
   const [gemPulse, setGemPulse] = useState<GemHudPulse | null>(null);
   const [scorePulse, setScorePulse] = useState(0);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(
+      () => setRewardRevealVisible(true),
+      REWARD_REVEAL_DELAY_MS,
+    );
+    return () => window.clearTimeout(timeoutId);
+  }, [round]);
 
   const question = useMemo<BonusQuestion | null>(() => {
     const languageCards = VOCABULARY_CARDS.filter((card) => card.language === TEST_LANGUAGE);
@@ -62,6 +72,7 @@ export function BonusRewardTest() {
   const handleRewardComplete = useCallback(() => {
     setBonusPoints(0);
     setGemPulse(null);
+    setRewardRevealVisible(false);
     setRound((current) => current + 1);
   }, []);
 
@@ -71,7 +82,7 @@ export function BonusRewardTest() {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex min-h-0 items-center justify-center overflow-hidden bg-background"
+      className="fixed inset-0 z-[50] flex min-h-0 items-center justify-center overflow-hidden bg-background"
       data-bonus-reward-test
       data-bonus-reward-test-round={round}
     >
@@ -90,7 +101,7 @@ export function BonusRewardTest() {
         gemBalances={gemBalances ?? profileGemBalances}
         gemPulse={gemPulse}
         gemRewards={TEST_GEM_REWARDS}
-        rewardRevealVisible
+        rewardRevealVisible={rewardRevealVisible}
         onPointArrive={(points) => {
           setBonusPoints((current) => Math.max(current, points));
           setScorePulse((current) => current + 1);

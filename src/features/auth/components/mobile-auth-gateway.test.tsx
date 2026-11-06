@@ -1,9 +1,10 @@
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileAuthGateway } from "@/features/auth/components/mobile-auth-gateway";
 import { GATEWAY_FLOW_EXIT_DURATION_MS } from "@/features/auth/components/gateway-flow-transition";
+import { SERIOUS_LEARNER_EXIT_UNMOUNT_DELAY_MS } from "@/features/auth/serious-learner-animation";
 import { consumeSkippedRouteTransition } from "@/lib/route-transition";
 
 const mocks = vi.hoisted(() => ({
@@ -60,7 +61,6 @@ vi.mock("@/features/subscriptions/subscription-client", () => ({
     isLoading: mocks.isEntitlementsLoading,
     error: null,
     refreshEntitlements: vi.fn(),
-    presentPurchaseSuccess: vi.fn(),
   }),
 }));
 
@@ -110,8 +110,19 @@ vi.mock("@/features/auth/components/mobile-onboarding-form", () => ({
 }));
 
 vi.mock("@/features/auth/components/mobile-subscription-offer-screen", () => ({
-  MobileSubscriptionOfferScreen: ({ onContinueFree }: { onContinueFree: () => void }) => (
-    <button data-testid="mobile-subscription-offer" onClick={onContinueFree} type="button">
+  MobileSubscriptionOfferScreen: ({
+    isClosing,
+    onContinueFree,
+  }: {
+    isClosing?: boolean;
+    onContinueFree: () => void;
+  }) => (
+    <button
+      className={isClosing ? "serious-learner-offer--closing" : undefined}
+      data-testid="mobile-subscription-offer"
+      onClick={onContinueFree}
+      type="button"
+    >
       Continue free
     </button>
   ),
@@ -180,7 +191,10 @@ describe("MobileAuthGateway returning-login flow", () => {
     await user.click(screen.getByTestId("mobile-subscription-offer"));
 
     expect(mocks.activateTutorial).toHaveBeenCalledOnce();
-    await waitFor(() => expect(screen.queryByTestId("mobile-subscription-offer")).not.toBeInTheDocument());
+    await waitFor(
+      () => expect(screen.queryByTestId("mobile-subscription-offer")).not.toBeInTheDocument(),
+      { timeout: SERIOUS_LEARNER_EXIT_UNMOUNT_DELAY_MS + 500 },
+    );
     expect(window.location.pathname).toBe("/");
     expect(mocks.router.replace).not.toHaveBeenCalled();
     expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
@@ -244,6 +258,38 @@ describe("MobileAuthGateway returning-login flow", () => {
     expect(screen.queryByTestId("mobile-subscription-offer")).not.toBeInTheDocument();
   });
 
+  it("plays the shared serious-learner exit animation in visual-test mode before reopening", () => {
+    vi.useFakeTimers();
+    window.history.replaceState({}, "", "/?serious-learner-test=1");
+
+    render(<MobileAuthGateway countryCode="US" />);
+
+    const offer = screen.getByTestId("mobile-subscription-offer");
+    expect(offer.closest("[data-mobile-auth-gateway]")).toHaveClass("bg-transparent", "z-[220]");
+    fireEvent.click(offer);
+
+    expect(offer).toHaveClass("serious-learner-offer--closing");
+    act(() => {
+      vi.advanceTimersByTime(SERIOUS_LEARNER_EXIT_UNMOUNT_DELAY_MS - 1);
+    });
+    expect(offer).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(screen.queryByTestId("mobile-subscription-offer")).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(999);
+    });
+    expect(screen.queryByTestId("mobile-subscription-offer")).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(screen.getByTestId("mobile-subscription-offer")).toBeInTheDocument();
+  });
+
   it("skips the landing entrance when the auth gateway exits to the home route", async () => {
     const user = userEvent.setup();
     mocks.pathname = "/login";
@@ -251,7 +297,10 @@ describe("MobileAuthGateway returning-login flow", () => {
     render(<MobileAuthGateway countryCode="US" />);
 
     await user.click(await screen.findByTestId("mobile-subscription-offer"));
-    await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/"), { timeout: 1500 });
+    await waitFor(
+      () => expect(mocks.router.replace).toHaveBeenCalledWith("/"),
+      { timeout: SERIOUS_LEARNER_EXIT_UNMOUNT_DELAY_MS + 500 },
+    );
 
     expect(consumeSkippedRouteTransition("/")).toBe(true);
   });
@@ -277,7 +326,10 @@ describe("MobileAuthGateway returning-login flow", () => {
       "initial",
     );
     expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
-    await waitFor(() => expect(window.location.search).toBe(""));
+    await waitFor(
+      () => expect(window.location.search).toBe(""),
+      { timeout: SERIOUS_LEARNER_EXIT_UNMOUNT_DELAY_MS + 500 },
+    );
     expect(mocks.router.replace).not.toHaveBeenCalled();
   });
 
@@ -401,8 +453,12 @@ describe("MobileAuthGateway returning-login flow", () => {
     view.rerender(<MobileAuthGateway countryCode="US" />);
 
     expect(screen.getByTestId("mobile-subscription-offer")).toBeInTheDocument();
+    expect(screen.getByTestId("mobile-subscription-offer")).toHaveClass("serious-learner-offer--closing");
     expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByTestId("mobile-subscription-offer")).not.toBeInTheDocument());
+    await waitFor(
+      () => expect(screen.queryByTestId("mobile-subscription-offer")).not.toBeInTheDocument(),
+      { timeout: SERIOUS_LEARNER_EXIT_UNMOUNT_DELAY_MS + 500 },
+    );
     expect(mocks.router.replace).not.toHaveBeenCalled();
     expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
   });
@@ -420,7 +476,10 @@ describe("MobileAuthGateway returning-login flow", () => {
 
     expect(await screen.findByTestId("mobile-google-auth-loading")).toBeInTheDocument();
     expect(screen.queryByTestId("mobile-auth-screen")).not.toBeInTheDocument();
-    await waitFor(() => expect(window.location.search).toBe(""));
+    await waitFor(
+      () => expect(window.location.search).toBe(""),
+      { timeout: SERIOUS_LEARNER_EXIT_UNMOUNT_DELAY_MS + 500 },
+    );
     expect(mocks.router.replace).not.toHaveBeenCalled();
 
     mocks.authUser = { profile: { onboardingCompleted: true } };

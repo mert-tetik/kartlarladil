@@ -38,8 +38,6 @@ it("purchases from the global details overlay, closes it, and hands success to t
     events.push("close-restriction-and-show-success");
     messageMocks.showMessage("Subscription activated.", "success");
   });
-  const onPresentPurchaseSuccess = vi.fn();
-
   render(
     <LocaleProvider initialLocale="tr">
       <GlobalSubscriptionDetailsOverlay
@@ -54,7 +52,6 @@ it("purchases from the global details overlay, closes it, and hands success to t
         purchaseSupported
         onClose={onClose}
         onPurchaseSuccess={onPurchaseSuccess}
-        onPresentPurchaseSuccess={onPresentPurchaseSuccess}
       />
     </LocaleProvider>,
   );
@@ -72,5 +69,4 @@ it("purchases from the global details overlay, closes it, and hands success to t
   expect(onPurchaseSuccess).toHaveBeenCalledOnce();
   expect(events).toEqual(["close-restriction-and-show-success", "close-details"]);
   expect(messageMocks.showMessage).toHaveBeenCalledWith("Subscription activated.", "success");
-  expect(onPresentPurchaseSuccess).not.toHaveBeenCalled();
 });

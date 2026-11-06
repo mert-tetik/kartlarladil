@@ -525,7 +525,7 @@ describe("LandingTutorial", () => {
     expect(document.querySelector("#mobile-card-center-content")).toBeInTheDocument();
     expect(playTutorialSpeech).toHaveBeenCalledWith("landing-cards-message", "en");
     fireEvent.click(screen.getByRole("button", { name: "tutorial.collectionMessageButton" }));
-    expect(stopTutorialSpeech).toHaveBeenCalledOnce();
+    expect(stopTutorialSpeech).not.toHaveBeenCalled();
   });
 
   it("speaks target callouts in the selected UI language and leaves speech running when a target closes the screen", async () => {

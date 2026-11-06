@@ -321,7 +321,7 @@ const dictionary = {
   "home.points.description": "تمنح البطاقة نقاطًا فقط بعد اكتمال عتبة اختبارها. تمنح المستويات الأصعب المزيد من النقاط؛ يتم تحديث رتبتك في شريط التنقل، قائمة الحساب، وصفحة الملف الشخصي.",
   "home.points.title": "احصل على نقاط وارتقِ بمستواك.",
   "home.rankRoad.calculated": "محسوبة من البطاقات المتعلمة",
-  "home.rankRoad.description": "10 رتب تتقدم من 0 إلى 18,000 نقطة.",
+  "home.rankRoad.description": "10 رتب تتقدم من 0 إلى 100,000 نقطة.",
   "home.rankRoad.title": "مسار الرتبة",
   "home.review.commentLabel": "تعليقك",
   "home.review.commentPlaceholder": "ما الذي يعجبك؟ ماذا يمكننا تحسينه؟",

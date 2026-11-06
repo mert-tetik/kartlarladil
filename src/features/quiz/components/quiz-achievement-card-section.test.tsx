@@ -48,7 +48,7 @@ describe("AchievementCardSection shared vocabulary cards", () => {
     }
   });
 
-  it("keeps the complete shared card design and progress visible, and still flips on card click", () => {
+  it("shows the learned medal on learned result cards and still flips on click", () => {
     const { container } = render(
       <LocaleProvider initialLocale="en">
         <AchievementCardSection
@@ -68,7 +68,10 @@ describe("AchievementCardSection shared vocabulary cards", () => {
     expect(screen.getByTestId("card-tier-badge")).toHaveTextContent("B1");
     expect(screen.getByTestId("card-pronunciation")).toBeVisible();
     expect(screen.getByTestId("card-reference-example")).toBeVisible();
-    expect(container.querySelector("[data-card-progress]")).toHaveAttribute("aria-valuenow", "6");
+    expect(container.querySelector("[data-card-progress-medal]")).toBeInTheDocument();
+    expect(container.querySelector("[data-card-progress]")).not.toBeInTheDocument();
+    expect(cardShell).toHaveAttribute("data-card-learning-status", "learned");
+    expect(screen.queryByRole("button", { name: `${card.term} Ask` })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("reference-card"));
 

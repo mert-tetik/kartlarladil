@@ -53,6 +53,13 @@ describe("vibration", () => {
     expect(browserVibrate).toHaveBeenCalledWith([72]);
   });
 
+  it("uses a strong two-hit pattern for quiz reward box flashes", () => {
+    const browserVibrate = vi.fn();
+    setBrowserVibration(browserVibrate);
+    vibrate("quiz-reward-pulse");
+    expect(browserVibrate).toHaveBeenCalledWith([110, 35, 180]);
+  });
+
   it("does not vibrate when the user disabled vibration", () => {
     const nativeVibrate = vi.fn(() => true);
     window.FoxiesDeckNativeVibration = { vibrate: nativeVibrate };

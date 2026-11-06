@@ -10,6 +10,9 @@ vi.mock("@/features/quiz/components/quiz-station", () => ({
       chestOpened: boolean;
       showResultMessage: boolean;
       showChestRewardGate: boolean;
+      performanceRewardTest?: boolean;
+      earnedPoints?: number;
+      currentTotalPoints?: number;
       chestTier: { tier: string } | null;
       learnedCards: unknown[];
       advancedCards: unknown[];
@@ -26,6 +29,9 @@ vi.mock("@/features/quiz/components/quiz-station", () => ({
         data-chest-opened={String(props.chestOpened)}
         data-result-message={String(props.showResultMessage)}
         data-chest-gate={String(props.showChestRewardGate)}
+        data-performance-reward-test={String(props.performanceRewardTest)}
+        data-earned-points={props.earnedPoints ?? "default"}
+        data-current-total-points={props.currentTotalPoints ?? "default"}
         data-chest-tier={props.chestTier?.tier ?? "missed"}
         data-learned-cards={props.learnedCards.length}
         data-advanced-cards={props.advancedCards.length}
@@ -47,6 +53,7 @@ describe("QuizResultTest", () => {
     expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-chest-opened", "true");
     expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-result-message", "true");
     expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-chest-gate", "true");
+    expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-performance-reward-test", "true");
     expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-chest-tier", "missed");
     expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-learned-cards", "14");
     expect(document.querySelector("[data-result-test-view]")).toHaveAttribute("data-advanced-cards", "14");

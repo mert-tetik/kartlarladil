@@ -17,7 +17,8 @@ import { getBonusQuestionPoints } from "@/features/quiz/bonus-question-constants
 import { MainPointsDisplay } from "@/features/progress/components/main-points-display";
 import { RewardScatter } from "@/features/progress/components/reward-scatter";
 import { RewardGemHud, type GemHudPulse } from "@/features/progress/components/reward-gem-hud";
-import type { GemBalances, GemRewards, GemType } from "@/features/gems/gem-types";
+import { GEM_ASSETS, type GemBalances, type GemRewards, type GemType } from "@/features/gems/gem-types";
+import { ScoreIcon } from "@/components/score-icon";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/i18n/locale-provider";
 import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
@@ -40,7 +41,9 @@ const SENTENCE_TOKEN_ANIMATION_MS = 360;
 const AUTO_PLACED_SENTENCE_TOKEN_COUNT = 3;
 const CATEGORY_WORD_ANIMATION_MS = 260;
 const BONUS_REWARD_IMAGE = "/quiz/bonus_img.webp?v=20261001-1";
+const BONUS_REWARD_BURST_DURATION_MS = 700;
 let bonusRewardImagePreload: HTMLImageElement | null = null;
+const bonusRewardBurstImagePreloads: HTMLImageElement[] = [];
 const BONUS_INTRO_FRAME_COUNT = 13;
 const BONUS_INTRO_FRAME_DURATION_MS = 1_000 / 22;
 const BONUS_INTRO_HOLD_DURATION_MS = 800;
@@ -54,11 +57,108 @@ const BONUS_INTRO_FRAME_HEIGHT = 854;
 const BONUS_INTRO_SPRITE_COLUMNS = 4;
 
 export function preloadBonusRewardImage() {
-  if (typeof window === "undefined" || bonusRewardImagePreload) return;
+  if (typeof window === "undefined") return;
 
-  bonusRewardImagePreload = new window.Image();
-  bonusRewardImagePreload.decoding = "async";
-  bonusRewardImagePreload.src = BONUS_REWARD_IMAGE;
+  if (!bonusRewardImagePreload) {
+    bonusRewardImagePreload = new window.Image();
+    bonusRewardImagePreload.decoding = "async";
+    bonusRewardImagePreload.src = BONUS_REWARD_IMAGE;
+  }
+
+  if (bonusRewardBurstImagePreloads.length === 0) {
+    ["/score-icon.webp", ...Object.values(GEM_ASSETS)].forEach((source) => {
+      const image = new window.Image();
+      image.decoding = "async";
+      image.src = source;
+      bonusRewardBurstImagePreloads.push(image);
+    });
+  }
+}
+
+type BonusRewardBurstParticle = {
+  id: number;
+  kind: "points" | "gem";
+  gemType?: GemType;
+  x: number;
+  y: number;
+  rotation: string;
+  delay: number;
+  size: number;
+};
+
+function createBonusRewardBurstParticles(): BonusRewardBurstParticle[] {
+  const viewportWidth = typeof window === "undefined" ? 390 : window.innerWidth;
+  const viewportHeight = typeof window === "undefined" ? 844 : window.innerHeight;
+  const halfWidth = viewportWidth / 2;
+  const halfHeight = viewportHeight / 2;
+  const count = 36;
+  const gemTypes: GemType[] = ["blue", "green", "purple"];
+
+  return Array.from({ length: count }, (_, id) => {
+    const isGem = id % 3 === 0;
+    const angle = (id / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.16;
+    const directionX = Math.cos(angle);
+    const directionY = Math.sin(angle);
+    const edgeX = Math.abs(directionX) > 0.001 ? halfWidth / Math.abs(directionX) : Number.POSITIVE_INFINITY;
+    const edgeY = Math.abs(directionY) > 0.001 ? halfHeight / Math.abs(directionY) : Number.POSITIVE_INFINITY;
+    const distance = Math.min(edgeX, edgeY) * (0.72 + Math.random() * 0.24);
+
+    return {
+      id,
+      kind: isGem ? "gem" : "points",
+      ...(isGem ? { gemType: gemTypes[(id / 3) % gemTypes.length] } : {}),
+      x: directionX * distance,
+      y: directionY * distance,
+      rotation: `${Math.round((Math.random() - 0.5) * 110)}deg`,
+      delay: Math.round(Math.random() * 45),
+      size: isGem ? 23 + Math.round(Math.random() * 5) : 25 + Math.round(Math.random() * 7),
+    };
+  });
+}
+
+function BonusRewardBurst() {
+  const [particles] = useState(createBonusRewardBurstParticles);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setVisible(false), BONUS_REWARD_BURST_DURATION_MS);
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  if (!visible || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="pointer-events-none fixed inset-0 z-[125] overflow-hidden" data-bonus-reward-burst aria-hidden="true">
+      {particles.map((particle) => (
+        <span
+          key={particle.id}
+          className="bonus-reward-burst-particle absolute left-1/2 top-1/2"
+          data-bonus-reward-burst-particle={particle.kind}
+          style={{
+            "--bonus-burst-x": `${particle.x}px`,
+            "--bonus-burst-y": `${particle.y}px`,
+            "--bonus-burst-rotation": particle.rotation,
+            animationDelay: `${particle.delay}ms`,
+          } as CSSProperties}
+        >
+          {particle.kind === "points" ? (
+            <ScoreIcon size={particle.size} />
+          ) : (
+            <Image
+              src={GEM_ASSETS[particle.gemType ?? "blue"]}
+              alt=""
+              width={particle.size}
+              height={particle.size}
+              sizes={`${particle.size}px`}
+              unoptimized
+              className="object-contain"
+            />
+          )}
+        </span>
+      ))}
+    </div>,
+    document.body,
+  );
 }
 
 type BonusIntroRenderer = {
@@ -561,6 +661,53 @@ export function BonusQuestionIntro({ onComplete }: { onComplete: () => void }) {
   );
 }
 
+export function BonusRewardHud({
+  totalPoints,
+  scorePulse,
+  gemBalances,
+  gemPulse,
+  exiting = false,
+}: {
+  totalPoints: number;
+  scorePulse: number;
+  gemBalances?: GemBalances | null;
+  gemPulse?: GemHudPulse | null;
+  exiting?: boolean;
+}) {
+  const { locale } = useLocale();
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className={cn(
+        "pointer-events-none fixed inset-x-0 top-5 flex justify-center",
+        exiting ? "z-[120] quiz-flow-exit-left" : "z-[95]",
+      )}
+      data-bonus-reward-hud-layer
+      data-bonus-reward-hud-exiting={exiting ? "true" : "false"}
+    >
+      <div className="pointer-events-none flex flex-col items-center justify-center gap-1" data-bonus-reward-hud>
+        <MainPointsDisplay
+          className="animate-points-pop"
+          pulse={scorePulse}
+          data-bonus-reward-score
+          valueClassName={cn("text-lg font-bold", canUseSuperWater(locale) && "font-super-water")}
+          value={formatSuperWaterText(locale, formatNumber(locale, totalPoints))}
+        />
+        <RewardGemHud
+          animate
+          desktopVisible
+          hudRole="reward"
+          balances={gemBalances}
+          pulse={gemPulse}
+        />
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export function BonusQuestionView({
   question,
   language = "en",
@@ -618,6 +765,7 @@ export function BonusQuestionView({
   const isSentenceOrder = question.kind === "sentence-order";
   const [sentenceDecorationMounted] = useState(true);
   const [rewardRevealCollected, setRewardRevealCollected] = useState(false);
+  const [rewardBurstVisible, setRewardBurstVisible] = useState(false);
   const [sentenceDecorationCharacter] = useState(() => {
     const characters = getAiPracticeCharacters();
     return characters[Math.floor(Math.random() * characters.length)] ?? characters[0]!;
@@ -642,6 +790,7 @@ export function BonusQuestionView({
     rewardCollectStartedRef.current = true;
     playSoundEffect("bonus-reward-loot");
     setRewardRevealCollected(true);
+    setRewardBurstVisible(true);
     onRewardCollect?.();
   }
 
@@ -668,44 +817,19 @@ export function BonusQuestionView({
       )
     : null;
 
-  const rewardHudContent = showRewardHud ? (
-    <div
-      className="pointer-events-none flex flex-col items-center justify-center gap-1"
-      data-bonus-reward-hud
-    >
-      <MainPointsDisplay
-        className="animate-points-pop"
-        pulse={scorePulse}
-        data-bonus-reward-score
-        valueClassName={cn("text-lg font-bold", canUseSuperWater(locale) && "font-super-water")}
-        value={formatSuperWaterText(locale, formatNumber(locale, totalPoints))}
-      />
-      <RewardGemHud
-        animate
-        desktopVisible
-        hudRole="reward"
-        balances={gemBalances}
-        pulse={gemPulse}
-      />
-    </div>
+  const rewardHudPortal = showRewardHud ? (
+    <BonusRewardHud
+      totalPoints={totalPoints}
+      scorePulse={scorePulse}
+      gemBalances={gemBalances}
+      gemPulse={gemPulse}
+    />
   ) : null;
-
-  const rewardHudPortal = rewardHudContent && typeof document !== "undefined"
-      ? createPortal(
-        <div
-          className="pointer-events-none fixed inset-x-0 top-5 z-[95] flex justify-center"
-          data-bonus-reward-hud-layer
-        >
-          {rewardHudContent}
-        </div>,
-        document.body,
-      )
-    : null;
 
   const rewardRevealPortal = rewardRevealVisible && typeof document !== "undefined"
     ? createPortal(
         <div
-          className="fixed inset-0 z-[80] flex cursor-pointer items-center justify-center overflow-hidden bg-background text-center"
+          className="quiz-flow-enter-right fixed inset-0 z-[80] flex cursor-pointer items-center justify-center overflow-hidden bg-background text-center"
           role="button"
           tabIndex={0}
           aria-label={t("quiz.tapToContinue")}
@@ -753,6 +877,7 @@ export function BonusQuestionView({
               />
             </div>
           </div>
+          {rewardBurstVisible ? <BonusRewardBurst /> : null}
           {rewardHudPortal}
           {rewardFlightReady
             ? <RewardScatter

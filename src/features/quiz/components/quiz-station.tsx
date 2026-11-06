@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { LANGUAGES } from "@/data/languages";
-import { TIER_STYLES } from "@/data/tiers";
+import { TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { CARD_GROUP_IMAGE_PATHS } from "@/features/cards/card-groups";
 import {
@@ -135,6 +135,7 @@ import {
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
 import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibility";
+import { preloadSoundEffects } from "@/lib/sound-effects";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import type { ChestRewardOutcome, GemBalances, GemRewards } from "@/features/gems/gem-types";
 import { createChestRewardPreview } from "@/features/gems/chest-reward-preview";
@@ -147,6 +148,7 @@ import { QuizContinuationMotivationView } from "@/features/quiz/components/quiz-
 import type { QuizContinuationMotivationInput } from "@/features/quiz/quiz-continuation-motivations";
 import { QuizStartSplash } from "@/features/quiz/components/quiz-start-splash";
 import {
+  BonusRewardHud,
   BonusQuestionView,
   preloadBonusRewardImage,
 } from "@/features/quiz/components/bonus-question-view";
@@ -686,6 +688,7 @@ export function QuizStation({
   const [pendingRankUpFromRank, setPendingRankUpFromRank] = useState<RankDefinition | null>(null);
   const [rankUpReturn, setRankUpReturn] = useState<"quiz" | "result" | null>(null);
   const [bonusFlightActive, setBonusFlightActive] = useState(false);
+  const [bonusRewardHudExitVisible, setBonusRewardHudExitVisible] = useState(false);
   const [bonusRewardRevealVisible, setBonusRewardRevealVisible] = useState(false);
   const [bonusRewardReady, setBonusRewardReady] = useState(false);
   const [chestCelebrationNextPhase, setChestCelebrationNextPhase] = useState<
@@ -710,6 +713,7 @@ export function QuizStation({
   const normalAnswerAdvanceTimeoutRef = useRef<number | null>(null);
   const bonusRewardRevealTimeoutRef = useRef<number | null>(null);
   const bonusRewardAutoAdvanceTimeoutRef = useRef<number | null>(null);
+  const bonusRewardHudExitTimeoutRef = useRef<number | null>(null);
   const deferredRecordTimeoutRef = useRef<number | null>(null);
   const cardProgressTimeoutIdsRef = useRef<number[]>([]);
   const correctAnswerAnimationCompletionRef = useRef<(() => void) | null>(null);
@@ -794,6 +798,9 @@ export function QuizStation({
       // unmounting, so there is no next quiz screen to mount anymore.
       pendingQuizTransitionRef.current?.cancel();
       pendingQuizTransitionRef.current = null;
+      if (bonusRewardHudExitTimeoutRef.current !== null) {
+        window.clearTimeout(bonusRewardHudExitTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -802,6 +809,7 @@ export function QuizStation({
     // language/count setup is visible, not after the text screen mounts.
     void preloadTextQuizFeedbackMascots().catch(() => undefined);
     preloadBonusRewardImage();
+    preloadSoundEffects(["bonus-reward-loot"]);
   }, []);
 
   useEffect(() => {
@@ -2669,6 +2677,14 @@ export function QuizStation({
       bonusRewardAutoAdvanceTimeoutRef.current = null;
     }
     bonusRewardFlowCompletedRef.current = true;
+    setBonusRewardHudExitVisible(true);
+    if (bonusRewardHudExitTimeoutRef.current !== null) {
+      window.clearTimeout(bonusRewardHudExitTimeoutRef.current);
+    }
+    bonusRewardHudExitTimeoutRef.current = window.setTimeout(() => {
+      bonusRewardHudExitTimeoutRef.current = null;
+      setBonusRewardHudExitVisible(false);
+    }, QUIZ_FLOW_TRANSITION_DURATION_MS);
     setBonusFlightActive(false);
     // Rank reconciliation is background work here. It must not hold the
     // bonus-reward overlay open while the answer/reward write settles.
@@ -3165,6 +3181,10 @@ export function QuizStation({
       window.clearTimeout(bonusRewardAutoAdvanceTimeoutRef.current);
       bonusRewardAutoAdvanceTimeoutRef.current = null;
     }
+    if (bonusRewardHudExitTimeoutRef.current !== null) {
+      window.clearTimeout(bonusRewardHudExitTimeoutRef.current);
+      bonusRewardHudExitTimeoutRef.current = null;
+    }
     if (deferredRecordTimeoutRef.current !== null) {
       window.clearTimeout(deferredRecordTimeoutRef.current);
       deferredRecordTimeoutRef.current = null;
@@ -3238,6 +3258,7 @@ export function QuizStation({
     setQuizCompletionTestNextIndex(null);
     setResultMessageOnResult(false);
     setBonusFlightActive(false);
+    setBonusRewardHudExitVisible(false);
     setBonusRewardRevealVisible(false);
     setBonusRewardReady(false);
     setBonusPointFlightEnabled(false);
@@ -3914,6 +3935,15 @@ export function QuizStation({
 
   return (
     <>
+      {bonusRewardHudExitVisible ? (
+        <BonusRewardHud
+          totalPoints={Math.max(stats.totalPoints, quizBasePointsRef.current + bonusPointsDisplayed)}
+          scorePulse={bonusScorePulse}
+          gemBalances={bonusGemDisplayBalances}
+          gemPulse={bonusGemPulse}
+          exiting
+        />
+      ) : null}
       {isWaitingForQuizPool ? (
         <div
           role="status"
@@ -6771,6 +6801,7 @@ export function CelebrationView({
               initialFace="front"
               face="front"
               flippable={false}
+              footerProgressCount={TIER_REQUIREMENTS[card.tier]}
               continuousFlip={rewardStarted}
               className="relative z-10 h-auto w-full min-h-0 max-sm:aspect-[3/4] max-sm:min-h-0"
             />
@@ -6849,6 +6880,7 @@ type ResultFlowViewProps = {
   chestTotalPoints?: number;
   currentTotalPoints?: number;
   quizFlowTest?: boolean;
+  performanceRewardTest?: boolean;
   onChestRewardReady?: () => Promise<ChestRewardOutcome | null>;
   learnedCards?: readonly VocabularyCard[];
   advancedCards?: readonly VocabularyCard[];
@@ -6890,6 +6922,7 @@ export function ResultFlowView({
   nextRankIcon = "medal",
   gainedGems = 0,
   quizFlowTest = false,
+  performanceRewardTest = false,
   earnedPoints = 0,
   onResultMessageComplete,
   ...resultProps
@@ -7088,6 +7121,7 @@ export function ResultFlowView({
               {...resultProps}
               earnedPoints={earnedPoints}
               currentTotalPoints={currentTotalPoints}
+              performanceRewardTest={performanceRewardTest}
               onResultActionPress={playResultActionPress}
               onContinue={handleResultContinue}
               showMedalHud={!chestGateVisible && !continuationMotivationVisible}
@@ -7129,6 +7163,7 @@ export function ResultFlowView({
         {...resultProps}
         earnedPoints={earnedPoints}
         currentTotalPoints={currentTotalPoints}
+        performanceRewardTest={performanceRewardTest}
         onResultActionPress={playResultActionPress}
         onContinue={handleResultContinue}
         showMedalHud={!chestGateVisible && !continuationMotivationVisible}
@@ -7196,6 +7231,7 @@ export function ResultView({
   quizDurationSeconds = 0,
   chestOpened,
   quizFlowTest = false,
+  performanceRewardTest = false,
   earnedPoints = 0,
   currentTotalPoints = 0,
   onRewardError,
@@ -7212,6 +7248,7 @@ export function ResultView({
   quizDurationSeconds?: number;
   chestOpened: boolean;
   quizFlowTest?: boolean;
+  performanceRewardTest?: boolean;
   earnedPoints?: number;
   currentTotalPoints?: number;
   onRewardError?: () => void;
@@ -7303,8 +7340,7 @@ export function ResultView({
   const hasPerformanceRewardSequence = Boolean(
     mode === "active" &&
     !quizFlowTest &&
-    user &&
-    quizSessionId &&
+    (performanceRewardTest || (user && quizSessionId)) &&
     performanceRewardInput &&
     (getQuizPerformanceRewardBreakdown(performanceRewardInput)?.totalPoints ?? 0) > 0,
   );
@@ -7782,7 +7818,7 @@ export function ResultView({
                       <span className={cn(
                         "flex w-full shrink-0 items-center justify-center px-1 py-2 text-[0.58rem] font-bold uppercase leading-none text-[var(--background)] sm:py-2.5 sm:text-xs",
                         headerClassName,
-                      )}>
+                      )} data-result-stat-label>
                         {label}
                       </span>
                       <div className={cn("flex min-h-0 flex-1 items-center justify-center gap-1 text-lg font-bold leading-none sm:text-xl", key === "points" && canUseSuperWater(locale) && "font-super-water")}>
@@ -7927,11 +7963,10 @@ export function ResultView({
       {!isMedalStage &&
       mode === "active" &&
       !quizFlowTest &&
-      user &&
-      quizSessionId &&
+      (performanceRewardTest || (user && quizSessionId)) &&
       performanceRewardInput ? (
         <QuizPerformanceRewardSequence
-          sessionId={quizSessionId}
+          sessionId={performanceRewardTest ? null : quizSessionId}
           input={performanceRewardInput}
           currentTotalPoints={currentTotalPoints}
           entered={resultSummaryEntered}
@@ -7941,6 +7976,7 @@ export function ResultView({
           onRankCheckComplete={handlePerformanceRankCheckComplete}
           onAwardError={onRewardError}
           onAwardPersisted={onRewardPersisted}
+          testMode={performanceRewardTest}
         />
       ) : null}
 
@@ -8629,7 +8665,7 @@ function ResultMenu({
                 <VocabularyCardView
                   key={card.id}
                   card={card}
-                  owned={false}
+                  owned
                   className="h-full min-h-[320px] w-full"
                 />
               ))}

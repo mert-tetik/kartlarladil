@@ -97,4 +97,6 @@ Production checklist, replay, reconciliation, monitoring ve secret rotation adim
 
 ## Stats
 
+Rank esikleri `src/features/progress/progress-stats.ts` icindeki `RANKS` kaynagindan hesaplanir; Supabase'te ayri bir rank esigi veya mutable rank puani tutulmadigi icin bu degisiklik icin migration gerekmez.
+
 Puan ve rank ayri tabloya yazilmaz. Ogrenilmis kartlar `user_cards.status = 'learned'` ve app icindeki local katalog tier bilgisi uzerinden hesaplanir. Bu yapi duplicate puan ve client manipilasyonu riskini azaltir.

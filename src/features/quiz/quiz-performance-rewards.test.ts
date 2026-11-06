@@ -171,8 +171,8 @@ describe("quiz performance Continue gate", () => {
     })).toBe(false);
   });
 
-  it("releases the button after the hard 3.5-second failsafe in every state", () => {
-    expect(QUIZ_PERFORMANCE_REWARD_CONTINUE_FAILSAFE_MS).toBe(3500);
+  it("releases the button after the hard 5.2-second failsafe in every state", () => {
+    expect(QUIZ_PERFORMANCE_REWARD_CONTINUE_FAILSAFE_MS).toBe(5200);
     expect(isQuizPerformanceContinueLocked({
       hasRewardSequence: true,
       animationsComplete: false,

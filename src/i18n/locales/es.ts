@@ -321,7 +321,7 @@ const dictionary = {
   "home.points.description": "Una tarjeta otorga puntos solo después de que su umbral de cuestionario esté completo. Los niveles más difíciles otorgan más puntos; tu rango se actualiza en la barra de navegación, menú de cuenta y página de perfil.",
   "home.points.title": "Gana puntos y sube de nivel.",
   "home.rankRoad.calculated": "Calculado a partir de tarjetas aprendidas",
-  "home.rankRoad.description": "10 rangos progresan de 0 a 18,000 puntos.",
+  "home.rankRoad.description": "10 rangos progresan de 0 a 100,000 puntos.",
   "home.rankRoad.title": "Camino de rango",
   "home.review.commentLabel": "Tu opinión",
   "home.review.commentPlaceholder": "¿Qué te gusta? ¿Qué podemos mejorar?",

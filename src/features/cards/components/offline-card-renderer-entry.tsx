@@ -59,11 +59,10 @@ function OfflineSavedCards({
   labels: OfflineCardRendererLabels;
 }) {
   return entries.map(({ card, inventory }) => {
-    const isLearned = inventory.status === "learned";
     const requirement = TIER_REQUIREMENTS[card.tier];
-    const progress = isLearned
-      ? requirement
-      : Math.min(requirement, Math.max(0, Number(inventory.correctCount) || 0));
+    const progressCount = Math.min(requirement, Math.max(0, Number(inventory.correctCount) || 0));
+    const isLearned = inventory.status === "learned" || progressCount >= requirement;
+    const progress = isLearned ? requirement : progressCount;
 
     return (
       <article

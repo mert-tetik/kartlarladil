@@ -410,12 +410,15 @@ export function RankUpMenu({
     onOpen?.();
   }, [onOpen]);
 
-  function handleClose() {
+  function handleClose(fromContinueButton = false) {
     if (closing) {
       return;
     }
 
-    if (firmCloseVibration) {
+    if (fromContinueButton) {
+      playSoundEffect("result-action-press");
+      vibrate("firm-tap");
+    } else if (firmCloseVibration) {
       vibrate("firm-tap");
     }
 
@@ -478,13 +481,21 @@ export function RankUpMenu({
     <div
       role="dialog"
       aria-label={t("rank.up")}
-      className={cn("rank-up-menu fixed inset-0 z-50 flex bg-background", closing && "rank-up-menu--closing")}
+      className={cn("rank-up-menu fixed inset-0 z-50 flex", closing && "rank-up-menu--closing")}
       onPointerDown={handleReveal}
       style={{ zIndex }}
     >
       <div
+        data-rank-up-base-background
+        aria-hidden="true"
         className={cn(
-          "pointer-events-none absolute inset-0 z-0 overflow-hidden transition-opacity duration-[520ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+          "pointer-events-none absolute inset-0 z-0 bg-background transition-opacity duration-[520ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
+          backgroundClosing ? "opacity-0" : "opacity-100",
+        )}
+      />
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-0 z-[1] overflow-hidden transition-opacity duration-[520ms] ease-[cubic-bezier(0.85,0,0.15,1)]",
           revealed && !backgroundClosing ? "opacity-100" : "opacity-0",
         )}
         aria-hidden="true"
@@ -516,7 +527,12 @@ export function RankUpMenu({
           )}
           style={{ filter: "hue-rotate(-30deg) saturate(1.35)" }}
         />
-        <div className="absolute inset-0 bg-black/40" />
+        <div
+          className={cn(
+            "absolute inset-0 z-30 bg-black/60 transition-opacity duration-1000 ease-in-out",
+            revealed && !backgroundClosing ? "opacity-100 delay-200" : "opacity-0 delay-0",
+          )}
+        />
       </div>
       <div className={cn("rank-up-foreground", closing && "rank-up-foreground--closing")}>
         <RankUpConfetti revealed={revealed} />
@@ -576,8 +592,8 @@ export function RankUpMenu({
             </p>
             <button
               type="button"
-              onClick={handleClose}
-              data-no-tap-vibrate={firmCloseVibration ? "" : undefined}
+              onClick={() => handleClose(true)}
+              data-no-tap-vibrate=""
               className={cn(
                 "rank-up-sequence-item rank-up-sequence-action relative isolate mt-8 inline-flex h-16 w-[12.38rem] shrink-0 items-center justify-center overflow-hidden rounded-full border border-transparent px-4 text-center text-2xl font-semibold text-white transition-[filter,transform] hover:brightness-105 active:scale-[0.98]",
                 revealed && "rank-up-sequence-item--visible",

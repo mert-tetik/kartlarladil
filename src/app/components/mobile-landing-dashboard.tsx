@@ -66,6 +66,7 @@ import {
   type TutorialCardLayerOpenedDetail,
   type TutorialCardLayerRequestedDetail,
 } from "@/features/tutorial/tutorial-card-session";
+import { isTutorialVisibleState, useTutorialStore } from "@/features/tutorial/tutorial-store";
 import {
   getMissionNavigationHref,
   parseLandingMissionAction,
@@ -120,6 +121,7 @@ type LandingEmptyActionsTestVariant = "active" | "learned";
 
 export function MobileLandingDashboard() {
   const { mode: themeMode } = useTheme();
+  const isTutorialVisible = useTutorialStore(isTutorialVisibleState);
 
   useEffect(() => {
     preloadDayStreakFrames(themeMode);
@@ -774,7 +776,14 @@ export function MobileLandingDashboard() {
   }
 
   return (
-    <section data-mobile-landing-dashboard className={cn("relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] touch-pan-y flex-col overscroll-contain bg-background px-4 py-1 lg:hidden", cardCenterOpen ? "overflow-y-auto" : "overflow-y-hidden")}>
+    <section
+      data-mobile-landing-dashboard
+      data-tutorial-scroll-locked={isTutorialVisible ? "true" : undefined}
+      className={cn(
+        "relative flex h-[calc(100dvh-var(--app-header-height)-var(--mobile-nav-bar-height))] touch-pan-y flex-col overscroll-contain bg-background px-4 py-1 lg:hidden",
+        cardCenterOpen && !isTutorialVisible ? "overflow-y-auto" : "overflow-y-hidden",
+      )}
+    >
       {/* Leaderboard badge */}
       <button
         type="button"

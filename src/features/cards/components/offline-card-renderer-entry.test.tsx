@@ -40,6 +40,18 @@ describe("offline vocabulary-card renderer", () => {
     expect(markup).not.toMatch(/(?:src|href)=\"https?:\/\//i);
   });
 
+  it("renders the learned medal when saved progress has reached the tier requirement", () => {
+    const markup = window.FoxiesDeckOfflineCardRenderer!.render(
+      [{ card, inventory: { cardId: card.id, status: "active", correctCount: 4 } }],
+      "en",
+      { active: "In progress", learned: "Learned" },
+    );
+
+    expect(markup).toContain('data-saved-card-status="learned"');
+    expect(markup).toContain("data-card-progress-medal");
+    expect(markup).not.toContain('data-card-progress="true"');
+  });
+
   it("keeps visual test fixtures with incomplete card records safe to render", () => {
     const fixtureCard = {
       ...card,

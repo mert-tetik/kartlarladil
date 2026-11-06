@@ -13,10 +13,10 @@ import { MobileUpdatePasswordForm } from "@/features/auth/components/mobile-upda
 import { MobilePasswordRecoveryLoading } from "@/features/auth/components/mobile-password-recovery-loading";
 import { MobileGoogleAuthLoading } from "@/features/auth/components/mobile-google-auth-loading";
 import {
-  GATEWAY_FLOW_EXIT_DURATION_MS,
   GatewayFlowTransition,
   type GatewayFlowPhase,
 } from "@/features/auth/components/gateway-flow-transition";
+import { SERIOUS_LEARNER_EXIT_UNMOUNT_DELAY_MS } from "@/features/auth/serious-learner-animation";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { MOBILE_GATEWAY_LOGIN_PARAM } from "@/features/auth/mobile-auth-paths";
 import {
@@ -40,7 +40,7 @@ import { cn } from "@/lib/utils";
 
 const BOOTSTRAP_EXIT_DURATION_MS = 320;
 const MIN_ONBOARDING_VISUAL_HEIGHT_RATIO = 0.72;
-const SERIOUS_LEARNER_TEST_REOPEN_DELAY_MS = 320;
+const SERIOUS_LEARNER_TEST_REOPEN_DELAY_MS = 1_000;
 
 type BootstrapPhase = "visible" | "exiting" | "hidden";
 
@@ -92,6 +92,7 @@ function GatewayShell({
   centered = false,
   showBackground = true,
   fullBleed = false,
+  transparentBackground = false,
   flowButtonSound,
 }: {
   children: ReactNode;
@@ -101,6 +102,7 @@ function GatewayShell({
   centered?: boolean;
   showBackground?: boolean;
   fullBleed?: boolean;
+  transparentBackground?: boolean;
   flowButtonSound?: "auth";
 }) {
   const contentPanelRef = useRef<HTMLDivElement | null>(null);
@@ -165,7 +167,8 @@ function GatewayShell({
       data-tap-vibration="firm"
       data-flow-button-sound={flowButtonSound}
       className={cn(
-        "fixed inset-0 z-[100] isolate overflow-hidden bg-background",
+        "fixed inset-0 isolate overflow-hidden",
+        transparentBackground ? "z-[220] bg-transparent" : "z-[100] bg-background",
         !isTestMode && "max-lg:block lg:hidden",
         flowPhase === "exit" ? "gateway-flow-shell--exit" : "gateway-flow-shell--enter",
       )}
@@ -307,6 +310,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
   const [seriousLearnerTestOpen, setSeriousLearnerTestOpen] = useState(
     isSeriousLearnerTestMode,
   );
+  const [seriousLearnerTestClosing, setSeriousLearnerTestClosing] = useState(false);
   const [bootstrapPhase, setBootstrapPhase] = useState<BootstrapPhase>("visible");
   const [isGoogleAuthCompleting, setIsGoogleAuthCompleting] = useState(
     () => getGoogleAuthPendingStartedAt() !== null,
@@ -640,14 +644,20 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
 
   function handleContinueFree() {
     if (isSeriousLearnerTestMode) {
-      setSeriousLearnerTestOpen(false);
+      if (seriousLearnerTestClosing) return;
+
       if (seriousLearnerTestTimerRef.current !== null) {
         window.clearTimeout(seriousLearnerTestTimerRef.current);
       }
+      setSeriousLearnerTestClosing(true);
       seriousLearnerTestTimerRef.current = window.setTimeout(() => {
-        seriousLearnerTestTimerRef.current = null;
-        setSeriousLearnerTestOpen(true);
-      }, SERIOUS_LEARNER_TEST_REOPEN_DELAY_MS);
+        setSeriousLearnerTestOpen(false);
+        setSeriousLearnerTestClosing(false);
+        seriousLearnerTestTimerRef.current = window.setTimeout(() => {
+          seriousLearnerTestTimerRef.current = null;
+          setSeriousLearnerTestOpen(true);
+        }, SERIOUS_LEARNER_TEST_REOPEN_DELAY_MS);
+      }, SERIOUS_LEARNER_EXIT_UNMOUNT_DELAY_MS);
       return;
     }
 
@@ -665,7 +675,7 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       setOfferExitPending(false);
       setGatewayExitPending(false);
       navigateHomeWithoutEntrance();
-    }, GATEWAY_FLOW_EXIT_DURATION_MS);
+    }, SERIOUS_LEARNER_EXIT_UNMOUNT_DELAY_MS);
   }
 
   let gateway: ReactNode = null;
@@ -745,9 +755,11 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
           fullBleed
           isTestMode={isTestMode || isSeriousLearnerTestMode}
           showBackground={false}
+          transparentBackground
           transitionKey="serious-learner-offer"
         >
           <MobileSubscriptionOfferScreen
+            isClosing={seriousLearnerTestClosing}
             isTestMode={isSeriousLearnerTestMode}
             onContinueFree={handleContinueFree}
           />
@@ -773,12 +785,15 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       gateway = (
         <GatewayShell
           fullBleed
-          isExiting={gatewayExitPending}
           isTestMode={isTestMode}
           showBackground={false}
+          transparentBackground
           transitionKey="subscription-offer"
         >
-          <MobileSubscriptionOfferScreen onContinueFree={handleContinueFree} />
+          <MobileSubscriptionOfferScreen
+            isClosing={gatewayExitPending}
+            onContinueFree={handleContinueFree}
+          />
         </GatewayShell>
       );
     } else if (resumeLoginFlowAfterLanguageRefresh) {

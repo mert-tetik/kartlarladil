@@ -321,7 +321,7 @@ const dictionary = {
   "home.points.description": "Karta przyznaje punkty tylko po ukoÅ„czeniu jej progu quizu. Trudniejsze poziomy przyznajÄ… wiÄ™cej punktów; twój poziom aktualizuje siÄ™ w pasku nawigacyjnym, menu konta i stronie profilu.",
   "home.points.title": "Zarabiaj punkty i awansuj.",
   "home.rankRoad.calculated": "Obliczone na podstawie nauczonych kart",
-  "home.rankRoad.description": "10 poziomów postÄ™pu od 0 do 18 000 punktów.",
+  "home.rankRoad.description": "10 poziomów postÄ™pu od 0 do 100 000 punktów.",
   "home.rankRoad.title": "ÅšcieÅ¼ka poziomu",
   "home.review.commentLabel": "Twoja opinia",
   "home.review.commentPlaceholder": "Co ci siÄ™ podoba? Co moÅ¼emy poprawiÄ‡?",

@@ -321,7 +321,7 @@ const dictionary = {
   "home.points.description": "Bir kart yalnızca quiz eşiği tamamlanınca öğrenilmiş sayılır ve puan verir. Zor tier daha yüksek puan kazandırır; toplam puanın arttıkça navbar, profil menüsü ve profil sayfasındaki rankın otomatik yükselir.",
   "home.points.title": "Puan kazandıkça rank atla.",
   "home.rankRoad.calculated": "Öğrenilen kartlardan hesaplanır",
-  "home.rankRoad.description": "10 rank, 0 puandan 18.000 puana kadar ilerler.",
+  "home.rankRoad.description": "10 rank, 0 puandan 100.000 puana kadar ilerler.",
   "home.rankRoad.title": "Rank yolu",
   "home.review.commentLabel": "Görüşün",
   "home.review.commentPlaceholder": "Neleri sevdin? Neleri geliştirebiliriz?",

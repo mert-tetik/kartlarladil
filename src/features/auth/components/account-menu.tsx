@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { BarChart3, CreditCard, LogOut, MessageCircle, Palette, Settings, Shield, UserRound, Vibrate } from "lucide-react";
@@ -24,6 +24,7 @@ import type { SubscriptionPlan } from "@/types/domain";
 const MOBILE_LOGOUT_AUTH_KEY = "foxiesdeck:mobile-logout-auth";
 const MOBILE_LOGOUT_AUTH_EVENT = "foxiesdeck:mobile-logout-auth-requested";
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
+const ACCOUNT_MENU_EXIT_DURATION_MS = 180;
 
 const ACCOUNT_IDENTITY_PLAN_STYLES: Record<Exclude<SubscriptionPlan, "free">, string> = {
   basic: "bg-blue-950/55",
@@ -69,10 +70,15 @@ function AccountSubscriptionPlanImage({ mobile = false, onClose }: { mobile?: bo
 
 export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; navbar?: boolean }) {
   const [open, setOpen] = useState(false);
+  const [menuMounted, setMenuMounted] = useState(false);
+  const [menuClosing, setMenuClosing] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
   const [profilePictureOpen, setProfilePictureOpen] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const menuMountedRef = useRef(false);
+  const menuClosingRef = useRef(false);
+  const menuCloseTimerRef = useRef<number | null>(null);
   const { stats } = useProgressStats();
   const { locale } = useLocale();
   const t = useT();
@@ -83,15 +89,48 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
   const hasPaidPlan = effectivePlan !== "free";
   const identityPlanStyle = getAccountIdentityPlanStyle(effectivePlan);
 
+  const openMenu = useCallback(() => {
+    if (menuCloseTimerRef.current !== null) {
+      window.clearTimeout(menuCloseTimerRef.current);
+      menuCloseTimerRef.current = null;
+    }
+    menuMountedRef.current = true;
+    menuClosingRef.current = false;
+    setMenuMounted(true);
+    setMenuClosing(false);
+    setOpen(true);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    setOpen(false);
+    if (!menuMountedRef.current || menuClosingRef.current) return;
+
+    menuClosingRef.current = true;
+    setMenuClosing(true);
+    menuCloseTimerRef.current = window.setTimeout(() => {
+      menuMountedRef.current = false;
+      menuClosingRef.current = false;
+      menuCloseTimerRef.current = null;
+      setMenuMounted(false);
+      setMenuClosing(false);
+    }, ACCOUNT_MENU_EXIT_DURATION_MS);
+  }, []);
+
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
       if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        setOpen(false);
+        closeMenu();
       }
     }
 
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [closeMenu]);
+
+  useEffect(() => () => {
+    if (menuCloseTimerRef.current !== null) {
+      window.clearTimeout(menuCloseTimerRef.current);
+    }
   }, []);
 
   useEffect(() => {
@@ -115,7 +154,7 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
           aria-label={t("auth.accountMenu")}
           aria-haspopup="menu"
           aria-expanded={open}
-          onClick={() => setOpen((current) => !current)}
+          onClick={() => (open ? closeMenu() : openMenu())}
           className={cn(
             "relative flex size-10 items-center justify-center rounded-full border border-border bg-background-inverse text-sm font-bold text-foreground-inverse transition-colors hover:bg-background-inverse",
             navbar && "border-white/15 bg-white text-black hover:bg-white",
@@ -127,10 +166,15 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
         </button>
       </div>
 
-      {open ? (
+      {menuMounted ? (
         <div
           role="menu"
-          className="animate-menu-pop absolute right-0 top-12 z-[60] w-72 rounded-lg border border-border bg-background-card p-2 text-sm shadow-2xl"
+          aria-hidden={menuClosing}
+          inert={menuClosing}
+          className={cn(
+            "absolute right-0 top-12 z-[60] w-72 rounded-lg border border-border bg-background-card p-2 text-sm shadow-2xl",
+            menuClosing ? "animate-menu-pop-out pointer-events-none" : "animate-menu-pop",
+          )}
         >
           {isMobileMenu ? (
             <>
@@ -146,7 +190,7 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
                 <button
                   type="button"
                   onClick={() => {
-                    setOpen(false);
+                    closeMenu();
                     setProfilePictureOpen(true);
                   }}
                   className="rounded-full transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
@@ -163,11 +207,11 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
                 </button>
                 <p className="mt-3 max-w-full truncate font-semibold">{getAccountLabel(user)}</p>
                 <p className={cn("mt-1 max-w-full truncate", hasPaidPlan ? "text-white/70" : "text-foreground-muted")}>{user.email}</p>
-                <AccountSubscriptionPlanImage mobile onClose={() => setOpen(false)} />
+                <AccountSubscriptionPlanImage mobile onClose={closeMenu} />
               </div>
               <div className="h-px bg-border" />
-              <MenuLink href="/account/settings" icon={Settings} label={t("page.account.title")} onClick={() => setOpen(false)} />
-              <MenuLink href="/account/update-password" icon={Shield} label={t("auth.updatePassword.title")} onClick={() => setOpen(false)} />
+              <MenuLink href="/account/settings" icon={Settings} label={t("page.account.title")} onClick={closeMenu} />
+              <MenuLink href="/account/update-password" icon={Shield} label={t("auth.updatePassword.title")} onClick={closeMenu} />
             </>
           ) : (
             <>
@@ -183,7 +227,7 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
                 <p className="font-semibold">{getAccountLabel(user)}</p>
                 <p className={cn("mt-1 truncate", hasPaidPlan ? "text-white/70" : "text-foreground-muted")}>{user.email}</p>
                 <div className="mt-2">
-                  <AccountSubscriptionPlanImage onClose={() => setOpen(false)} />
+                  <AccountSubscriptionPlanImage onClose={closeMenu} />
                 </div>
               </div>
               <div className="rounded-lg border border-border bg-background p-3">
@@ -228,13 +272,13 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
                 </div>
               </div>
               <div className="h-px bg-border" />
-              <MenuLink href="/profile" icon={BarChart3} label={t("page.profile.title")} onClick={() => setOpen(false)} />
-              <MenuLink href="/account/settings" icon={Settings} label={t("page.account.title")} onClick={() => setOpen(false)} />
+              <MenuLink href="/profile" icon={BarChart3} label={t("page.profile.title")} onClick={closeMenu} />
+              <MenuLink href="/account/settings" icon={Settings} label={t("page.account.title")} onClick={closeMenu} />
               <button
                 type="button"
                 role="menuitem"
                 onClick={() => {
-                  setOpen(false);
+                  closeMenu();
                   setThemeOpen(true);
                 }}
                 className="mt-1 flex w-full items-center gap-3 rounded-md px-3 py-2 text-left font-semibold text-foreground-secondary transition-colors hover:bg-background-muted hover:text-foreground"
@@ -242,12 +286,12 @@ export function AccountMenu({ user, navbar = false }: { user: AuthShellUser; nav
                 <Palette className="size-4" aria-hidden="true" />
                 {t("theme.title")}
               </button>
-              <MenuLink href="/pricing" icon={CreditCard} label={t("account.subscription.title")} onClick={() => setOpen(false)} />
-              <MenuLink href="/account/update-password" icon={Shield} label={t("auth.updatePassword.title")} onClick={() => setOpen(false)} />
+              <MenuLink href="/pricing" icon={CreditCard} label={t("account.subscription.title")} onClick={closeMenu} />
+              <MenuLink href="/account/update-password" icon={Shield} label={t("auth.updatePassword.title")} onClick={closeMenu} />
             </>
           )}
           {isMobileMenu ? (
-            <MenuLink href="/contact" icon={MessageCircle} label={t("footer.contact")} onClick={() => setOpen(false)} />
+            <MenuLink href="/contact" icon={MessageCircle} label={t("footer.contact")} onClick={closeMenu} />
           ) : null}
           {vibrationSupported ? (
             <button

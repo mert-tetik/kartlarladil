@@ -37,6 +37,8 @@ Arayüz dili navbar dil seçicisinden değiştirilir. Seçim cookie ve localStor
 
 ## Product Rules
 
+- Rank esikleri: `baslangic` = 0, `kart-ciragi` = 200, `kelime-toplayici` = 600, `dil-yolcusu` = 1400, `akici-ogrenci` = 2800, `kelime-ustasi` = 7500, `cok-dilli` = 20000, `seckin-koleksiyoncu` = 40000, `dil-bilgesi` = 60000, `efsane` = 100000.
+
 - Kart tierları: A1, A2, B1, B2, C1.
 - Doğru cevap eşikleri: A1 = 2, A2 = 3, B1 = 4, B2 = 5, C1 = 6.
 - Kullanıcı kartı manuel olarak öğrenildi yapamaz.

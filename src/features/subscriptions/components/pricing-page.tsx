@@ -47,6 +47,10 @@ import { vibrate } from "@/lib/vibration";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { useAppMessage } from "@/components/app-message-provider";
 import {
+  SUBSCRIPTION_DETAILS_EXIT_DURATION_MS,
+  SubscriptionDetailsFrameAnimation,
+} from "@/features/subscriptions/components/subscription-details-animation";
+import {
   formatCurrency,
   getLocalizedPrice,
   useLocalizedPricing,
@@ -115,11 +119,6 @@ const SUBSCRIPTION_PLAN_COLOR: Record<Exclude<SubscriptionPlan, "free">, string>
   basic: "#2563eb",
   pro: "#9333ea",
 };
-
-const SUBSCRIPTION_DETAILS_FRAME_COUNT = 50;
-const SUBSCRIPTION_DETAILS_FRAME_FPS = 45;
-const SUBSCRIPTION_DETAILS_FRAME_BASE_PATH = "/pricing-subscription-menu-frames-v2";
-const SUBSCRIPTION_DETAILS_PRO_FRAME_BASE_PATH = "/pricing-subscription-menu-pro-frames-v2";
 
 type CheckoutSelection = {
   plan: Exclude<SubscriptionPlan, "free">;
@@ -1029,7 +1028,6 @@ function GooglePlayCheckoutButton({
   summaryCta?: boolean;
 }) {
   const t = useT();
-  const { presentPurchaseSuccess } = useSubscription();
   const { purchase, isLoading, isSupported } = useGooglePlayBilling();
   const { showMessage } = useAppMessage();
   const isPaidUser = currentPlan != null && currentPlan !== "free";
@@ -1047,7 +1045,7 @@ function GooglePlayCheckoutButton({
 
     try {
       await purchase(getGooglePlaySku(plan, cycle));
-      presentPurchaseSuccess();
+      showMessage(t("pricing.purchaseSuccessDescription"), "success");
     } catch (error) {
       if (isGooglePlayPurchaseCancellation(error)) {
         return;
@@ -1219,7 +1217,7 @@ export function LegacySubscriptionDetailsOverlay({
     if (isClosingRef.current) return;
     isClosingRef.current = true;
     setIsClosing(true);
-    closeTimerRef.current = window.setTimeout(onClose, 300);
+    closeTimerRef.current = window.setTimeout(onClose, SUBSCRIPTION_DETAILS_EXIT_DURATION_MS);
   }, [onClose]);
 
   useEffect(() => {
@@ -1395,106 +1393,6 @@ export function LegacySubscriptionDetailsOverlay({
   );
 
   return typeof document === "undefined" ? null : createPortal(content, document.body);
-}
-
-function SubscriptionDetailsFrameAnimation({
-  isClosing,
-  onComplete,
-  plan,
-}: {
-  isClosing: boolean;
-  onComplete: () => void;
-  plan: Exclude<SubscriptionPlan, "free">;
-}) {
-  const [frameIndex, setFrameIndex] = useState(1);
-  const frameIndexRef = useRef(1);
-  const frameBasePath = plan === "pro"
-    ? SUBSCRIPTION_DETAILS_PRO_FRAME_BASE_PATH
-    : SUBSCRIPTION_DETAILS_FRAME_BASE_PATH;
-
-  useEffect(() => {
-    let cancelled = false;
-    let animationFrameId: number | null = null;
-    const frameDuration = 1000 / SUBSCRIPTION_DETAILS_FRAME_FPS;
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    const preloadFrames = Array.from(
-      { length: SUBSCRIPTION_DETAILS_FRAME_COUNT },
-      (_, index) => {
-        const image = new window.Image();
-        image.decoding = "async";
-        image.src = `${frameBasePath}/${index + 1}.webp`;
-        return image;
-      },
-    );
-
-    if (prefersReducedMotion) {
-      animationFrameId = window.requestAnimationFrame(() => {
-        if (cancelled) return;
-        frameIndexRef.current = SUBSCRIPTION_DETAILS_FRAME_COUNT;
-        setFrameIndex(SUBSCRIPTION_DETAILS_FRAME_COUNT);
-        onComplete();
-      });
-      return () => {
-        cancelled = true;
-        preloadFrames.forEach((image) => {
-          image.onload = null;
-          image.onerror = null;
-        });
-      };
-    }
-
-    const startedAt = window.performance.now();
-    const tick = (now: number) => {
-      if (cancelled) return;
-      const nextFrame = Math.min(
-        SUBSCRIPTION_DETAILS_FRAME_COUNT,
-        Math.floor((now - startedAt) / frameDuration) + 1,
-      );
-
-      if (nextFrame !== frameIndexRef.current) {
-        frameIndexRef.current = nextFrame;
-        setFrameIndex(nextFrame);
-      }
-
-      if (nextFrame === SUBSCRIPTION_DETAILS_FRAME_COUNT) {
-        onComplete();
-      }
-
-      if (nextFrame < SUBSCRIPTION_DETAILS_FRAME_COUNT) {
-        animationFrameId = window.requestAnimationFrame(tick);
-      }
-    };
-
-    animationFrameId = window.requestAnimationFrame(tick);
-
-    return () => {
-      cancelled = true;
-      if (animationFrameId !== null) {
-        window.cancelAnimationFrame(animationFrameId);
-      }
-    };
-  }, [frameBasePath, onComplete]);
-
-  return (
-    <div
-      aria-hidden="true"
-      className={cn(
-        "subscription-details-frame-layer",
-        plan === "pro" && "subscription-details-frame-layer--pro",
-        isClosing && "subscription-details-frame-layer--closing",
-      )}
-    >
-      {/* Frame animation intentionally swaps a new image every frame; next/image optimization adds avoidable latency. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={`${frameBasePath}/${frameIndex}.webp`}
-        alt=""
-        draggable={false}
-        style={{ filter: "none" }}
-      />
-    </div>
-  );
 }
 
 function SubscriptionDetailsFeature({

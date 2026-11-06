@@ -5,6 +5,7 @@ import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { canUseSuperWater, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { vibrate } from "@/lib/vibration";
 import { AchievementCardSection } from "@/features/quiz/components/quiz-achievement-card-section";
 import type { VocabularyCard } from "@/types/domain";
 
@@ -54,6 +55,7 @@ export function QuizResultMessageView({
     if (!onResultActionPress) {
       playSoundEffect("result-action-press");
     }
+    vibrate("firm-tap");
     setExiting(true);
     completionTimerRef.current = window.setTimeout(() => {
       completionTimerRef.current = null;

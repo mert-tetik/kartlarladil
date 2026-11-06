@@ -15,6 +15,7 @@ import {
   dispatchTutorialCardLayerClosed,
   dispatchTutorialCardLayerOpened,
 } from "@/features/tutorial/tutorial-card-session";
+import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 
 const {
   consumePlayReviewEligibilityMock,
@@ -162,6 +163,7 @@ vi.mock("@/features/quiz/quiz-pool-preparation", () => ({
 
 describe("MobileLandingDashboard language sync", () => {
   beforeEach(() => {
+    useTutorialStore.setState({ active: false, completed: false, testMode: false });
     vi.stubGlobal("ResizeObserver", class {
       observe() {}
       unobserve() {}
@@ -474,6 +476,36 @@ describe("MobileLandingDashboard language sync", () => {
 
     expect(dashboard).toHaveClass("overflow-y-hidden");
     expect(screen.queryByRole("button", { name: "T\u00fcm Kartlar" })).not.toBeInTheDocument();
+  });
+
+  it("locks user scrolling during the tutorial but preserves programmatic scrolling", async () => {
+    useTutorialStore.setState({ active: true, completed: false, testMode: false });
+    const user = userEvent.setup();
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    const dashboard = document.querySelector<HTMLElement>("[data-mobile-landing-dashboard]");
+    expect(dashboard).toHaveAttribute("data-tutorial-scroll-locked", "true");
+    expect(dashboard).toHaveClass("overflow-y-hidden");
+
+    await user.click(screen.getByRole("button", { name: "Kartlar" }));
+
+    expect(dashboard).toHaveClass("overflow-y-hidden");
+    await waitFor(() => {
+      expect(dashboard?.scrollTo).toHaveBeenCalledWith({
+        top: expect.any(Number),
+        behavior: "smooth",
+      });
+    });
+
+    act(() => useTutorialStore.getState().complete());
+
+    expect(dashboard).not.toHaveAttribute("data-tutorial-scroll-locked");
+    expect(dashboard).toHaveClass("overflow-y-auto");
   });
 
   it("updates the visible card language when onboarding writes a new landing language", async () => {

@@ -14,6 +14,12 @@ const speechItems = [
   ["landing-start-learning-action", "tutorial.landingStartLearningAction"],
 ];
 const force = process.argv.includes("--force");
+const localeArgument = process.argv.find((argument) => argument.startsWith("--locale="))?.slice("--locale=".length);
+const assetArgument = process.argv.find((argument) => argument.startsWith("--asset="))?.slice("--asset=".length);
+if (localeArgument && !locales.includes(localeArgument)) throw new Error(`Unknown tutorial speech locale: ${localeArgument}`);
+if (assetArgument && !speechItems.some(([assetName]) => assetName === assetArgument)) throw new Error(`Unknown tutorial speech asset: ${assetArgument}`);
+const selectedLocales = localeArgument ? locales.filter((locale) => locale === localeArgument) : locales;
+const selectedSpeechItems = assetArgument ? speechItems.filter(([assetName]) => assetName === assetArgument) : speechItems;
 const POYO_API_URL = "https://api.poyo.ai";
 const POYO_SPEECH_MODEL = "elevenlabs-tts-turbo-2-5";
 const FOXIESDECK_MASCOT_VOICE = "d8WcCpplp8meHt10UhL8";
@@ -137,10 +143,10 @@ async function main() {
   const apiKey = getPoyoApiKey();
   fs.mkdirSync(outputDirectory, { recursive: true });
 
-  for (const locale of locales) {
+  for (const locale of selectedLocales) {
     const localeOutputDirectory = path.join(outputDirectory, locale);
     fs.mkdirSync(localeOutputDirectory, { recursive: true });
-    for (const [assetName, translationKey] of speechItems) {
+    for (const [assetName, translationKey] of selectedSpeechItems) {
       const outputPath = path.join(localeOutputDirectory, `${assetName}.mp3`);
       if (!force && fs.existsSync(outputPath)) {
         console.log(`Skipping ${locale}/${assetName}.mp3`);

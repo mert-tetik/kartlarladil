@@ -15,7 +15,7 @@ declare global {
   }
 }
 
-export type VibrationPatternName = "tap" | "firm-tap" | "reward-arrival" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result" | "draw" | "chest-tap" | "chest-land" | "chest-open" | "streak-break" | "streak-reward-tap" | "streak-count-reveal" | "streak-shockwave" | "streak-exit" | "result-medal-collect" | "word-challenge-correct" | "word-challenge-incorrect" | "tutorial-next";
+export type VibrationPatternName = "tap" | "firm-tap" | "reward-arrival" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result" | "draw" | "chest-tap" | "chest-land" | "chest-open" | "streak-break" | "streak-reward-tap" | "streak-count-reveal" | "streak-shockwave" | "streak-exit" | "result-medal-collect" | "quiz-reward-pulse" | "word-challenge-correct" | "word-challenge-incorrect" | "tutorial-next";
 
 export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]> = {
   /** Light tap for generic presses. */
@@ -58,6 +58,8 @@ export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]>
   "streak-exit": [140, 24, 220, 28, 320],
   /** Short, solid impact when the result medals begin collecting. */
   "result-medal-collect": [58],
+  /** Strong two-hit haptic paired with the white quiz reward-box flash. */
+  "quiz-reward-pulse": [110, 35, 180],
   /** Two firm confirmation taps for Word Challenge answers. */
   "word-challenge-correct": [42, 32, 70],
   /** A noticeably stronger rejection pulse for Word Challenge answers. */

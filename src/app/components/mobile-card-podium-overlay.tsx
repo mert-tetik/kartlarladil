@@ -513,19 +513,28 @@ export function MobileCardPodiumOverlay({
 
   function handleReviewTap(event: ReactMouseEvent<HTMLElement>) {
     if (!isReviewMode || (event.target as HTMLElement).closest("button, a, input, textarea, select")) return;
-    vibrate("tutorial-next");
-    playSoundEffect("rank-highlight");
 
     if (reviewIntro) {
+      vibrate("tutorial-next");
+      playSoundEffect("rank-highlight");
       revealReviewCards();
       return;
     }
 
     if (reviewSection === "active" && currentIndexRef.current >= items.length - 1 && reviewLearnedItems.length > 0) {
+      vibrate("tutorial-next");
+      playSoundEffect("rank-highlight");
       startReviewSection("learned");
       return;
     }
 
+    if (items.length > 0 && currentIndexRef.current >= items.length - 1) {
+      onClose();
+      return;
+    }
+
+    vibrate("tutorial-next");
+    playSoundEffect("rank-highlight");
     advanceReviewImmediately();
   }
 

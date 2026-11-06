@@ -320,7 +320,7 @@ const dictionary = {
   "home.points.description": "Eine Karte gibt Punkte erst, nachdem ihre Quiz-Schwelle erreicht ist. Höhere Tiers gewähren mehr Punkte; dein Rang wird in der Navigationsleiste, im Kontomenü und auf der Profilseite aktualisiert.",
   "home.points.title": "Verdiene Punkte und steig auf.",
   "home.rankRoad.calculated": "Berechnet aus gelernten Karten",
-  "home.rankRoad.description": "10 Ränge von 0 bis 18.000 Punkten.",
+  "home.rankRoad.description": "10 Ränge von 0 bis 100.000 Punkten.",
   "home.rankRoad.title": "Rangweg",
   "home.review.commentLabel": "Dein Feedback",
   "home.review.commentPlaceholder": "Was gefällt dir? Was können wir verbessern?",
