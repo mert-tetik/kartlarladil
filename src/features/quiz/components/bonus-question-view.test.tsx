@@ -105,7 +105,7 @@ describe("BonusQuestionView", () => {
     expect(hudLayer?.querySelector('[data-reward-gem-hud-role="reward"]')).toBeInTheDocument();
   });
 
-  it("bursts point and gem icons outward as soon as the reward is collected", () => {
+  it("bursts rewards and plays the loot sound with one heavy haptic on collection", () => {
     render(
       <LocaleProvider initialLocale="en">
         <BonusQuestionView
@@ -123,11 +123,19 @@ describe("BonusQuestionView", () => {
 
     const reveal = document.body.querySelector<HTMLElement>("[data-bonus-reward-reveal]");
     expect(document.body.querySelector("[data-bonus-reward-burst]")).not.toBeInTheDocument();
+    expect(reveal).toHaveAttribute("data-no-tap-vibrate");
+    vi.mocked(playSoundEffect).mockClear();
+    vi.mocked(vibrate).mockClear();
     fireEvent.pointerDown(reveal!);
+    fireEvent.click(reveal!);
 
     const burst = document.body.querySelector("[data-bonus-reward-burst]");
     expect(burst?.querySelectorAll('[data-bonus-reward-burst-particle="points"]')).toHaveLength(24);
     expect(burst?.querySelectorAll('[data-bonus-reward-burst-particle="gem"]')).toHaveLength(12);
+    expect(playSoundEffect).toHaveBeenCalledTimes(1);
+    expect(playSoundEffect).toHaveBeenCalledWith("bonus-reward-loot");
+    expect(vibrate).toHaveBeenCalledTimes(1);
+    expect(vibrate).toHaveBeenCalledWith("bonus-reward-loot");
   });
 
   it("starts the source exit and keeps the reward HUD anchored to the source slot", () => {

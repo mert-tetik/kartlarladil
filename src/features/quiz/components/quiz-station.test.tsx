@@ -94,7 +94,7 @@ vi.mock("@/features/inventory/cloud-actions", () => ({
 
 vi.mock("@/features/quiz/actions", () => ({
   awardChestPoints: vi.fn(async () => ({ success: true, points: 20 })),
-  awardQuizStreakPoints: vi.fn(async () => ({ success: true, awarded: true, points: 20, streak: 5 })),
+  awardQuizStreakPoints: vi.fn(async () => ({ success: true, awarded: true, points: 50, streak: 5 })),
   awardQuizResultPoints: vi.fn(async () => ({ success: true, awarded: true, points: 5 })),
   awardQuizPerformancePoints: vi.fn(async () => ({
     success: true,
@@ -102,7 +102,7 @@ vi.mock("@/features/quiz/actions", () => ({
     rewards: { accuracyPoints: 35, timePoints: 35, correctPoints: 50, learnedPoints: 20 },
     totalPoints: 140,
   })),
-  awardQuizBonusPoints: vi.fn(async () => ({ success: true, awarded: true, points: 5 })),
+  awardQuizBonusPoints: vi.fn(async () => ({ success: true, awarded: true, points: 50 })),
   claimQuizResultMedals: (...args: unknown[]) => claimQuizResultMedalsMock(...args),
 }));
 
@@ -297,6 +297,7 @@ describe("MobileQuizFeedback", () => {
     const bar = container.querySelector("[data-quiz-mobile-feedback] > div");
     expect(bar).toHaveClass("bg-rose-500");
     expect(screen.getByText(/apple/i)).toBeInTheDocument();
+    expect(container.querySelector("[data-quiz-feedback-mascot-layer]")).toBeNull();
 
     // Simulate the next card starting to open while the sheet is still closing.
     rerender(
@@ -388,14 +389,14 @@ describe("ResultView star rating", () => {
           selectedCount={10}
           chestOpened={false}
           streakRewardStreak={10}
-          streakRewardPoints={40}
+          streakRewardPoints={100}
           onRestart={vi.fn()}
           onExit={vi.fn()}
         />
       </LocaleProvider>,
     );
 
-    expect(screen.queryByText("10x streak! +40 points")).not.toBeInTheDocument();
+    expect(screen.queryByText("10x streak! +100 points")).not.toBeInTheDocument();
   });
 
   it("does not display or award points on the result screen", async () => {
@@ -526,7 +527,7 @@ describe("ResultView star rating", () => {
           selectedCount={10}
           chestOpened={true}
           streakRewardStreak={10}
-          streakRewardPoints={40}
+          streakRewardPoints={100}
           onRestart={vi.fn()}
           onExit={vi.fn()}
         />
@@ -544,7 +545,7 @@ describe("ResultView star rating", () => {
         chest_opened: true,
         performance_level: "mediumHigh",
         streak_reward_streak: 10,
-        streak_reward_points: 40,
+        streak_reward_points: 100,
       },
     });
     expect(markPlayReviewEligible).toHaveBeenCalledWith("quiz");
@@ -1444,6 +1445,7 @@ describe("QuizStation sound feedback", () => {
       expect(document.querySelector('[data-quiz-mobile-layout="text"]')).toBeInTheDocument();
     });
 
+    expect(document.querySelector("[data-quiz-text-prompt-term]")).toHaveClass("whitespace-nowrap");
     expect(document.querySelector('[data-quiz-mobile-layout="choice"]')).not.toBeInTheDocument();
     expect(document.querySelector('[data-quiz-mobile-layout="text"]')).toBeInTheDocument();
   });

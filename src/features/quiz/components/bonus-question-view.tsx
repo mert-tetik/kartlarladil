@@ -789,6 +789,7 @@ export function BonusQuestionView({
     if (!rewardRevealVisible || rewardCollectStartedRef.current) return;
     rewardCollectStartedRef.current = true;
     playSoundEffect("bonus-reward-loot");
+    vibrate("bonus-reward-loot");
     setRewardRevealCollected(true);
     setRewardBurstVisible(true);
     onRewardCollect?.();
@@ -833,6 +834,7 @@ export function BonusQuestionView({
           role="button"
           tabIndex={0}
           aria-label={t("quiz.tapToContinue")}
+          data-no-tap-vibrate
           data-bonus-reward-reveal
           onPointerDown={handleRewardRevealCollect}
           onClick={handleRewardRevealCollect}

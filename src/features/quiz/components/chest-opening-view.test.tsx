@@ -12,6 +12,20 @@ vi.mock("@/lib/vibration", () => ({
   vibrate: vi.fn(),
 }));
 
+vi.mock("@/features/quiz/chest-opening-frames", () => ({
+  CHEST_OPENING_DURATION_SECONDS: 97 / 24,
+  CHEST_OPENING_FRAME_COUNT: 97,
+  CHEST_OPENING_FRAME_HEIGHT: 854,
+  CHEST_OPENING_FRAME_PREFETCH_AHEAD: 6,
+  CHEST_OPENING_FRAME_RATE: 24,
+  CHEST_OPENING_FRAME_WIDTH: 480,
+  getChestOpeningFrameSource: vi.fn((_tier: string, frameIndex: number) =>
+    `/chests/opening-frames/wood-frames/frame-${String(frameIndex + 1).padStart(3, "0")}.webp`,
+  ),
+  loadChestOpeningFrameImage: vi.fn(() => new Promise<HTMLImageElement>(() => undefined)),
+  preloadChestOpeningFrames: vi.fn(() => Promise.resolve()),
+}));
+
 describe("ChestOpeningView", () => {
   let queuedAnimationFrame: FrameRequestCallback | null = null;
 

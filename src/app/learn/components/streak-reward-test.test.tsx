@@ -30,11 +30,11 @@ describe("StreakRewardTest", () => {
     const { container } = render(<StreakRewardTest />);
 
     expect(container.querySelector("[data-streak-reward-test]")?.getAttribute("data-streak-reward-test-value")).toBe("5");
-    expect(container.querySelector("[data-streak-reward-test]")?.getAttribute("data-streak-reward-test-points")).toBe("20");
+    expect(container.querySelector("[data-streak-reward-test]")?.getAttribute("data-streak-reward-test-points")).toBe("50");
 
     fireEvent.click(container.querySelector("[data-streak-reward-complete]") as HTMLElement);
 
     expect(container.querySelector("[data-streak-reward-test]")?.getAttribute("data-streak-reward-test-value")).toBe("10");
-    expect(container.querySelector("[data-streak-reward-test]")?.getAttribute("data-streak-reward-test-points")).toBe("40");
+    expect(container.querySelector("[data-streak-reward-test]")?.getAttribute("data-streak-reward-test-points")).toBe("100");
   });
 });

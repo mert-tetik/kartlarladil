@@ -28,8 +28,8 @@ describe("getQuizSessionEarnedPoints", () => {
     expect(getQuizSessionEarnedPoints({
       ...base,
       currentTotalPoints: 185,
-      confirmedBonusPoints: 25,
-      currentQuizResultPoints: 65,
+      confirmedBonusPoints: 50,
+      currentQuizResultPoints: 90,
     })).toBe(85);
   });
 
@@ -37,18 +37,18 @@ describe("getQuizSessionEarnedPoints", () => {
     expect(getQuizSessionEarnedPoints({
       ...base,
       currentTotalPoints: 160,
-      confirmedBonusPoints: 25,
+      confirmedBonusPoints: 50,
       currentQuizResultPoints: 40,
-    })).toBe(85);
+    })).toBe(110);
   });
 
   it("does not count confirmed bonus points twice when only part has synced", () => {
     expect(getQuizSessionEarnedPoints({
       ...base,
       currentTotalPoints: 170,
-      confirmedBonusPoints: 25,
+      confirmedBonusPoints: 50,
       currentQuizResultPoints: 50,
-    })).toBe(85);
+    })).toBe(110);
   });
 
   it("clamps negative totals and non-finite rewards", () => {

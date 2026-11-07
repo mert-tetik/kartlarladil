@@ -75,8 +75,8 @@ Bonus slots rotate through four formats:
    outsider. This format does not depend on the learner's inventory.
 
 Every format has its own check button. Answers are scored only after checking;
-correct answers grant `5` bonus points, while incorrect answers grant nothing
-and never remove anything. Bonus points are persisted in the existing
+every correct answer grants exactly `50` bonus points regardless of format,
+while incorrect answers grant nothing and never remove anything. Bonus points are persisted in the existing
 `quiz_result_points` total with a unique `(session, bonus)` record so retries
 cannot duplicate the reward.
 
@@ -93,9 +93,9 @@ cannot duplicate the reward.
 
 ## Reward and result rules
 
-- A correct bonus answer grants bonus points to the user. The exact point value
-  is a separate product constant and must not be implemented by mutating card
-  progress.
+- A correct bonus answer grants exactly `50` bonus points to the user,
+  regardless of bonus-question type. The reward is a separate product
+  constant and must not be implemented by mutating card progress.
 - An incorrect bonus answer grants no bonus points and causes no card or point
   loss.
 - Both correct and incorrect bonus answers are still real answer outcomes for

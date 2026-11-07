@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, vi } from "vitest";
+import { GlobalTapVibration } from "@/components/global-tap-vibration";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import {
   completeOnboardingAction,
@@ -12,6 +13,11 @@ import { MobileOnboardingForm } from "@/features/auth/components/mobile-onboardi
 import { LocaleProvider } from "@/i18n/locale-provider";
 
 const navigationMocks = vi.hoisted(() => ({ refresh: vi.fn() }));
+const flowButtonSoundMock = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/flow-button-sound", () => ({
+  playFlowButtonSound: flowButtonSoundMock,
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -49,6 +55,7 @@ describe("MobileOnboardingForm", () => {
   beforeEach(() => {
     window.localStorage.clear();
     navigationMocks.refresh.mockClear();
+    flowButtonSoundMock.mockReset();
   });
 
   it("defaults to English unless English is the selected native language", async () => {
@@ -182,6 +189,36 @@ describe("MobileOnboardingForm", () => {
       expect(form).toHaveAttribute("data-mobile-onboarding-visible-step", "learning");
     });
     expect(screen.getByRole("button", { name: "Dil seç" })).toBeEnabled();
+  });
+
+  it("plays the auth flow sound on each onboarding screen's bottom continue action", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <>
+        <GlobalTapVibration />
+        <LocaleProvider initialLocale="tr">
+          <AuthSessionProvider user={testUser}>
+            <MobileOnboardingForm countryCode="TR" />
+          </AuthSessionProvider>
+        </LocaleProvider>
+      </>,
+    );
+    const form = container.querySelector("form")!;
+    const getContinueButton = () => container.querySelector<HTMLButtonElement>("[data-gateway-flow-action] button")!;
+
+    await user.click(getContinueButton());
+    expect(flowButtonSoundMock).toHaveBeenCalledTimes(1);
+    expect(flowButtonSoundMock).toHaveBeenLastCalledWith("auth");
+
+    await waitFor(() => expect(form).toHaveAttribute("data-mobile-onboarding-visible-step", "learning"));
+    await user.click(getContinueButton());
+    expect(flowButtonSoundMock).toHaveBeenCalledTimes(2);
+    expect(flowButtonSoundMock).toHaveBeenLastCalledWith("auth");
+
+    await waitFor(() => expect(form).toHaveAttribute("data-mobile-onboarding-visible-step", "picture"));
+    await user.click(getContinueButton());
+    expect(flowButtonSoundMock).toHaveBeenCalledTimes(3);
+    expect(flowButtonSoundMock).toHaveBeenLastCalledWith("auth");
   });
 
   it("keeps the latest language selection visible during the step transition", async () => {

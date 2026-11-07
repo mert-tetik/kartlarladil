@@ -278,7 +278,6 @@ export function NormalQuestionsTest() {
       <MobileQuizFeedback
         isOpen={showingAnswer && answerAccepted !== null}
         isCorrect={answerAccepted ?? false}
-        forceMascotAnimation
         correctAnswer={getCorrectAnswer(question)}
         onNext={handleNext}
         showNextButton

@@ -17,12 +17,14 @@ Temel kavramlar:
   - `B2 = 6`
   - `C1 = 8`
 - **Yanlış cevap**: Doğru sayacını 1 azaltır, minimum `0`.
-- **Puan / Rank**: Öğrenilmiş kartların tier puanlarından türetilir; ayrı mutable puan sayacı tutulmaz. Kaynak kodundaki puan değerleri:
+- **Puan / Rank**: Öğrenilmiş kart tier puanları ile server-side puan kaynaklarının toplamından türetilir; ayrı bir manuel rank sayacı tutulmaz. Kaynak kodundaki kart puan değerleri:
   - `A1 = 50`
   - `A2 = 50`
   - `B1 = 75`
   - `B2 = 75`
   - `C1 = 100`
+- Quiz streak: tamamlanan her 5 streak için `50` puan (`streak_points`).
+- Bonus soru: doğru cevaplanan her bonus soru türünden bağımsız `50` puan (`quiz_result_points`); yanlış cevap `0`.
 - **Rankler**: `baslangic` (0), `kart-ciragi` (200), `kelime-toplayici` (600), `dil-yolcusu` (1400), `akici-ogrenci` (2800), `kelime-ustasi` (7500), `cok-dilli` (20000), `seckin-koleksiyoncu` (40000), `dil-bilgesi` (60000), `efsane` (100000).
 
 Uygulama 14 dil destekler: `tr`, `en`, `de`, `ru`, `fr`, `es`, `it`, `pt`, `nl`, `pl`, `ar`, `ja`, `ko`, `zh-CN`.

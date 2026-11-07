@@ -97,6 +97,11 @@ Production checklist, replay, reconciliation, monitoring ve secret rotation adim
 
 ## Stats
 
-Rank esikleri `src/features/progress/progress-stats.ts` icindeki `RANKS` kaynagindan hesaplanir; Supabase'te ayri bir rank esigi veya mutable rank puani tutulmadigi icin bu degisiklik icin migration gerekmez.
+Rank esikleri `src/features/progress/progress-stats.ts` icindeki `RANKS` kaynagindan hesaplanir; Supabase'te ayri bir rank esigi tutulmaz.
 
-Puan ve rank ayri tabloya yazilmaz. Ogrenilmis kartlar `user_cards.status = 'learned'` ve app icindeki local katalog tier bilgisi uzerinden hesaplanir. Bu yapi duplicate puan ve client manipilasyonu riskini azaltir.
+Öğrenilmiş kart tier puanları local katalogdan hesaplanır. Bunun yanında
+`user_profiles` içindeki server-side kaynak toplamları (`streak_points`,
+`quiz_result_points`, `ai_practice_points`, `chest_points`, `mission_points`,
+`game_points`, `gem_points`) progress toplamına eklenir. Quiz'te her tamamlanan
+5 streak 50 puan, her doğru bonus soru ise türünden bağımsız 50 puan verir;
+ilgili RPC'ler idempotent kayıtlarla duplicate ödülü engeller.

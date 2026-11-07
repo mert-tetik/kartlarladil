@@ -1,5 +1,5 @@
 {
-  "version": "f1e20391fdb5e40ccf2a68529fa913a5f1756a49657f18dbd2cbc8ebca4df502",
+  "version": "2430f0b9ed0b2c65d18c48647ba0a77a34039e78c33d8e57b12d02eea3c7c98b",
   "assets": [
     {
       "url": "/AppLogdfo.png",
@@ -490,172 +490,2332 @@
       "revision": "30ca0798540ebde21260cc2bea82ead7d8d22b376e2d4f6fdd6dafa801ba53ec"
     },
     {
-      "url": "/chests/opening-frames/diamond/atlas-01.webp",
-      "revision": "30b9e07e0544862575fa19d22b52e543b385d13281e02b3713ea403d6e4b26cc"
+      "url": "/chests/opening-frames/diamond-frames/frame-001.webp",
+      "revision": "6c6c7f29e1418a95387432c78e42c5008718303c5c2cb33c4f53846881e509ac"
     },
     {
-      "url": "/chests/opening-frames/diamond/atlas-02.webp",
-      "revision": "939c83702168be1b81dd64e4e96592c7ff32b8873c3df78df433b61139dd22d7"
+      "url": "/chests/opening-frames/diamond-frames/frame-002.webp",
+      "revision": "0c629136a294eb8652ea108872eb9b70d2261ab6b80fd9d8551fd31228d85204"
     },
     {
-      "url": "/chests/opening-frames/diamond/atlas-03.webp",
-      "revision": "4fa6ca1832853cdf1bd033e5ba6a3fb4d768552c3a1075c8284c2e5958439e25"
+      "url": "/chests/opening-frames/diamond-frames/frame-003.webp",
+      "revision": "47402790f36ae32f91cf35f7ef005c02c264e2cf8f04ed3d8a8647c5aa8d269a"
     },
     {
-      "url": "/chests/opening-frames/diamond/atlas-04.webp",
-      "revision": "015853ce985f97a086ea6b3337c10c52ddc439ee5dcefac3c0f5a29f6237a1df"
+      "url": "/chests/opening-frames/diamond-frames/frame-004.webp",
+      "revision": "febfb071f5f352b536fe83dad3a2f09d44d138060b5a1339160d3707d0627826"
     },
     {
-      "url": "/chests/opening-frames/diamond/atlas-05.webp",
-      "revision": "93a9de80c9ebc8751297bdd006d3f7b7860d563b574b0ad9e87c04f4145e42da"
+      "url": "/chests/opening-frames/diamond-frames/frame-005.webp",
+      "revision": "e37509ec35c82a39cc986576920bb0d5c4ca16f008cf4f6b76c76167aae2f637"
     },
     {
-      "url": "/chests/opening-frames/diamond/atlas-06.webp",
-      "revision": "1484ae0eaadf7054e95e09ceda04533182fa9ed5520c957d5c537ffc6c8516af"
+      "url": "/chests/opening-frames/diamond-frames/frame-006.webp",
+      "revision": "a6d1c23630bdebd42ecc35c8ef37bef6680b2b518c449374ec3670165a5623fa"
     },
     {
-      "url": "/chests/opening-frames/diamond/atlas-07.webp",
-      "revision": "256d17fc048c5530d6a60d4ddf31e1cb9ace0fe4768e89f8abb4a6f90f31cb0d"
+      "url": "/chests/opening-frames/diamond-frames/frame-007.webp",
+      "revision": "d5b104c65a342f2f81f513295bae9a83a219cd8b50bfd9a1f4335c93a965a595"
     },
     {
-      "url": "/chests/opening-frames/emerald/atlas-01.webp",
-      "revision": "94f93ce354a8d6189b399d8977967220d90c6ad1857f439a450efdf2377d7e1b"
+      "url": "/chests/opening-frames/diamond-frames/frame-008.webp",
+      "revision": "4283876864dbf3b15354843399bfe534006ec3a9fa626acc7e1d234b48cbd40d"
     },
     {
-      "url": "/chests/opening-frames/emerald/atlas-02.webp",
-      "revision": "31c68f427bf2699c0ed6feb2c6eb48801a6cf8db00959eb62bc1051b0a051be2"
+      "url": "/chests/opening-frames/diamond-frames/frame-009.webp",
+      "revision": "4a11eef04fbe8e5c58a1b9dced5ccc7232651cb4e74a53e8ac0e7fc2643d09f0"
     },
     {
-      "url": "/chests/opening-frames/emerald/atlas-03.webp",
-      "revision": "1265bb0c246193aa7c51d966f6f70ff6912f50aadaa87d66af60e26acdbedfe9"
+      "url": "/chests/opening-frames/diamond-frames/frame-010.webp",
+      "revision": "69432ff3326913f7fb09f3544b873d2e9a463cf00dba18c99cfe33be163a03e9"
     },
     {
-      "url": "/chests/opening-frames/emerald/atlas-04.webp",
-      "revision": "32974887a6bdf19a014b0388b1a298965e6569af4bd7a22f7da72d4a1d141615"
+      "url": "/chests/opening-frames/diamond-frames/frame-011.webp",
+      "revision": "5ba7f8c6ff9484c951513261e25573984f1d76bbdb9bb667176a22ec182f137a"
     },
     {
-      "url": "/chests/opening-frames/emerald/atlas-05.webp",
-      "revision": "75857bcb1e6152d196b9917ed5167cc99158cfdd45c3faf6c3ed5b0b5bcb96a5"
+      "url": "/chests/opening-frames/diamond-frames/frame-012.webp",
+      "revision": "003811019674b9807d1ab5b97b68603cbde61d143e6b00d8cf5961636e9079b9"
     },
     {
-      "url": "/chests/opening-frames/emerald/atlas-06.webp",
-      "revision": "b9ee07ef00db6bd48763db7c318f4407093ad16d5ef96396a9cf9ee26ff97c0e"
+      "url": "/chests/opening-frames/diamond-frames/frame-013.webp",
+      "revision": "df3362d81e2f9e7a89753eeac1f7bcc37e97128594f68710204c5a547a52bb24"
     },
     {
-      "url": "/chests/opening-frames/emerald/atlas-07.webp",
-      "revision": "9169725bc85e1477b55e781e7babdd195c39e428de1488c2baef524e36b6da0a"
+      "url": "/chests/opening-frames/diamond-frames/frame-014.webp",
+      "revision": "4e7ea347343c376e04d7fcb9b14fcc75dd74c8d928a48358b393208b53994568"
     },
     {
-      "url": "/chests/opening-frames/gold/atlas-01.webp",
-      "revision": "41d6e5dd064369e68085d88a2f739e9ddab226964f03112731b88b99bff4bd2c"
+      "url": "/chests/opening-frames/diamond-frames/frame-015.webp",
+      "revision": "b14419e6ac25286debe2709a32a486e9d39c67b46a1818d2d6f8c0016a1a7405"
     },
     {
-      "url": "/chests/opening-frames/gold/atlas-02.webp",
-      "revision": "851c5579110a1ff8f2048fb8ff963e86db6125cc344f0a4dac28f5a7db25943e"
+      "url": "/chests/opening-frames/diamond-frames/frame-016.webp",
+      "revision": "5cce936a8defd5f82b1f6ff25c27760cf9c80d8189bd8d606ea754eb75d76247"
     },
     {
-      "url": "/chests/opening-frames/gold/atlas-03.webp",
-      "revision": "529e305c169e5116f2cb7e14b27fe0b8243ef55b09e6714b7fd340eceef356c3"
+      "url": "/chests/opening-frames/diamond-frames/frame-017.webp",
+      "revision": "e98931579278d5bbe3b80fc44b8274d5fbae445737898b8409febdcedd51c449"
     },
     {
-      "url": "/chests/opening-frames/gold/atlas-04.webp",
-      "revision": "8c83c7d6177a7528c962a9afc8916e04f273116019f04f757e43e6f808f032d1"
+      "url": "/chests/opening-frames/diamond-frames/frame-018.webp",
+      "revision": "0e44befa7495989b48f27c4e5559576a1586e984564db1a0e2e7fd70f22b8d35"
     },
     {
-      "url": "/chests/opening-frames/gold/atlas-05.webp",
-      "revision": "d5f19ec807366dc5e47801b7832b45c3c7f778a5ba06e98e71ee030e92ed2786"
+      "url": "/chests/opening-frames/diamond-frames/frame-019.webp",
+      "revision": "971a5e5ebccdb136ffa1eea7f4b2d6c9863186137bfa14c4181ae23fd5360edd"
     },
     {
-      "url": "/chests/opening-frames/gold/atlas-06.webp",
-      "revision": "03dacd0f7bff918f861adee3ede58165ab31c1e6cd3fc7ab22c00aa994068b22"
+      "url": "/chests/opening-frames/diamond-frames/frame-020.webp",
+      "revision": "c3d69abf86d055f90ea5be003f135a122ab9cbed004aea27ecd5d47588a69122"
     },
     {
-      "url": "/chests/opening-frames/gold/atlas-07.webp",
-      "revision": "4ed6de925b4cde8788c1a2e34c8b388d202e0d7a3f03c0ddcdabe4b3b73eee5d"
+      "url": "/chests/opening-frames/diamond-frames/frame-021.webp",
+      "revision": "a9e98db62fc2c847481fd7ebd8333d300c3919edcff46256accb3483bb841471"
     },
     {
-      "url": "/chests/opening-frames/iron/atlas-01.webp",
-      "revision": "617f08608f17244afb9ed8e8da50926a5f78c09fa8976846909c8caa2e735d3d"
+      "url": "/chests/opening-frames/diamond-frames/frame-022.webp",
+      "revision": "c820198244020d89b2f2cd433d29d355fbc0c3e3d2c36bd7cf7eaabf9c32fb25"
     },
     {
-      "url": "/chests/opening-frames/iron/atlas-02.webp",
-      "revision": "7f2eacbc148f0a5a6ffeb99545821597c1252e0dc731fb248bd26b2a0fc215a3"
+      "url": "/chests/opening-frames/diamond-frames/frame-023.webp",
+      "revision": "a12da3023d39e0f523d641ef6413e5777413a53d732a40751488e58c5b27b2aa"
     },
     {
-      "url": "/chests/opening-frames/iron/atlas-03.webp",
-      "revision": "52b877b56b5689f92893c10063f4137b90aa80ef8cb1f969970c4faef521cc63"
+      "url": "/chests/opening-frames/diamond-frames/frame-024.webp",
+      "revision": "015f4d49422173521f9b7960c712bf70149d36a38cc8236f512eb96603ab2dec"
     },
     {
-      "url": "/chests/opening-frames/iron/atlas-04.webp",
-      "revision": "bd6be0e3a944e952e9494ac140fcb198c5061e1510abc2f27b7bc4fbad5ceffe"
+      "url": "/chests/opening-frames/diamond-frames/frame-025.webp",
+      "revision": "e5ea2244c2aad645dff95200144e8f729720ca5d5d59e2b2bcc5543074cb585c"
     },
     {
-      "url": "/chests/opening-frames/iron/atlas-05.webp",
-      "revision": "fdf1b09019d2fdef30e9288c438cef3b49048233e3137cfe785d74f59c72aebe"
+      "url": "/chests/opening-frames/diamond-frames/frame-026.webp",
+      "revision": "87d6460623e2795234905c5fdc8ce1fff25b4028bcaccee7086c96a823d010d3"
     },
     {
-      "url": "/chests/opening-frames/iron/atlas-06.webp",
-      "revision": "bfe751abd47c8458d56b1786367dc4afb47d42428a0376323233b6e0450bdab7"
+      "url": "/chests/opening-frames/diamond-frames/frame-027.webp",
+      "revision": "93ab56c6786409c87d6db8a1835b869376632e63411c0da8a7843f0fb838de58"
     },
     {
-      "url": "/chests/opening-frames/iron/atlas-07.webp",
-      "revision": "22c9677d7269699da54a32397222a2a64039ce91b7a6196bc55d6776b4934fe5"
+      "url": "/chests/opening-frames/diamond-frames/frame-028.webp",
+      "revision": "0524ec9d76a99d04c60b49c2c78e71fc2a6be513e135d95d36defc03bf7b35db"
     },
     {
-      "url": "/chests/opening-frames/ruby/atlas-01.webp",
-      "revision": "05331dc17edf90bacfb6d27eecffba9d5a56fe16f5df9754130831a8ec0b9972"
+      "url": "/chests/opening-frames/diamond-frames/frame-029.webp",
+      "revision": "65a97edfc8729b5d45d992bf773a5f8a555db2f6f218cf036cf403ff14918640"
     },
     {
-      "url": "/chests/opening-frames/ruby/atlas-02.webp",
-      "revision": "3cfb5fbd5c55421759717c69360997c2b5b62ff49bb1a8011034ec588c7a7902"
+      "url": "/chests/opening-frames/diamond-frames/frame-030.webp",
+      "revision": "eb7c4b93f43b11bb0cb499d81eafc903ab164a0bafa5283b4ec277321785062f"
     },
     {
-      "url": "/chests/opening-frames/ruby/atlas-03.webp",
-      "revision": "730e19e34c4bee1e0bf0f13252bb58655bc4fed64041b908ee4ae73cca3baf19"
+      "url": "/chests/opening-frames/diamond-frames/frame-031.webp",
+      "revision": "1bd388ddc190fb801250dddda629436cfadf073e82e71444f5e617f2b71ae99c"
     },
     {
-      "url": "/chests/opening-frames/ruby/atlas-04.webp",
-      "revision": "c7535cab3c367535a448833e74b4ecb7753ee46807e8d200c0cef6300a10a3d0"
+      "url": "/chests/opening-frames/diamond-frames/frame-032.webp",
+      "revision": "cad57bbb43d7310f4221698fecf5e0264ab8151478edf8e74f0b9ddef03ef255"
     },
     {
-      "url": "/chests/opening-frames/ruby/atlas-05.webp",
-      "revision": "7a76379a8250f0eb07ae45fe323feace2560eefb0b2f4559456d2e284152ec04"
+      "url": "/chests/opening-frames/diamond-frames/frame-033.webp",
+      "revision": "41e6c768bf72cf681e5b29cf3339c270b0950c6674a065cb74779e3f7260a080"
     },
     {
-      "url": "/chests/opening-frames/ruby/atlas-06.webp",
-      "revision": "52912babe5cc0d9bef4b272bb924915d32938744daea5bb1932802be2f034ca8"
+      "url": "/chests/opening-frames/diamond-frames/frame-034.webp",
+      "revision": "ce5b5420f27361fbb196bf9d8942ce5e28554e450caa3bda81c5fe4d208c8034"
     },
     {
-      "url": "/chests/opening-frames/ruby/atlas-07.webp",
-      "revision": "cb0fa8f01db3251713b982d8f780a85366d7100eb31c444beb1b1f14e8f06fa1"
+      "url": "/chests/opening-frames/diamond-frames/frame-035.webp",
+      "revision": "685c93ddbfe1f3ce500f2d3707d8beb010eea3d4bef2c34e9960742a4a01744b"
     },
     {
-      "url": "/chests/opening-frames/wood/atlas-01.webp",
-      "revision": "b2fd190dd439b797e7af0bbbb0ca36970e8e34a0a746937e49d3348abfc26bd9"
+      "url": "/chests/opening-frames/diamond-frames/frame-036.webp",
+      "revision": "6b1d15cfe2ec21ed729e9f2dc3cc945e34a146968037b1333467be01a5c51793"
     },
     {
-      "url": "/chests/opening-frames/wood/atlas-02.webp",
-      "revision": "741c58b008460ee5368f65c714c21393c8ec99f0b65be495a7d341da31e13eda"
+      "url": "/chests/opening-frames/diamond-frames/frame-037.webp",
+      "revision": "5f5c49c6b7c75d81c5dde347ae9f04f5082241a482def7f7c0f1a5c4c4f5f264"
     },
     {
-      "url": "/chests/opening-frames/wood/atlas-03.webp",
-      "revision": "ace17f8068054d6384fbb0372bd1672b28b5b6322757c49cb557810d2ea07ec8"
+      "url": "/chests/opening-frames/diamond-frames/frame-038.webp",
+      "revision": "77b60f09a0084178fdc0a1a0c866f4e4a758bb533c9026c3782a007ab188c820"
     },
     {
-      "url": "/chests/opening-frames/wood/atlas-04.webp",
-      "revision": "8231889213319d35478326c5db5e1dad3766843e5a1ef156c7b736f5a6dd3be2"
+      "url": "/chests/opening-frames/diamond-frames/frame-039.webp",
+      "revision": "12027d06ca7b64814eb20b2103d882c4bab41ea1e8e89bc250e27c3b1d5378fe"
     },
     {
-      "url": "/chests/opening-frames/wood/atlas-05.webp",
-      "revision": "81c127b909a723db5f88178ef5acd53536d2a15e3ea392f28c2c3c82b7dcf482"
+      "url": "/chests/opening-frames/diamond-frames/frame-040.webp",
+      "revision": "6c06545b5031bb651470a5a7a4474f101ddd1154f492747e23dfd892a534e6ec"
     },
     {
-      "url": "/chests/opening-frames/wood/atlas-06.webp",
-      "revision": "002de5e7f470245b4133eb72130b41f2b8a7231914dcca9c8f3c9fe6344eecf0"
+      "url": "/chests/opening-frames/diamond-frames/frame-041.webp",
+      "revision": "a7d9d564292de7f58e1b2f4afae95f5b1417c21e6c3bb37216d9b88d45db598e"
     },
     {
-      "url": "/chests/opening-frames/wood/atlas-07.webp",
-      "revision": "ea308ee5974b70d3f94c2802d3d34a231fd566368997146f0fac45e1dd8c5bd6"
+      "url": "/chests/opening-frames/diamond-frames/frame-042.webp",
+      "revision": "b110bfea5727cd1bd36e5f6ca886525cc7139bdaaa9a4d3537bef224611289b5"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-043.webp",
+      "revision": "7d1be77ebfb5e39d041baf7d9a9be2eeb4c14cbe0c54b456c6d47c1f612a7255"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-044.webp",
+      "revision": "8b2a93bfb1c177665accb443a8bd5e192611c9a7a9a566f2419d56e8bdbab9c1"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-045.webp",
+      "revision": "2c9c2945ae146391a5e02376d4167cb3e87bf728988b37890c1bda78ae31cfd1"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-046.webp",
+      "revision": "8bf0392aea5eb36fbf0319f6f9bc59d3c8c887e90b6ae2ad1cd9a9c2b74dda7e"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-047.webp",
+      "revision": "12d8d15f7f2d2aef84e408408ccfb8173f3d99d15fe0195845ede409657f981e"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-048.webp",
+      "revision": "111f56d9d8533ede529177245ec3ac64384ff54dbe63eeb91d2984df354ebd23"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-049.webp",
+      "revision": "5c2dc31881a61ebfcef824da86895bb08eb8e76b3382e6f232b50bd6625d6692"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-050.webp",
+      "revision": "5a23ef9070f60a16b4399b6f917f0533d9388273fd9e07e64885214cedb55154"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-051.webp",
+      "revision": "893d7c5f1e8d7f96298f1b1f9a0e882b83b74b6d39b763d86525aa94fb1ccb21"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-052.webp",
+      "revision": "7f457d5ddfe10f897d5a8e2531441edd9a2f842465795fc1c2854d0468414648"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-053.webp",
+      "revision": "48d4c387d8f7909b4518585e111f02159536bb2896c502dd14403378d691da68"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-054.webp",
+      "revision": "34043cb4cae2931f39ee5ce033938c9d1a7c1eb415d762549c63e7e5069f37c7"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-055.webp",
+      "revision": "879763111110434383f70cbbf114e57e55bb94fef4ca15514d64ca0d3a3cb70a"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-056.webp",
+      "revision": "c44b5474e829a1afd12bc31744006c735b75760847379c76d068554f9e5ea713"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-057.webp",
+      "revision": "999d5ccc12c44669d3a41913f3d016aa2f0a1b33e319f8217b27e8c3b1ce01a9"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-058.webp",
+      "revision": "dacc42b2b7f7b846e07c60f1991793e87413b02c6e089486103a4a5778db0104"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-059.webp",
+      "revision": "7023305e7232da86e605d3120b5d7d681a0d624a13419f4449e292b3400ec969"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-060.webp",
+      "revision": "c4c8eb4acc0078db5ae48b745d00e8a7680c435b4ae5780e25cec243c4d6b484"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-061.webp",
+      "revision": "679d4befaf348ca43046c4cbc4a0abebedd5557b64c20b6a8d7b4f0d6237875f"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-062.webp",
+      "revision": "cacf8bb950fc277764bad0c9628d035707ccab3996d6df1c154e1eceffb70b07"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-063.webp",
+      "revision": "0d5a110dc6b75bb91964393ba12b03477d3168bb1ee45dc2d15422303c7822bb"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-064.webp",
+      "revision": "f50634f9fef0bc65b1a3601084b7af48ab14ef801878a69ec86d464f3b4b68e6"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-065.webp",
+      "revision": "143c19de4cba7665b95123f5b71f743f2065405bf67f454d7c8bf72cd1adbbcd"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-066.webp",
+      "revision": "9089ba4d1c2b74ce2de3f9afdff829d93efa1013ecb1d731b619cdef56232eaf"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-067.webp",
+      "revision": "b55eaea0e5cf56607d041e460c9ad70d4507254331b1045635494ced1bdc457f"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-068.webp",
+      "revision": "b4aa3f063a3d78236eaca12b67046f9d23e4dd0e73cd179717018b8e87ebd4fe"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-069.webp",
+      "revision": "19e701641b1db0df6f716c0613da24e597633e6030aaa794a6c4b4b5abc26985"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-070.webp",
+      "revision": "872c13efbe28f3282ec3bf9ba4fe21663eec252562ad9655599423bdb8f40302"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-071.webp",
+      "revision": "ca520df33a74a820b9b3ed5ac93eeb0cdaa6bf38e605b061246744c1bfafe22b"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-072.webp",
+      "revision": "726e60130788ea264dbf96d771cfdf2395b7fed4bf406a54e8684d870842547a"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-073.webp",
+      "revision": "e8fd69b245468831117b6ced5a848b929d14410d96cd0fc2350cc96c0f42e7b1"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-074.webp",
+      "revision": "fdaf623304e151154726e8ad04f33eabda81cb4a6cbf5e1d86a97c414e1dd0f6"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-075.webp",
+      "revision": "18f11cd803d9f5927c147fd7201981a51a343e808079c326fdb5d6514cd4ec18"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-076.webp",
+      "revision": "dee288c77e199379dfad2a454ab9e02cad047e526f8ada5ae6acece4ea43a586"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-077.webp",
+      "revision": "b7605c745e81fc10a8d3e7d458ce3c775577296997b198deb972d89b0f47b6e5"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-078.webp",
+      "revision": "5410a9dd0c72dbdd5d701488599ee7e3d4f1e526ab6348629a69da21c6c579ca"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-079.webp",
+      "revision": "30d159072a0fd5543772b76ac4989cdfeb6cd8f279a73b79b3fe8ef56e1ae013"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-080.webp",
+      "revision": "303750b2d34f11daa80a1aa30e3879864578043b35ea1ae2a111dfeaad7055b8"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-081.webp",
+      "revision": "289b1e753e9472bbbc35f9e71385ddac90be0b9b27c361f4fdcac88a1e65038b"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-082.webp",
+      "revision": "ee8c80ddbea9be236216cafb2fe2bfd5a00b2d9c8498776814f306345f748758"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-083.webp",
+      "revision": "54d5547536420bb18de026dfc27591e129db68d36dbfd4ce66c67cf76db7410b"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-084.webp",
+      "revision": "960958e1c0f2db9aa149b4d8291ec0ef2b4af326cfc75b6798335ea8146ff545"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-085.webp",
+      "revision": "3ec4a47d8bd54ea19326944edc8d471442cd34fc8a13eacf919163256d8210e8"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-086.webp",
+      "revision": "94b8aa34f8d4a95ef8d8150619ee911d1b5fb1601286781b713c3f30bbcc68db"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-087.webp",
+      "revision": "3e651dee6a93ddf0e0c0ab87ef1bfbefdb028864b77afe94746802465b4b5c41"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-088.webp",
+      "revision": "b33b35407dc0d6be965dfb5eae2ad38238232bcad3562e3cf6a2febd19f543a2"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-089.webp",
+      "revision": "46af496b9bce31be940a9dc39edebe51b8c13af7b8163c8929954597187223bb"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-090.webp",
+      "revision": "a45d0040ca35644e0acc7d080b6b9521e7b4dd29837c4442967f875e3407860c"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-091.webp",
+      "revision": "f1fa7daa0c84eb520ed19c8a05ea9821b1b71226da48c46a89efa5801cc1d377"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-092.webp",
+      "revision": "b806210d5d819635a781216529e4c27d20c07c19ed87cddc40e8c2d9e175ba90"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-093.webp",
+      "revision": "827c203e390dcfaf8c8eb72ccf5f0c4b3362c5e8b9cd9e84348985645e6dbe76"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-094.webp",
+      "revision": "9706326956fdf9cc6756863f0fb4f35a81fefb813666d0a8576328b1d09d3370"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-095.webp",
+      "revision": "adc2f1b54e5e21c2562a01e596a78bc975b441a7c5c27b98318069a2967b8e8a"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-096.webp",
+      "revision": "22f037c4135e64a6ffa1b54df2a7b978f9a2d96fafd5231153bd0b710788f0e1"
+    },
+    {
+      "url": "/chests/opening-frames/diamond-frames/frame-097.webp",
+      "revision": "638df044d654ea77289f7fc725803f5bc0ec4a107165110506ef3fe51e9a7751"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-001.webp",
+      "revision": "a90908a6092afeb6edf380968e5c7447295530669407127e0080bf6dca061b17"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-002.webp",
+      "revision": "d3b5446a49f71b3f14a24972c050e1e296e030fb85335f24a81c739e33459ff3"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-003.webp",
+      "revision": "730b32eeb26bc37bcbc276dff9d2b3cd8809dece7aa6f785d40e7d9e633ad87c"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-004.webp",
+      "revision": "81c4db12265c1e102ad3de440b034119381d4ef7cc6bc4e20ade6572f4c5646d"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-005.webp",
+      "revision": "abb77ab87ea43255af0cf4de3c35ab689842c4dc13ef3177ba5c5bb3172fc2bc"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-006.webp",
+      "revision": "c6ddc9452e03a60e5e115d4e14609cdf54b852ca9a0e64388c3aca84a6086bcb"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-007.webp",
+      "revision": "e61365adafb5f13da794efbf3e34abbbc3125013464725eabc010ddb72b10644"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-008.webp",
+      "revision": "56cd5000447c6f6b6ed60a2c642ea3cab9383d52f7642a2763f20305829e3076"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-009.webp",
+      "revision": "f1d6a1296bd7ac1bae9396c06e604bb16941b47ded160fc4d5b498b209ab8d04"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-010.webp",
+      "revision": "45fe54605e28de6394ccb1a8473464f2581b6f7589f6e1bcc52c20a65286619c"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-011.webp",
+      "revision": "8410c12bd7866ec1a77323feee59e7c8be896adf3b3b4e077c4f259717a82bb1"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-012.webp",
+      "revision": "71d830877ae3dc3052222c912684d0d531391fed9b9366b97a2e792fae13ed7b"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-013.webp",
+      "revision": "cdc3983a55b6ec2cc333725656c46f1e635b37b2ad7b7691ddeb17ab13a147af"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-014.webp",
+      "revision": "b098f4bcc3848d77e9975bb297083fe609c8c4a63f41d851b2f5dfeb8a461cd0"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-015.webp",
+      "revision": "2f6d4f27901bddf66fa2369667d289f5cf537b2103c3fd1c102ec06dd4fc6fa9"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-016.webp",
+      "revision": "9e65be4641aaa16e3f0cd2229d569bf2ae33a79424d2fb591f4d04257e9897d4"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-017.webp",
+      "revision": "f35056f0aad1f3cee9e50ab22276f0f426b42d3ebdeba1437ded6967926c563e"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-018.webp",
+      "revision": "f930dd1afbe1740599014f2b9147a32f571b119c2a85a68c9fb447d6a2b1745b"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-019.webp",
+      "revision": "2945b8f542f52222f40c1bf94ec23ae2cbb232848b0fd1473837023e5cbd331a"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-020.webp",
+      "revision": "196cd45ff79c31c396a6823e783b22a1484d701fc979630d33cd6cd433bbebad"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-021.webp",
+      "revision": "dc22f8b9fe6b7dfcfa0dcd146c1ec18dc84facf0dced86464c7a0f9b9673ceab"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-022.webp",
+      "revision": "3921a6d1413aaad239b87b41c83724a2b0e183722d3fc784cded0b4782eb4cf3"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-023.webp",
+      "revision": "28caf089796ded9096c5a8e29a486e48829a10c85e318b9107eb792f3a41daf7"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-024.webp",
+      "revision": "7df8b67dbbf88e610a82e18400ba028e063495a719bc0c70bbc61142aa78d18c"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-025.webp",
+      "revision": "e190baeaa61dbc536fc43380abaf707d739d28a7d9de60b49a7e287840b3e728"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-026.webp",
+      "revision": "43b4cd20ed2cbff420152f8598a2202372ad79b5155e500fdbb36eb03699d457"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-027.webp",
+      "revision": "d6f20fef796724a4c21560beb4d2d7988f2395b561d49f778c2e63d31f19d4b8"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-028.webp",
+      "revision": "3afdd66d534f752c584c06643e0deb62fd4bde0075c75e0c9cac4f8040d692a6"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-029.webp",
+      "revision": "16a570a0309cdad84af867041df4c05555b61b07d378ab34278adb32a9b98692"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-030.webp",
+      "revision": "5469fdd61057c178571467f5637be2590300767adfffd002de649a90f9084c24"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-031.webp",
+      "revision": "e43bd7af2a39472c2369d75d61b0e7844271b128db53a672a5953dda4a3a640b"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-032.webp",
+      "revision": "8bf81299cc9d8a100d8bed5d6ee9dab7137bf6dfd51717fa24b5d72a89849d16"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-033.webp",
+      "revision": "1ae24aa778c3b2a7d689f9f2f4158d0457929cd5411ecc70f1ca74e6b2208d6e"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-034.webp",
+      "revision": "e9d2ef656c774367e17eb911e464c4d9f7d13188ff3892faa8f69d39dc6e9b88"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-035.webp",
+      "revision": "69801f7192a3068b8d0d99d87956b8a965b7ece0c5ce67d8d7b2b01f8159fae8"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-036.webp",
+      "revision": "ee4774387042a95957dbfae7d6567eac67767c7b54e7332af0983d64c0af4a4c"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-037.webp",
+      "revision": "73d96d7c0563872b0f369d6ecd926bd7935bf9b645808e54c8bce103ffc25df1"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-038.webp",
+      "revision": "fb217e93dcf9fbbd6a99e8e44bd300c420188602d0209e0401f53aa280ac0255"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-039.webp",
+      "revision": "645b900cc5e01a1d7267504d091d7caf439822bf6387ad47335baf216052ff57"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-040.webp",
+      "revision": "f94543bc417980eddf448916d3a808cca779965bce1304bab28e1ee7c802c6ce"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-041.webp",
+      "revision": "479b641d693c7d0b668b4117d06449ac0c621c8b580ba9b5f928145ffcc82cbb"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-042.webp",
+      "revision": "a12e1c1014f26da4c9ebe7d73f6eec95ad36e548090e5c0b557c469377a20986"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-043.webp",
+      "revision": "94b270a42d67f44dea648308b710efd21bd9fd20acdf83b4273e50dfa9d702af"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-044.webp",
+      "revision": "721f3f9acfae6fdfc0dffcca6b1f67edab1b7966f63ad95c90c91774f2bd59fe"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-045.webp",
+      "revision": "b4fe912ec3d989969dc6d585a96948359aeab708f8bae95cd2de0aacb1643354"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-046.webp",
+      "revision": "0f8325a7c50cc8711492dae4ce00ad5dc8c079404910f540125e7809cb77c3a7"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-047.webp",
+      "revision": "ea21a11e027b2729d28a80d122b7f020fdd8d219c86dde2407c5c1df90a8fc04"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-048.webp",
+      "revision": "c579d27a12a7e89616e7a7371663708d231aa9d77c1366d860b3567e5df7a278"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-049.webp",
+      "revision": "adb85792103280d59c2696e38de126d7a5eca70c2a4345df331f263522a63a74"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-050.webp",
+      "revision": "cf375f412ec9a5da7cce4e127bdd56f1c640db48fc91c593e0c49a844d8b3cb2"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-051.webp",
+      "revision": "c0b612935bfaac07516aff8ea30ed3422864ad0f240ea9edec785ad0ab9dde3b"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-052.webp",
+      "revision": "b37fde066b76b64dea5244a49997d5215877d957952a5fa3132753a89d5db221"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-053.webp",
+      "revision": "1cc94626b07f4ecbedb3690ca19462bf57594e4159796b1669ab6e8c0128fccf"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-054.webp",
+      "revision": "469e08a0a92ac36b6a2d1e54dc978e31ec2eb7993892c1607e66f3cb7c7116a5"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-055.webp",
+      "revision": "b3b6701ff7d18e4d7852806f8c77941fec11eb100fa0d092d341ff7a6b9e89c7"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-056.webp",
+      "revision": "9435fb56a9198eecb9524de6ec1167dfb8d583097357cd668e4097c391b76e8b"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-057.webp",
+      "revision": "aa3c9a7353e82d7dc6031fc51822daad5ca17c752d2c9a60925cf466e69157f3"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-058.webp",
+      "revision": "62c8b0505d81931beeae487b1beeb2565ce7fd640fcdfae96c21abdd5efbbc71"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-059.webp",
+      "revision": "63393d150222a9863d1770bfb2dfff21c11a3e87eeca3644b43efe94ce1df0f6"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-060.webp",
+      "revision": "4d50da8aa0ae72089d5c67a83b6a53e806e9338014b8e36d474f37fd23d03645"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-061.webp",
+      "revision": "57c8984027004d4bb4c44e7138004f5df464d1bc16c8a883949cec6d9395d4a2"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-062.webp",
+      "revision": "8ea62c68cdbc8890ca09d29f55f41fae2fe08f018321b779a90f04ad398338e8"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-063.webp",
+      "revision": "444f601e0c41acb80c79e919fbc95f025195e8b7539d4f698dc484bc5310bb4e"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-064.webp",
+      "revision": "33d533f92ad827eff647103347f6fc5201e21afd50297b0c8d63c4bcb12a9e02"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-065.webp",
+      "revision": "058371fd797636d03c27d2502cf951abc7f4d1c3f17b0fc8e308ebc48b8d6392"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-066.webp",
+      "revision": "f1e7a9133346b850e5969f2268fabd756b9a5525d96c70b7a8037960ee93734e"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-067.webp",
+      "revision": "1b575fe73bb29963668873180c8ae548ee948ae2519377f123390356eea0b25d"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-068.webp",
+      "revision": "977e380e80a1d512674af1254c6bc95809a4cc9143886e938e76f54e5426a222"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-069.webp",
+      "revision": "d0bc958267eef25c95138c9d7c4945bbf08a43547f9b018e23cb868af839df33"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-070.webp",
+      "revision": "11cc30293d8ddadc62d94b07cae2d73d7569eb3bd0f077c0d505d05f47f69c0a"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-071.webp",
+      "revision": "4500a9c63748c821a02dea1e67551bbd49675ce542618912bc01a9fdba71f7cc"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-072.webp",
+      "revision": "b57253eec6a375a6242f9ee29a404a47b3675b29ced8991cd5cfba850213ffb3"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-073.webp",
+      "revision": "efb6c3b31e6c1494c9c5e602789c7eaefd7d15def87b8fe938af7e46979f30b5"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-074.webp",
+      "revision": "014fcddc5add3ada923a6b5fcf5f690c631a5156e79f9f04f9de578f64532a1d"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-075.webp",
+      "revision": "99f2c6cade05d21bc1d0ae29b747573675207e7a81ce7c670597af7a639503c7"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-076.webp",
+      "revision": "47de4e8ddc215385ba0e8912f0985c5e455d8faf99268ceed54b12aa975a2de4"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-077.webp",
+      "revision": "19e153a66a103fc9c1ca05670c20b15515b365fd6698899ca7446df8365e0b7b"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-078.webp",
+      "revision": "bf8cddeb367257da2ee0117d6f5f93be300677c45f491257d0a99536ff6e16b6"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-079.webp",
+      "revision": "f1c45ac718e40181b9d75616f9ef3cd37278eca421e882edd3dc10b9d6b3b43d"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-080.webp",
+      "revision": "fd3b5eda3254773a5b1cf00903ec5238953d3620da924223da59a4137608e451"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-081.webp",
+      "revision": "9f92fd8f776b460774a9f241bd6c05923001c9c5c1328ca83f65f650bdf4ca02"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-082.webp",
+      "revision": "ab8801d1631342f01a524cf34c28cef712ac7ccaca296f03dce4b3e6ba4b05ee"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-083.webp",
+      "revision": "5a41e03f78684fa4e08f0b30d1025c3db253e139a0867720fdfdc9d37ebaba64"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-084.webp",
+      "revision": "ec0ad7cdfcfaf6f7892adcb367def3ac9d13fbcdb388a838799add9ffe94b342"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-085.webp",
+      "revision": "502a7a175f5652e7d6110b3a6b6a232323cc38331c123b6fe56e9732567202e4"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-086.webp",
+      "revision": "df1ef4ebd4d5303ba69afc995bd92122377b7fd16975a8e1100579202725cb6a"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-087.webp",
+      "revision": "d946d1f985701423666ffa05dd7ded47e43e8ccc88d6a2f75c6e62e9ea8453c3"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-088.webp",
+      "revision": "8febce32624b206d9d6920e26e35d08c815a3fad60083015e9861d33566e8cbb"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-089.webp",
+      "revision": "e070bb1c344c9ba1d02641707d3044bf0034b40ccf5460a95db6c794f1b7f8e4"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-090.webp",
+      "revision": "43c16ce6f5de4f50744f0ec32633c40503b2713448cefa74a814c8930830f5ef"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-091.webp",
+      "revision": "1a77f63b9d50a942b239ef88fdf80795c9c53eb179258f6324e1e8ebe289d655"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-092.webp",
+      "revision": "a1b2e2024e16e7d8d7700a35871be1169924df60cf70982685a9af929cca7780"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-093.webp",
+      "revision": "cdc4d4cf560f6baffc9fbb0901026852e8a081f75cde71d82a9de743cec90dee"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-094.webp",
+      "revision": "8ed207a3139bd2680d622c67eaee121b8200b8a433e8625bdac46a445b8edc65"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-095.webp",
+      "revision": "d2892fddc8148bc72ec1ce876c8894d12bd2b01e0cf93e8ad90be8803f2750fe"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-096.webp",
+      "revision": "c4047466916aef23f307ed015f58d2c2cc28e6a2276c6149b35a2e0a024cb5f5"
+    },
+    {
+      "url": "/chests/opening-frames/emerald-frames/frame-097.webp",
+      "revision": "3df7bd179ad02b0f930fcb716f364c9ca5ffda81859cd9c096d5015147d5b0b4"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-001.webp",
+      "revision": "515cd76184c77b2b3bad45f4a93c9af6eee21c3a01d62db88b3efc42b5751f83"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-002.webp",
+      "revision": "a81ace89da3385e22bae9d3e7e31f9532d1dc6b09db7970aeb4745e4635817b3"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-003.webp",
+      "revision": "308b1291105e5fb9de218d431bf4fc754ff10db64e96299d515187348414a4ee"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-004.webp",
+      "revision": "15a2cc3106ca56c0d5791cf5080f7234aac06e2b76e2b1b11c51462428ad2042"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-005.webp",
+      "revision": "c30ef2ab66766b08ab4a7e8440dc67a796985d0402ed2252923b741a42bbeced"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-006.webp",
+      "revision": "4732932d2e24bdd475940a3b0c2c5130677b1c378a8434d6f33a3029477c9e47"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-007.webp",
+      "revision": "e07d5e72a90f200bfbca370b77e416b56595379f14b14b2741969326104ee406"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-008.webp",
+      "revision": "03010cd9bbe1f33a743af6f068305c2c90d0d8f3649b939638a45f3268327018"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-009.webp",
+      "revision": "9e96f767610a065209b928be94f6758ce92c4f053de25d44deebc0fa739d7ddc"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-010.webp",
+      "revision": "a0bb109b6779544b1524e92c2c212c743d51fc3800ebaa1d76d56938e8deb4eb"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-011.webp",
+      "revision": "7cf9ffd7ecfb0cf43e9df9db64ef19f9cca65c20c0026754e51d80f2a9e2c300"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-012.webp",
+      "revision": "85e6d1c0593d9739f37a9a8f1aadc6f7ead6eaa69a0d9bf0152fb85ae422ea0c"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-013.webp",
+      "revision": "7409d2b9f439cadcc9dad896ccf01e58818b3867748ff9f0c91d410040b8fd01"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-014.webp",
+      "revision": "2f09fe56e025113a88d0dfeb1b97f0a100950bdf48dcabfe8ec2daaa6bb89110"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-015.webp",
+      "revision": "b46ec01c2c90bb6c43eaeab065711ff7b17c13548e03307e3318eb7e2942c98c"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-016.webp",
+      "revision": "37f59df2771a8b95d0278bd0da14da2fb2446ee90d08bddee2b9c6445e244c5f"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-017.webp",
+      "revision": "a7fb7be23b5f69e1c5518ba5f4efbdd0cf865a4d088bcbab60b81e1f75b08d87"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-018.webp",
+      "revision": "7d56695401909dabee29a2c097ef8d3dd2a04059492e65d342a1860d3c0a4aaa"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-019.webp",
+      "revision": "767d33e8a451e42de88d97ee2a92ec681aaddcd7c8cf56299010c537c934245a"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-020.webp",
+      "revision": "c05cdb42125336d278198dacf0f884e7cf5d335d8527067728e6302d5ea76a08"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-021.webp",
+      "revision": "76314ff726f7f9fa4f08bacc2f7933e53c7c4e866611432cb87f61020ed0e06d"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-022.webp",
+      "revision": "59eac617e6724c0ee9e95697c4df597882b6e8c93fcc1c7693c23caf9ed8d5b1"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-023.webp",
+      "revision": "0d90879a0ad0b93b91fc651404c0c2603e073c47d8bec4d2cfd30ecb38b773cb"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-024.webp",
+      "revision": "8870b774ce7d97fb210a5ad00d19f9e323453fbf6d0f8c5a687110ba23ad1579"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-025.webp",
+      "revision": "bf887d40d24dc53a74badc76029c745133ce14ece0d8bcf5ce3b3aa9efe1a0b1"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-026.webp",
+      "revision": "584174b38ae38fd7d5587a9c89221d4c1560f72103822bd6571b310ef28b4726"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-027.webp",
+      "revision": "4421a58329302d0d5f78e68ffec7201c9069cd7dfc7fa517543406a787c53b0c"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-028.webp",
+      "revision": "77397cc47262daab4440e58eb4571748d757c710294ec0d90cb40d22ec76767b"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-029.webp",
+      "revision": "dc7a051a54e88c313c6f0a2c116d699f125ff42a2faffaff72a2bd97b4e5f587"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-030.webp",
+      "revision": "57f520e2b96ff7f464835230da697ded3abe00bbdd8fc566e0f72af61ac81cb3"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-031.webp",
+      "revision": "08fce3553f6ec356e9764227420002d1b122f70774c3bb2cd3dcc233d10e5f10"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-032.webp",
+      "revision": "3e34a119b4fe2a2680befec2803cb795ff658283415917434f22a8e704d954c8"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-033.webp",
+      "revision": "abf9f7e023a0f1f41535956bbf8a0197ca26f536e028e189cec23a34b56a7077"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-034.webp",
+      "revision": "08d73c0c4c89d172b70594c70546e7e29f5a88953d6e6ff8647c4fb26af868e8"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-035.webp",
+      "revision": "393d69804e243c64c0bf8f97c6a1da8b5b7a085f5319a57191098b544bee4ba7"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-036.webp",
+      "revision": "d894df221e2e44fa2ee8dbe8aaa0c9c9503969ff1d21eb0f45f421a0749b2948"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-037.webp",
+      "revision": "2ecb8051efde372bb72414a14f4b42e17bf2ebcd7f375d5bac7affcce8dd21c6"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-038.webp",
+      "revision": "294b2182196cd5716bc59c50e1b4b23df8a9059aa261060f54235f4302a5dfc9"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-039.webp",
+      "revision": "6e4a51ba64dca75695d38ab75c3b461b06beab8091c91a4f5b74217f18784420"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-040.webp",
+      "revision": "b349a77f3e1543262837dedcd6185701387e93a85379f64d7e572c1dfdcb19c9"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-041.webp",
+      "revision": "1f2179b84e8b824889adcc4709f4038e960d3bb2dde8e3a07634dc2a6280fe65"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-042.webp",
+      "revision": "d48c9530d1e8d93c9df01d7cf9f22e6b3ed1e1d7dac525fd84d193a094dbbd8b"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-043.webp",
+      "revision": "dd375944170964008a5a9d48980a5dc9b2bd24a19a7a2074bb005dee1584c47d"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-044.webp",
+      "revision": "d1b646677fd0b538d998f188b8f6408a5bfef97413f538e9bd8c7a24748883cb"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-045.webp",
+      "revision": "95f8ed83ee5eeb4b65c3401750d42809b6a86ed72c6907d8fa34e12252433bea"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-046.webp",
+      "revision": "dc38dd76d2404f00b7e00896053e6569098082e3e1a74f81e08d31f8eea467f7"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-047.webp",
+      "revision": "5d8d5ad70deb4c27df538708e26b6477a4eceaae7886876d003c3115ecba0180"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-048.webp",
+      "revision": "0de9bbf7dda00243ad3492e90152d7904f3acf5aa789b8fbe2135245acc5db94"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-049.webp",
+      "revision": "1c192e066d1c12c3255cb334747b930657a5e64a05307566c29efb98f5e30cfb"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-050.webp",
+      "revision": "0bf3ed826ee0a9164ea3373e556723f0c8716d5a0afc57fde496708013ba0022"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-051.webp",
+      "revision": "4892088674a3bdeb0efe4794f8add47bccbe20cbb490a2e8bf893026a60fad89"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-052.webp",
+      "revision": "84af65e927db5e5da660ed068abdb28e36c7f9377b431b92ba5abb7706e01553"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-053.webp",
+      "revision": "b765004bd70a18aa9b851e24140bfc9e2055e2e10f152abd5511a581592044a8"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-054.webp",
+      "revision": "78613a603b7c2fedee798fc2aa71b6d3dcf67e01c7653f0a2597697c76ff41b8"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-055.webp",
+      "revision": "26e58f6f19bb82046882170a6bf7be3139db6c3f4cc6e0d9d20724e806344eba"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-056.webp",
+      "revision": "ba4bc09396a2408eba6c277425fea365a70809226eecfc4ba2e81f108c642af0"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-057.webp",
+      "revision": "2ee94daf3a7a35ace5079e9373584938b51fab9da2ca2a976fa9218ff6d86cb6"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-058.webp",
+      "revision": "18d0bd05e90c5da36993d5e7e291ae9b5aeade665d14c523626ff6db25d5af93"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-059.webp",
+      "revision": "5541ecae8c1c83b813f85195e7f68e526826430370e270eba862fdfebf838bee"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-060.webp",
+      "revision": "21e6f3322ff19ccc81987eb629c01f6d0e576b0fb7dac6a57091dd158b26994b"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-061.webp",
+      "revision": "68172bd430530ed7da6ba1ef83bcdefbf3dd564fce967315a0a327491ff46f8f"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-062.webp",
+      "revision": "7049ee952e45776313b7021c2d53c76a836b602f9d310fd161cc2b8f5a612802"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-063.webp",
+      "revision": "1f4e8ac197289ef2b0197073b40fefe77c740c5b944d80feab76647cebe151dc"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-064.webp",
+      "revision": "2acd9ec195b5e40951772233837d330444792712e5f4ecba248a4594b7867ed8"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-065.webp",
+      "revision": "3db2ce9287285211b40d53fbf3661ef8c0c4799c2897ff286a07b3e553f803c4"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-066.webp",
+      "revision": "b9affb9b57219550cf8f4854382a84f4d6ddea2441470e192e048a608693b8cc"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-067.webp",
+      "revision": "917d465706865422781d15bcc9ac8cb45e06121240d4c727e56dad5d18c49a35"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-068.webp",
+      "revision": "0817cd16805425cc4df8768149e779ae5d13b33a8cd5cc47440e27ec7313fd8f"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-069.webp",
+      "revision": "d13df7ae95a74dd35d6687dc11addb449831772e4603814d4896bb5bc8df2908"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-070.webp",
+      "revision": "eef0892d984e292ebe753d84d631c1f7372687b676f0e7af44327fc2f891111d"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-071.webp",
+      "revision": "29b8fbcf71dfeb6a786ae119f10d48791f563ef8c390b8b9d6eec4045b1c1275"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-072.webp",
+      "revision": "0a374f9295191f7b76cfd264c567e29bcd7188d2b5f6a1b580f956e6341e22be"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-073.webp",
+      "revision": "de98d67bc2902416b963d397e78e525a3410367039c7ec470a26f29fab1a7fcd"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-074.webp",
+      "revision": "9c70401818a2fe8cd9cf83a021662cc5404348746c69bb6b40e45ed9ceb53c67"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-075.webp",
+      "revision": "de33d717ba80eb2b53a453a6f541f24f0fd4a8616400e19462c7b69480b07d78"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-076.webp",
+      "revision": "39b596ca4ddd78ae8d8a7dcd3b2bb5f75b9c69e80ab526a0f1f5cd63c5315723"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-077.webp",
+      "revision": "516acdc70267937b1117e7b7642d559455992e5d369a37b2bd9811531a7e079e"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-078.webp",
+      "revision": "98bcd562ab6a5ae217d7b60004b7de36a6f50b83874b5d54a03284c04df4d1f4"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-079.webp",
+      "revision": "bcdf081697502fb9112bdc24307ca571d89a923db9450ea03e2aadd861131a74"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-080.webp",
+      "revision": "e985b968edc532b3fa4fc7b0cbb034987a122dbe235e79c6eb6b8d2f88a7b447"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-081.webp",
+      "revision": "a31f792bd7ee2a1179cbb2094214f92d7dc1d3d1fa9921ee4eb108003a1cb247"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-082.webp",
+      "revision": "1adff463259f3f7033de1b06a4bfba91ea9d66494e9bb287dd44c9b6ca34e640"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-083.webp",
+      "revision": "2f9c812b5c2b4bb9004d1f21b2fc8ec436e2e1679a32e06e28d1eb759177d157"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-084.webp",
+      "revision": "29f06547a30aa6ad729a09b527fc9b22ed0693ba2cc93e12bbab7347bed64b99"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-085.webp",
+      "revision": "527efefc6f26e62dd7a12b04d6c37eac90a4fb4e9dd1c6efea2a2b58a8296123"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-086.webp",
+      "revision": "29deaac8da7c324a6ffe8699f32142ee4685e10d8b1bef29f1eef920f07c7fec"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-087.webp",
+      "revision": "3952d09707ea40879eb4bd4dafd9695a964be46d843d177b24f53272b8e29da5"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-088.webp",
+      "revision": "f7ff58b997772f87544dce625ccaff9ff1745710d7d1de1e7bda4798a646c557"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-089.webp",
+      "revision": "1ce3c92d3835edacc0d2dbd2f34343be338dcad25404c4f8e23e2bb4b1c39405"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-090.webp",
+      "revision": "77e2bb401425bf0ac3387335cb75a2466aeeb411c237f038ffd41d5eb814fd06"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-091.webp",
+      "revision": "3d5373de426f7c7f6edf8cb00a65e986c06de7eb0c821b4cafa3cdd4a587ea73"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-092.webp",
+      "revision": "97c32dfefecc707b18ff4392ec9dc0d9a2ef1a14fb1f27351f4911c5d0403fb6"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-093.webp",
+      "revision": "4af9a7327e28de14aa42c67aaae1b0a0b470073baa34ec2d2b88095a217fd0cb"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-094.webp",
+      "revision": "b45fcb58d6cdf7a91788f80be47a69481caf0154c09adc5f62ee4372cd127c6a"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-095.webp",
+      "revision": "19d6f1563d8a72102b0609dd4fa380069482a6b7d26ff9307ffcad6d0f084d3c"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-096.webp",
+      "revision": "285f8c36fedfe645492a43bed35a250ac8797bd73555dc20d9aba74122daa9eb"
+    },
+    {
+      "url": "/chests/opening-frames/gold-frames/frame-097.webp",
+      "revision": "c75b59156c9c3abdde87b3028ad7a39b4365c7e06ae846878ea220283bc737e8"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-001.webp",
+      "revision": "2368322e9ff60150a1e79a20b76271a6b4b333aab60e5a586118849076d87877"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-002.webp",
+      "revision": "964ea7cb203ad8f03826fb49f8f434da5cd4fc35ad5420175ea5edda2a3be591"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-003.webp",
+      "revision": "e61a7391307bc8773df5b87adbe2fbba0f971bf4d1940a87e1cc724738378558"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-004.webp",
+      "revision": "60e14990f80585922193800f8b9a6804c34b93985789e65ad1c0f8f923783862"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-005.webp",
+      "revision": "b91254aad492c80d8d9eefeeb210dc3612648e7054abbc0d20796fb0c492a521"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-006.webp",
+      "revision": "11490f3e864cede4c50d32cda474e895a92136525cb7110fac293c1c053506cc"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-007.webp",
+      "revision": "a4eaaf12936817550b5ca3cc27dc37a10b5e75fad7e2caa0ef4641d004129d0c"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-008.webp",
+      "revision": "e564f72b632124c54b67039b280d2312823543d97f527d79cbbf918f04ee8d8d"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-009.webp",
+      "revision": "22a17719863bd13b266e00ce9905e8655242ae3e3beafacf5ddbe83073a3851c"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-010.webp",
+      "revision": "7faa75e51467d87c5e9ae197c02f920995404d894e3c765e0a078e6f88e48333"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-011.webp",
+      "revision": "154994d06d3e65a405343879f0f46635777d7dd5feb8b070b5f8d9b45056cc36"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-012.webp",
+      "revision": "936a4e391a2f84d411854efec5d2316e2d336b96b220ffd33114782ca7b00157"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-013.webp",
+      "revision": "cd4901bb100d09a6f3ba575062e82c111f936d2321100657a20c851b0222e2bb"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-014.webp",
+      "revision": "36d30a3c4ce975f5b2e7c538a882ee578e28965de8715c9b7a0f0a6bd0c3558e"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-015.webp",
+      "revision": "f1ba493aac874ea4fc3369d9dcb26ba6ea7529ee82a2b70b786761a938db6e06"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-016.webp",
+      "revision": "fb0875a536f2f84196ba238d42b0f207602f469556e0c0342c579c44da507214"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-017.webp",
+      "revision": "a52e1281f9ed795095c9594dcd8d99418d37bbe0a43645ec89fca26941b207b7"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-018.webp",
+      "revision": "f6a90ce4c8a4440577cf8631704535774a6a1a8570f1ef1967306c7ff1bf57dd"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-019.webp",
+      "revision": "5aacf95b272d7923409438d5a133380b9b6c336d3350e393565f9c504aa08639"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-020.webp",
+      "revision": "d75cc01995ec1e0135ee9e5e16e0938d2201d2c27cd5b2095c0b49a2da4d4530"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-021.webp",
+      "revision": "c4f123227cfb2c6281f6cd0d7f41c8a7155937c7f25d1de65dcf1826cfa94de1"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-022.webp",
+      "revision": "cbcecfa540e1ac231732c3e3c6a8a277725eed909654fd46f8838ecdfe8ec8e0"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-023.webp",
+      "revision": "367366d8f66c52adee0ac204237cb093c9874c40b4a266b107a78897bb85329a"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-024.webp",
+      "revision": "a3a1783a645eb41d241c4be9fe0fa3efa54745ae8f2d34d153626859fa18914c"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-025.webp",
+      "revision": "71f61ee70d7d60396fd3a1fa90cc5d47ab7d231aa4a41835a5f51db3385a76dc"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-026.webp",
+      "revision": "ef7bd951e3af8eb775192a3639a6a2bba5df0596b1cfc9c0059c3c0f19a14f2b"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-027.webp",
+      "revision": "9766bab30fd9c6c3fa9b1b36bcf3f442cfe5c3246756c480fd4b04e8482e4dad"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-028.webp",
+      "revision": "3052ffc8d6ff8fedf9822900f1e46f404138aeaa055c63b175f5fe876da75f34"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-029.webp",
+      "revision": "7a8d38db5aaecf60ad74566ead95ffe031007af3bf6a74d628455e0bd7b7a1c8"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-030.webp",
+      "revision": "d478d419ba61ae4a04bdfdcc7e565ebd7b88e18b370b311fc141b71238c055e6"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-031.webp",
+      "revision": "072ef6e3d77cc048dfd9bfc344a68fa91121d6a3e25be1ca280a207e2b465038"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-032.webp",
+      "revision": "60b788c485deb7d6e6059bae0e6793017a9d8af68005f80d545d33de670bc6d1"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-033.webp",
+      "revision": "d10b918e86ff11a2e8ab0b66ae133d97c8affe1cd5c0240c4a2fc54424b307b4"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-034.webp",
+      "revision": "4892eb5ae681ca0c1c7a1242d10a02ca2e443e8ce83937fa8ca4b7b2d6d14a62"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-035.webp",
+      "revision": "dba96183d7fb24d6aebe2b4b454b0e49157d4ab88bc2d20ee5a3b87a056db4a9"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-036.webp",
+      "revision": "a663044bf696fbaee1dbf6ca890f25f39d8270265f4dd960e89c48618c91c199"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-037.webp",
+      "revision": "b3c6a093fb11a17db5dc87ee4113be9bf3ff790592a461a124e75272a6815f81"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-038.webp",
+      "revision": "bb5336d0065a68325cc168046b03e21be14492b005be9bea9ce9e1ab4b597d42"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-039.webp",
+      "revision": "da27e043537f1a10562fd1d4a3fb6caafffdb7572a5723a661fa6dd2dda0ac0a"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-040.webp",
+      "revision": "f87ffa3ad1c2f7f076eede00a5d076a88d30ae0ba035aaadb99403a69a2858f4"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-041.webp",
+      "revision": "81a033e36db75bf25724655cdd83f983f71cf7f9ab57d3d803485684d2ae7d5b"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-042.webp",
+      "revision": "06dd20e90b1e826bffb8c37fad36d9ae73f2287dab85f9cffadff08b6e4ecfe6"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-043.webp",
+      "revision": "ee41fe76a9582d9a885376f74d6e61e57db25cce82896be5c8980e9fc323e37b"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-044.webp",
+      "revision": "14d104e0e292b282818765295c24b6b4cbd9c617a713aa7406816ab0694b438e"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-045.webp",
+      "revision": "1d74c80cd2b5487253e2a2d747f5333c9a9c21619d478a5010287680c1b70f24"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-046.webp",
+      "revision": "78c97b6111c2cb18d97a6639aa96b7bb5b668f6122fc019d2eaca208488c6758"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-047.webp",
+      "revision": "ecffd60dc00defaf6fd430012f853281a73cf2af00ce5f416eca45032e7ab15f"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-048.webp",
+      "revision": "2fbaa43ed1faab62ba1d838188d34214d69ea459342f73ab26c03fd350a6faab"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-049.webp",
+      "revision": "86f265f1381d2a4b3ce49605b97471ccf36ce2cc702b42b75804e980f62d4833"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-050.webp",
+      "revision": "f9a61a40baada6c34d95fd5510f10b0ec6feaa6fe9c58f53613ab8dad7df056a"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-051.webp",
+      "revision": "d2bc7a37a922433371e467d23b588554dbe7c1e8d93799281b4b7faba55a3541"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-052.webp",
+      "revision": "ece764ae7260fbbc5a1b4435b11cddff6a9d890d3db426f072fdcadd03fab60b"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-053.webp",
+      "revision": "9d1f49e6f4a164d05cc6e0bdabb42fcfbcc19e42ce07d585411d27204044c92f"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-054.webp",
+      "revision": "81873046c65730ec922144f840482082f409ca325667a7b37e2041ad89f1694c"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-055.webp",
+      "revision": "0d848f349386074f19844febf9aadab7287b581b5746ac8ed75122679d8890c5"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-056.webp",
+      "revision": "0ac1166c2f27b74a9f3c25b5589532047cac9d32fa08edcb181e63cf65c282e4"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-057.webp",
+      "revision": "d36d143859d1a9f0c03490e33190236a0586d8f43c1514aadc9b274a3bf75c11"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-058.webp",
+      "revision": "5ba5116876c74d05cb2265cb3b0395a19bcc9da95b3cb9aa77429a85162f8046"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-059.webp",
+      "revision": "84ec73f015aaa5b75910090aed462beb5e8d29059fbdca58cff0fc382a053d36"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-060.webp",
+      "revision": "6173b9074bf618aa8c06c517188dd1907060457177cffcc8195da328dcda85de"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-061.webp",
+      "revision": "65d4ad00acca2e915cecdb3e53f85b26939d6f4914d833dff4ec885b7655b4af"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-062.webp",
+      "revision": "4ee810be38d3c3ddbd18ee45379b90eae95f43f152f1a320fbcfb6654b435cb1"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-063.webp",
+      "revision": "9717241dc6aa5cb1c084f0451aeb327ec047353aaf85d3147323866349ce3d36"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-064.webp",
+      "revision": "df2c1153b237c974307b2688723fb9b6b8e4a94f0814d6d49fc166b89823499b"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-065.webp",
+      "revision": "55e3c40640bad66a77a6795c1ac23c0f62bb3b486afefb2b11a1668d2ac47314"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-066.webp",
+      "revision": "3e1e5a0b05b423ef6de6aef0820cbfa0673def2460fbf155ba78f0824f7ebc3a"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-067.webp",
+      "revision": "dc44bd9a933eaac3cb663b29b8750195f3d7da5fc99b29e15be27906bbee273a"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-068.webp",
+      "revision": "6f8953ca07d1605cc3a27a2411692c68ea218e582d729c71182f09ceebddc50b"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-069.webp",
+      "revision": "f2a30d4ca9c60c8f98ffaf1ea765f1f3aa1dcb6d0132f7219d86ebb12d2ba350"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-070.webp",
+      "revision": "0079eb516aa0404a3c00a316202725f6c870682da6d56ec29afc781bf12923ef"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-071.webp",
+      "revision": "1ea48bef5d23e23c273d1dbe4069c30697f423e43d78552f9dbd5ba852f55431"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-072.webp",
+      "revision": "47a713718bf007d9a1f9a600f2caa83cb0c659f10feba8f4ec9303edaddeec56"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-073.webp",
+      "revision": "d49e707b3568167834edf1ba0cfab9722aedc81f3e339335c1a2f593a4929728"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-074.webp",
+      "revision": "cf3b90fd5c08dac486a8814ba4d745399bd80ed634ad5a1b0a744e0cb4b15f80"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-075.webp",
+      "revision": "5e8c768d964583da24114c2fd245e2a0ea2d1ebe95384694a63ac1482c26442c"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-076.webp",
+      "revision": "45413dd04a04cc3863300c2d6bc3f827a8b4c93dfe0ce2d7328f62677c9aee67"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-077.webp",
+      "revision": "163299b06e1a642ccaaf058ea2ee01cad7cfd86dfae42c362ee59a336a221472"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-078.webp",
+      "revision": "38a7d2fa0af96588e428ae2b236656b504ae57046076c432fe77ac9d23d6fba6"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-079.webp",
+      "revision": "d9a5d73aa103984d815a7d0cd72785956d890e6a6ea1832b1bc0bbf50aa109ce"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-080.webp",
+      "revision": "47feb0cbcdedfb88909eea679bcbb273a178366d895ce2ed51d3d4b704a3aef9"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-081.webp",
+      "revision": "844730e04dd5b916c64155b47a507c0aaf406f42cddd650ce7f519caea5ca4aa"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-082.webp",
+      "revision": "7030dc8bf32ac0f31f17ab77e7d32a9630de5af5b097818428edcb6ddf0d9534"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-083.webp",
+      "revision": "cc3674d1905894a748632240c86efb7cce2d58149c8e917e73cddff10408d64b"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-084.webp",
+      "revision": "4c3e8ff92b87523179f8968464fbd7614eb29f862c10889100eb641f4bc5dfd4"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-085.webp",
+      "revision": "87abb83bbaea59f00875ae06feafdc11000a6865894d3650dd544beb3d41e907"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-086.webp",
+      "revision": "9ed745b5ab297d2f1ba43e3e6559d1e6ba71b8e488b642e5a826d29021433149"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-087.webp",
+      "revision": "080fb160fb7528e142ed0ac22acd57396a58d7cee4a34068af2d62a0755c2533"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-088.webp",
+      "revision": "dc9824dd4e26540c4baa9a32b05d238f873b752b94547627724068f544495707"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-089.webp",
+      "revision": "a5fbfe821b617f05296f80bc0ba647dac73deeb16ac6e5801c9933d06f77519d"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-090.webp",
+      "revision": "0ab840b8a6da691dc811240f7ef2c6fea0c03d7d6e432fa9eeafdc67f5ff5557"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-091.webp",
+      "revision": "2f7418b28c546689310a0c90728ef00605f672ebabf848c3aa678b945e40d64f"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-092.webp",
+      "revision": "b45f074cdf5dca64dfbd1e16cb1eb7eb5cfb8bdc65aaca120a99baabed7fa4ac"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-093.webp",
+      "revision": "9d547653cd781a5667c3831100e843c96069e3e754f3994bfde56000f945e2ba"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-094.webp",
+      "revision": "8fff24fb2d2ad2ec9c48ed9cc2119d5e8a68936205b0540df6e64ae5c2b40f7d"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-095.webp",
+      "revision": "c586c2abcc13b34442a00a204360091a6c7a9b45f51ee79109171ac0ac498235"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-096.webp",
+      "revision": "92985f7e132205852e31094a2d01e08f827a7d6d05270542f61cca0e600f0fa0"
+    },
+    {
+      "url": "/chests/opening-frames/iron-frames/frame-097.webp",
+      "revision": "991306e711f471693455ce190f694d6f3d27060c09b52fe898aeb5c6713d4ce6"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-001.webp",
+      "revision": "53f72b5d1fd649a82990ab193718b561a24a1dd272a812c80d191b3ba07775ef"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-002.webp",
+      "revision": "6bcf5ae31bfe0afa24aafac52e3154cfe2f19c4a0ea6ebda7929e5f54e8d8da7"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-003.webp",
+      "revision": "e0829c1094e648ad91442129467d41f64fe99520bf0d56e0643d9a6a6b2a2d0a"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-004.webp",
+      "revision": "e43f7c2288036cd2ae371387b7411b0f0353484f356af37ebbb96feb291eed81"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-005.webp",
+      "revision": "e19e092f748745f8f7f719a7d59da1ca6d3f4fe78ecdb3c9e06d4494e90eb5d4"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-006.webp",
+      "revision": "3be48c23032f6f00c953c9b7d49100ddef220ee0903d7ed070c58122fd670aa5"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-007.webp",
+      "revision": "61696807bf16cf813e03b662431bd3b6bc398b2bc5da14fd316d9bc9c8eff987"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-008.webp",
+      "revision": "940a8034c298c31a9a91ddee09b99135607a7c5ba5ab02af62e37f92a46256d2"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-009.webp",
+      "revision": "a453bea12285bf8a6af9471b264877473c2a94264e9192d20891448763ea89e6"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-010.webp",
+      "revision": "d1613537fd07375f3f985ce07a7984d0662b504842b34d843067109ca98af6eb"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-011.webp",
+      "revision": "2affdbefb12b651f15104553368790eb5fc5c95293a0c49ae2921ad81a7c396a"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-012.webp",
+      "revision": "b54aa50e22f68533640ec246d49e6630f602452bd78e2b557692ee2cc5ccf6ac"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-013.webp",
+      "revision": "0fbce6cb686909814518b0702629f3d55873b5fff20a0241b3e6b20cefd3a50a"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-014.webp",
+      "revision": "1cd3ecd7778f8d13dbfbfbc64d67c8913d622bd02a87ae01723920884cf69f6c"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-015.webp",
+      "revision": "192c4d6db3801ec67b9b635d2a63f529b66c74c8f61f08a164f27c67617e1035"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-016.webp",
+      "revision": "29256dbdf1deb403327d71b308df4e5622c40096a3fa89689c78681a545628be"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-017.webp",
+      "revision": "3e87f7604f5e964355f399aa9cddcc30ff19c508a31c281886a3c2164e336216"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-018.webp",
+      "revision": "46e640cb59ed63f7b1ac72658cf2977e77c058d022b2ba7ef128df111485832c"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-019.webp",
+      "revision": "81b3607fa9312ab372600cf7ffd3871074aa6843b57205b9926192fc36b65d45"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-020.webp",
+      "revision": "b21bfe9db1bc11a2d73a73169758e800612e7012ca50fa1267158fb77a98f596"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-021.webp",
+      "revision": "7dc54fe05bfdf1039a907c6732c22e27d0464f0f88b222c25b1106a0d8c4958a"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-022.webp",
+      "revision": "ba30937c60bb3b2a722a18cb2384f3996634acf8bd50b680f6af4cf8dd962efa"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-023.webp",
+      "revision": "b3e7f36dd298586652eb11aa3f479dbd4697d33914c265dabc1fae9d217e9dbd"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-024.webp",
+      "revision": "3b691b3d4a63b5328c6c1d8731336749702b4151c777225b6e39ee22a659d766"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-025.webp",
+      "revision": "cb31cb1d0f887798489b455038215075f13e46bb076567295037277cb35da1b1"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-026.webp",
+      "revision": "d1dd531b727f6920555772de25fb0a6e3bbde5e4fd4b336f51b1669a16df4844"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-027.webp",
+      "revision": "083138660e40ed84a63bbbdc62d7245d31f3862a8babcc19b9964ff1f520f11d"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-028.webp",
+      "revision": "1390a6c5e23281ff48683f1fae6914706a61199f89ba2454c246fc3dd2710413"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-029.webp",
+      "revision": "26163c85fac295f7ce089e082de6973bbce130ac9607815d9678ed650464f6a1"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-030.webp",
+      "revision": "6b7a8e9e7cd21aae8e5b2a7384744639cea84a22d81fecad2f12fb98646d1934"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-031.webp",
+      "revision": "3dd128d91a3f222a996250ce8c2bc0867bfe00dc1457efc575a24dbf376b670a"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-032.webp",
+      "revision": "ee73e0178acead0505e7f73c5bc389ee98b7a0b2b550c796bb0fe0541cd8108a"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-033.webp",
+      "revision": "e7abdf8aa8ab7bc6a89fe96dd41154b7fb2ccaf747ded7aa40b273db8fb0069f"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-034.webp",
+      "revision": "9e1dc0b8e57c605c09a532f7e237b24a16271de4ab3512853f6ce5c6f262de9a"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-035.webp",
+      "revision": "d6499039959949d318341412f0112cf50f89723eb9066f54fe98343d6dcc20e6"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-036.webp",
+      "revision": "7a78e881fcf698b798e6ccb08d75a01643059a17b63d110d8c3e7de62ba4e369"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-037.webp",
+      "revision": "d94f11f19f7ec3767653797b8a6b6b5166ec42bada6eae12ca0f07fbaea9907f"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-038.webp",
+      "revision": "1f070d5a5e32a1b6114dd0a2d292d02a8500b70bd2ba8dff9825000048648045"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-039.webp",
+      "revision": "7c8914b89b970bca41ea37c10c6d11148025ad514925195ff357db70833ee3c9"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-040.webp",
+      "revision": "e7cfc62d55eb6deae66b4c6bec7dd96507adb5952f88596d0e374ba36f91332f"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-041.webp",
+      "revision": "a131671adf4cdf38acf7b8cf1e6c982104f1fb338f45e442ccc8f76fc13558a4"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-042.webp",
+      "revision": "943c492cb54d5144b126a2838726564a5fb74e0179ddba4335d103b144140fd5"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-043.webp",
+      "revision": "cc4a9b0bb39461d8bf081778eefba5fc77272df41d67b70dae3553a15ba94f2f"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-044.webp",
+      "revision": "73b90204a0abbec1eafbf516595eb741098eb89e4c80a808aea6cd4307192e1f"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-045.webp",
+      "revision": "68ec1b67e209aec2436287069efae65106f3696b0f73446913b7992109d88572"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-046.webp",
+      "revision": "563dbc4a50b92bbcf6559caf0afa38053ff56117c911cde255b63d700fc79713"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-047.webp",
+      "revision": "e9afcdbe2a407756779128bd60d7f8b8c6fe76296d8bb2ef200797275a5e6e60"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-048.webp",
+      "revision": "0c3109ce1d5b0711939b2726d02680b691a0a1ba4a31b868abae89e1fa2e1f05"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-049.webp",
+      "revision": "80e35b3c4866da7cfa35aa9de4e9010c2574feda79bda9afa4741bbe1410cc58"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-050.webp",
+      "revision": "6f4016e39e3041685dc5336bcba34344d4fe4689b76ca26ca9ed3827cef2fe21"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-051.webp",
+      "revision": "11101db909fed30afd81b0fd774e6f83eb2d425ec9ae1b5ea0b68ea0f07d1148"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-052.webp",
+      "revision": "722306b25569f3a16ae013808ee6d4e1686e5a5003819ad36da77702133337c2"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-053.webp",
+      "revision": "6cebef1051e45680b3bb1f9ba176ace6b007eb3b6a331ba4fa73afbca58b0c45"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-054.webp",
+      "revision": "6467ad4534824c0f83ad4e1378cc4117c739b1c2f4d299f6596d28c25a6a5582"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-055.webp",
+      "revision": "a1bdf2b850de892952771db767896e20db514c7eaa527136dc63cfe59c3d0e30"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-056.webp",
+      "revision": "93d3b3d1b6d04ba0624c3846afde56c0ecd2c2458bade87ce4482036c43ed881"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-057.webp",
+      "revision": "1e8cc9ec8a22284c247328bfce4b9eb00c19b1da7946c58d748daa97a3abe60a"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-058.webp",
+      "revision": "24bab4538345dc88120c865622df99507cc737bed596e0c502765108ae2de6c6"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-059.webp",
+      "revision": "22f66a1cbcd58bdb22ffa1a04372a5fbaaa07d57eb19b3e0a95049c441f7586b"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-060.webp",
+      "revision": "bdb44d0c3fd7e3cfed174d421d468d1e5df045c70e9a438125410b2a960b263a"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-061.webp",
+      "revision": "48ab29e0b8f7064cc35dbb798e5b95c61dd4a9c6209e7e4528bb72fd7f20fafa"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-062.webp",
+      "revision": "8111d69e9aedde940ffd9fc67e9089f7df6eae4a878b8237889f3347c82e89d8"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-063.webp",
+      "revision": "27915493da9613e08975e013dc604f740b5082db08fa93d713bca5273516d81c"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-064.webp",
+      "revision": "5fbdbe27c1b8d97f3a5477c5ab34c07f11d409ce4dbd685124e5850931c34cd4"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-065.webp",
+      "revision": "8eacee404d39a6dd6e075e7fc9b788bb8970456e34ed7f6f1071dd64308265f9"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-066.webp",
+      "revision": "1f16639f8d76b3db7d039800b55643e3e4b82328c2cf75e8f5a8d42db1c408ba"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-067.webp",
+      "revision": "1ffd2445ccdc58c51c67091ec27e9f07b26f89490a9967311a7416a0a99d421f"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-068.webp",
+      "revision": "00e5c8ec7f18af738eeb4aab255a36eebd2979594f1048e629311e882408caf1"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-069.webp",
+      "revision": "6219d41dc0482b95ef881bfb14430c902a953a549b9458b73f666d1cf5eb1464"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-070.webp",
+      "revision": "d5e1095001c92add68555923529c43c98de17515de20daca8eb8bc363855f498"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-071.webp",
+      "revision": "34af1b4bea9c038d4192bc8739d12f3bd620056383fc9eadfdb397e2bfd2a173"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-072.webp",
+      "revision": "c1a76942afdf7aa1b6b317616f9ce6b29031e4e4da7a937732e16af2d593ec13"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-073.webp",
+      "revision": "5d2d0159eb71f8f329076c40b2ab569dd3f8a7811d2d892fa035d55cd63f18f6"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-074.webp",
+      "revision": "58e5ad234244ea08c1ee032998128fb60573cc7c48e21d6397da68c67b5da4f5"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-075.webp",
+      "revision": "1c07e30d60d6108f176029d0e5606f8290f4581d7a3f8b5f40a0402cf2e9ae65"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-076.webp",
+      "revision": "5d566885b3224a0879a0b8b0d5457fdb1000a0956da5b13511ea2719863b0143"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-077.webp",
+      "revision": "798b083df2976c605ba492d4f804cc1dd92ef9511086c371052ce47d77630e20"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-078.webp",
+      "revision": "4548d10675ad2dbfa866f88e9841e3558c1ab32e28aa770ff8a2cace25d38238"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-079.webp",
+      "revision": "0f5e0e7d57a324a996d08b6b92b55411eec641d058e5d321c4acaa20a654d983"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-080.webp",
+      "revision": "1f9d7e05e75b1c1f37bda64ce791a8face30c8d0050c421bad12192a2e2c1581"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-081.webp",
+      "revision": "548bb9e85c904f68ae0c2650e6811279b2077f190750829aaba3171e41d15f04"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-082.webp",
+      "revision": "4b317f74474b1176a871c1f5ddef37707707415dde1739bf10a5c2db7de0ef1e"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-083.webp",
+      "revision": "361c37027ce1257035f5428a4c6ee5059cccafef0f3e611fed6f6f8231c448e3"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-084.webp",
+      "revision": "e8c96b12a5b7c657d265f15cedbdb80b0d143f4f9a11b98c2daa1dc9849226c8"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-085.webp",
+      "revision": "40a5a4913dab722a953a0e6026d867246a544f8a56b0a434a48d717d0e2d8b98"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-086.webp",
+      "revision": "628cecd639186bef8f0b7568d0f8d3c4e6a9e498df728f20ae64329021332c9d"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-087.webp",
+      "revision": "ef7ced8184f8717b0a510ee6fedcca7e1addc418385a4763a000383943f2dbec"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-088.webp",
+      "revision": "68201c006ca67f25d3911917c8ffec7808c03e8bcd6fa2eaad0b09a8c5bfbd6f"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-089.webp",
+      "revision": "71bf2d7b020a378f432d4d1f26b0827f2388453ca81434dd2c02b50165676a08"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-090.webp",
+      "revision": "59d789b2e12a76e1da86c9637e7f042ff48eeb2aed4ff0e5f7d1703c9f7aa783"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-091.webp",
+      "revision": "29082a50eb0a6007b8cf998fad46a139f66bbc38d987df90a686126341f96c1d"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-092.webp",
+      "revision": "07831b5083c63f7e1e1d553c8502b98542a17e7dd86f09704db00338a76d8624"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-093.webp",
+      "revision": "7235f8abc2853e75be212922808c2f63114b411e73c58dfcd95e06c9b8bc2dee"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-094.webp",
+      "revision": "4344b1c497e0c9c06ddc3e5ababe8f49db50e9cf1aaee6055cd4367cabf3e949"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-095.webp",
+      "revision": "b1316d5b83cfe3c622146b101001c806ce8f34f40e79e1913c805caf655f9084"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-096.webp",
+      "revision": "ad0c4da531ead0d1180f61c17bf3dc6be4348f6da4ccc71918afe300f3ac881a"
+    },
+    {
+      "url": "/chests/opening-frames/ruby-frames/frame-097.webp",
+      "revision": "32a139ac67f07498db7863d97dbb0ce692885eb67fa47d95ea74e3483511bc4a"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-001.webp",
+      "revision": "349a5cbfc106788e7d167184bc35905fc9cc9d5553cf567500970913dac99619"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-002.webp",
+      "revision": "fa6b00ca6ab08ecffe25389b57034526e8775462ac1c898778fa85e622d1c2e5"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-003.webp",
+      "revision": "07ca4c1694786e1c34140d382ca37f87c36f6b4ad224f256d7db0289b2ced5e1"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-004.webp",
+      "revision": "d3092f0f105455ede48baa39b0d88d79c32d6f6d7699f8650a4e0a8d2eaff1f1"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-005.webp",
+      "revision": "b84d068e01c709fdac35d5baaac6afa5f6adb6c12bcf954be845ffe2d736d40d"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-006.webp",
+      "revision": "6ccfbff9cd57f5b56f949a9daa02613e49f6bc8f5137c85e107484a1a215399b"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-007.webp",
+      "revision": "c1b5f4d84315ee9d4f4a0c3167c2a50bf5dc551e0504adde8a7dfaed72bdabde"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-008.webp",
+      "revision": "d70c88470a841ac63fd708cf2fe4df3816caf530b2d741da4affb3fae1231be4"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-009.webp",
+      "revision": "86a1c923f9dca19c4b3209cf7d02ee998e81dbb0b2c1d1eef1cc71d4df784b26"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-010.webp",
+      "revision": "f6d6606c6baba827f80639808d6b612d34abb071516b2934b77751e96f4464ef"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-011.webp",
+      "revision": "f5c65095af45af0b0f8dc6b8df61a62b1dc84375cc70fcc1d760b0291fb3ba7b"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-012.webp",
+      "revision": "b051268af47960a956b790ed00a03d37435327d267bfa4ede9884372b73cc5a4"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-013.webp",
+      "revision": "caea3e0a9953cc3e6dff4884d07b92204e9f87adf8ca06893c8600a068e77c63"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-014.webp",
+      "revision": "3ed7602c1d310c513dbb0dbffe9d5a100a015e952cfad648a76f4415b097f4cf"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-015.webp",
+      "revision": "f25efdefc3526ac8bea69c49c974f404ac75eda9f19f2000880b2eda17eb0968"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-016.webp",
+      "revision": "966085b4b6d391c2ffd939d05e23ff52f35bcd032d2172a45035ca08a51115e0"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-017.webp",
+      "revision": "d7f5fdbeb242766f564b697f134c4e6c2f4370f0ccd2c61013c2165a33dd0a43"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-018.webp",
+      "revision": "2171d9b0664dd8e99e2a7a12c4a9e80217c11175a391b04f7d44b7f6a2ac8b92"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-019.webp",
+      "revision": "6166e05366e5ab94118c34feee4942e72a262d251c2881cfddadcb49258ae02b"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-020.webp",
+      "revision": "5cbf9e420d34b2d2443963656c7aa9f94c0a3299d63811173d041736026268fc"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-021.webp",
+      "revision": "cdc858d416528400d4537259c51f61f781df6c6201af4a1161a2915115d616cb"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-022.webp",
+      "revision": "8104e03ec5c35a6407acce9c0576bcb09dc972ac5034b46ac9c55e3de64deb8e"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-023.webp",
+      "revision": "5ccb3984966f00bf1e547a94c448542a636994ba942af3c32f4ceb325a540634"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-024.webp",
+      "revision": "a00ed282061a116cb49014820a1b7af02bcd0628db73bf7b2dcfb5957fb4756d"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-025.webp",
+      "revision": "8d0769f2c97f6ddb39023add5ec96e028669e35aaf1bb9cea0349702f8b2dd45"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-026.webp",
+      "revision": "efd630fa8b9b77c56aca2f34c8ec375253b5ec31db79a1e597fc6b5bc568f761"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-027.webp",
+      "revision": "3654e447d333747cc69f940f3e8feb8575e8d417c1a9e72e8923c04b0a7f0674"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-028.webp",
+      "revision": "d99c1d09288975b2ec2371d964afaa79917d3691f88308d4fa11b35180b5c69a"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-029.webp",
+      "revision": "10d29904090f8d74c2ec2cbaddecb402718b66fbe095762ac2ec3b815ab36e93"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-030.webp",
+      "revision": "800a52a042f3d5d9319e8aba5e5da969db2160a7bfdf1f00c2ea84dc93d04c13"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-031.webp",
+      "revision": "380d9f5696ab2f264a61356578980048c953c36466c27716cec88fb7902ca87e"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-032.webp",
+      "revision": "5311fac0119ffe65782fce14c9f4721b8add3cfbd12ed40f3c9fb6fe89e13df0"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-033.webp",
+      "revision": "d3a4ed73d2fc7603df3b601cdc7fc82c938e9b6e61543fe11a6285bf25830e6a"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-034.webp",
+      "revision": "021c78dd0cd5717898723725526c49ef52c3759bea571bb350c93a3d71941e65"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-035.webp",
+      "revision": "dd182d81d70361914bb83efe0f8ccf495ebc2f89907e0fa23a4c1e869d66cf94"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-036.webp",
+      "revision": "c0b35899ef344067c9a4584c3648a596d56147ef81a5cba5a6c458bbd05b3492"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-037.webp",
+      "revision": "e60062909a34505075ec67bf72f2021ffa9dcd7829db1791fb2354344a6ab210"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-038.webp",
+      "revision": "db4ec95de664a4d0f2d61d6c7469c268c0d76b6454649c6934f570835aa3cd53"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-039.webp",
+      "revision": "418fd4c1c337698afb7e8bb592737f79f16fe398dfde683ea7f3fb7c1240a55b"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-040.webp",
+      "revision": "b9b71db5a432839ca7216eb9a2c46142e71ea08ad64dcff9b1423268d92bcd4f"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-041.webp",
+      "revision": "4f2742aa18e6e69c05a09a3559d75145197b9a2029f84a5b481a50610f4c38f9"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-042.webp",
+      "revision": "595ed2967ba4088bdba7de68f35750aed6c5669bd2a1c4c96810a25ec446777d"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-043.webp",
+      "revision": "625c48009521ecd418984ff4629760ea646b849cbd6b0143aedac92931f854d7"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-044.webp",
+      "revision": "a8c7bbcd68ca6e467be66b19f213bd86ade131a1d037420072d42754baac814f"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-045.webp",
+      "revision": "836cc79c1474b36f354979ce6ce07d05dae5216c89e7a9f2370fba0db49e0dcc"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-046.webp",
+      "revision": "d18d269a59f49a2ade9c4774c1c49c92cd7731992acc98f219267052fe725ce4"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-047.webp",
+      "revision": "b4edfe27ddbfd4fb298f2561744f148b6aceeda4cda35b281a597151d235bd0f"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-048.webp",
+      "revision": "4d62a1526d7ede7d8a17cbcfe20ed41b7cd0c23ab0a792ec67c0f57293e78944"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-049.webp",
+      "revision": "57cca94e18849a5f865321349e3085fc7d36a471008bfc88415519af77f7b3ea"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-050.webp",
+      "revision": "cf6b83a6fa59e39ebc616ed9034ced013259f9248b9ca2cfe95bd3a6541d6450"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-051.webp",
+      "revision": "a4f9222b23c18f90448980df67be20c6306f1a3c720752902f7695cb96ceb25b"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-052.webp",
+      "revision": "ef3d4518f225c004ecb612562c164a76afd91b4e0bc746dc61e645fa894911f6"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-053.webp",
+      "revision": "8da8dec988332aed0b6aff235853b8e98a81ebb6e0679d8379401fcba9825f06"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-054.webp",
+      "revision": "41a151fd7158d532cbde4a403ecc2c5f29a989fcddf81d800c76548a488655a6"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-055.webp",
+      "revision": "7f40965522e2f7c135ce6d1d6d7627644d4f955419213f4007d9a5df11257f90"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-056.webp",
+      "revision": "c40218f03b63d6e251dc9e119ff2a6d52b006c4952148ae03fa940a526d53e53"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-057.webp",
+      "revision": "0640973b248b533563827400d8aa788e3c5d3f3f1833185c410a7898107400bc"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-058.webp",
+      "revision": "0a24afe58e834e95dedf22252fa9888209fa9f6347e71e8a7c33f318fd6e6651"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-059.webp",
+      "revision": "90f630cea272fc1af153bd3c6b0cfc8c360b87df2686a36814804281587c80c5"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-060.webp",
+      "revision": "6cfd64d6d77627151213473ec862e014bbd354fc15ce9d25a5eeed390fd2b3c7"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-061.webp",
+      "revision": "5520a5fc572bd82457092d6445b98dd5f61b423ec21b76cebda79712c4a15865"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-062.webp",
+      "revision": "1427272949118af3322d574d4adda7683aef16c737b02dd5170766ef6a8f9c33"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-063.webp",
+      "revision": "3fbc4e77fd40ec92af7c0d4e8cbd2806f2d6ed81a36c5764a21d7f4f91df1eac"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-064.webp",
+      "revision": "944739d7df99ae9938103c037136a998069336a5a4d6fa45b6beb0c9b20095f6"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-065.webp",
+      "revision": "854f6c60b659c668330a7ce09ffdef0ad83832af3881ba4df00e77f976af5892"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-066.webp",
+      "revision": "d4eedb8b6196f26e5fc59900ec09eeb853de2e77cdd928ff704831350fede853"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-067.webp",
+      "revision": "b4f577269b183979becb6472cf03e7b90749e4a5528764c930ae0eff26600500"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-068.webp",
+      "revision": "ee772f574953db21b861510373fa70b7a3766a38a57c1aa4d0a48ed252a7b60f"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-069.webp",
+      "revision": "c84b3ac1a3460fc4dafcf3a5461fb02e619f0b44a55347b9c847bae9bc27466c"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-070.webp",
+      "revision": "8177f7f382e7d023dc428cf21f424217dc09cd2209d3e7a684c28ccdfc45a236"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-071.webp",
+      "revision": "e51cc255a197c46b3fcf29b29aa24c53e47f8bad9dae9291b4df1a44b31a441c"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-072.webp",
+      "revision": "5b9115bbbe533ca4c4c56e37f0f968063e54416263ec3109c81778f1d3f06be3"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-073.webp",
+      "revision": "4d714f2674384bd96b8dd58d900aff332dc52aad9cd7104b36e676d8ce65faaf"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-074.webp",
+      "revision": "6e0da77857fa7d7eeba4e9c03b8bc4637021393c369f7c4535d6a232bbeb4b19"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-075.webp",
+      "revision": "255b20e94da6296bc8db1dfc421a2a2f3c5c3d54ac0c1f34ae0cf5c31f841706"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-076.webp",
+      "revision": "d42019e75ed9a81bff1b65cd106a1cf02a9c814d3ae513d3c58508ed445e8991"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-077.webp",
+      "revision": "60c389853ecfe48186f1febf14fcb43cb64e676bd4e05068e434093d08d47744"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-078.webp",
+      "revision": "a500e75f7769aa5c17acd9821713b0fe1d543a3889ed8bed7e8150fb7567f87b"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-079.webp",
+      "revision": "82e4c7788a4051c5677a25497c4090e4f828bc49e2773bc4874a42c0a9802c23"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-080.webp",
+      "revision": "43b61d0586902ee6d3da10020d75539d8c3d6b883b6ab4901e0e420bc8eafe18"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-081.webp",
+      "revision": "8a54392269f6126efe8666dab21371e80cc7a7cae840982f5e8d6c91e257129d"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-082.webp",
+      "revision": "8536ee403e7e24224e248cb2a167731111698151f9ee0613bb85c0ab6e20e0f2"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-083.webp",
+      "revision": "1d6c49d476085943fa17c8d3fc8ffc2f5dad9ccd84426b902b04de4152a01c7f"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-084.webp",
+      "revision": "6417fb71aa2f27171dbb4f6e99e29dfa16f95b629febbf7fa755702bc742d872"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-085.webp",
+      "revision": "1d90631539ca01a9fc9e76565d2dda7fb29979260a81f3a915977fa262dbf8f2"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-086.webp",
+      "revision": "55af7f3d18c802d5395ec58279d6aea2f37b4b59d473c24608b586d85d72bfcd"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-087.webp",
+      "revision": "a5130082314333b91530027ed5aea919dc0e1f54404bae124a3fc9aae5087128"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-088.webp",
+      "revision": "69ae1c56f27a2431aabf40650483d0cd1f9d7a179824eb674efb221e9a4209d9"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-089.webp",
+      "revision": "8f0d6821bb3ea57abb1e69f2eaa323e024b76bf800e9c62707f8ca10531562d9"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-090.webp",
+      "revision": "2709b4ba06677174cb7f9acb95e1881c9ba96f83caf828ddae24700f952d26ed"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-091.webp",
+      "revision": "a52a40bda3896c8b63fa6d89c0509cdbe741a768b770594609d4913b5d5c7822"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-092.webp",
+      "revision": "4ffd070e79c6e3b9d11f6b15bc80652a3f15bfff98036e263e621151fae384c9"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-093.webp",
+      "revision": "e4fada1c310f78df5bf4651be51bc1f8d728c05aa0348b03354f7af00f9c7294"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-094.webp",
+      "revision": "65fe7b1e9dc0eb5b06fa0e18b4ff187d0ad640d8000d8d3783ac37489bda854b"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-095.webp",
+      "revision": "d96547183ba36dac579b617dca0cbb34693ade38f29b5671943367cecb310747"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-096.webp",
+      "revision": "edeac34d10441aa0ceebdba1405d65010e5c5aa223267a41f02da3a69c3e46a3"
+    },
+    {
+      "url": "/chests/opening-frames/wood-frames/frame-097.webp",
+      "revision": "a544493bccd8103a4ba0da35a147ed221f3a9b37a905e0a26995a65c531ffab9"
     },
     {
       "url": "/chests/ruby_chest.webp",

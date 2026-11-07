@@ -4,23 +4,23 @@ export const CHEST_OPENING_FRAME_WIDTH = 480;
 export const CHEST_OPENING_FRAME_HEIGHT = 854;
 export const CHEST_OPENING_FRAME_RATE = 24;
 export const CHEST_OPENING_FRAME_COUNT = 97;
-export const CHEST_OPENING_ATLAS_COLUMNS = 4;
-export const CHEST_OPENING_ATLAS_ROWS = 4;
-export const CHEST_OPENING_FRAMES_PER_ATLAS =
-  CHEST_OPENING_ATLAS_COLUMNS * CHEST_OPENING_ATLAS_ROWS;
-export const CHEST_OPENING_ATLAS_COUNT = Math.ceil(
-  CHEST_OPENING_FRAME_COUNT / CHEST_OPENING_FRAMES_PER_ATLAS,
-);
+export const CHEST_OPENING_FRAME_PREFETCH_AHEAD = 6;
 export const CHEST_OPENING_DURATION_SECONDS =
   CHEST_OPENING_FRAME_COUNT / CHEST_OPENING_FRAME_RATE;
 
-// Generated from the source MP4s at 24 fps with ffmpeg scale=480:854 and tile=4x4.
-export function getChestOpeningAtlasSource(tier: ChestTier, atlasIndex: number) {
-  const atlasNumber = String(atlasIndex + 1).padStart(2, "0");
-  return `/chests/opening-frames/${tier}/atlas-${atlasNumber}.webp?v=20261031-2`;
+const CHEST_OPENING_FRAME_VERSION = "20261107-esrgan-frame-sequence";
+
+export function getChestOpeningFrameSource(tier: ChestTier, frameIndex: number) {
+  const safeFrameIndex = Math.max(
+    0,
+    Math.min(CHEST_OPENING_FRAME_COUNT - 1, Math.floor(frameIndex)),
+  );
+  const frameNumber = String(safeFrameIndex + 1).padStart(3, "0");
+
+  return `/chests/opening-frames/${tier}-frames/frame-${frameNumber}.webp?v=${CHEST_OPENING_FRAME_VERSION}`;
 }
 
-export async function loadChestOpeningAtlasImage(source: string) {
+export async function loadChestOpeningFrameImage(source: string) {
   let lastError: unknown;
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -30,7 +30,7 @@ export async function loadChestOpeningAtlasImage(source: string) {
       ? null
       : new Promise<void>((resolve, reject) => {
           image.onload = () => resolve();
-          image.onerror = () => reject(new Error("Could not decode chest opening frames"));
+          image.onerror = () => reject(new Error("Could not decode chest opening frame"));
         });
     image.src = attempt === 0 ? source : `${source}&retry=1`;
 
@@ -44,24 +44,30 @@ export async function loadChestOpeningAtlasImage(source: string) {
     }
   }
 
-  throw lastError ?? new Error("Could not decode chest opening frames");
+  throw lastError ?? new Error("Could not decode chest opening frame");
 }
 
-export function preloadChestOpeningFrames(tier: ChestTier, firstAtlasIndex = 0) {
-  if (typeof window === "undefined") return Promise.resolve();
+export async function preloadChestOpeningFrames(
+  tier: ChestTier,
+  firstFrameIndex = 0,
+  frameCount = CHEST_OPENING_FRAME_COUNT,
+) {
+  if (typeof window === "undefined") return;
 
-  const preloadAtlas = async (atlasIndex: number) => {
+  const firstFrame = Math.max(0, Math.floor(firstFrameIndex));
+  const endFrame = Math.min(
+    CHEST_OPENING_FRAME_COUNT,
+    firstFrame + Math.max(0, Math.floor(frameCount)),
+  );
+
+  for (let frameIndex = firstFrame; frameIndex < endFrame; frameIndex += 1) {
     let image: HTMLImageElement | null = null;
     try {
-      image = await loadChestOpeningAtlasImage(getChestOpeningAtlasSource(tier, atlasIndex));
+      image = await loadChestOpeningFrameImage(getChestOpeningFrameSource(tier, frameIndex));
+    } catch {
+      // This idle warmup is best-effort; the active animation retries frames on demand.
     } finally {
       if (image) image.src = "data:,";
     }
-  };
-
-  return (async () => {
-    for (let atlasIndex = firstAtlasIndex; atlasIndex < CHEST_OPENING_ATLAS_COUNT; atlasIndex += 1) {
-      await preloadAtlas(atlasIndex);
-    }
-  })();
+  }
 }

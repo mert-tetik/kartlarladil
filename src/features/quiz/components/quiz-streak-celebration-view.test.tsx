@@ -108,7 +108,7 @@ describe("QuizStreakCelebrationView", () => {
   });
 
   it("reveals the point target and starts the reward scatter on the first tap", () => {
-    renderView({ streak: 5, rewardPoints: 20, totalPoints: 100 });
+    renderView({ streak: 5, rewardPoints: 50, totalPoints: 100 });
     const view = document.querySelector("[data-streak-celebration-view]")!;
     const pointsHud = document.querySelector("[data-streak-reward-points]")!;
 
@@ -123,7 +123,7 @@ describe("QuizStreakCelebrationView", () => {
     const onComplete = vi.fn();
     renderView({
       streak: 5,
-      rewardPoints: 20,
+      rewardPoints: 50,
       totalPoints: 100,
       gemRewards: [{ type: "blue", amount: 1 }],
       gemBalances: { blue: 51, green: 31, purple: 16 },
@@ -149,7 +149,7 @@ describe("QuizStreakCelebrationView", () => {
   it("renders the three gem displays with the reward HUD after the first tap", () => {
     renderView({
       streak: 5,
-      rewardPoints: 20,
+      rewardPoints: 50,
       totalPoints: 100,
       gemRewards: [
         { type: "blue", amount: 1 },
@@ -171,7 +171,7 @@ describe("QuizStreakCelebrationView", () => {
 
   it("does not leave the reward screen on the fixed 700ms timer", () => {
     const onComplete = vi.fn();
-    renderView({ streak: 5, rewardPoints: 20, totalPoints: 100, onComplete });
+    renderView({ streak: 5, rewardPoints: 50, totalPoints: 100, onComplete });
     const view = document.querySelector("[data-streak-celebration-view]")!;
 
     fireEvent.pointerUp(view, { pointerType: "touch" });

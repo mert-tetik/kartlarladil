@@ -60,6 +60,13 @@ describe("vibration", () => {
     expect(browserVibrate).toHaveBeenCalledWith([110, 35, 180]);
   });
 
+  it("uses a heavy double thud when collecting the bonus-question reward", () => {
+    const browserVibrate = vi.fn();
+    setBrowserVibration(browserVibrate);
+    vibrate("bonus-reward-loot");
+    expect(browserVibrate).toHaveBeenCalledWith([130, 35, 220]);
+  });
+
   it("does not vibrate when the user disabled vibration", () => {
     const nativeVibrate = vi.fn(() => true);
     window.FoxiesDeckNativeVibration = { vibrate: nativeVibrate };

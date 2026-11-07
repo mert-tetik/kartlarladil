@@ -47,10 +47,6 @@ export const QUIZ_FEEDBACK_MASCOT_CHANCE = 1 / 5;
 
 const mascotFramePreloadCache = new Map<string, Promise<void>>();
 
-const QUIZ_FEEDBACK_BAR_MASCOTS = NORMAL_QUIZ_FEEDBACK_MASCOTS.filter(
-  (animation) => animation.id === "animation-1" || animation.id === "animation-3",
-);
-
 export function pickQuizFeedbackMascotAnimation(
   isBonus: boolean,
   chanceRoll = Math.random(),
@@ -64,21 +60,6 @@ export function pickQuizFeedbackMascotAnimation(
     Math.floor(selectionRoll * NORMAL_QUIZ_FEEDBACK_MASCOTS.length),
   );
   return NORMAL_QUIZ_FEEDBACK_MASCOTS[index] ?? null;
-}
-
-export function pickQuizFeedbackBarMascotAnimation(
-  isBonus: boolean,
-  isText: boolean,
-  chanceRoll = Math.random(),
-  selectionRoll = Math.random(),
-): QuizFeedbackMascotAnimation | null {
-  if (isBonus || isText || chanceRoll >= QUIZ_FEEDBACK_MASCOT_CHANCE) return null;
-
-  const index = Math.min(
-    QUIZ_FEEDBACK_BAR_MASCOTS.length - 1,
-    Math.floor(selectionRoll * QUIZ_FEEDBACK_BAR_MASCOTS.length),
-  );
-  return QUIZ_FEEDBACK_BAR_MASCOTS[index] ?? null;
 }
 
 export function preloadQuizFeedbackMascotAnimation(

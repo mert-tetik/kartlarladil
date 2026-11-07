@@ -9,11 +9,11 @@ describe("quiz streak rewards", () => {
 
   it("rewards the nearest lower multiple of five", () => {
     expect(getRewardableQuizStreak(7)).toBe(5);
-    expect(getQuizStreakRewardPoints(7)).toBe(20);
+    expect(getQuizStreakRewardPoints(7)).toBe(50);
   });
 
   it("uses the biggest completed five-step streak bucket", () => {
     expect(getRewardableQuizStreak(13)).toBe(10);
-    expect(getQuizStreakRewardPoints(13)).toBe(40);
+    expect(getQuizStreakRewardPoints(13)).toBe(100);
   });
 });

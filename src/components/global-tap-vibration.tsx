@@ -18,6 +18,19 @@ export function GlobalTapVibration() {
       if (!clickable) return;
       if (clickable instanceof HTMLButtonElement && clickable.disabled) return;
       if (clickable.getAttribute("aria-disabled") === "true") return;
+
+      const isTutorialInteraction = Boolean(
+        document.querySelector("[data-landing-tutorial]")
+        || clickable.closest("[data-tutorial-layer], [data-tutorial-layer-portal]"),
+      );
+      if (clickable.dataset.noFlowButtonSound === undefined) {
+        if (isTutorialInteraction) {
+          playFlowButtonSound("tutorial");
+        } else if (clickable.closest("[data-flow-button-sound='auth']")) {
+          playFlowButtonSound("auth");
+        }
+      }
+
       if (
         !clickable.closest(
           "[data-mobile-auth-gateway], [data-mobile-onboarding-mode], [data-onboarding-form]",
@@ -50,20 +63,10 @@ export function GlobalTapVibration() {
       const isTutorialControl = Boolean(clickable.closest(
         "[data-landing-tutorial-welcome-next], [data-landing-tutorial-choice], [data-landing-tutorial-next]",
       ));
-
       const isTutorialInteraction = Boolean(
         document.querySelector("[data-landing-tutorial]")
         || clickable.closest("[data-tutorial-layer], [data-tutorial-layer-portal]"),
       );
-      if (isTutorialInteraction) {
-        if (clickable.dataset.noFlowButtonSound === undefined) {
-          playFlowButtonSound("tutorial");
-        }
-      } else if (clickable.closest("[data-flow-button-sound='auth']")) {
-        if (clickable.dataset.noFlowButtonSound === undefined) {
-          playFlowButtonSound("auth");
-        }
-      }
 
       if (isTutorialControl || clickable.dataset.noTapVibrate !== undefined) return;
 

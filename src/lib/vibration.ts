@@ -15,7 +15,7 @@ declare global {
   }
 }
 
-export type VibrationPatternName = "tap" | "firm-tap" | "reward-arrival" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result" | "draw" | "chest-tap" | "chest-land" | "chest-open" | "streak-break" | "streak-reward-tap" | "streak-count-reveal" | "streak-shockwave" | "streak-exit" | "result-medal-collect" | "quiz-reward-pulse" | "word-challenge-correct" | "word-challenge-incorrect" | "tutorial-next";
+export type VibrationPatternName = "tap" | "firm-tap" | "reward-arrival" | "flip" | "correct" | "incorrect" | "learned" | "confetti" | "result" | "draw" | "chest-tap" | "chest-land" | "chest-open" | "bonus-reward-loot" | "streak-break" | "streak-reward-tap" | "streak-count-reveal" | "streak-shockwave" | "streak-exit" | "result-medal-collect" | "quiz-reward-pulse" | "word-challenge-correct" | "word-challenge-incorrect" | "tutorial-next";
 
 export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]> = {
   /** Light tap for generic presses. */
@@ -46,6 +46,8 @@ export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]>
   "chest-land": [110],
   /** Strong, triumphant burst when the chest opens. */
   "chest-open": [90, 35, 120],
+  /** Heavy double thud when the bonus-question reward is collected. */
+  "bonus-reward-loot": [130, 35, 220],
   /** Heavy multi-pulse impact when a streak reward breaks apart. */
   "streak-break": [110, 28, 170, 34, 250],
   /** One solid tap when the learner releases the streak reward. */

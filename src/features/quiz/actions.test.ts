@@ -337,7 +337,7 @@ describe("awardQuizBonusPoints", () => {
       maybeSingle: vi.fn().mockResolvedValue({
         data: {
           awarded: true,
-          points: 35,
+          points: 50,
           rewards: [
             { type: "blue", amount: 2 },
             { type: "green", amount: 1 },
@@ -358,7 +358,7 @@ describe("awardQuizBonusPoints", () => {
     await expect(awardQuizBonusPoints(sessionId, bonusId)).resolves.toEqual({
       success: true,
       awarded: true,
-      points: 35,
+      points: 50,
       gemRewards: [
         { type: "blue", amount: 2 },
         { type: "green", amount: 1 },
@@ -370,7 +370,7 @@ describe("awardQuizBonusPoints", () => {
       p_user_id: "user-1",
       p_session_id: sessionId,
       p_bonus_id: bonusId,
-      p_points: 35,
+      p_points: 50,
     });
   });
 });

@@ -63,13 +63,22 @@ progress count while still affecting streak and result rating outcomes. Their
 slots are planned at quiz start, GPT content is prefetched without blocking,
 and each slot has a local fallback.
 
-Puan ve rank ayri mutable sayac olarak tutulmaz. `ProgressStats` ogrenilmis kartlar ve tier puanlarindan turetilir:
+Puan ve rank tek bir manuel sayaçtan türetilmez. `ProgressStats`, öğrenilmiş kart tier puanlarını ve
+`src/features/progress/point-sources.ts` içindeki server-side puan kaynaklarını birleştirir:
 
 - A1 = 50
 - A2 = 50
 - B1 = 75
 - B2 = 75
 - C1 = 100
+
+Quiz reward kuralları:
+
+- Tamamlanan her 5 quiz streak için 50 puan `streak_points` içine eklenir.
+- Doğru cevaplanan her bonus soru için, bonus türünden bağımsız 50 puan
+  `quiz_result_points` içine eklenir.
+- Aynı streak veya bonus ödülü idempotent Supabase RPC kayıtlarıyla ikinci kez
+  yazılmaz; yanlış bonus cevap puan vermez.
 
 Rank esikleri `RANKS` kaynaginda tanimlidir: `baslangic` = 0, `kart-ciragi` = 200, `kelime-toplayici` = 600, `dil-yolcusu` = 1400, `akici-ogrenci` = 2800, `kelime-ustasi` = 7500, `cok-dilli` = 20000, `seckin-koleksiyoncu` = 40000, `dil-bilgesi` = 60000, `efsane` = 100000.
 

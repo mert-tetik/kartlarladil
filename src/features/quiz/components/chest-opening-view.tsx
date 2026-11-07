@@ -13,17 +13,14 @@ import {
   type ChestTierDefinition,
 } from "@/features/quiz/chest-rewards";
 import {
-  CHEST_OPENING_ATLAS_COLUMNS,
-  CHEST_OPENING_ATLAS_COUNT,
   CHEST_OPENING_DURATION_SECONDS,
   CHEST_OPENING_FRAME_COUNT,
   CHEST_OPENING_FRAME_HEIGHT,
+  CHEST_OPENING_FRAME_PREFETCH_AHEAD,
   CHEST_OPENING_FRAME_RATE,
   CHEST_OPENING_FRAME_WIDTH,
-  CHEST_OPENING_FRAMES_PER_ATLAS,
-  getChestOpeningAtlasSource,
-  loadChestOpeningAtlasImage,
-  preloadChestOpeningFrames,
+  getChestOpeningFrameSource,
+  loadChestOpeningFrameImage,
 } from "@/features/quiz/chest-opening-frames";
 import { GEM_ASSETS, type ChestRewardOutcome, type GemBalances, type GemType } from "@/features/gems/gem-types";
 import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
@@ -108,9 +105,9 @@ export function ChestOpeningView({
   const lastRequestedFrameRef = useRef<number | null>(null);
   const lastDrawnFrameRef = useRef<number | null>(null);
   const drawFrameRef = useRef<(frameIndex: number) => void>(() => undefined);
-  const loadedAtlasesRef = useRef(new Map<number, { drawable: CanvasImageSource; release: () => void }>());
-  const atlasPromisesRef = useRef(new Map<number, Promise<{ drawable: CanvasImageSource; release: () => void } | null>>());
-  const atlasGenerationRef = useRef(0);
+  const loadedFramesRef = useRef(new Map<number, HTMLImageElement>());
+  const framePromisesRef = useRef(new Map<number, Promise<HTMLImageElement | null>>());
+  const frameGenerationRef = useRef(0);
   const lastTapAtRef = useRef(0);
   const rewardPromiseRef = useRef<Promise<ChestRewardOutcome | null> | null>(null);
   const totalPointsRef = useRef<HTMLSpanElement | null>(null);
@@ -162,73 +159,73 @@ export function ChestOpeningView({
     handleCollect();
   }, [handleCollect, rewardOutcome, tier.points]);
 
-  const ensureAtlasImage = useCallback((atlasIndex: number) => {
-    const loaded = loadedAtlasesRef.current.get(atlasIndex);
+  const ensureFrameImage = useCallback((frameIndex: number) => {
+    const loaded = loadedFramesRef.current.get(frameIndex);
     if (loaded) return Promise.resolve(loaded);
 
-    const pending = atlasPromisesRef.current.get(atlasIndex);
+    const pending = framePromisesRef.current.get(frameIndex);
     if (pending) return pending;
 
-    const generation = atlasGenerationRef.current;
+    const generation = frameGenerationRef.current;
     const request = (async () => {
+      let image: HTMLImageElement | null = null;
       try {
-        const image = await loadChestOpeningAtlasImage(getChestOpeningAtlasSource(tier.tier, atlasIndex));
+        image = await loadChestOpeningFrameImage(getChestOpeningFrameSource(tier.tier, frameIndex));
 
-        const loadedAtlas = { drawable: image, release: () => { image.src = "data:,"; } };
-
-        if (generation !== atlasGenerationRef.current) {
-          loadedAtlas.release();
+        if (generation !== frameGenerationRef.current) {
+          image.src = "data:,";
           return null;
         }
 
         const requestedFrame = lastRequestedFrameRef.current;
-        const requestedAtlasIndex = requestedFrame === null
-          ? 0
-          : Math.floor(requestedFrame / CHEST_OPENING_FRAMES_PER_ATLAS);
-        if (atlasIndex < requestedAtlasIndex || atlasIndex > requestedAtlasIndex + 1) {
-          loadedAtlas.release();
+        if (
+          requestedFrame !== null &&
+          (frameIndex < requestedFrame - 1 || frameIndex > requestedFrame + CHEST_OPENING_FRAME_PREFETCH_AHEAD)
+        ) {
+          image.src = "data:,";
           return null;
         }
 
-        loadedAtlasesRef.current.set(atlasIndex, loadedAtlas);
-        if (requestedFrame !== null && Math.floor(requestedFrame / CHEST_OPENING_FRAMES_PER_ATLAS) === atlasIndex) {
-          drawFrameRef.current(requestedFrame);
-        }
-        return loadedAtlas;
+        loadedFramesRef.current.set(frameIndex, image);
+        if (requestedFrame === frameIndex) drawFrameRef.current(frameIndex);
+        return image;
       } catch {
+        if (image) image.src = "data:,";
         return null;
       }
     })();
 
-    atlasPromisesRef.current.set(atlasIndex, request);
+    framePromisesRef.current.set(frameIndex, request);
+    void request.then(() => {
+      if (framePromisesRef.current.get(frameIndex) === request) {
+        framePromisesRef.current.delete(frameIndex);
+      }
+    });
     return request;
   }, [tier.tier]);
 
   const drawFrame = useCallback((requestedFrame: number) => {
     const frameIndex = Math.max(0, Math.min(CHEST_OPENING_FRAME_COUNT - 1, requestedFrame));
     lastRequestedFrameRef.current = frameIndex;
-    const atlasIndex = Math.floor(frameIndex / CHEST_OPENING_FRAMES_PER_ATLAS);
-    const atlas = loadedAtlasesRef.current.get(atlasIndex);
+    const frameImage = loadedFramesRef.current.get(frameIndex);
 
-    if (!atlas && !atlasPromisesRef.current.has(atlasIndex)) {
-      void ensureAtlasImage(atlasIndex);
-    }
-    if (
-      atlasIndex + 1 < CHEST_OPENING_ATLAS_COUNT &&
-      !loadedAtlasesRef.current.has(atlasIndex + 1) &&
-      !atlasPromisesRef.current.has(atlasIndex + 1)
-    ) {
-      void ensureAtlasImage(atlasIndex + 1);
+    void ensureFrameImage(frameIndex);
+    const finalFrameToPrefetch = Math.min(
+      CHEST_OPENING_FRAME_COUNT - 1,
+      frameIndex + CHEST_OPENING_FRAME_PREFETCH_AHEAD,
+    );
+    for (let nextFrame = frameIndex + 1; nextFrame <= finalFrameToPrefetch; nextFrame += 1) {
+      void ensureFrameImage(nextFrame);
     }
 
-    if (!atlas) return;
-
-    for (const [loadedIndex, loadedAtlas] of loadedAtlasesRef.current) {
-      if (loadedIndex === atlasIndex || loadedIndex === atlasIndex + 1) continue;
-      loadedAtlas.release();
-      loadedAtlasesRef.current.delete(loadedIndex);
-      atlasPromisesRef.current.delete(loadedIndex);
+    const firstRetainedFrame = Math.max(0, frameIndex - 1);
+    for (const [loadedIndex, loadedFrame] of loadedFramesRef.current) {
+      if (loadedIndex >= firstRetainedFrame && loadedIndex <= finalFrameToPrefetch) continue;
+      loadedFrame.src = "data:,";
+      loadedFramesRef.current.delete(loadedIndex);
     }
+
+    if (!frameImage) return;
 
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d", { alpha: false, desynchronized: true });
@@ -260,24 +257,16 @@ export function ChestOpeningView({
     const drawHeight = CHEST_OPENING_FRAME_HEIGHT * scale;
     const drawX = (width - drawWidth) / 2;
     const drawY = (height - drawHeight) / 2;
-    const atlasFrame = frameIndex % CHEST_OPENING_FRAMES_PER_ATLAS;
-    const sourceX = (atlasFrame % CHEST_OPENING_ATLAS_COLUMNS) * CHEST_OPENING_FRAME_WIDTH;
-    const sourceY = Math.floor(atlasFrame / CHEST_OPENING_ATLAS_COLUMNS) * CHEST_OPENING_FRAME_HEIGHT;
-
     context.clearRect(0, 0, width, height);
     context.drawImage(
-      atlas.drawable,
-      sourceX,
-      sourceY,
-      CHEST_OPENING_FRAME_WIDTH,
-      CHEST_OPENING_FRAME_HEIGHT,
+      frameImage,
       drawX,
       drawY,
       drawWidth,
       drawHeight,
     );
     lastDrawnFrameRef.current = frameIndex;
-  }, [ensureAtlasImage]);
+  }, [ensureFrameImage]);
 
   const finishAnimation = useCallback(() => {
     if (animationCompletionModeRef.current !== "playing") return;
@@ -388,26 +377,29 @@ export function ChestOpeningView({
   }, [drawFrame]);
 
   useEffect(() => {
-    const generation = ++atlasGenerationRef.current;
-    void ensureAtlasImage(0);
-    void ensureAtlasImage(1);
-    if (autoPlay) {
-      void preloadChestOpeningFrames(tier.tier, 2).catch(() => undefined);
+    const generation = ++frameGenerationRef.current;
+    lastRequestedFrameRef.current = 0;
+    const lastInitialFrame = Math.min(
+      CHEST_OPENING_FRAME_COUNT - 1,
+      CHEST_OPENING_FRAME_PREFETCH_AHEAD,
+    );
+    for (let frameIndex = 0; frameIndex <= lastInitialFrame; frameIndex += 1) {
+      void ensureFrameImage(frameIndex);
     }
 
     return () => {
-      if (atlasGenerationRef.current === generation) atlasGenerationRef.current += 1;
+      if (frameGenerationRef.current === generation) frameGenerationRef.current += 1;
       if (animationFrameRef.current !== null) {
         window.cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
       animationStartedRef.current = false;
-      for (const atlas of loadedAtlasesRef.current.values()) atlas.release();
-      loadedAtlasesRef.current.clear();
-      atlasPromisesRef.current.clear();
+      for (const frame of loadedFramesRef.current.values()) frame.src = "data:,";
+      loadedFramesRef.current.clear();
+      framePromisesRef.current.clear();
       audioRef.current?.pause();
     };
-  }, [autoPlay, ensureAtlasImage, tier.tier]);
+  }, [ensureFrameImage]);
 
   useEffect(() => {
     if (autoPlay) startOpening();

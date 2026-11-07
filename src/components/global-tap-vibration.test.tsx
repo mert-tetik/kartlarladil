@@ -118,6 +118,29 @@ describe("GlobalTapVibration", () => {
     expect(vibrateMock).toHaveBeenCalledWith("tap");
   });
 
+  it("plays the flow sound before a continue button disables itself during its click", () => {
+    render(
+      <>
+        <GlobalTapVibration />
+        <form data-flow-button-sound="auth">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.currentTarget.disabled = true;
+            }}
+          >
+            Continue
+          </button>
+        </form>
+      </>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(playFlowButtonSoundMock).toHaveBeenCalledTimes(1);
+    expect(playFlowButtonSoundMock).toHaveBeenCalledWith("auth");
+  });
+
   it("firm-vibrates auth and onboarding buttons before a handler can prevent the click", () => {
     render(
       <>

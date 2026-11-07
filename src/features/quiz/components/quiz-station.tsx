@@ -38,7 +38,6 @@ import { CARD_GROUP_IMAGE_PATHS } from "@/features/cards/card-groups";
 import {
   preloadTextQuizFeedbackMascots,
   preloadQuizFeedbackMascotAnimation,
-  pickQuizFeedbackBarMascotAnimation,
   pickQuizFeedbackMascotAnimation,
   QuizFeedbackMascotAnimationView,
   type QuizFeedbackMascotAnimation,
@@ -50,6 +49,7 @@ import {
   getStudyLocale,
 } from "@/features/cards/card-localization";
 import { getQuizPromptTerm } from "@/features/quiz/quiz-prompt-term";
+import { getSingleLineFitFontSize } from "@/features/quiz/single-line-text-fit";
 import { speakCardTerm, speakText } from "@/features/cards/card-speech";
 import { QuizSpeechBubble, getRandomQuizCharacter } from "@/features/quiz/components/quiz-speech-bubble";
 import {
@@ -3982,8 +3982,6 @@ export function QuizStation({
             !lastAnswerCorrect
           }
           isCorrect={lastAnswerCorrect ?? false}
-          isBonus={isBonusQuizItem(item)}
-          isText={item.questionType === "text"}
           correctAnswer={
             item.questionType === "group"
               ? item.question.options.find(
@@ -6299,6 +6297,9 @@ export function TextQuestion({
   const { locale } = useLocale();
   const t = useT();
   const question = item.question;
+  const promptTerm = getQuizPromptTerm(getCardTranslation(item.card, locale));
+  const promptContainerRef = useRef<HTMLDivElement>(null);
+  const promptHeadingRef = useRef<HTMLHeadingElement>(null);
   const [character] = useState(() => getRandomQuizCharacter());
   const [fallbackMascotAnimation] = useState(() =>
     pickQuizFeedbackMascotAnimation(
@@ -6319,6 +6320,55 @@ export function TextQuestion({
   const [mascotReady, setMascotReady] = useState(!activeMascotAnimation);
   const checkDisabled = textAnswer.trim().length === 0 || isAiValidating || showingAnswer;
   const cardLanguageName = getLanguageDisplayName(item.card.language, locale);
+  useLayoutEffect(() => {
+    const container = promptContainerRef.current;
+    const heading = promptHeadingRef.current;
+    if (!container || !heading) return;
+
+    let previousWidth = -1;
+    let isActive = true;
+
+    const fitPromptTerm = (force = false) => {
+      const availableWidth = container.clientWidth;
+      if (availableWidth <= 0 || (!force && availableWidth === previousWidth)) return;
+      previousWidth = availableWidth;
+
+      heading.style.fontSize = "";
+      const baseFontSize = Number.parseFloat(window.getComputedStyle(heading).fontSize);
+      if (!Number.isFinite(baseFontSize) || baseFontSize <= 0) return;
+
+      heading.style.fontSize = `${baseFontSize}px`;
+      const fittedFontSize = getSingleLineFitFontSize(
+        baseFontSize,
+        heading.scrollWidth,
+        availableWidth,
+      );
+      heading.style.fontSize = `${fittedFontSize}px`;
+    };
+
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(() => fitPromptTerm());
+    const handleResize = () => fitPromptTerm(true);
+    const handleFontsLoaded = () => fitPromptTerm(true);
+    resizeObserver?.observe(container);
+    window.addEventListener("resize", handleResize);
+
+    const fonts = document.fonts;
+    fonts?.addEventListener("loadingdone", handleFontsLoaded);
+    void fonts?.ready.then(() => {
+      if (isActive) fitPromptTerm(true);
+    });
+    fitPromptTerm(true);
+
+    return () => {
+      isActive = false;
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", handleResize);
+      fonts?.removeEventListener("loadingdone", handleFontsLoaded);
+    };
+  }, [promptTerm]);
+
   useEffect(() => {
     setMascotReady(!activeMascotAnimation);
     if (activeMascotAnimation) {
@@ -6338,11 +6388,15 @@ export function TextQuestion({
         data-quiz-question-content="text"
         data-quiz-text-question
       >
-        <div className="relative -top-20 flex flex-col items-center gap-2">
-          <div className="flex items-center justify-center">
-          <h2 className="font-display text-5xl font-semibold leading-none text-white sm:text-6xl lg:text-8xl">
-            {getQuizPromptTerm(getCardTranslation(item.card, locale))}
-          </h2>
+        <div className="relative -top-20 flex w-full min-w-0 flex-col items-center gap-2">
+          <div ref={promptContainerRef} className="flex w-full min-w-0 items-center justify-center">
+            <h2
+              ref={promptHeadingRef}
+              className="block w-full min-w-0 whitespace-nowrap text-center font-display text-5xl font-semibold leading-none text-white sm:text-6xl lg:text-8xl"
+              data-quiz-text-prompt-term
+            >
+              {promptTerm}
+            </h2>
           </div>
         </div>
 
@@ -6488,18 +6542,12 @@ export function TextQuestion({
 export function MobileQuizFeedback({
   isOpen,
   isCorrect,
-  isBonus = false,
-  isText = false,
-  forceMascotAnimation = false,
   correctAnswer,
   onNext,
   showNextButton = true,
 }: {
   isOpen: boolean;
   isCorrect: boolean;
-  isBonus?: boolean;
-  isText?: boolean;
-  forceMascotAnimation?: boolean;
   correctAnswer?: string;
   onNext: () => void;
   showNextButton?: boolean;
@@ -6510,39 +6558,6 @@ export function MobileQuizFeedback({
     isCorrect: boolean;
     correctAnswer: string;
   } | null>(null);
-  const [mascotAnimation, setMascotAnimation] = useState<QuizFeedbackMascotAnimation | null>(null);
-  const [mascotVisible, setMascotVisible] = useState(false);
-  const [mascotBottomOffset, setMascotBottomOffset] = useState<number | null>(null);
-  const mascotAnimationRef = useRef<QuizFeedbackMascotAnimation | null>(null);
-  const feedbackBarRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      const selectedAnimation = pickQuizFeedbackBarMascotAnimation(
-        isBonus,
-        isText,
-        forceMascotAnimation ? 0 : undefined,
-      );
-      mascotAnimationRef.current = selectedAnimation;
-      setMascotAnimation(selectedAnimation);
-      setMascotVisible(Boolean(selectedAnimation));
-
-      if (!selectedAnimation) return;
-
-      void preloadQuizFeedbackMascotAnimation(selectedAnimation).catch(() => undefined);
-      return;
-    }
-
-    if (!mascotAnimationRef.current) return;
-
-    const exitTimer = window.setTimeout(() => {
-      mascotAnimationRef.current = null;
-      setMascotVisible(false);
-      setMascotAnimation(null);
-    }, 300);
-
-    return () => window.clearTimeout(exitTimer);
-  }, [forceMascotAnimation, isBonus, isOpen, isText]);
 
   useEffect(() => {
     if (isOpen) {
@@ -6551,31 +6566,6 @@ export function MobileQuizFeedback({
   }, [isOpen, isCorrect, correctAnswer]);
 
   const display = snapshot ?? { isCorrect, correctAnswer: correctAnswer ?? "" };
-
-  useLayoutEffect(() => {
-    const feedbackBar = feedbackBarRef.current;
-    if (!feedbackBar || typeof window === "undefined") return;
-
-    const updateMascotPosition = () => {
-      const viewportHeight = window.innerHeight;
-      const barRect = feedbackBar.getBoundingClientRect();
-      const barBottomGap = Math.max(0, viewportHeight - barRect.bottom);
-      setMascotBottomOffset(Math.ceil(barRect.height + barBottomGap));
-    };
-
-    updateMascotPosition();
-
-    const observer = typeof ResizeObserver !== "undefined"
-      ? new ResizeObserver(updateMascotPosition)
-      : null;
-    observer?.observe(feedbackBar);
-    window.addEventListener("resize", updateMascotPosition);
-
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener("resize", updateMascotPosition);
-    };
-  }, [display.isCorrect, display.correctAnswer, isOpen]);
 
   const feedbackText = display.isCorrect
     ? t("quiz.congratulations")
@@ -6604,7 +6594,6 @@ export function MobileQuizFeedback({
             isOpen ? "translate-y-0" : "translate-y-full",
           canUseSuperWater(locale) && "font-super-water",
           )}
-          ref={feedbackBarRef}
         >
           <div
             className={cn(
@@ -6646,21 +6635,6 @@ export function MobileQuizFeedback({
           </Button>
         </div>
       </div>
-      {mascotAnimation && mascotVisible ? (
-        <div
-          className={cn(
-            "pointer-events-none fixed left-2 z-0 transition-[opacity,transform] duration-300 lg:hidden",
-            isOpen ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0",
-          )}
-          style={{
-            bottom: mascotBottomOffset === null ? "-100vh" : `${mascotBottomOffset}px`,
-            zIndex: 0,
-          }}
-          data-quiz-feedback-mascot-layer
-        >
-          <QuizFeedbackMascotAnimationView animation={mascotAnimation} />
-        </div>
-      ) : null}
     </>
   );
 }

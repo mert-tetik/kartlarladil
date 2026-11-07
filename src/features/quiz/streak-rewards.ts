@@ -1,5 +1,5 @@
 export const QUIZ_STREAK_STEP = 5;
-export const QUIZ_STREAK_POINTS_PER_STEP = 20;
+export const QUIZ_STREAK_POINTS_PER_STEP = 50;
 
 export function getRewardableQuizStreak(streak: number) {
   if (streak < QUIZ_STREAK_STEP) {

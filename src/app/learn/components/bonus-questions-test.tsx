@@ -139,8 +139,6 @@ export function BonusQuestionsTest({ onlyMatching = false }: { onlyMatching?: bo
       <MobileQuizFeedback
         isOpen={showingAnswer && answerAccepted !== null}
         isCorrect={answerAccepted ?? false}
-        isBonus
-        forceMascotAnimation
         onNext={handleNext}
         showNextButton
       />
