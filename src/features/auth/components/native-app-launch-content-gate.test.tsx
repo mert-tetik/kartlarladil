@@ -8,9 +8,6 @@ const authState = vi.hoisted(() => ({
 }));
 const inventoryState = vi.hoisted(() => ({
   hydrated: false,
-  cloudEnabled: false,
-  cloudLoading: false,
-  cloudLoadComplete: true,
   ownerUserId: null as string | null,
 }));
 
@@ -26,9 +23,6 @@ describe("NativeAppLaunchContentGate", () => {
     authState.user = null;
     authState.isSessionReady = false;
     inventoryState.hydrated = false;
-    inventoryState.cloudEnabled = false;
-    inventoryState.cloudLoading = false;
-    inventoryState.cloudLoadComplete = true;
     inventoryState.ownerUserId = null;
   });
 
@@ -58,11 +52,9 @@ describe("NativeAppLaunchContentGate", () => {
         <main>Landing page</main>
       </NativeAppLaunchContentGate>,
     );
-    expect(screen.queryByText("Landing page")).not.toBeInTheDocument();
+    expect(screen.getByText("Landing page")).toBeInTheDocument();
 
-    inventoryState.cloudEnabled = true;
-    inventoryState.cloudLoading = true;
-    inventoryState.cloudLoadComplete = false;
+    inventoryState.ownerUserId = "another-user";
     view.rerender(
       <NativeAppLaunchContentGate enabled>
         <main>Landing page</main>
@@ -70,8 +62,6 @@ describe("NativeAppLaunchContentGate", () => {
     );
     expect(screen.queryByText("Landing page")).not.toBeInTheDocument();
 
-    inventoryState.cloudLoading = false;
-    inventoryState.cloudLoadComplete = true;
     inventoryState.ownerUserId = "signed-in-user";
     view.rerender(
       <NativeAppLaunchContentGate enabled>
@@ -81,14 +71,11 @@ describe("NativeAppLaunchContentGate", () => {
     expect(screen.getByText("Landing page")).toBeInTheDocument();
   });
 
-  it("does not expose a signed-in landing before inventory hydration and cloud loading", () => {
+  it("does not expose a signed-in landing before local hydration or across account owners", () => {
     authState.user = { id: "signed-in-user" };
     authState.isSessionReady = true;
     inventoryState.hydrated = true;
-    inventoryState.cloudEnabled = false;
-    inventoryState.cloudLoading = false;
-    inventoryState.cloudLoadComplete = true;
-    inventoryState.ownerUserId = "signed-in-user";
+    inventoryState.ownerUserId = "another-user";
 
     const view = render(
       <NativeAppLaunchContentGate enabled>
@@ -98,7 +85,7 @@ describe("NativeAppLaunchContentGate", () => {
 
     expect(screen.queryByText("Landing page")).not.toBeInTheDocument();
 
-    inventoryState.cloudEnabled = true;
+    inventoryState.ownerUserId = null;
     view.rerender(
       <NativeAppLaunchContentGate enabled>
         <main>Landing page</main>

@@ -10,6 +10,7 @@ import { SubmitButton } from "@/features/auth/components/submit-button";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
+import { sendTwaRegistrationEvent } from "@/lib/twa-analytics";
 
 interface MobileEmailAuthFormProps {
   authType: "login" | "register";
@@ -35,7 +36,14 @@ export function MobileEmailAuthForm({
     isRegister ? registerAction : loginAction,
     AUTH_ACTION_IDLE_STATE,
   );
+  const registrationTrackedRef = useRef(false);
   const registerSubmitLocked = isRegister && !registerFormReady;
+
+  useEffect(() => {
+    if (!isRegister || state.status !== "success" || registrationTrackedRef.current) return;
+    registrationTrackedRef.current = true;
+    sendTwaRegistrationEvent("email");
+  }, [isRegister, state.status]);
 
   const updateRegisterFormReady = useCallback(() => {
     if (!isRegister) {

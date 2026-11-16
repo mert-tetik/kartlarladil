@@ -24,6 +24,7 @@ import { canUseSuperWater, formatSuperWaterUppercaseText } from "@/lib/super-wat
 import { vibrate } from "@/lib/vibration";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { cn } from "@/lib/utils";
+import { trackAnalyticsEvent } from "@/lib/analytics-events";
 import type { ActiveCardLimitDetails, LanguageCode, LimitErrorCode } from "@/types/domain";
 import { SubscriptionRestrictionSurface } from "@/features/subscriptions/components/subscription-restriction-surface";
 
@@ -74,6 +75,13 @@ export function UpgradeDialog({
   const [isMounted, setIsMounted] = useState(Boolean(open && errorCode));
   const [isVisible, setIsVisible] = useState(false);
   const activeErrorCode = open && errorCode ? errorCode : renderedErrorCode;
+
+  useEffect(() => {
+    if (!open || !errorCode) return;
+    trackAnalyticsEvent("subscription_restriction_opened", {
+      restriction_code: errorCode,
+    });
+  }, [errorCode, open]);
 
   useEffect(() => {
     if (open && errorCode) {
@@ -133,6 +141,7 @@ export function UpgradeDialog({
             onOpenChange={onOpenChange}
             onPurchaseSuccess={onPurchaseSuccess}
             requiresPro={activeErrorCode === "image_text_translate_limit"}
+            restrictionCode={activeErrorCode}
           />
         ) : null}
         {activeErrorCode === "free_active_card_limit" ? (
@@ -224,10 +233,12 @@ function SubscriptionDetailsRestrictionCta({
   onOpenChange,
   onPurchaseSuccess,
   requiresPro,
+  restrictionCode,
 }: {
   onOpenChange: (open: boolean) => void;
   onPurchaseSuccess?: () => void | Promise<void>;
   requiresPro: boolean;
+  restrictionCode: UpgradeDialogErrorCode;
 }) {
   const t = useT();
   const { locale } = useLocale();
@@ -295,8 +306,17 @@ function SubscriptionDetailsRestrictionCta({
           cn("relative z-10 h-16 w-full justify-center rounded-xl px-3 text-white", planButtonClass),
         )}
         onClick={() => {
+          trackAnalyticsEvent("subscription_restriction_details_opened", {
+            restriction_code: restrictionCode,
+          });
           openSubscriptionDetails(
-            { plan, cycle: "monthly", ctaLabel: buttonLabel },
+            {
+              plan,
+              cycle: "monthly",
+              ctaLabel: buttonLabel,
+              source: "restriction",
+              restrictionCode,
+            },
             {
               onPurchaseSuccess: () => {
                 showMessage(t("pricing.purchaseSuccessDescription"), "success");
@@ -350,7 +370,7 @@ function getLimitContent(
     case "free_learned_card_limit":
       return {
         title: t("limit.learnedCardLimitTitle"),
-        description: t("limit.learnedCardLimitDescription").replace(/\b50\b/g, "100"),
+        description: t("limit.learnedCardLimitDescription"),
         variant: "upgrade",
       };
     case "ai_daily_limit":

@@ -227,6 +227,7 @@ import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
+import { trackAnalyticsEvent } from "@/lib/analytics-events";
 import { useAppMessage } from "@/components/app-message-provider";
 import confetti from "canvas-confetti";
 import type {
@@ -2286,6 +2287,26 @@ export function QuizStation({
           }
 
           wordRepetitionCompletedRef.current = true;
+        }
+
+        if (user && !quizFlowTest && !quizCompletionTest && !quizWordRepetitionTest && !normalQuestionType) {
+          const durationSeconds = quizStartedAtRef.current === null
+            ? null
+            : Math.max(0, Math.round((Date.now() - quizStartedAtRef.current) / 1000));
+          const quizAnalyticsProperties = {
+            mode,
+            correct_count: quizResults.correct.length + (quizResults.bonusCorrect ?? 0),
+            incorrect_count: quizResults.incorrect.length + (quizResults.bonusIncorrect ?? 0),
+            learned_count: quizResults.learned.length,
+            ...(selectedCount !== null ? { selected_count: selectedCount } : {}),
+            ...(durationSeconds !== null ? { duration_seconds: durationSeconds } : {}),
+          };
+
+          trackAnalyticsEvent("first_quiz_completed", quizAnalyticsProperties, {
+            once: true,
+            dedupeKey: user.id,
+          });
+          trackAnalyticsEvent("learn_session_completed", quizAnalyticsProperties);
         }
 
         if (quizStartedAtRef.current !== null) {

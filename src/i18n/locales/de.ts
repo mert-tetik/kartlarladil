@@ -385,7 +385,7 @@ const dictionary = {
   "limit.aiMonthlyLimitTitle": "Monatliches KI-Nachrichtenkontingent voll",
   "limit.defaultDescription": "Diese Aktion liegt außerhalb der Grenzen deines aktuellen Plans. Upgrade deinen Plan, um mehr freizuschalten.",
   "limit.defaultTitle": "Planlimit erreicht",
-  "limit.learnedCardLimitDescription": "Der kostenlose Plan erlaubt dir insgesamt bis zu 100 Karten zu lernen. Upgrade deinen Plan, um mehr zu lernen.",
+  "limit.learnedCardLimitDescription": "Der kostenlose Plan erlaubt dir insgesamt bis zu 50 Karten zu lernen. Upgrade deinen Plan, um mehr zu lernen.",
   "limit.learnedCardLimitTitle": "Gelerntes Kartenkontingent voll",
   "limit.cardAlreadyActiveTitle": "Diese Karte ist bereits aktiv",
   "limit.cardAlreadyActiveDescription": "Diese Karte ist bereits in deinen aktiven Karten. Du kannst dieselbe Karte nicht zweimal hinzufügen.",

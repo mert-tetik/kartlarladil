@@ -386,7 +386,7 @@ const dictionary = {
   "limit.aiMonthlyLimitTitle": "월간 AI 메시지 할당량이 가득 찼습니다",
   "limit.defaultDescription": "이 작업은 현재 플랜의 한계를 초과합니다. 더 많은 기능을 잠금 해제하려면 플랜을 업그레이드하세요.",
   "limit.defaultTitle": "플랜 한도에 도달했습니다",
-  "limit.learnedCardLimitDescription": "무료 플랜에서는 총 100장의 카드를 학습할 수 있습니다. 더 학습하려면 플랜을 업그레이드하세요.",
+  "limit.learnedCardLimitDescription": "무료 플랜에서는 총 50장의 카드를 학습할 수 있습니다. 더 학습하려면 플랜을 업그레이드하세요.",
   "limit.learnedCardLimitTitle": "학습한 카드 할당량이 가득 찼습니다",
   "limit.cardAlreadyActiveTitle": "이 카드는 이미 활성화되어 있습니다",
   "limit.cardAlreadyActiveDescription": "이 카드는 이미 활성 카드에 포함되어 있습니다. 같은 카드를 두 번 추가할 수 없습니다.",

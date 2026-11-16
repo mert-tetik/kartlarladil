@@ -20,6 +20,10 @@ public class Application extends android.app.Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        // Meta must register its Activity lifecycle callbacks before the
+        // launcher Activity starts; otherwise manual events are marked as
+        // background events and the SDK emits a lifecycle warning.
+        NativeMetaAnalytics.initialize(this);
         // Firebase is ancillary to the first frame. Defer its setup until the
         // Activity launch message has returned so analytics cannot extend the
         // native launch window or delay the native loading handoff.
@@ -39,5 +43,6 @@ public class Application extends android.app.Application {
         } catch (Exception e) {
             // Ignore analytics initialization failures so the app does not crash on startup.
         }
+
     }
 }

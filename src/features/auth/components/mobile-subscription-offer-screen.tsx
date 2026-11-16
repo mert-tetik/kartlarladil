@@ -159,7 +159,7 @@ export function MobileSubscriptionOfferScreen({
 
     if (isTwa || isSupported) {
       try {
-        await purchase(getGooglePlaySku("basic", "monthly"));
+        await purchase(getGooglePlaySku("basic", "monthly"), { source: "serious_learner" });
         showMessage(t("pricing.purchaseSuccessDescription"), "success");
         onContinueFree();
       } catch (error) {

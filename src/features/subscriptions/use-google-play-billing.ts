@@ -10,6 +10,38 @@ import {
   isGooglePlayPurchaseCancellation,
 } from "@/features/subscriptions/google-play-errors";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
+import { sendTwaSubscriptionPurchaseEvent } from "@/lib/twa-analytics";
+import {
+  trackAnalyticsEvent,
+  type AnalyticsEventProperties,
+  type AnalyticsPurchaseSource,
+} from "@/lib/analytics-events";
+
+interface PurchaseAnalyticsContext {
+  source?: AnalyticsPurchaseSource;
+  restrictionCode?: string;
+}
+
+interface RestoreAnalyticsContext {
+  source?: "manual" | "automatic";
+}
+
+function getPurchaseAnalyticsProperties(sku: string, context: PurchaseAnalyticsContext): AnalyticsEventProperties {
+  const plan = sku.startsWith("basic_") ? "basic" : sku.startsWith("pro_") ? "pro" : "unknown";
+  const billingCycle = sku.endsWith("_monthly")
+    ? "monthly"
+    : sku.endsWith("_yearly")
+      ? "yearly"
+      : "unknown";
+
+  return {
+    sku,
+    plan,
+    billing_cycle: billingCycle,
+    ...(context.source ? { source: context.source } : {}),
+    ...(context.restrictionCode ? { restriction_code: context.restrictionCode } : {}),
+  };
+}
 
 export function useGooglePlayBilling() {
   const { applyVerifiedEntitlements } = useSubscription();
@@ -56,12 +88,21 @@ export function useGooglePlayBilling() {
   );
 
   const purchase = useCallback(
-    async (sku: string) => {
+    async (sku: string, context: PurchaseAnalyticsContext = {}) => {
+      const analyticsProperties = getPurchaseAnalyticsProperties(sku, context);
+      trackAnalyticsEvent("subscription_purchase_started", analyticsProperties);
       setIsLoading(true);
       setError(null);
 
       try {
         if (nativeBilling) {
+          let productDetails: DigitalGoodsItemDetails | null = null;
+          try {
+            productDetails = await getProductDetails(sku) as DigitalGoodsItemDetails | null;
+          } catch {
+            // Purchase verification remains authoritative; price metadata is best-effort.
+          }
+
           const purchase = parseNativeBillingResponse<NativePurchaseResult>(
             nativeBilling.purchase(sku),
           );
@@ -82,6 +123,11 @@ export function useGooglePlayBilling() {
           }
 
           applyVerifiedEntitlements(result.data);
+          trackAnalyticsEvent("subscription_purchase_succeeded", {
+            ...analyticsProperties,
+            effective_plan: result.data.effectivePlan,
+          });
+          sendTwaSubscriptionPurchaseEvent(sku, productDetails?.price);
           return result.data;
         }
 
@@ -134,20 +180,35 @@ export function useGooglePlayBilling() {
 
         await response.complete("success");
         applyVerifiedEntitlements(result.data);
+        trackAnalyticsEvent("subscription_purchase_succeeded", {
+          ...analyticsProperties,
+          effective_plan: result.data.effectivePlan,
+        });
+        sendTwaSubscriptionPurchaseEvent(sku, item.price);
 
         return result.data;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
+        if (isGooglePlayPurchaseCancellation(error)) {
+          trackAnalyticsEvent("subscription_purchase_cancelled", analyticsProperties);
+        } else {
+          trackAnalyticsEvent("subscription_purchase_failed", {
+            ...analyticsProperties,
+            error_code: error instanceof GooglePlayPurchaseInactiveError
+              ? "purchase_inactive"
+              : "purchase_failed",
+          });
+        }
         setError(message);
         throw error;
       } finally {
         setIsLoading(false);
       }
     },
-    [applyVerifiedEntitlements, getService, nativeBilling],
+    [applyVerifiedEntitlements, getProductDetails, getService, nativeBilling],
   );
 
-  const restorePurchases = useCallback(async () => {
+  const restorePurchases = useCallback(async ({ source = "automatic" }: RestoreAnalyticsContext = {}) => {
     if (!isSupported) return;
 
     setIsLoading(true);
@@ -173,6 +234,13 @@ export function useGooglePlayBilling() {
         if (result.data) {
           applyVerifiedEntitlements(result.data);
         }
+        if (source === "manual") {
+          trackAnalyticsEvent("subscription_restored", {
+            source,
+            had_purchases: purchases.length > 0,
+            effective_plan: result.data?.effectivePlan ?? "free",
+          });
+        }
         return;
       }
 
@@ -193,8 +261,21 @@ export function useGooglePlayBilling() {
       if (result.data) {
         applyVerifiedEntitlements(result.data);
       }
+      if (source === "manual") {
+        trackAnalyticsEvent("subscription_restored", {
+          source,
+          had_purchases: purchases.length > 0,
+          effective_plan: result.data?.effectivePlan ?? "free",
+        });
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      if (source === "manual") {
+        trackAnalyticsEvent("subscription_restore_failed", {
+          source,
+          error_code: isGooglePlayPurchaseCancellation(error) ? "cancelled" : "restore_failed",
+        });
+      }
       setError(isGooglePlayPurchaseCancellation(error) ? null : message);
       throw error;
     } finally {

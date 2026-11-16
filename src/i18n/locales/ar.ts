@@ -386,7 +386,7 @@ const dictionary = {
   "limit.aiMonthlyLimitTitle": "حصة الرسائل الشهرية للذكاء الاصطناعي ممتلئة",
   "limit.defaultDescription": "هذا الإجراء خارج حدود خطتك الحالية. قم بترقية خطتك لفتح المزيد.",
   "limit.defaultTitle": "تم الوصول إلى حد الخطة",
-  "limit.learnedCardLimitDescription": "تسمح الخطة المجانية بتعلّم ما يصل إلى 100 بطاقة إجمالًا. رقِّ خطتك لتتعلم المزيد.",
+  "limit.learnedCardLimitDescription": "تسمح الخطة المجانية بتعلّم ما يصل إلى 50 بطاقة إجمالًا. رقِّ خطتك لتتعلم المزيد.",
   "limit.learnedCardLimitTitle": "حصة البطاقات المتعلمة ممتلئة",
   "limit.cardAlreadyActiveTitle": "هذه البطاقة نشطة بالفعل",
   "limit.cardAlreadyActiveDescription": "هذه البطاقة موجودة بالفعل في بطاقاتك النشطة. لا يمكنك إضافة نفس البطاقة مرتين.",

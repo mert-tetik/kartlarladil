@@ -8,6 +8,14 @@ import { AiPracticeChatPanel } from "@/features/ai-practice/components/ai-practi
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
 
+const { sendTwaAnalyticsEventMock } = vi.hoisted(() => ({
+  sendTwaAnalyticsEventMock: vi.fn(),
+}));
+
+vi.mock("@/lib/twa-analytics", () => ({
+  sendTwaAnalyticsEvent: sendTwaAnalyticsEventMock,
+}));
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     refresh: vi.fn(),
@@ -43,6 +51,7 @@ vi.mock("@/features/subscriptions/components/upgrade-dialog", () => ({
 const testCharacter = getAiPracticeCharacters()[0]!;
 
 afterEach(() => {
+  sendTwaAnalyticsEventMock.mockReset();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   Object.defineProperty(window, "visualViewport", {
@@ -67,6 +76,26 @@ describe("AiPracticeChatPanel", () => {
     expect(screen.getAllByAltText("Clara")).toHaveLength(1);
     expect(screen.getAllByRole("button", { name: "Translate" }).length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByRole("button", { name: "Speak message" }).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("tracks a completed AI practice exchange without sending message text", async () => {
+    const user = userEvent.setup();
+
+    vi.stubGlobal("fetch", makeFetchMock({ chatText: "safe response" }));
+
+    renderPanel();
+    await sendMessage(user, "private message text");
+    expect(await screen.findByText("safe response")).toBeVisible();
+
+    expect(sendTwaAnalyticsEventMock).toHaveBeenCalledWith("fd_ai_practice_message", {
+      params: {
+        language: "en",
+        character_id: testCharacter.id,
+        mode: "character",
+        tier: "A1",
+      },
+    });
+    expect(JSON.stringify(sendTwaAnalyticsEventMock.mock.calls)).not.toContain("private message text");
   });
 
   it("zooms the chat portrait inside its circle and gives the tier its own color without a surface", () => {

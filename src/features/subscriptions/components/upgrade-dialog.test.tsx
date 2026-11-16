@@ -22,6 +22,9 @@ const subscriptionMocks = vi.hoisted(() => ({
     options?: { onPurchaseSuccess?: () => void | Promise<void> },
   ) => void>(),
 }));
+const analyticsMocks = vi.hoisted(() => ({
+  trackAnalyticsEvent: vi.fn(),
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -73,6 +76,10 @@ vi.mock("@/components/app-message-provider", () => ({
   useAppMessage: () => ({ showMessage: billingMocks.showMessage }),
 }));
 
+vi.mock("@/lib/analytics-events", () => ({
+  trackAnalyticsEvent: analyticsMocks.trackAnalyticsEvent,
+}));
+
 beforeEach(() => {
   billingMocks.isTwa = false;
   vi.clearAllMocks();
@@ -120,6 +127,10 @@ describe("UpgradeDialog", () => {
     renderDialog({ open: true, errorCode: "free_active_card_limit" });
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(analyticsMocks.trackAnalyticsEvent).toHaveBeenCalledWith(
+      "subscription_restriction_opened",
+      { restriction_code: "free_active_card_limit" },
+    );
     expect(screen.getByRole("heading")).toHaveTextContent(/Aktif öğrenilecek kart kotan doldu/i);
     expect(screen.getByRole("button", { name: /ILK AY ÜCRETSIZ/i })).toHaveAttribute("data-restriction-subscription-details", "basic_monthly");
     expect(screen.getByRole("button", { name: /Kartları öğren/i })).toHaveClass("bg-action-learn");
@@ -165,8 +176,18 @@ describe("UpgradeDialog", () => {
     await user.click(screen.getByRole("button", { name: /ILK AY ÜCRETSIZ/i }));
 
     expect(subscriptionMocks.openSubscriptionDetails).toHaveBeenCalledWith(
-      { plan: "basic", cycle: "monthly", ctaLabel: expect.any(String) },
+      {
+        plan: "basic",
+        cycle: "monthly",
+        ctaLabel: expect.any(String),
+        source: "restriction",
+        restrictionCode: "free_active_card_limit",
+      },
       { onPurchaseSuccess: expect.any(Function) },
+    );
+    expect(analyticsMocks.trackAnalyticsEvent).toHaveBeenCalledWith(
+      "subscription_restriction_details_opened",
+      { restriction_code: "free_active_card_limit" },
     );
     expect(onOpenChange).not.toHaveBeenCalled();
   });
@@ -184,7 +205,13 @@ describe("UpgradeDialog", () => {
     await user.click(screen.getByRole("button", { name: /ILK AY ÜCRETSIZ/i }));
 
     expect(subscriptionMocks.openSubscriptionDetails).toHaveBeenCalledWith(
-      { plan: "basic", cycle: "monthly", ctaLabel: expect.any(String) },
+      {
+        plan: "basic",
+        cycle: "monthly",
+        ctaLabel: expect.any(String),
+        source: "restriction",
+        restrictionCode: "free_active_card_limit",
+      },
       { onPurchaseSuccess: expect.any(Function) },
     );
     expect(billingMocks.purchase).not.toHaveBeenCalled();

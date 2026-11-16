@@ -14,6 +14,10 @@ import { runInNewContext } from "node:vm";
 import { fileURLToPath } from "node:url";
 import { buildSync } from "esbuild";
 import { validateGoogleServicesConfig } from "./google-services-config.mjs";
+import {
+  getMetaAndroidConfig,
+  META_ANDROID_SDK_VERSION,
+} from "./meta-android-config.mjs";
 
 export { validateGoogleServicesConfig } from "./google-services-config.mjs";
 
@@ -40,6 +44,7 @@ export const ANDROID_JAVA_TEMPLATE_FILES = [
   "NativeLoadingIndicatorView.java",
   "NativeLoadingCatalog.java",
   "NativeAnalyticsReceiver.java",
+  "NativeMetaAnalytics.java",
   "EventReceiverActivity.java",
 ];
 
@@ -79,26 +84,52 @@ function matchValue(contents, expression, fallback) {
 }
 
 function quoteGroovy(value) {
-  return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  return String(value)
+    .replace(/\\/g, "\\\\")
+    .replace(/\$/g, "\\$")
+    .replace(/"/g, '\\"');
 }
 
 function patchRootBuildGradle(contents) {
-  if (contents.includes("com.google.gms:google-services:")) return contents;
+  let patched = contents;
+  if (!patched.includes("mavenCentral()")) {
+    if (patched.includes("        google()\n")) {
+      patched = patched.replaceAll("        google()\n", "        google()\n        mavenCentral()\n");
+    } else if (patched.includes("repositories {")) {
+      patched = patched.replace("repositories {", "repositories {\n        mavenCentral()", 1);
+    } else {
+      patched = patched.replace(
+        "buildscript {",
+        "buildscript {\n    repositories {\n        mavenCentral()\n    }",
+      );
+      if (!patched.includes("allprojects {")) {
+        patched = `${patched}\nallprojects { repositories { mavenCentral() } }\n`;
+      }
+    }
+  }
+
+  if (patched.includes("com.google.gms:google-services:")) return patched;
 
   const androidPluginLine = "classpath 'com.android.tools.build:gradle:8.9.1'";
-  if (!contents.includes(androidPluginLine)) {
+  if (!patched.includes(androidPluginLine)) {
     throw new Error(
       "Generated root build.gradle is missing the Android Gradle plugin classpath.",
     );
   }
 
-  return contents.replace(
+  return patched.replace(
     androidPluginLine,
     `${androidPluginLine}\n        classpath 'com.google.gms:google-services:${GOOGLE_SERVICES_PLUGIN_VERSION}'`,
   );
 }
 
-function buildAppGradle({ packageName, host, versionCode, versionName, minSdkVersion }) {
+function buildAppGradle({ packageName, host, versionCode, versionName, minSdkVersion, meta }) {
+  const metaResValues = meta.enabled
+    ? `        resValue "string", "meta_analytics_enabled", "true"
+        resValue "string", "facebook_app_id", "${quoteGroovy(meta.appId)}"
+        resValue "string", "facebook_client_token", "${quoteGroovy(meta.clientToken)}"`
+    : `        resValue "string", "meta_analytics_enabled", "false"`;
+
   return `plugins {
     id 'com.android.application'
     id 'com.google.gms.google-services'
@@ -119,6 +150,7 @@ android {
         resValue "string", "launcherName", "FoxiesDeck"
         resValue "string", "launchUrl", "https://${quoteGroovy(host)}/"
         resValue "string", "hostName", "${quoteGroovy(host)}"
+${metaResValues}
     }
 
     // The UI media is delivered inside the AAB as an install-time asset pack.
@@ -177,11 +209,54 @@ dependencies {
     implementation platform('com.google.firebase:firebase-bom:33.1.2')
     implementation 'com.google.firebase:firebase-analytics'
     implementation 'androidx.lifecycle:lifecycle-process:2.8.7'
+    implementation 'com.facebook.android:facebook-core:${META_ANDROID_SDK_VERSION}'
 }
 `;
 }
 
-const HYBRID_MANIFEST = ({ packageName }) => `<?xml version="1.0" encoding="utf-8"?>
+const HYBRID_MANIFEST = ({ packageName, meta }) => {
+  const advertiserIdPermission = meta.enabled
+    ? `    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />`
+    : `    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_CUSTOM_AUDIENCE" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_TOPICS" tools:node="remove" />`;
+  const metaMetadata = meta.enabled
+    ? `
+        <meta-data
+            android:name="com.facebook.sdk.ApplicationId"
+            android:value="@string/facebook_app_id" />
+        <meta-data
+            android:name="com.facebook.sdk.ClientToken"
+            android:value="@string/facebook_client_token" />
+        <meta-data
+            android:name="com.facebook.sdk.AutoInitEnabled"
+            android:value="true" />
+        <meta-data
+            android:name="com.facebook.sdk.AutoLogAppEventsEnabled"
+            android:value="false" />
+        <meta-data
+            android:name="com.facebook.sdk.AutoLogMetaDataEnabled"
+            android:value="false" />
+        <meta-data
+            android:name="com.facebook.sdk.AutoLogProductImprovementEnabled"
+            android:value="false" />
+        <meta-data
+            android:name="com.facebook.sdk.AdvertiserIDCollectionEnabled"
+            android:value="true" />`
+    : "";
+  const disabledMetaProvider = meta.enabled
+    ? ""
+    : `
+        <!-- facebook-core is compiled into every shell, but must not auto-initialize
+             without the paired Meta credentials. -->
+        <provider
+            android:name="com.facebook.internal.FacebookInitProvider"
+            android:authorities="${packageName}.FacebookInitProvider"
+            tools:node="remove" />`;
+
+  return `<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET" />
@@ -190,8 +265,7 @@ const HYBRID_MANIFEST = ({ packageName }) => `<?xml version="1.0" encoding="utf-
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="com.android.vending.BILLING" />
-    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
-    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" tools:node="remove" />
+${advertiserIdPermission}
 
     <!-- Android 11+ hides TTS engines unless the app declares this query. -->
     <queries>
@@ -214,6 +288,8 @@ const HYBRID_MANIFEST = ({ packageName }) => `<?xml version="1.0" encoding="utf-
         <meta-data
             android:name="google_analytics_adid_collection_enabled"
             android:value="false" />
+${metaMetadata}
+${disabledMetaProvider}
 
         <activity
             android:name="${packageName}.LauncherActivity"
@@ -263,6 +339,7 @@ const HYBRID_MANIFEST = ({ packageName }) => `<?xml version="1.0" encoding="utf-
     </application>
 </manifest>
 `;
+};
 
 const APP_ICON = `<?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
@@ -348,6 +425,9 @@ function buildProguardBridgeRules(packageName, existingRules) {
   }
   if (!existingRules.includes("NativeTextToSpeechBridge")) {
     rules.push(`-keep class ${packageName}.NativeTextToSpeechBridge { *; }`);
+  }
+  if (!existingRules.includes("NativeMetaAnalytics")) {
+    rules.push(`-keep class ${packageName}.NativeMetaAnalytics { *; }`);
   }
   if (!existingRules.includes("@android.webkit.JavascriptInterface")) {
     rules.push(`-keepclassmembers class * {
@@ -627,6 +707,10 @@ export async function patchGeneratedAndroidProject(
   const minSdkVersion = ANDROID_MIN_SDK;
   const rootGradlePath = path.join(projectDir, "build.gradle");
   const existingRootGradle = await readText(rootGradlePath);
+  const metaEnvFilePath = process.env.META_ANDROID_ENV_FILE
+    ? path.resolve(process.env.META_ANDROID_ENV_FILE)
+    : path.join(ROOT, ".env.local");
+  const meta = getMetaAndroidConfig({ envFilePath: metaEnvFilePath });
 
   // The Google Services plugin can build a Firebase-enabled shell even when
   // the JSON belongs to a different Android package, so check the identity
@@ -635,14 +719,14 @@ export async function patchGeneratedAndroidProject(
 
   await writeText(
     appGradlePath,
-    buildAppGradle({ packageName, host, versionCode, versionName, minSdkVersion }),
+    buildAppGradle({ packageName, host, versionCode, versionName, minSdkVersion, meta }),
   );
   await writeText(rootGradlePath, patchRootBuildGradle(existingRootGradle));
   await writeText(path.join(projectDir, "settings.gradle"), "include ':app', ':ui-media'\n");
   await writeText(path.join(projectDir, "ui-media", "build.gradle"), ASSET_PACK_GRADLE);
   await writeText(
     path.join(projectDir, "app", "src", "main", "AndroidManifest.xml"),
-    HYBRID_MANIFEST({ packageName }),
+    HYBRID_MANIFEST({ packageName, meta }),
   );
   await writeText(
     path.join(projectDir, "app", "src", "main", "res", "mipmap-anydpi-v26", "ic_launcher.xml"),
@@ -707,6 +791,7 @@ export async function patchGeneratedAndroidProject(
     assetDeliveryVersion: ASSET_DELIVERY_VERSION,
     runtime: "hybrid-webview",
     assetPack: "ui_media",
+    metaAnalyticsConfigured: meta.enabled,
   };
   console.log(JSON.stringify(result, null, 2));
   return result;

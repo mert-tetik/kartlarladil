@@ -9,7 +9,7 @@ describe("localized subscription card-limit copy", () => {
       const learnedLimit = dictionary["limit.learnedCardLimitDescription"];
 
       expect(activeLimit).toContain("20");
-      expect(learnedLimit).toContain("100");
+      expect(learnedLimit).toContain("50");
       expect(activeLimit).not.toMatch(/\?{2,}/);
       expect(learnedLimit).not.toMatch(/\?{2,}/);
     });

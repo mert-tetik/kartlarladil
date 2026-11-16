@@ -44,11 +44,14 @@ import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText }
 import { cn } from "@/lib/utils";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { LocaleCode, SubscriptionPlan } from "@/types/domain";
+import type { AnalyticsPurchaseSource } from "@/lib/analytics-events";
 
 export type SubscriptionDetailsSelection = {
   plan: Exclude<SubscriptionPlan, "free">;
   cycle: BillingCycle;
   ctaLabel?: string;
+  source?: AnalyticsPurchaseSource;
+  restrictionCode?: string;
 };
 
 export interface GlobalSubscriptionDetailsOverlayProps {
@@ -58,7 +61,10 @@ export interface GlobalSubscriptionDetailsOverlayProps {
   isTwa: boolean;
   currencyCode: string | null;
   googlePlayPricing: GooglePlayPricingStatus;
-  purchase: (sku: string) => Promise<unknown>;
+  purchase: (
+    sku: string,
+    context?: { source?: AnalyticsPurchaseSource; restrictionCode?: string },
+  ) => Promise<unknown>;
   purchaseLoading: boolean;
   purchaseSupported: boolean;
   onClose: () => void;
@@ -179,7 +185,10 @@ export function GlobalSubscriptionDetailsOverlay({
     }
 
     try {
-      await purchase(getGooglePlaySku(selection.plan, selection.cycle));
+      await purchase(getGooglePlaySku(selection.plan, selection.cycle), {
+        source: selection.source,
+        restrictionCode: selection.restrictionCode,
+      });
       handleClose(true);
     } catch (error) {
       if (isGooglePlayPurchaseCancellation(error)) return;

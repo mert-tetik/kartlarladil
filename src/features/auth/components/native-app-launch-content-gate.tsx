@@ -14,9 +14,6 @@ export function NativeAppLaunchContentGate({
 }) {
   const { user, isSessionReady } = useAuthSession();
   const inventoryHydrated = useInventoryStore((state) => state.hydrated);
-  const cloudEnabled = useInventoryStore((state) => state.cloudEnabled);
-  const cloudLoading = useInventoryStore((state) => state.cloudLoading);
-  const cloudLoadComplete = useInventoryStore((state) => state.cloudLoadComplete);
   const ownerUserId = useInventoryStore((state) => state.ownerUserId);
 
   if (enabled && (!isSessionReady || !user)) {
@@ -27,9 +24,6 @@ export function NativeAppLaunchContentGate({
     isSessionReady,
     userId: user?.id ?? null,
     inventoryHydrated,
-    cloudEnabled,
-    cloudLoading,
-    cloudLoadComplete,
     ownerUserId,
   })) {
     return null;

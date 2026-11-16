@@ -70,16 +70,19 @@ public class EventReceiverActivity extends Activity {
         if (!REVIEW_IN_FLIGHT.compareAndSet(false, true)) return;
 
         analytics.logEvent("fd_play_review_requested", null);
+        NativeMetaAnalytics.logEvent(this, "fd_play_review_requested", null);
         ReviewManager reviewManager = ReviewManagerFactory.create(this);
         reviewManager.requestReviewFlow().addOnCompleteListener(request -> {
             if (!request.isSuccessful()) {
                 analytics.logEvent("fd_play_review_unavailable", null);
+                NativeMetaAnalytics.logEvent(this, "fd_play_review_unavailable", null);
                 finishPlayReviewRequest();
                 return;
             }
             ReviewInfo reviewInfo = request.getResult();
             reviewManager.launchReviewFlow(this, reviewInfo).addOnCompleteListener(result -> {
                 analytics.logEvent("fd_play_review_flow_completed", null);
+                NativeMetaAnalytics.logEvent(this, "fd_play_review_flow_completed", null);
                 finishPlayReviewRequest();
             });
         });

@@ -386,7 +386,7 @@ const dictionary = {
   "limit.aiMonthlyLimitTitle": "MiesiÄ™czny limit wiadomoÅ›ci AI osiÄ…gniÄ™ty",
   "limit.defaultDescription": "Ta akcja wykracza poza limity twojego aktualnego planu. Zaktualizuj swój plan, aby odblokowaÄ‡ wiÄ™cej.",
   "limit.defaultTitle": "OsiÄ…gniÄ™to limit planu",
-  "limit.learnedCardLimitDescription": "Darmowy plan pozwala nauczyć się łącznie 100 kart. Ulepsz plan, aby uczyć się więcej.",
+  "limit.learnedCardLimitDescription": "Darmowy plan pozwala nauczyć się łącznie 50 kart. Ulepsz plan, aby uczyć się więcej.",
   "limit.learnedCardLimitTitle": "Limit nauczonych kart osiÄ…gniÄ™ty",
   "limit.cardAlreadyActiveTitle": "Ta karta jest juÅ¼ aktywna",
   "limit.cardAlreadyActiveDescription": "Ta karta jest juÅ¼ w twoich aktywnych kartach. Nie moÅ¼esz dodaÄ‡ tej samej karty dwa razy.",

@@ -37,6 +37,7 @@ import { SlowConnectionMonitor } from "@/components/slow-connection-monitor";
 import { MobileBackNavigation } from "@/components/mobile-back-navigation";
 import { DevelopmentServiceWorkerCleanup } from "@/components/development-service-worker-cleanup";
 import { NativeLoadingCardsBridge } from "@/components/native-loading-cards-bridge";
+import { AnalyticsSessionTracker } from "@/components/analytics-session-tracker";
 
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { LocaleCode } from "@/types/domain";
@@ -63,6 +64,7 @@ export function AppShell({
         <MobileViewportController />
         <GlobalTapVibration />
         <AuthSessionProvider user={user}>
+        <AnalyticsSessionTracker />
         <NativeLoadingCardsBridge />
         <QuizPoolAuthBoundary />
         <OfflineInventorySync />

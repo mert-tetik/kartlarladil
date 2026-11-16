@@ -34,6 +34,8 @@ import {
   type TutorialSpeechKey,
 } from "@/features/tutorial/tutorial-speech";
 import { vibrate } from "@/lib/vibration";
+import { trackAnalyticsEvent } from "@/lib/analytics-events";
+import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 
 const MOBILE_BREAKPOINT = 1023;
 const SPOTLIGHT_PADDING = 18;
@@ -602,6 +604,10 @@ export function LandingTutorial() {
         event.preventDefault();
         event.stopPropagation();
         complete();
+        if (!testMode) {
+          trackAnalyticsEvent("tutorial_completed");
+          sendTwaAnalyticsEvent("fd_tutorial_complete", { once: true });
+        }
         allowProgrammaticTargetClickRef.current = true;
         try {
           target.click();

@@ -386,7 +386,7 @@ const dictionary = {
   "limit.aiMonthlyLimitTitle": "Aylık AI mesaj kotan doldu",
   "limit.defaultDescription": "Bu işlem şu anki planının limitleri dışında. Daha fazla özellik için planını yükselt.",
   "limit.defaultTitle": "İşlem sınırına takıldın",
-  "limit.learnedCardLimitDescription": "Ücretsiz planda toplamda en fazla 100 kart öğrenebilirsin. Yeni kart öğrenmek için planını yükselt.",
+  "limit.learnedCardLimitDescription": "Ücretsiz planda toplamda en fazla 50 kart öğrenebilirsin. Yeni kart öğrenmek için planını yükselt.",
   "limit.learnedCardLimitTitle": "Öğrenilen kart kotan doldu",
   "limit.cardAlreadyActiveTitle": "Bu kart zaten aktif kartlarında",
   "limit.cardAlreadyActiveDescription": "Bu kart zaten aktif kartların arasında. Aynı kartı tekrar ekleyemezsin.",

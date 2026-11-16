@@ -3,6 +3,8 @@
 import { getTwaMode } from "@/features/install-app/twa-mode";
 
 const TWA_ANALYTICS_SENT_KEY = "foxiesdeck:twa-analytics-sent";
+const TWA_REGISTRATION_EVENT_KEY = "foxiesdeck:twa-registration-event";
+const REGISTRATION_DEDUPLICATION_WINDOW_MS = 10 * 60 * 1000;
 
 function getSentSet(): Set<string> {
   if (typeof window === "undefined") {
@@ -37,6 +39,28 @@ export function isTwaMode(): boolean {
 export interface TwaAnalyticsOptions {
   once?: boolean;
   params?: Record<string, string | number | boolean>;
+}
+
+export function sendTwaSubscriptionPurchaseEvent(
+  sku: string,
+  price?: { value?: string; currency?: string } | null,
+): void {
+  const plan = sku.startsWith("basic_") ? "basic" : sku.startsWith("pro_") ? "pro" : "";
+  const billingCycle = sku.endsWith("_monthly")
+    ? "monthly"
+    : sku.endsWith("_yearly")
+      ? "yearly"
+      : "";
+
+  sendTwaAnalyticsEvent("fd_subscription_purchase", {
+    params: {
+      plan,
+      billing_cycle: billingCycle,
+      sku,
+      value: price?.value ?? "",
+      currency: price?.currency ?? "",
+    },
+  });
 }
 
 function navigateTwaUrl(url: string): void {
@@ -89,6 +113,48 @@ export function sendTwaAnalyticsEvent(
   if (options.once) {
     markSent(eventName);
   }
+}
+
+/** Send registration once across the form-success and auth-session paths. */
+export function sendTwaRegistrationEvent(
+  registrationMethod: string,
+  accountKey?: string,
+): void {
+  if (!isTwaMode()) {
+    return;
+  }
+
+  const now = Date.now();
+  const accountMarker = accountKey ? `${TWA_REGISTRATION_EVENT_KEY}:${accountKey}` : null;
+
+  try {
+    const anonymousTimestamp = Number.parseInt(
+      window.localStorage.getItem(TWA_REGISTRATION_EVENT_KEY) ?? "",
+      10,
+    );
+    const accountWasRecentlyTracked = accountMarker
+      ? window.localStorage.getItem(accountMarker) !== null
+      : false;
+
+    if (
+      accountWasRecentlyTracked ||
+      (!accountKey && Number.isFinite(anonymousTimestamp) && now - anonymousTimestamp < REGISTRATION_DEDUPLICATION_WINDOW_MS) ||
+      (accountKey && Number.isFinite(anonymousTimestamp) && now - anonymousTimestamp < REGISTRATION_DEDUPLICATION_WINDOW_MS)
+    ) {
+      return;
+    }
+
+    window.localStorage.setItem(TWA_REGISTRATION_EVENT_KEY, String(now));
+    if (accountMarker) {
+      window.localStorage.setItem(accountMarker, String(now));
+    }
+  } catch {
+    // Storage is only a deduplication aid; the event remains best-effort.
+  }
+
+  sendTwaAnalyticsEvent("fd_registration_completed", {
+    params: { registration_method: registrationMethod },
+  });
 }
 
 export function requestGooglePlayReview(): void {

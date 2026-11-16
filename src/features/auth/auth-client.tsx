@@ -3,11 +3,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { normalizePreferredTier } from "@/features/auth/preferred-tier";
+import { readCachedAuthProfile, writeCachedAuthProfile } from "@/features/auth/auth-profile-cache";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
 import { beginNavigationIntent } from "@/lib/navigation-intent";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
-import { setTwaAnalyticsUserId } from "@/lib/twa-analytics";
+import { sendTwaAnalyticsEvent, sendTwaRegistrationEvent, setTwaAnalyticsUserId } from "@/lib/twa-analytics";
 import type { AuthProfile, AuthShellUser } from "@/features/auth/auth-types";
 import { GemOptimisticLedger, type GemSpendReservation } from "@/features/gems/gem-optimistic-ledger";
 import type { GemBalances, GemType } from "@/features/gems/gem-types";
@@ -48,7 +49,7 @@ const LANGUAGE_CODES: LanguageCode[] = [
   "zh-CN",
 ];
 const LOCALE_CODES: LocaleCode[] = LANGUAGE_CODES;
-const PROFILE_SELECT_BASE = "display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, quiz_result_points, game_points, gem_points, blue_gems, green_gems, purple_gems, push_marketing_enabled, leaderboard_visible, profile_picture_index";
+const PROFILE_SELECT_BASE = "display_name, preferred_language_code, preferred_ui_locale, preferred_tier, onboarding_completed, ai_practice_points, chest_points, streak_points, mission_points, quiz_result_points, game_points, gem_points, blue_gems, green_gems, purple_gems, push_marketing_enabled, leaderboard_visible, theme, profile_picture_index";
 const PROFILE_SELECT_WITH_MEDALS = `${PROFILE_SELECT_BASE}, quiz_result_medals`;
 
 function normalizeClientProfile(row: {
@@ -70,6 +71,7 @@ function normalizeClientProfile(row: {
   purple_gems?: number | null;
   push_marketing_enabled: boolean | null;
   leaderboard_visible: boolean | null;
+  theme: string | null;
   profile_picture_index: number | null;
 }): AuthShellUser["profile"] {
   const preferredLanguageCode = row.preferred_language_code;
@@ -101,6 +103,7 @@ function normalizeClientProfile(row: {
     purpleGems: row.purple_gems ?? 0,
     pushMarketingEnabled: row.push_marketing_enabled ?? false,
     leaderboardVisible: row.leaderboard_visible ?? false,
+    theme: row.theme ?? null,
     profilePictureIndex:
       typeof row.profile_picture_index === "number" &&
       Number.isInteger(row.profile_picture_index) &&
@@ -117,6 +120,48 @@ function getGemBalances(profile: AuthProfile | null | undefined): GemBalances {
     green: profile?.greenGems ?? 0,
     purple: profile?.purpleGems ?? 0,
   };
+}
+
+const RECENT_ACCOUNT_WINDOW_MS = 10 * 60 * 1000;
+
+function getAuthProvider(sessionUser: {
+  app_metadata?: Record<string, unknown>;
+  identities?: Array<{ provider?: string | null }> | null;
+}): string {
+  const provider = sessionUser.app_metadata?.provider;
+  if (typeof provider === "string" && provider.trim()) return provider;
+
+  const identityProvider = sessionUser.identities?.find(
+    (identity) => typeof identity.provider === "string" && identity.provider.trim(),
+  )?.provider;
+  return identityProvider?.trim() || "email";
+}
+
+function isRecentlyCreatedAccount(sessionUser: {
+  created_at?: string;
+  last_sign_in_at?: string | null;
+}): boolean {
+  const createdAt = Date.parse(sessionUser.created_at ?? "");
+  if (!Number.isFinite(createdAt)) return false;
+
+  const age = Date.now() - createdAt;
+  if (age < -60_000 || age > RECENT_ACCOUNT_WINDOW_MS) return false;
+
+  const lastSignInAt = Date.parse(sessionUser.last_sign_in_at ?? "");
+  return !Number.isFinite(lastSignInAt) || Math.abs(lastSignInAt - createdAt) <= RECENT_ACCOUNT_WINDOW_MS;
+}
+
+function trackRecentRegistration(sessionUser: {
+  id: string;
+  created_at?: string;
+  last_sign_in_at?: string | null;
+  app_metadata?: Record<string, unknown>;
+  identities?: Array<{ provider?: string | null }> | null;
+}): void {
+  if (!isRecentlyCreatedAccount(sessionUser)) return;
+
+  const provider = getAuthProvider(sessionUser);
+  sendTwaRegistrationEvent(provider, sessionUser.id);
 }
 
 export function AuthSessionProvider({
@@ -143,6 +188,11 @@ export function AuthSessionProvider({
   );
   const activeUserIdRef = useRef<string | null>(initialUser?.id ?? null);
   const sessionSyncGenerationRef = useRef(0);
+  const profileSyncPromiseRef = useRef<{
+    userId: string;
+    generation: number;
+    promise: Promise<void>;
+  } | null>(null);
   const locallySignedOutRef = useRef(false);
   const gemLedgerRef = useRef(new GemOptimisticLedger(getGemBalances(initialUser?.profile)));
   const previousInitialUserRef = useRef(initialUser);
@@ -165,6 +215,10 @@ export function AuthSessionProvider({
         }
       : current);
   }, [getVisibleGemBalances]);
+
+  useEffect(() => {
+    if (user) writeCachedAuthProfile(user.id, user.profile);
+  }, [user]);
 
   const reserveGemSpend = useCallback((type: GemType, amount: number): GemSpendReservation | null => {
     const userId = activeUserIdRef.current;
@@ -246,19 +300,11 @@ export function AuthSessionProvider({
     );
   }, [client, user, getVisibleGemBalances]);
 
-  const syncUserFromSession = useCallback(async (
+  const fetchAndApplySessionProfile = useCallback(async (
     sessionUser: { id: string; email?: string | null },
     generation: number,
   ) => {
-    if (
-      !client ||
-      !sessionUser.email ||
-      locallySignedOutRef.current ||
-      sessionSyncGenerationRef.current !== generation ||
-      activeUserIdRef.current === sessionUser.id
-    ) {
-      return;
-    }
+    if (!client || !sessionUser.email) return;
 
     let { data, error } = await client
       .from("user_profiles")
@@ -288,17 +334,89 @@ export function AuthSessionProvider({
     gemLedgerRef.current.setConfirmedBalances(confirmedGemBalances);
     const visibleGemBalances = getVisibleGemBalances();
     activeUserIdRef.current = sessionUser.id;
-    setUser({
-      id: sessionUser.id,
-      email: sessionUser.email,
-      profile: {
-        ...nextProfile,
-        blueGems: visibleGemBalances.blue,
-        greenGems: visibleGemBalances.green,
-        purpleGems: visibleGemBalances.purple,
-      },
+    setUser((current) => {
+      if (
+        locallySignedOutRef.current ||
+        sessionSyncGenerationRef.current !== generation ||
+        (current && current.id !== sessionUser.id)
+      ) {
+        return current;
+      }
+
+      return {
+        id: sessionUser.id,
+        email: sessionUser.email!,
+        profile: {
+          ...nextProfile,
+          blueGems: visibleGemBalances.blue,
+          greenGems: visibleGemBalances.green,
+          purpleGems: visibleGemBalances.purple,
+        },
+      };
     });
   }, [client, getVisibleGemBalances]);
+
+  const syncUserFromSession = useCallback(async (
+    sessionUser: { id: string; email?: string | null },
+    generation: number,
+  ) => {
+    if (
+      !client ||
+      !sessionUser.email ||
+      locallySignedOutRef.current ||
+      sessionSyncGenerationRef.current !== generation
+    ) {
+      return;
+    }
+
+    if (activeUserIdRef.current === sessionUser.id) return;
+
+    const cachedProfile = readCachedAuthProfile(sessionUser.id);
+    if (cachedProfile) {
+      activeUserIdRef.current = sessionUser.id;
+      gemLedgerRef.current.reset(getGemBalances(cachedProfile));
+      setUser({ id: sessionUser.id, email: sessionUser.email, profile: cachedProfile });
+
+      const refreshPromise = fetchAndApplySessionProfile(sessionUser, generation);
+      profileSyncPromiseRef.current = {
+        userId: sessionUser.id,
+        generation,
+        promise: refreshPromise,
+      };
+      void refreshPromise.catch(() => undefined).finally(() => {
+        if (
+          profileSyncPromiseRef.current?.userId === sessionUser.id &&
+          profileSyncPromiseRef.current.generation === generation
+        ) {
+          profileSyncPromiseRef.current = null;
+        }
+      });
+      return;
+    }
+
+    const pending = profileSyncPromiseRef.current;
+    if (pending?.userId === sessionUser.id && pending.generation === generation) {
+      await pending.promise;
+      return;
+    }
+
+    const profilePromise = fetchAndApplySessionProfile(sessionUser, generation);
+    profileSyncPromiseRef.current = {
+      userId: sessionUser.id,
+      generation,
+      promise: profilePromise,
+    };
+    try {
+      await profilePromise;
+    } finally {
+      if (
+        profileSyncPromiseRef.current?.userId === sessionUser.id &&
+        profileSyncPromiseRef.current.generation === generation
+      ) {
+        profileSyncPromiseRef.current = null;
+      }
+    }
+  }, [client, fetchAndApplySessionProfile]);
 
   useEffect(() => {
     const previousUser = previousInitialUserRef.current;
@@ -385,9 +503,20 @@ export function AuthSessionProvider({
 
       if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user) {
         if (event === "SIGNED_IN") {
+          const provider = getAuthProvider(session.user);
+          sendTwaAnalyticsEvent("fd_login", {
+            params: { login_method: provider },
+          });
+          trackRecentRegistration(session.user);
           locallySignedOutRef.current = false;
           sessionSyncGenerationRef.current += 1;
           setIsSessionReady(false);
+        } else {
+          // OAuth callbacks can restore the browser session as INITIAL_SESSION
+          // instead of emitting SIGNED_IN. Keep recently-created accounts
+          // visible to the registration conversion event without treating
+          // ordinary app launches as registrations.
+          trackRecentRegistration(session.user);
         }
         const generation = sessionSyncGenerationRef.current;
         window.setTimeout(() => {
@@ -409,6 +538,7 @@ export function AuthSessionProvider({
         return;
       }
       if (session?.user) {
+        trackRecentRegistration(session.user);
         await syncUserFromSession(session.user, initialSyncGeneration).catch(() => undefined);
       }
       if (sessionSyncGenerationRef.current === initialSyncGeneration) setIsSessionReady(true);

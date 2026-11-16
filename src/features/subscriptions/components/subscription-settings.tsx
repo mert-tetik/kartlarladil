@@ -104,7 +104,7 @@ function RestorePurchasesButton() {
 
   async function handleRestore() {
     try {
-      await restorePurchases();
+      await restorePurchases({ source: "manual" });
       await refreshEntitlements();
       showMessage(t("account.subscription.restoreSuccess"), "success");
     } catch (error) {

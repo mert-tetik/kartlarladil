@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
+import { useAuthSession } from "@/features/auth/auth-client";
 import {
   getEntitledThemeId,
   getThemeById,
@@ -44,11 +45,17 @@ export function ThemeProvider({
   children: ReactNode;
 }) {
   const [themeId, setThemeId] = useState(() => getThemeById(initialTheme).id);
+  const { user } = useAuthSession();
   const { entitlements } = useSubscription();
   const hasPaidThemeAccess = entitlements
     ? isPaidPlan(entitlements.effectivePlan)
     : isThemePaid(getThemeById(initialTheme).id);
   const visibleThemeId = getEntitledThemeId(themeId, hasPaidThemeAccess);
+
+  useEffect(() => {
+    if (!user?.profile.theme) return;
+    setThemeId(getThemeById(user.profile.theme).id);
+  }, [user?.profile.theme]);
 
   useEffect(() => {
     applyThemeToDocument(visibleThemeId);

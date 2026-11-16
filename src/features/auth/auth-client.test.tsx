@@ -2,6 +2,7 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthSessionProvider, useAuthSession } from "@/features/auth/auth-client";
+import { writeCachedAuthProfile } from "@/features/auth/auth-profile-cache";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 
 const mocks = vi.hoisted(() => ({
@@ -30,6 +31,8 @@ vi.mock("@/lib/supabase/client", () => ({
 }));
 
 vi.mock("@/lib/twa-analytics", () => ({
+  sendTwaAnalyticsEvent: vi.fn(),
+  sendTwaRegistrationEvent: vi.fn(),
   setTwaAnalyticsUserId: vi.fn(),
 }));
 
@@ -100,6 +103,7 @@ function SessionStateProbe() {
 describe("AuthSessionProvider", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
     mocks.onAuthStateChange.mockReturnValue({
       data: { subscription: { unsubscribe: vi.fn() } },
     });
@@ -166,6 +170,40 @@ describe("AuthSessionProvider", () => {
     });
 
     expect(screen.getByTestId("session-state")).toHaveTextContent(initialUser.email);
+  });
+
+  it("shows the matching local profile immediately and refreshes it in the background", async () => {
+    let resolveBackgroundProfile!: (result: { data: typeof syncedProfile; error: null }) => void;
+    writeCachedAuthProfile(initialUser.id, {
+      ...initialUser.profile,
+      displayName: "Cached Foxy",
+      aiPracticePoints: 125,
+    });
+    mocks.getSession.mockResolvedValue({
+      data: { session: { user: { id: initialUser.id, email: initialUser.email } } },
+      error: null,
+    });
+    mocks.from.mockImplementation(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn(() => new Promise<{ data: typeof syncedProfile; error: null }>((resolve) => {
+        resolveBackgroundProfile = resolve;
+      })),
+    }));
+
+    render(
+      <AuthSessionProvider user={null}>
+        <SessionStateProbe />
+      </AuthSessionProvider>,
+    );
+
+    await screen.findByText(initialUser.email);
+    expect(screen.getByTestId("session-ready")).toHaveTextContent("true");
+    expect(mocks.from).toHaveBeenCalledOnce();
+
+    await act(async () => {
+      resolveBackgroundProfile({ data: syncedProfile, error: null });
+    });
   });
 
   it("does not mark a signed-out server snapshot ready until the browser session is restored", async () => {

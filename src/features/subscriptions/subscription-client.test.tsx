@@ -59,7 +59,7 @@ const staleFreeEntitlements: UserEntitlements = {
   provider: "admin",
   limits: {
     activeCards: 20,
-    learnedCards: 100,
+    learnedCards: 50,
     aiDailyMessages: 10,
     aiMonthlyMessages: 200,
   },

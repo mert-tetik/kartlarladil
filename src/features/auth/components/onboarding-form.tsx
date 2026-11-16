@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { completeOnboardingAction } from "@/features/auth/actions";
 import { getOnboardingLanguageDefaults } from "@/features/auth/onboarding-defaults";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
@@ -9,12 +9,24 @@ import { PreferenceFields } from "@/features/auth/components/preference-fields";
 import { SubmitButton } from "@/features/auth/components/submit-button";
 import { useDetectedLocale } from "@/i18n/use-detected-locale";
 import { useT } from "@/i18n/locale-provider";
+import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
+import { trackAnalyticsEvent } from "@/lib/analytics-events";
 
 export function OnboardingForm({ nextPath, countryCode }: { nextPath: string; countryCode?: string | null }) {
   const [state, formAction] = useActionState(completeOnboardingAction, AUTH_ACTION_IDLE_STATE);
   const t = useT();
   const detectedLocale = useDetectedLocale();
   const defaults = getOnboardingLanguageDefaults(countryCode, detectedLocale);
+  const onboardingTrackedRef = useRef(false);
+
+  useEffect(() => {
+    if (state.status !== "success" || onboardingTrackedRef.current) return;
+    onboardingTrackedRef.current = true;
+    trackAnalyticsEvent("onboarding_completed", { onboarding_source: "web" });
+    sendTwaAnalyticsEvent("fd_onboarding_completed", {
+      params: { onboarding_source: "web" },
+    });
+  }, [state.status]);
 
   return (
     <form

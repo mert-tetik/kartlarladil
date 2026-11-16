@@ -22,6 +22,8 @@ import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { useDetectedLocale } from "@/i18n/use-detected-locale";
 import { cn } from "@/lib/utils";
+import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
+import { trackAnalyticsEvent } from "@/lib/analytics-events";
 import type { LanguageCode, LocaleCode } from "@/types/domain";
 
 type OnboardingStep = "native" | "learning" | "picture";
@@ -122,6 +124,20 @@ export function MobileOnboardingForm({
     }
 
     handledSuccessRef.current = true;
+    if (!isLoginLanguageRefresh) {
+      trackAnalyticsEvent("onboarding_completed", {
+        onboarding_source: "mobile",
+        learning_language: preferredLanguageCode,
+        ui_locale: preferredUiLocale,
+      });
+      sendTwaAnalyticsEvent("fd_onboarding_completed", {
+        params: {
+          onboarding_source: "mobile",
+          learning_language: preferredLanguageCode,
+          ui_locale: preferredUiLocale,
+        },
+      });
+    }
     writeLandingCardLanguage(preferredLanguageCode);
     updateProfileField({
       preferredLanguageCode,
@@ -138,6 +154,7 @@ export function MobileOnboardingForm({
     preferredUiLocale,
     profilePictureIndex,
     refreshProfile,
+    isLoginLanguageRefresh,
     state.status,
     updateProfileField,
   ]);

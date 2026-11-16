@@ -28,6 +28,7 @@ import {
 } from "@/components/mobile-navbar-back";
 import { AccountMenu } from "@/features/auth/components/account-menu";
 import { ThemePickerDialog } from "@/features/auth/components/theme-picker-dialog";
+import { useAuthSession } from "@/features/auth/auth-client";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import { RankProgressPopover } from "@/features/progress/components/rank-progress-popover";
 import { useProgressStats } from "@/features/progress/progress-client";
@@ -85,6 +86,8 @@ const getServerHydrationSnapshot = () => false;
 
 export function AppNavigation({ user }: { user: AuthShellUser | null }) {
   const pathname = usePathname();
+  const { user: sessionUser, isSessionReady } = useAuthSession();
+  const visibleUser = isSessionReady ? sessionUser : user;
   const { stats } = useProgressStats();
   const { entitlements } = useSubscription();
   const { locale } = useLocale();
@@ -207,7 +210,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
                   <span className="sr-only">{t("common.back")}</span>
                 </Link>
               )
-            ) : user ? (
+            ) : visibleUser ? (
             <button
               type="button"
               onClick={() => {
@@ -253,7 +256,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
-            {user ? (
+            {visibleUser ? (
               <>
                 <PlanBadge className="hidden h-9 border-white/15 bg-white/10 px-2 py-1 text-[11px] text-white lg:inline-flex" />
               </>
@@ -261,12 +264,12 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
             <div className="mr-auto hidden lg:order-last lg:mr-0 lg:block">
               <LocaleSwitcher navbar />
             </div>
-            {user ? (
+            {visibleUser ? (
               <>
                 <div className="max-lg:hidden">
-                  <RankProgressPopover stats={stats} userId={user.id} navbar />
+                  <RankProgressPopover stats={stats} userId={visibleUser.id} navbar />
                 </div>
-                <AccountMenu user={user} navbar />
+                <AccountMenu user={visibleUser} navbar />
               </>
             ) : (
               <>
@@ -293,7 +296,7 @@ export function AppNavigation({ user }: { user: AuthShellUser | null }) {
         </>
       ) : null}
 
-      {user ? <ThemePickerDialog open={themeOpen} onOpenChange={setThemeOpen} /> : null}
+      {visibleUser ? <ThemePickerDialog open={themeOpen} onOpenChange={setThemeOpen} /> : null}
 
       {!isGamePlayRoute ? (
         <div

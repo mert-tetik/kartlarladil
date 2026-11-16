@@ -46,7 +46,7 @@ describe("PLAN_LIMITS", () => {
   it("free plan has the advertised limits", () => {
     expect(PLAN_LIMITS.free).toEqual({
       activeCards: 20,
-      learnedCards: 100,
+      learnedCards: 50,
       aiDailyMessages: 10,
       aiMonthlyMessages: 200,
       aiFeatureLimits: {

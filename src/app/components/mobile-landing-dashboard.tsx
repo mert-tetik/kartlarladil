@@ -155,6 +155,8 @@ export function MobileLandingDashboard() {
   const cloudEnabled = useInventoryStore((state) => state.cloudEnabled);
   const cloudLoading = useInventoryStore((state) => state.cloudLoading);
   const cloudLoadComplete = useInventoryStore((state) => state.cloudLoadComplete);
+  const cloudError = useInventoryStore((state) => state.cloudError);
+  const ownerUserId = useInventoryStore((state) => state.ownerUserId);
   const isTwa = useTwaMode();
   const waitingMissionCount = useMissionWaitingCount();
   const {
@@ -500,6 +502,12 @@ export function MobileLandingDashboard() {
 
   const activeCount = activeForLanguage.length;
   const learnedCount = learnedForLanguage.length;
+  const inventoryCountsPending = Boolean(
+    user &&
+    ownerUserId !== user.id &&
+    cards.length === 0 &&
+    (!cloudEnabled || cloudLoading || !cloudLoadComplete || Boolean(cloudError)),
+  );
   const hasLandingLayerOpen =
     languageSheetOpen ||
     infoSheetOpen ||
@@ -1100,9 +1108,9 @@ export function MobileLandingDashboard() {
       <div className="relative mt-2 grid shrink-0 grid-cols-2 overflow-hidden rounded-lg border border-border" data-route-transition-surface>
         <StatusBlock
           title={t("home.mobile.activeCards")}
-          count={activeCount}
+          count={inventoryCountsPending ? null : activeCount}
           variant="active"
-          onClick={() => openCardCenter("active")}
+          onClick={() => { if (!inventoryCountsPending) openCardCenter("active"); }}
           dataTutorialTarget="landing-learning-cards"
         />
         <span className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 text-sm font-semibold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.25)]">
@@ -1110,9 +1118,9 @@ export function MobileLandingDashboard() {
         </span>
         <StatusBlock
           title={t("home.mobile.learnedCards")}
-          count={learnedCount}
+          count={inventoryCountsPending ? null : learnedCount}
           variant="learned"
-          onClick={() => openCardCenter("learned")}
+          onClick={() => { if (!inventoryCountsPending) openCardCenter("learned"); }}
         />
       </div>
 
@@ -1121,16 +1129,16 @@ export function MobileLandingDashboard() {
         <ActionButton
           icon={GraduationCap}
           label={t("home.mobile.startLearning")}
-          locked={activeCount === 0}
-          onClick={() => handleStartLearning()}
+          locked={inventoryCountsPending || activeCount === 0}
+          onClick={() => { if (!inventoryCountsPending) handleStartLearning(); }}
           variant="active"
           dataTutorialTarget="start-learning"
         />
         <ActionButton
           icon={RotateCcw}
           label={t("home.mobile.repeatLearned")}
-          locked={learnedCount === 0}
-          onClick={handleRepeatLearned}
+          locked={inventoryCountsPending || learnedCount === 0}
+          onClick={() => { if (!inventoryCountsPending) handleRepeatLearned(); }}
           variant="learned"
           dataTutorialTarget="repeat-learned"
         />
@@ -1294,7 +1302,7 @@ function StatusBlock({
   dataTutorialTarget,
 }: {
   title: string;
-  count: number;
+  count: number | null;
   variant: "active" | "learned";
   onClick: () => void;
   dataTutorialTarget?: string;
@@ -1313,7 +1321,7 @@ function StatusBlock({
       )}
     >
       <span className="text-xs font-semibold leading-none">{title}</span>
-      <span className="mt-0.5 text-2xl font-bold">{count}</span>
+      <span className="mt-0.5 text-2xl font-bold">{count ?? "…"}</span>
     </button>
   );
 }

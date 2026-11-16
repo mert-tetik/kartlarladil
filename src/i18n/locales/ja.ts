@@ -386,7 +386,7 @@ const dictionary = {
   "limit.aiMonthlyLimitTitle": "月間AIメッセージの上限に達しました",
   "limit.defaultDescription": "このアクションは現在のプランの制限を超えています。プランをアップグレードして、さらに多くの機能を解除してください。",
   "limit.defaultTitle": "プランの制限に達しました",
-  "limit.learnedCardLimitDescription": "無料プランでは合計100枚までカードを学習できます。さらに学ぶにはプランをアップグレードしてください。",
+  "limit.learnedCardLimitDescription": "無料プランでは合計50枚までカードを学習できます。さらに学ぶにはプランをアップグレードしてください。",
   "limit.learnedCardLimitTitle": "学習済みカードの上限に達しました",
   "limit.cardAlreadyActiveTitle": "このカードはすでにアクティブです",
   "limit.cardAlreadyActiveDescription": "このカードはすでにアクティブカードに含まれています。同じカードを2回追加することはできません。",

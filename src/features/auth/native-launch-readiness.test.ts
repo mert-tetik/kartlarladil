@@ -5,9 +5,6 @@ const readyUserInput = {
   isSessionReady: true,
   userId: "user-1",
   inventoryHydrated: true,
-  cloudEnabled: true,
-  cloudLoading: false,
-  cloudLoadComplete: true,
   ownerUserId: "user-1",
 };
 
@@ -16,18 +13,16 @@ describe("isNativeLaunchDataReady", () => {
     expect(isNativeLaunchDataReady({ ...readyUserInput, isSessionReady: false })).toBe(false);
   });
 
-  it("waits for the signed-in user's inventory request to settle", () => {
-    expect(isNativeLaunchDataReady({ ...readyUserInput, cloudLoading: true })).toBe(false);
-    expect(isNativeLaunchDataReady({ ...readyUserInput, cloudLoadComplete: false })).toBe(false);
-    expect(isNativeLaunchDataReady({ ...readyUserInput, cloudEnabled: false })).toBe(false);
-  });
-
-  it("releases a signed-in user after inventory loading settles", () => {
+  it("releases a signed-in user from their own local snapshot while cloud refresh is pending", () => {
     expect(isNativeLaunchDataReady(readyUserInput)).toBe(true);
   });
 
   it("does not expose inventory belonging to another user", () => {
     expect(isNativeLaunchDataReady({ ...readyUserInput, ownerUserId: "user-2" })).toBe(false);
+  });
+
+  it("allows a new account with no owner-tagged local snapshot to load the cloud in background", () => {
+    expect(isNativeLaunchDataReady({ ...readyUserInput, ownerUserId: null })).toBe(true);
   });
 
   it("waits for guest inventory hydration before selecting the day's cards", () => {

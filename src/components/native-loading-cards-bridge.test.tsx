@@ -9,10 +9,6 @@ const mocks = vi.hoisted(() => ({
   inventoryState: {
     cards: [] as unknown[],
     hydrated: false,
-    cloudEnabled: false,
-    cloudLoading: false,
-    cloudLoadComplete: true,
-    cloudError: "",
     ownerUserId: null as string | null,
   },
   setCards: vi.fn(),
@@ -69,10 +65,6 @@ describe("NativeLoadingCardsBridge", () => {
     mocks.inventoryState = {
       cards: [],
       hydrated: true,
-      cloudEnabled: true,
-      cloudLoading: true,
-      cloudLoadComplete: false,
-      cloudError: "",
       ownerUserId: "user-1",
     };
     mocks.setCards.mockReset();
@@ -91,20 +83,12 @@ describe("NativeLoadingCardsBridge", () => {
     delete window.FoxiesDeckNativeLoading;
   });
 
-  it("keeps the native loader waiting until this user's cloud inventory settles", async () => {
-    const view = render(<NativeLoadingCardsBridge />);
-
-    await waitFor(() => expect(mocks.setCards).toHaveBeenCalled());
-    expect(mocks.setEssentialDataReady).not.toHaveBeenCalled();
-
-    mocks.inventoryState.cloudLoading = false;
-    mocks.inventoryState.cloudLoadComplete = true;
-    view.rerender(<NativeLoadingCardsBridge />);
-
+  it("marks the loader ready from this user's local inventory without waiting for cloud", async () => {
+    render(<NativeLoadingCardsBridge />);
     await waitFor(() => expect(mocks.setEssentialDataReady).toHaveBeenCalledOnce());
   });
 
-  it("reuses cached deck cards before cloud data settles and marks readiness after the cloud attempt", async () => {
+  it("reuses cached deck cards and marks readiness immediately while cloud data is pending", async () => {
     const cachedCard = {
       sourceKey: "en:word:hello",
       term: "hello",
@@ -118,15 +102,9 @@ describe("NativeLoadingCardsBridge", () => {
       mocks.readDailyCards() ?? selectDeckCards(),
     );
 
-    const view = render(<NativeLoadingCardsBridge />);
+    render(<NativeLoadingCardsBridge />);
 
     await waitFor(() => expect(mocks.setCards).toHaveBeenCalledWith(JSON.stringify([cachedCard])));
-    expect(mocks.setEssentialDataReady).not.toHaveBeenCalled();
-
-    mocks.inventoryState.cloudLoading = false;
-    mocks.inventoryState.cloudLoadComplete = true;
-    view.rerender(<NativeLoadingCardsBridge />);
-
     await waitFor(() => expect(mocks.setEssentialDataReady).toHaveBeenCalledOnce());
     expect(mocks.setCards).toHaveBeenLastCalledWith(JSON.stringify([cachedCard]));
   });
@@ -141,9 +119,6 @@ describe("NativeLoadingCardsBridge", () => {
       tier: "A1",
     };
     mocks.deckCards = [deckCard];
-    mocks.inventoryState.cloudLoading = false;
-    mocks.inventoryState.cloudLoadComplete = true;
-
     render(<NativeLoadingCardsBridge />);
 
     await waitFor(() => expect(mocks.setEssentialDataReady).toHaveBeenCalledOnce());

@@ -33,6 +33,7 @@ import { useLocale, useT } from "@/i18n/locale-provider";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn, createId } from "@/lib/utils";
+import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { useAppMessage } from "@/components/app-message-provider";
 import type { LanguageCode, LimitErrorCode, LocaleCode } from "@/types/domain";
 
@@ -273,6 +274,12 @@ export function AskChatPanel({
             nativeLanguageCode: normalizeDetectedLanguage(payload.nativeLanguageCode),
             learningLanguageCode: normalizeDetectedLanguage(payload.learningLanguageCode),
           });
+          sendTwaAnalyticsEvent("fd_ask_completed", {
+            params: {
+              context_language: contextLanguage ?? landingCardLanguage ?? fallbackLearningLanguage ?? currentLocale,
+              initial_term: messages.length === 0,
+            },
+          });
         }
       } else if (response.body) {
         const reader = response.body.getReader();
@@ -295,6 +302,13 @@ export function AskChatPanel({
         if (streamedText.trim().length === 0) {
           removePendingMessages(userMessage.id, assistantMessage.id);
           showMessage(t("ask.emptyResponse"), "error");
+        } else {
+          sendTwaAnalyticsEvent("fd_ask_completed", {
+            params: {
+              context_language: contextLanguage ?? landingCardLanguage ?? fallbackLearningLanguage ?? currentLocale,
+              initial_term: messages.length === 0,
+            },
+          });
         }
       }
     } catch {

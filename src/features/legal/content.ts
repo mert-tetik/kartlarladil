@@ -116,6 +116,9 @@ export const legalContent: Record<LocaleCode, LegalContentBySection> = {
 
 const fallbackLegalContent = legalContent.en;
 
+const META_ANALYTICS_NOTICE = `<h2>7. Mobile advertising measurement</h2><p>When the Android Meta App Events integration is enabled, selected app events such as registration, login, onboarding, learning progress, AI Practice, Ask, subscription purchases and product interactions may be shared with Meta for mobile advertising measurement and campaign optimization. Chat text and other user-generated message content are not sent through this event bridge. The bridge does not send your email address, Supabase user ID or other direct account identifier to Meta. The Android build may use the device Advertising ID for attribution when this integration is configured. This native processing is separate from web analytics and advertising cookies.</p><h2>7. Mobil reklam ölçümü</h2><p>Android Meta App Events entegrasyonu etkinleştirildiğinde kayıt, giriş, onboarding, öğrenme ilerlemesi, AI Practice, Ask, abonelik satın alımı ve ürün etkileşimleri gibi seçili uygulama olayları mobil reklam ölçümü ve kampanya optimizasyonu için Meta ile paylaşılabilir. Sohbet metinleri ve kullanıcı tarafından oluşturulan diğer mesaj içerikleri bu event bridge üzerinden gönderilmez. Event bridge e-posta adresini, Supabase kullanıcı ID'sini veya başka bir doğrudan hesap tanımlayıcısını Meta'ya göndermez. Entegrasyon yapılandırıldığında Android build'i ilişkilendirme için cihazın Advertising ID'sini kullanabilir. Bu native işleme web analitiği ve reklam çerezlerinden ayrıdır.</p>`;
+
 export function getLegalContent(locale: LocaleCode, section: LegalSection): string {
-  return legalContent[locale]?.[section] ?? fallbackLegalContent[section];
+  const content = legalContent[locale]?.[section] ?? fallbackLegalContent[section];
+  return section === "privacy" ? `${content}${META_ANALYTICS_NOTICE}` : content;
 }

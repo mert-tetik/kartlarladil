@@ -61,7 +61,7 @@ function mockAuth() {
     provider: "google_play",
     limits: {
       activeCards: 20,
-      learnedCards: 100,
+      learnedCards: 50,
       aiDailyMessages: 10,
       aiMonthlyMessages: 200,
     },

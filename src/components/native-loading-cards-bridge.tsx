@@ -42,10 +42,6 @@ export function NativeLoadingCardsBridge() {
   const { user, isSessionReady } = useAuthSession();
   const inventory = useInventoryStore((state) => state.cards);
   const inventoryHydrated = useInventoryStore((state) => state.hydrated);
-  const cloudEnabled = useInventoryStore((state) => state.cloudEnabled);
-  const cloudLoading = useInventoryStore((state) => state.cloudLoading);
-  const cloudLoadComplete = useInventoryStore((state) => state.cloudLoadComplete);
-  const cloudError = useInventoryStore((state) => state.cloudError);
   const ownerUserId = useInventoryStore((state) => state.ownerUserId);
   const learningLanguage = useSyncExternalStore(
     subscribeLandingCardLanguageSync,
@@ -56,6 +52,7 @@ export function NativeLoadingCardsBridge() {
   useEffect(() => {
     const nativeLoading = window.FoxiesDeckNativeLoading;
     if (!nativeLoading) return;
+    if (!isSessionReady) return;
 
     nativeLoading.setPreferences?.(learningLanguage, locale);
     nativeLoading.setTitle?.(formatSuperWaterUppercaseText(locale, getNativeLoadingTitle(locale)));
@@ -79,46 +76,8 @@ export function NativeLoadingCardsBridge() {
       isSessionReady,
       userId: user?.id ?? null,
       inventoryHydrated,
-      cloudEnabled,
-      cloudLoading,
-      cloudLoadComplete,
       ownerUserId,
     });
-
-    if (launchDataReady && user && cloudError) {
-      let cancelled = false;
-      void listOfflineInventorySnapshot(user.id)
-        .catch(() => null)
-        .then((offlineEntries) => {
-          if (cancelled) return;
-          const dailyDeckCards = getOrCreateNativeLoadingDailyDeckCards(cacheIdentity, () => {
-            const offlineDeckCards = offlineEntries?.length
-              ? selectNativeLoadingOfflineDeckCards(
-                offlineEntries,
-                learningLanguage,
-                locale,
-                dateKey,
-                cacheIdentity.profileId,
-              )
-              : [];
-            return offlineDeckCards.length > 0
-              ? offlineDeckCards
-              : selectNativeLoadingDeckCards(
-                inventory,
-                learningLanguage,
-                locale,
-                dateKey,
-                cacheIdentity.profileId,
-              );
-          });
-          sendDeckCards(dailyDeckCards);
-          nativeLoading.setEssentialDataReady?.();
-        });
-
-      return () => {
-        cancelled = true;
-      };
-    }
 
     if (launchDataReady) {
       const dailyDeckCards = getOrCreateNativeLoadingDailyDeckCards(cacheIdentity, () =>
@@ -165,7 +124,7 @@ export function NativeLoadingCardsBridge() {
     return () => {
       cancelled = true;
     };
-  }, [cloudEnabled, cloudError, cloudLoadComplete, cloudLoading, inventory, inventoryHydrated, isSessionReady, learningLanguage, locale, localizedStatusTexts, ownerUserId, user?.id]);
+  }, [inventory, inventoryHydrated, isSessionReady, learningLanguage, locale, localizedStatusTexts, ownerUserId, user?.id]);
 
   return null;
 }

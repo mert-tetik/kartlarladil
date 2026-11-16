@@ -15,6 +15,8 @@ const {
   preloadTutorialSpeechMock,
   stopTutorialSpeechMock,
   frameSequencePlayerMock,
+  trackAnalyticsEventMock,
+  sendTwaAnalyticsEventMock,
 } = vi.hoisted(() => ({
   playFlowButtonSoundMock: vi.fn(),
   resetFlowButtonSoundMock: vi.fn(),
@@ -32,6 +34,8 @@ const {
     preload: vi.fn<(assetId: string, count: number) => Promise<boolean>>(),
     ready: true,
   },
+  trackAnalyticsEventMock: vi.fn(),
+  sendTwaAnalyticsEventMock: vi.fn(),
 }));
 
 vi.mock("@/components/webp-frame-sequence-player", async () => {
@@ -94,6 +98,8 @@ vi.mock("@/i18n/locale-provider", () => ({
 }));
 
 vi.mock("@/lib/vibration", () => ({ vibrate: vi.fn() }));
+vi.mock("@/lib/analytics-events", () => ({ trackAnalyticsEvent: trackAnalyticsEventMock }));
+vi.mock("@/lib/twa-analytics", () => ({ sendTwaAnalyticsEvent: sendTwaAnalyticsEventMock }));
 vi.mock("@/lib/flow-button-sound", () => ({
   playFlowButtonSound: (...args: unknown[]) => playFlowButtonSoundMock(...args),
   resetFlowButtonSoundSequence: (...args: unknown[]) => resetFlowButtonSoundMock(...args),
@@ -200,6 +206,8 @@ describe("LandingTutorial", () => {
     frameSequencePlayerMock.onError = undefined;
     frameSequencePlayerMock.onReady = undefined;
     frameSequencePlayerMock.preload.mockReset().mockResolvedValue(true);
+    trackAnalyticsEventMock.mockClear();
+    sendTwaAnalyticsEventMock.mockClear();
     frameSequencePlayerMock.ready = true;
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
     Object.defineProperty(window, "innerHeight", { configurable: true, value: 844 });
@@ -642,6 +650,8 @@ describe("LandingTutorial", () => {
       step: 4,
       testMode: false,
     });
+    expect(trackAnalyticsEventMock).toHaveBeenCalledWith("tutorial_completed");
+    expect(sendTwaAnalyticsEventMock).toHaveBeenCalledWith("fd_tutorial_complete", { once: true });
     expect(screen.getByText("started")).toBeInTheDocument();
   });
 
@@ -654,6 +664,8 @@ describe("LandingTutorial", () => {
 
     await waitFor(() => expect(document.querySelector("[data-landing-tutorial]")).not.toBeInTheDocument());
     expect(useTutorialStore.getState().completed).toBe(true);
+    expect(trackAnalyticsEventMock).not.toHaveBeenCalled();
+    expect(sendTwaAnalyticsEventMock).not.toHaveBeenCalled();
   });
 
   it("persists completion before the real start-learning handler unmounts the tutorial", async () => {

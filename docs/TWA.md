@@ -93,9 +93,27 @@ generated `com.foxiesdeck/` project.
   successful Gradle configuration alone cannot prove event delivery. Verify a
   Play-installed test build in Firebase Analytics DebugView before treating
   runtime collection as confirmed.
-- Advertising-ID collection is disabled and the merged manifest removes the
-  Advertising ID permissions. The app does not use ads; do not declare that it
-  uses the Advertising ID in Play Console unless that changes.
+
+## Meta App Events
+
+- The Android shell includes the pinned Meta `facebook-core` SDK. The WebView
+  analytics bridge forwards the allowlisted product events to both Firebase and
+  Meta without sending the Supabase user ID, email address, chat text, or other
+  direct identifiers to Meta. The allowlist includes account conversion,
+  onboarding, card/quiz learning, rank and points milestones, games, missions,
+  AI Practice, Ask, subscriptions and Play review signals.
+- Configure `META_APP_ID` and `META_CLIENT_TOKEN` together in the local build
+  environment. The repository-owned Android patcher reads them without logging
+  their values, writes them only into the ignored generated Android project,
+  and keeps the Meta integration disabled when both values are absent.
+- When Meta is configured, the merged manifest enables Meta App Events and the
+  Google Advertising ID permission for ad attribution. Update Play Console
+  Data Safety and advertising declarations before shipping that build. When it
+  is not configured, Meta metadata and Advertising ID permissions are omitted.
+- Meta automatic app-event logging is disabled; FoxiesDeck explicitly sends
+  activation and selected lifecycle/product events. Purchases are emitted only
+  after Google Play server verification succeeds. Verify delivery in Meta
+  Events Manager using a Play-installed test build before release.
 
 ## Build the website
 
@@ -120,12 +138,12 @@ by Google Play automatic protection; a bundle with minimum SDK 21 must not be
 uploaded. The build patcher enforces `minSdk 24` on every generated project.
 
 The current release defaults are `com.LigidTools.Glidecore`, version name
-`4.3.71`, and version code `185`. They can be overridden for a release with:
+`4.3.73`, and version code `187`. They can be overridden for a release with:
 
 ```bash
 TWA_PACKAGE_ID=com.LigidTools.Glidecore
-TWA_VERSION_CODE=185
-TWA_VERSION_NAME=4.3.71
+TWA_VERSION_CODE=187
+TWA_VERSION_NAME=4.3.73
 ```
 
 All signed Android/AAB builds must use exactly

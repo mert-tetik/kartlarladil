@@ -4,6 +4,8 @@ import {
   isTwaMode,
   requestGooglePlayReview,
   sendTwaAnalyticsEvent,
+  sendTwaRegistrationEvent,
+  sendTwaSubscriptionPurchaseEvent,
   setTwaAnalyticsUserId,
 } from "@/lib/twa-analytics";
 
@@ -68,6 +70,30 @@ describe("twa analytics bridge", () => {
     sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
 
     expect(document.body.querySelectorAll("iframe")).toHaveLength(1);
+  });
+
+  it("deduplicates registration across the form and auth-session paths", () => {
+    vi.mocked(getTwaMode).mockReturnValue(true);
+
+    sendTwaRegistrationEvent("email");
+    sendTwaRegistrationEvent("email", "user-123");
+
+    expect(document.body.querySelectorAll("iframe")).toHaveLength(1);
+    expect(document.body.querySelector("iframe")?.getAttribute("src"))
+      .toContain("registration_method=email");
+  });
+
+  it("sends verified subscription purchases with normalized plan metadata", () => {
+    vi.mocked(getTwaMode).mockReturnValue(true);
+
+    sendTwaSubscriptionPurchaseEvent("pro_yearly", {
+      value: "90.00",
+      currency: "USD",
+    });
+
+    expect(document.body.querySelector("iframe")?.getAttribute("src")).toBe(
+      "foxiesdeck://event?type=fd_subscription_purchase&plan=pro&billing_cycle=yearly&sku=pro_yearly&value=90.00&currency=USD",
+    );
   });
 
   it("sends the TWA user id through the bridge", () => {

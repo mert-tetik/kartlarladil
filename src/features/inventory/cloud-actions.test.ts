@@ -446,7 +446,7 @@ function createEntitlements(plan: UserEntitlements["effectivePlan"] = "basic"): 
     endsAt: plan === "free" ? null : "2099-01-01T00:00:00.000Z",
     limits: {
       activeCards: plan === "free" ? 20 : null,
-      learnedCards: plan === "free" ? 100 : null,
+      learnedCards: plan === "free" ? 50 : null,
       aiDailyMessages: 10,
       aiMonthlyMessages: 200,
     },

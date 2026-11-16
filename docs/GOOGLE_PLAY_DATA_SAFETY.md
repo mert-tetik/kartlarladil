@@ -28,11 +28,11 @@ Account deletion → Yes
 | Push notification data | Deliver inactivity notifications and record delivery/open status | Browser/WebView push permission and subscription | Enable/disable notifications in account settings |
 | Leaderboard data | Show opted-in display name, profile image and points/streak/medal standings | User profile and progress | Leaderboard visibility is opt-in |
 | Purchase history and subscription identifiers | Verify and restore Google Play entitlements | Google Play Billing and server verification | Account deletion removes app-side records; Google Play policies also apply |
-| Device/app interaction data | Firebase/Google Analytics, performance and product improvement | TWA analytics bridge and native analytics flow | Governed by the native analytics settings and platform controls |
+| Device/app interaction data | Firebase/Google Analytics and Meta App Events for analytics, ad measurement, performance and product improvement | TWA analytics bridge and native analytics flow | Governed by native analytics settings and platform controls; Meta/Advertising ID collection is enabled only in Meta-configured Android builds |
 
 ## Analytics
 
-The TWA/native application uses Firebase/Google Analytics. The web application sends selected app-open, screen-view, interaction, progress, error/performance and product-use events through the `foxiesdeck://event` analytics bridge. The bridge may also send the authenticated application user identifier to the native analytics layer.
+The TWA/native application uses Firebase/Google Analytics and, when the Android Meta credentials are configured, Meta App Events. The web application sends selected app-open, screen-view, authentication, onboarding, interaction, progress, learning, subscription and product-use events through the `foxiesdeck://event` analytics bridge. The bridge continues to send the authenticated application user identifier only to the existing Firebase path; the Meta path explicitly drops it and does not receive email addresses.
 
 This is separate from web analytics cookies: FoxiesDeck does not use analytics or advertising cookies in the web UI.
 
@@ -45,6 +45,7 @@ FoxiesDeck does not intentionally collect precise location, contacts, health inf
 - Supabase: authentication, sessions and application database.
 - OpenAI: AI chat, OCR, translation, custom-card generation and answer validation.
 - Google: OAuth, Google Play Billing and Firebase/Google Analytics.
+- Meta: Meta App Events for mobile advertising measurement and campaign optimization when configured.
 - Vercel: application hosting and technical infrastructure.
 
 ## Security and deletion

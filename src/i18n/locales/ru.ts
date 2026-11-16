@@ -386,7 +386,7 @@ const dictionary = {
   "limit.aiMonthlyLimitTitle": "Месячная квота AI-сообщений заполнена",
   "limit.defaultDescription": "Это действие выходит за пределы твоего текущего плана. Обнови план, чтобы разблокировать больше.",
   "limit.defaultTitle": "Достигнуто ограничение плана",
-  "limit.learnedCardLimitDescription": "Бесплатный план позволяет выучить не более 100 карточек всего. Повысьте план, чтобы учить больше.",
+  "limit.learnedCardLimitDescription": "Бесплатный план позволяет выучить не более 50 карточек всего. Повысьте план, чтобы учить больше.",
   "limit.learnedCardLimitTitle": "Квота изученных карт заполнена",
   "limit.cardAlreadyActiveTitle": "Эта карта уже активна",
   "limit.cardAlreadyActiveDescription": "Эта карта уже в твоих активных картах. Ты не можешь добавить одну и ту же карту дважды.",

@@ -386,7 +386,7 @@ const dictionary = {
   "limit.aiMonthlyLimitTitle": "每月AI消息配额已满",
   "limit.defaultDescription": "此操作超出了您当前计划的限制。升级您的计划以解锁更多功能。",
   "limit.defaultTitle": "计划限制已达到",
-  "limit.learnedCardLimitDescription": "免费方案最多可累计学会100张卡片。升级方案即可学习更多。",
+  "limit.learnedCardLimitDescription": "免费方案最多可累计学会50张卡片。升级方案即可学习更多。",
   "limit.learnedCardLimitTitle": "已学卡片配额已满",
   "limit.cardAlreadyActiveTitle": "此卡已处于激活状态",
   "limit.cardAlreadyActiveDescription": "此卡已在您的活跃卡中。您不能添加同一张卡两次。",

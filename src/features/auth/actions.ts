@@ -731,6 +731,21 @@ export async function deleteAccountAction(_state: AuthActionState, formData: For
     };
   }
 
+  try {
+    const { error: analyticsError } = await adminClient
+      .from("analytics_events")
+      .insert({
+        user_id: null,
+        event_name: "account_deleted",
+        properties: {},
+      });
+    if (analyticsError) {
+      console.error("[analytics.events] Failed to record account deletion", analyticsError.message);
+    }
+  } catch (error) {
+    console.error("[analytics.events] Account deletion analytics unavailable", error);
+  }
+
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
   redirect("/");

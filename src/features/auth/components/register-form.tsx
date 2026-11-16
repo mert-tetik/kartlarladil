@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { registerAction } from "@/features/auth/actions";
 import { AUTH_ACTION_IDLE_STATE } from "@/features/auth/auth-types";
@@ -8,10 +8,18 @@ import { FieldError, FormMessage, inputClassName } from "@/features/auth/compone
 import { PasswordInput } from "@/features/auth/components/password-input";
 import { SubmitButton } from "@/features/auth/components/submit-button";
 import { useT } from "@/i18n/locale-provider";
+import { sendTwaRegistrationEvent } from "@/lib/twa-analytics";
 
 export function RegisterForm({ nextPath }: { nextPath: string }) {
   const [state, formAction] = useActionState(registerAction, AUTH_ACTION_IDLE_STATE);
   const t = useT();
+  const registrationTrackedRef = useRef(false);
+
+  useEffect(() => {
+    if (state.status !== "success" || registrationTrackedRef.current) return;
+    registrationTrackedRef.current = true;
+    sendTwaRegistrationEvent("email");
+  }, [state.status]);
 
   return (
     <form action={formAction} className="space-y-5">

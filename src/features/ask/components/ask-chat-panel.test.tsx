@@ -6,6 +6,14 @@ import { AskChatPanel } from "@/features/ask/components/ask-chat-panel";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import type { LanguageCode, LocaleCode } from "@/types/domain";
 
+const { sendTwaAnalyticsEventMock } = vi.hoisted(() => ({
+  sendTwaAnalyticsEventMock: vi.fn(),
+}));
+
+vi.mock("@/lib/twa-analytics", () => ({
+  sendTwaAnalyticsEvent: sendTwaAnalyticsEventMock,
+}));
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     refresh: vi.fn(),
@@ -29,6 +37,7 @@ vi.mock("@/features/subscriptions/components/upgrade-dialog", () => ({
 }));
 
 afterEach(() => {
+  sendTwaAnalyticsEventMock.mockReset();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   Object.defineProperty(window, "visualViewport", {
@@ -62,6 +71,13 @@ describe("AskChatPanel", () => {
     });
 
     expect(await screen.findByText(/hello means a greeting/)).toBeVisible();
+
+    expect(sendTwaAnalyticsEventMock).toHaveBeenCalledWith("fd_ask_completed", {
+      params: {
+        context_language: "tr",
+        initial_term: true,
+      },
+    });
 
     const askCalls = fetchMock.mock.calls.filter(([input]) => String(input).includes("/api/ask/chat"));
     expect(askCalls).toHaveLength(1);

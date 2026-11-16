@@ -2,22 +2,15 @@ export interface NativeLaunchReadinessInput {
   isSessionReady: boolean;
   userId: string | null;
   inventoryHydrated: boolean;
-  cloudEnabled: boolean;
-  cloudLoading: boolean;
-  cloudLoadComplete: boolean;
   ownerUserId: string | null;
 }
 
 /**
- * Restore local inventory before selecting the day's deck cards. Signed-in
- * launches additionally wait for that user's cloud inventory attempt.
+ * Release native launch as soon as identity-safe local state is available.
+ * Cloud inventory refreshes reconcile the snapshot after the UI is visible.
  */
 export function isNativeLaunchDataReady(input: NativeLaunchReadinessInput) {
   if (!input.isSessionReady || !input.inventoryHydrated) return false;
-  if (!input.userId) return true;
-
-  return input.cloudEnabled &&
-    !input.cloudLoading &&
-    input.cloudLoadComplete &&
-    input.ownerUserId === input.userId;
+  if (!input.userId || !input.ownerUserId) return true;
+  return input.ownerUserId === input.userId;
 }

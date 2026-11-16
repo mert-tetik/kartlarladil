@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { Fraunces, Manrope } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import { getCurrentAuthUser } from "@/features/auth/auth-session";
+import { NATIVE_LAUNCH_REQUEST_HEADER } from "@/lib/supabase/native-launch-request";
 import { getUserEntitlementsOrNull } from "@/features/subscriptions/subscription-service";
 import {
   DEFAULT_THEME_ID,
@@ -55,12 +56,13 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [locale, direction, user, requestHeaders] = await Promise.all([
+  const [locale, direction, requestHeaders] = await Promise.all([
     getServerLocale(),
     getServerTextDirection(),
-    getCurrentAuthUser(),
     headers(),
   ]);
+  const isNativeLaunch = requestHeaders.get(NATIVE_LAUNCH_REQUEST_HEADER) === "1";
+  const user = isNativeLaunch ? null : await getCurrentAuthUser();
   const storedThemeId = getThemeById(user?.profile.theme ?? DEFAULT_THEME_ID).id;
   let canUsePaidTheme = false;
 

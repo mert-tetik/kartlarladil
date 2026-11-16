@@ -82,6 +82,14 @@ export default async function Home({ searchParams }: HomeProps) {
     return <NativeLoadingVisualTest />;
   }
 
+  if (isNativeAppLaunch) {
+    return (
+      <NativeAppLaunchContentGate enabled>
+        <MobileLandingDashboard />
+      </NativeAppLaunchContentGate>
+    );
+  }
+
   const locale = await getServerLocale();
   const t = createTranslator(locale);
   const installAppCopy = getInstallAppCopy(locale);

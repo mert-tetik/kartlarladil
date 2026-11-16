@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 
 import com.google.firebase.analytics.FirebaseAnalytics;
 
@@ -19,6 +20,7 @@ import java.util.concurrent.Executors;
 
 /** Handles WebView analytics events without opening a foreground Activity. */
 public final class NativeAnalyticsReceiver extends BroadcastReceiver {
+    private static final String TAG = "FoxiesDeckMeta";
     private static final ExecutorService ANALYTICS_EXECUTOR = Executors.newSingleThreadExecutor();
 
     @Override
@@ -33,6 +35,10 @@ public final class NativeAnalyticsReceiver extends BroadcastReceiver {
         String eventType = data.getQueryParameter("type");
         if (eventType == null || eventType.isEmpty() || "request_play_review".equals(eventType)) {
             return;
+        }
+
+        if ((context.getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            Log.i(TAG, "Native analytics event received: " + eventType);
         }
 
         PendingResult pendingResult = goAsync();
@@ -51,9 +57,12 @@ public final class NativeAnalyticsReceiver extends BroadcastReceiver {
     }
 
     private static void logEvent(Context context, Uri data, String eventType) {
-        FirebaseAnalytics analytics = FirebaseAnalytics.getInstance(context);
         if ("set_user_id".equals(eventType)) {
-            analytics.setUserId(data.getQueryParameter("user_id"));
+            try {
+                FirebaseAnalytics.getInstance(context).setUserId(data.getQueryParameter("user_id"));
+            } catch (Exception ignored) {
+                // Firebase is best-effort and must not block the event bridge.
+            }
             return;
         }
 
@@ -63,7 +72,14 @@ public final class NativeAnalyticsReceiver extends BroadcastReceiver {
             String value = data.getQueryParameter(key);
             if (value != null) params.putString(key, value);
         }
-        analytics.logEvent(sanitizeEventName(eventType), params);
+
+        try {
+            FirebaseAnalytics.getInstance(context).logEvent(sanitizeEventName(eventType), params);
+        } catch (Exception ignored) {
+            // Firebase is best-effort and must not block Meta App Events.
+        }
+
+        NativeMetaAnalytics.logEvent(context, eventType, params);
     }
 
     private static String sanitizeEventName(String name) {

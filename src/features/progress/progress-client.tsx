@@ -26,7 +26,12 @@ import { usePathname } from "next/navigation";
 import type { ProgressStats } from "@/types/domain";
 
 const CLOUD_MIGRATION_KEY = "foxiesdeck:cloud-migrated:v1";
-const PROGRESS_STATS_CACHE_KEY = "foxiesdeck:progress-stats";
+const PROGRESS_STATS_CACHE_PREFIX = "foxiesdeck:progress-stats:v2:";
+
+interface CachedProgressStats {
+  ownerKey: string;
+  stats: ProgressStats;
+}
 
 interface ProgressStatsContextValue {
   stats: ProgressStats;
@@ -37,27 +42,50 @@ interface ProgressStatsContextValue {
 
 const ProgressStatsContext = createContext<ProgressStatsContextValue | null>(null);
 
-function readCachedProgressStats(): ProgressStats | null {
+function getProgressStatsCacheKey(ownerKey: string) {
+  return `${PROGRESS_STATS_CACHE_PREFIX}${encodeURIComponent(ownerKey)}`;
+}
+
+function isProgressStats(value: unknown): value is ProgressStats {
+  if (!value || typeof value !== "object") return false;
+  const stats = value as Partial<ProgressStats>;
+  return [
+    stats.totalPoints,
+    stats.totalCards,
+    stats.activeCards,
+    stats.learnedCards,
+    stats.pointsToNextRank,
+    stats.rankProgressPercent,
+  ].every((entry) => typeof entry === "number" && Number.isFinite(entry) && entry >= 0) &&
+    !!stats.rank && typeof stats.rank === "object" &&
+    Array.isArray(stats.tierStats) && Array.isArray(stats.languageStats);
+}
+
+function readCachedProgressStats(ownerKey: string): ProgressStats | null {
   if (typeof window === "undefined") {
     return null;
   }
 
   try {
-    const raw = window.localStorage.getItem(PROGRESS_STATS_CACHE_KEY);
+    const raw = window.localStorage.getItem(getProgressStatsCacheKey(ownerKey));
     if (!raw) return null;
-    return JSON.parse(raw) as ProgressStats;
+    const cached = JSON.parse(raw) as CachedProgressStats;
+    return cached.ownerKey === ownerKey && isProgressStats(cached.stats) ? cached.stats : null;
   } catch {
     return null;
   }
 }
 
-function writeCachedProgressStats(stats: ProgressStats) {
+function writeCachedProgressStats(ownerKey: string, stats: ProgressStats) {
   if (typeof window === "undefined") {
     return;
   }
 
   try {
-    window.localStorage.setItem(PROGRESS_STATS_CACHE_KEY, JSON.stringify(stats));
+    window.localStorage.setItem(
+      getProgressStatsCacheKey(ownerKey),
+      JSON.stringify({ ownerKey, stats } satisfies CachedProgressStats),
+    );
   } catch {
     // Ignore storage errors.
   }
@@ -70,7 +98,9 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
   const cards = useInventoryStore((state) => state.cards);
   const ownerUserId = useInventoryStore((state) => state.ownerUserId);
   const hydrated = useInventoryStore((state) => state.hydrated);
+  const cloudEnabled = useInventoryStore((state) => state.cloudEnabled);
   const cloudLoading = useInventoryStore((state) => state.cloudLoading);
+  const cloudLoadComplete = useInventoryStore((state) => state.cloudLoadComplete);
   const cloudError = useInventoryStore((state) => state.cloudError);
   const setCloudEnabled = useInventoryStore((state) => state.setCloudEnabled);
   const clearLocalInventory = useInventoryStore((state) => state.clearLocalInventory);
@@ -83,14 +113,14 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
   const trackedPointsOwnerRef = useRef<string>("guest");
   // Read browser-only cached stats after hydration so the server and the
   // client's first render use the same initial snapshot.
-  const [cachedStats, setCachedStats] = useState<ProgressStats | null>(null);
+  const cacheOwnerKey = user?.id ?? "guest";
+  const [cachedStats, setCachedStats] = useState<CachedProgressStats | null>(null);
 
   useEffect(() => {
-    const cached = readCachedProgressStats();
-    if (cached) {
-      setCachedStats(cached);
-    }
-  }, []);
+    setCachedStats(null);
+    const cached = readCachedProgressStats(cacheOwnerKey);
+    if (cached) setCachedStats({ ownerKey: cacheOwnerKey, stats: cached });
+  }, [cacheOwnerKey]);
 
   useEffect(() => {
     if (isVisualTestMode) {
@@ -157,25 +187,38 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
       return EMPTY_PROGRESS_STATS;
     }
 
-    const baseStats = calculateProgressStats(joinInventoryCards(cards));
+    const inventoryIsSafeForOwner = ownerUserId === null || ownerUserId === (user?.id ?? null);
+    const safeCards = inventoryIsSafeForOwner ? cards : [];
+    const baseStats = calculateProgressStats(joinInventoryCards(safeCards));
     const bonusPoints = getProfilePointTotal(user?.profile);
 
     return mergeBonusPoints(baseStats, bonusPoints);
-  }, [cards, hydrated, user?.profile]);
+  }, [cards, hydrated, ownerUserId, user?.id, user?.profile]);
 
   const stats = useMemo(() => {
-    const isLoading = !hydrated || cloudLoading;
-    if (isLoading && cachedStats) {
-      return cachedStats;
+    const localInventoryIsUsable = ownerUserId === (user?.id ?? null) || (user && ownerUserId === null && cards.length > 0);
+    const cloudSnapshotPending = Boolean(
+      user &&
+      !localInventoryIsUsable &&
+      (!cloudEnabled || cloudLoading || !cloudLoadComplete || Boolean(cloudError)),
+    );
+    if ((!hydrated || cloudSnapshotPending) && cachedStats?.ownerKey === cacheOwnerKey) {
+      return cachedStats.stats;
     }
     return computedStats;
-  }, [cachedStats, cloudLoading, computedStats, hydrated]);
+  }, [cacheOwnerKey, cachedStats, cards.length, cloudEnabled, cloudError, cloudLoadComplete, cloudLoading, computedStats, hydrated, ownerUserId, user]);
 
   useEffect(() => {
     if (!hydrated) return;
-    writeCachedProgressStats(computedStats);
-    setCachedStats(computedStats);
-  }, [computedStats, hydrated]);
+
+    const inventoryIsSafeForOwner = ownerUserId === null || ownerUserId === (user?.id ?? null);
+    const hasUsableLocalSnapshot = inventoryIsSafeForOwner && (!user || ownerUserId === user.id || cards.length > 0);
+    const cloudAttemptSettled = cloudEnabled && cloudLoadComplete && !cloudLoading && !cloudError;
+    if (user && !hasUsableLocalSnapshot && !cloudAttemptSettled) return;
+
+    writeCachedProgressStats(cacheOwnerKey, computedStats);
+    setCachedStats({ ownerKey: cacheOwnerKey, stats: computedStats });
+  }, [cacheOwnerKey, cards.length, cloudEnabled, cloudError, cloudLoadComplete, cloudLoading, computedStats, hydrated, ownerUserId, user]);
 
   useEffect(() => {
     const ownerKey = user?.id ?? "guest";

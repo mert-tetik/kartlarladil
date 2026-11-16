@@ -35,7 +35,7 @@ function createSnapshot(effectivePlan: "free" | "basic" | "pro", endsAt: string 
     provider: "google_play",
     limits: {
       activeCards: effectivePlan === "free" ? 20 : null,
-      learnedCards: effectivePlan === "free" ? 100 : null,
+      learnedCards: effectivePlan === "free" ? 50 : null,
       aiDailyMessages: effectivePlan === "free" ? 10 : null,
       aiMonthlyMessages: effectivePlan === "free" ? 200 : null,
     },

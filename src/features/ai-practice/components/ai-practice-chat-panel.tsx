@@ -50,6 +50,7 @@ import { useProgressStats } from "@/features/progress/progress-client";
 import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
 import { syncMissionsFromClientState } from "@/features/missions/mission-sync";
 import { cn, createId } from "@/lib/utils";
+import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { useAppMessage } from "@/components/app-message-provider";
 import type {
   AiPracticeCharacter,
@@ -294,6 +295,15 @@ export function AiPracticeChatPanel({
         replaceAssistantMessage(assistantMessage.id, payload.reply);
         updateMessageEvaluation(userMessage.id, payload.evaluation);
         flashEvaluationLabel(userMessage.id);
+        sendTwaAnalyticsEvent("fd_ai_practice_message", {
+          params: {
+            language,
+            character_id: character.id,
+            mode: "scenario",
+            tier,
+            scenario_id: scenario.id,
+          },
+        });
         await scoreUserMessage(userMessage, payload.reply);
       } else {
         const reader = response.body.getReader();
@@ -317,6 +327,14 @@ export function AiPracticeChatPanel({
           removePendingMessages(userMessage.id, assistantMessage.id);
           showMessage(t("aiPractice.chat.emptyResponse"), "error");
         } else {
+          sendTwaAnalyticsEvent("fd_ai_practice_message", {
+            params: {
+              language,
+              character_id: character.id,
+              mode: "character",
+              tier,
+            },
+          });
           await scoreUserMessage(userMessage, streamedText);
         }
       }

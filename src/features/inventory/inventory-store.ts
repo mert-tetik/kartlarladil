@@ -9,6 +9,7 @@ import { FIRST_CARD_ADDED_EVENT } from "@/features/push/push-client";
 import { STORAGE_KEY } from "@/lib/constants";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { isFirstLearnedTransition } from "@/lib/twa-analytics-events";
+import { trackAnalyticsEvent } from "@/lib/analytics-events";
 import { DEFAULT_LOCALE, LOCALE_STORAGE_KEY, normalizeLocale } from "@/i18n/config";
 import { translate } from "@/i18n/dictionaries";
 import type { InventoryCard, LanguageCode, LimitErrorCode, PracticeAttempt, PracticeMode, TermKind, Tier, VocabularyCard } from "@/types/domain";
@@ -463,6 +464,16 @@ export const useInventoryStore = create<InventoryState>()(
                 cloudError: "",
               });
             }
+            if (firstCardAdded) {
+              trackAnalyticsEvent("first_card_added", {
+                card_language: addedCard?.language ?? "",
+                card_tier: addedCard?.tier ?? "",
+                term_kind: addedCard?.termKind ?? "",
+              }, {
+                once: true,
+                dedupeKey: get().ownerUserId ?? undefined,
+              });
+            }
             void syncMissionsFromClientState();
           })();
 
@@ -488,6 +499,14 @@ export const useInventoryStore = create<InventoryState>()(
           sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
         }
         if (firstCardAdded) {
+          trackAnalyticsEvent("first_card_added", {
+            card_language: addedCard?.language ?? "",
+            card_tier: addedCard?.tier ?? "",
+            term_kind: addedCard?.termKind ?? "",
+          }, {
+            once: true,
+            dedupeKey: get().ownerUserId ?? undefined,
+          });
           dispatchFirstCardAddedEvent();
         }
 
@@ -603,6 +622,18 @@ export const useInventoryStore = create<InventoryState>()(
                 };
               });
 
+              if (firstCardAdded) {
+                const firstAddedCard = localCardRepository.findById(optimisticCardIds[0]);
+                trackAnalyticsEvent("first_card_added", {
+                  card_language: firstAddedCard?.language ?? "",
+                  card_tier: firstAddedCard?.tier ?? "",
+                  term_kind: firstAddedCard?.termKind ?? "",
+                }, {
+                  once: true,
+                  dedupeKey: get().ownerUserId ?? undefined,
+                });
+              }
+
               if (cloudData.remainingCardIds.length > 0) {
                 dispatchInventoryBackgroundError("add cards", {
                   status: "error",
@@ -658,6 +689,17 @@ export const useInventoryStore = create<InventoryState>()(
 
         const firstCardAdded = previousCount === 0 && nextCards.length > 0;
         if (firstCardAdded) {
+          const firstAddedCard = addedCardIds.length > 0
+            ? localCardRepository.findById(addedCardIds[0])
+            : null;
+          trackAnalyticsEvent("first_card_added", {
+            card_language: firstAddedCard?.language ?? "",
+            card_tier: firstAddedCard?.tier ?? "",
+            term_kind: firstAddedCard?.termKind ?? "",
+          }, {
+            once: true,
+            dedupeKey: get().ownerUserId ?? undefined,
+          });
           dispatchFirstCardAddedEvent();
         }
 
@@ -733,6 +775,7 @@ export const useInventoryStore = create<InventoryState>()(
         if (get().cloudEnabled) {
           const previousCards = get().cards;
           const previousAttempts = get().attempts;
+          const hadLearnedCardBefore = previousCards.some((card) => card.status === "learned");
 
           let optimisticCards = previousCards;
           let optimisticAttempts = previousAttempts;
@@ -811,6 +854,17 @@ export const useInventoryStore = create<InventoryState>()(
                 correct_count: inventoryCard.correctCount,
               },
             });
+            if (!hadLearnedCardBefore) {
+              trackAnalyticsEvent("first_card_learned", {
+                card_language: vocabularyCard?.language ?? "",
+                card_tier: vocabularyCard?.tier ?? "",
+                term_kind: vocabularyCard?.termKind ?? "",
+                correct_count: inventoryCard.correctCount,
+              }, {
+                once: true,
+                dedupeKey: get().ownerUserId ?? undefined,
+              });
+            }
           }
 
           if (didLearnCard) {
@@ -831,6 +885,7 @@ export const useInventoryStore = create<InventoryState>()(
             ? ownedCard
             : applyAnswerProgress(ownedCard, vocabularyCard, input.isCorrect);
         const attempt = createPracticeAttempt(input);
+        const hadLearnedCardBefore = get().cards.some((card) => card.status === "learned");
 
         set((state) => ({
           cards: state.cards.map((card) => (card.cardId === input.cardId ? updatedCard : card)),
@@ -847,6 +902,17 @@ export const useInventoryStore = create<InventoryState>()(
               correct_count: updatedCard.correctCount,
             },
           });
+          if (!hadLearnedCardBefore) {
+            trackAnalyticsEvent("first_card_learned", {
+              card_language: vocabularyCard.language,
+              card_tier: vocabularyCard.tier,
+              term_kind: vocabularyCard.termKind,
+              correct_count: updatedCard.correctCount,
+            }, {
+              once: true,
+              dedupeKey: get().ownerUserId ?? undefined,
+            });
+          }
         }
 
         void syncMissionsFromClientState();
@@ -894,6 +960,7 @@ export const useInventoryStore = create<InventoryState>()(
       async createCustomCard(input) {
         const optimisticCard = input.optimisticCard;
         const optimisticCardId = optimisticCard?.sourceKey;
+        const wasEmptyBeforeCreate = get().cards.length === 0;
         const request = {
           language: input.language,
           tier: input.tier,
@@ -967,6 +1034,16 @@ export const useInventoryStore = create<InventoryState>()(
               term_kind: created.vocabularyCard.termKind,
             },
           });
+          if (wasEmptyBeforeCreate) {
+            trackAnalyticsEvent("first_card_added", {
+              card_language: created.vocabularyCard.language,
+              card_tier: created.vocabularyCard.tier,
+              term_kind: created.vocabularyCard.termKind,
+            }, {
+              once: true,
+              dedupeKey: get().ownerUserId ?? undefined,
+            });
+          }
 
           void syncMissionsFromClientState();
         })();

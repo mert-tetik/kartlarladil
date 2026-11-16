@@ -45,6 +45,7 @@ import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText }
 import { cn } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
 import { playSoundEffect } from "@/lib/sound-effects";
+import { trackAnalyticsEvent } from "@/lib/analytics-events";
 import { useAppMessage } from "@/components/app-message-provider";
 import {
   SUBSCRIPTION_DETAILS_EXIT_DURATION_MS,
@@ -159,6 +160,7 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
   const localizedPricing = useLocalizedPricing(currencyCode, isTwa);
   const googlePlayPricing = useGooglePlayPricing();
   const plans = isTwa ? TWA_PLANS : PLANS;
+  const pricingPageViewTrackedRef = useRef(false);
   const pricingTestPlan = searchParams.get("pricing-test");
   const visualPreviewPlan = pricingTestPlan === "basic" || pricingTestPlan === "pro"
     ? pricingTestPlan
@@ -166,7 +168,8 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
   const forceFreePricing = pricingTestPlan === "free";
   const pricingEntitlements = forceFreePricing ? null : entitlements;
   const handleRequestCheckout = useCallback((selection: CheckoutSelection) => {
-    openSubscriptionDetails(selection, {
+    trackAnalyticsEvent("pricing_subscription_details_opened");
+    openSubscriptionDetails({ ...selection, source: "pricing" }, {
       currencyCode,
       currentPlan: pricingEntitlements?.effectivePlan ?? null,
     });
@@ -174,6 +177,12 @@ export function PricingPage({ user, currencyCode }: PricingPageProps) {
   const paidPlan = pricingEntitlements?.effectivePlan === "basic" || pricingEntitlements?.effectivePlan === "pro"
     ? visualPreviewPlan ?? pricingEntitlements.effectivePlan
     : visualPreviewPlan;
+
+  useEffect(() => {
+    if (pricingPageViewTrackedRef.current) return;
+    pricingPageViewTrackedRef.current = true;
+    trackAnalyticsEvent("pricing_page_viewed");
+  }, []);
 
   useLayoutEffect(() => {
     if (paidPlan || typeof window === "undefined") return;
@@ -1044,7 +1053,8 @@ function GooglePlayCheckoutButton({
     }
 
     try {
-      await purchase(getGooglePlaySku(plan, cycle));
+      const sku = getGooglePlaySku(plan, cycle);
+      await purchase(sku, { source: "pricing" });
       showMessage(t("pricing.purchaseSuccessDescription"), "success");
     } catch (error) {
       if (isGooglePlayPurchaseCancellation(error)) {

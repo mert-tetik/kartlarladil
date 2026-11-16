@@ -139,6 +139,11 @@ vi.mock("@/features/inventory/inventory-store", () => {
       cards: InventoryCard[];
       addCards: typeof addCardsMock;
       hydrated: boolean;
+      cloudEnabled: boolean;
+      cloudLoading: boolean;
+      cloudLoadComplete: boolean;
+      cloudError: string;
+      ownerUserId: string | null;
       pendingCardIds: Set<string>;
       removeCard: () => Promise<void>;
     }) => unknown) =>
@@ -146,6 +151,11 @@ vi.mock("@/features/inventory/inventory-store", () => {
         cards: inventoryCardsMock.value,
         addCards: addCardsMock,
         hydrated: true,
+        cloudEnabled: true,
+        cloudLoading: false,
+        cloudLoadComplete: true,
+        cloudError: "",
+        ownerUserId: "test-user",
         pendingCardIds: new Set<string>(),
         removeCard: vi.fn(async () => {}),
       }),

@@ -386,7 +386,7 @@ const dictionary = {
   "limit.aiMonthlyLimitTitle": "Cuota mensual de mensajes de IA llena",
   "limit.defaultDescription": "Esta acción está fuera de los límites de tu plan actual. Actualiza tu plan para desbloquear más.",
   "limit.defaultTitle": "Límite de plan alcanzado",
-  "limit.learnedCardLimitDescription": "El plan gratuito te permite aprender hasta 100 tarjetas en total. Actualiza tu plan para aprender m?s.",
+  "limit.learnedCardLimitDescription": "El plan gratuito te permite aprender hasta 50 tarjetas en total. Actualiza tu plan para aprender m?s.",
   "limit.learnedCardLimitTitle": "Cuota de tarjetas aprendidas llena",
   "limit.cardAlreadyActiveTitle": "Esta tarjeta ya está activa",
   "limit.cardAlreadyActiveDescription": "Esta tarjeta ya está en tus tarjetas activas. No puedes agregar la misma tarjeta dos veces.",

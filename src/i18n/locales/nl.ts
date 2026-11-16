@@ -386,7 +386,7 @@ const dictionary = {
   "limit.aiMonthlyLimitTitle": "Maandelijkse AI-berichtquotum vol",
   "limit.defaultDescription": "Deze actie ligt buiten de grenzen van je huidige plan. Upgrade je plan om meer te ontgrendelen.",
   "limit.defaultTitle": "Planlimiet bereikt",
-  "limit.learnedCardLimitDescription": "Met het gratis plan kun je in totaal maximaal 100 kaarten leren. Upgrade je plan om meer te leren.",
+  "limit.learnedCardLimitDescription": "Met het gratis plan kun je in totaal maximaal 50 kaarten leren. Upgrade je plan om meer te leren.",
   "limit.learnedCardLimitTitle": "Geleerd kaartquotum vol",
   "limit.cardAlreadyActiveTitle": "Deze kaart is al actief",
   "limit.cardAlreadyActiveDescription": "Deze kaart is al in je actieve kaarten. Je kunt dezelfde kaart niet twee keer toevoegen.",

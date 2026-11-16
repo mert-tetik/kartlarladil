@@ -2,11 +2,13 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseBrowserConfig, hasSupabaseBrowserConfig } from "@/lib/supabase/config";
 import { SUPABASE_COOKIE_OPTIONS } from "@/lib/supabase/cookie-options";
+import { getSupabaseForwardedRequestHeaders } from "@/lib/supabase/native-launch-request";
 
 export async function updateSupabaseSession(request: NextRequest) {
-  let response = NextResponse.next({
-    request,
+  const createForwardedResponse = () => NextResponse.next({
+    request: { headers: getSupabaseForwardedRequestHeaders(request) },
   });
+  let response = createForwardedResponse();
 
   if (!hasSupabaseBrowserConfig()) {
     return response;
@@ -23,9 +25,7 @@ export async function updateSupabaseSession(request: NextRequest) {
           request.cookies.set(name, value);
         });
 
-        response = NextResponse.next({
-          request,
-        });
+        response = createForwardedResponse();
 
         cookiesToSet.forEach(({ name, value, options }) => {
           response.cookies.set(name, value, options);
