@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   verifyGooglePlayPurchaseAction: vi.fn(),
   syncGooglePlayPurchasesAction: vi.fn(),
   applyVerifiedEntitlements: vi.fn(),
+  sendTwaAnalyticsEvent: vi.fn(),
   sendTwaSubscriptionPurchaseEvent: vi.fn(),
   trackAnalyticsEvent: vi.fn(),
 }));
@@ -22,6 +23,7 @@ vi.mock("@/features/subscriptions/subscription-client", () => ({
 }));
 
 vi.mock("@/lib/twa-analytics", () => ({
+  sendTwaAnalyticsEvent: mocks.sendTwaAnalyticsEvent,
   sendTwaSubscriptionPurchaseEvent: mocks.sendTwaSubscriptionPurchaseEvent,
 }));
 
@@ -74,6 +76,10 @@ describe("useGooglePlayBilling Meta purchase telemetry", () => {
     expect(mocks.trackAnalyticsEvent).toHaveBeenCalledWith(
       "subscription_purchase_started",
       { sku: "pro_yearly", plan: "pro", billing_cycle: "yearly", source: "pricing" },
+    );
+    expect(mocks.sendTwaAnalyticsEvent).toHaveBeenCalledWith(
+      "fd_subscription_purchase_started",
+      { params: { sku: "pro_yearly", plan: "pro", billing_cycle: "yearly", source: "pricing" } },
     );
     expect(mocks.trackAnalyticsEvent).toHaveBeenCalledWith(
       "subscription_purchase_succeeded",

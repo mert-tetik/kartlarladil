@@ -855,6 +855,15 @@ export const useInventoryStore = create<InventoryState>()(
               },
             });
             if (!hadLearnedCardBefore) {
+              sendTwaAnalyticsEvent("fd_first_card_learned", {
+                once: true,
+                params: {
+                  card_language: vocabularyCard?.language ?? "",
+                  card_tier: vocabularyCard?.tier ?? "",
+                  term_kind: vocabularyCard?.termKind ?? "",
+                  correct_count: inventoryCard.correctCount,
+                },
+              });
               trackAnalyticsEvent("first_card_learned", {
                 card_language: vocabularyCard?.language ?? "",
                 card_tier: vocabularyCard?.tier ?? "",
@@ -903,6 +912,15 @@ export const useInventoryStore = create<InventoryState>()(
             },
           });
           if (!hadLearnedCardBefore) {
+            sendTwaAnalyticsEvent("fd_first_card_learned", {
+              once: true,
+              params: {
+                card_language: vocabularyCard.language,
+                card_tier: vocabularyCard.tier,
+                term_kind: vocabularyCard.termKind,
+                correct_count: updatedCard.correctCount,
+              },
+            });
             trackAnalyticsEvent("first_card_learned", {
               card_language: vocabularyCard.language,
               card_tier: vocabularyCard.tier,

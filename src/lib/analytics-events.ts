@@ -2,6 +2,8 @@
 
 export type AnalyticsEventName =
   | "tutorial_completed"
+  | "tutorial_card_add_method_selected"
+  | "tutorial_cards_added"
   | "onboarding_completed"
   | "app_opened"
   | "first_card_added"

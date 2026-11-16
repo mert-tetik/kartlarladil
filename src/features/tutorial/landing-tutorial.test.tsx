@@ -382,6 +382,19 @@ describe("LandingTutorial", () => {
     expect(document.querySelector("#mobile-card-center-content")).not.toBeInTheDocument();
   });
 
+  it.each([
+    ["random", "random"],
+    ["custom", "custom"],
+    ["groups", "group"],
+  ] as const)("records the selected tutorial card-add method for %s", async (choiceKey, method) => {
+    render(<TutorialFixture />);
+    const choice = await screen.findByRole("button", { name: new RegExp(`tutorial\\.cardModes\\.${choiceKey}\\.title`) }, { timeout: 3_500 });
+
+    fireEvent.click(choice);
+
+    expect(trackAnalyticsEventMock).toHaveBeenCalledWith("tutorial_card_add_method_selected", { method });
+  });
+
   it("animates a choice even when its landing target has no visible layout", async () => {
     render(<TutorialFixture />);
     const target = document.querySelector<HTMLElement>('[data-tutorial-target="landing-draw-cards"]');

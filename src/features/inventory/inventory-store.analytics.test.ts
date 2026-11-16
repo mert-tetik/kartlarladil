@@ -294,6 +294,15 @@ describe("inventory store analytics", () => {
         correct_count: getTierRequirement(testCard.tier),
       },
     });
+    expect(sendTwaAnalyticsEvent).toHaveBeenCalledWith("fd_first_card_learned", {
+      once: true,
+      params: {
+        card_language: testCard.language,
+        card_tier: testCard.tier,
+        term_kind: testCard.termKind,
+        correct_count: getTierRequirement(testCard.tier),
+      },
+    });
   });
 
   it("surfaces a server-side subscription restriction from learned review after rolling back optimistic state", async () => {

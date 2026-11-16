@@ -22,6 +22,9 @@ const subscriptionRestrictionCodeSchema = z.enum([
   "scenario_subscription_required",
 ]);
 
+const tutorialCardAddMethodSchema = z.enum(["random", "custom", "group"]);
+const tutorialCardsAddedCountSchema = z.number().int().min(1).max(1_000);
+
 const analyticsPropertyKeySchema = z.string().regex(/^[a-z][a-z0-9_]{0,63}$/);
 const analyticsPropertyValueSchema = z.union([
   z.string().max(200),
@@ -34,6 +37,8 @@ const analyticsPropertiesSchema = z.record(
 ).superRefine((properties, context) => {
   const allowedKeys = new Set([
     "onboarding_source",
+    "method",
+    "added_count",
     "learning_language",
     "ui_locale",
     "platform",
@@ -82,6 +87,8 @@ const analyticsPropertiesSchema = z.record(
 const analyticsEventSchema = z.object({
   event_name: z.enum([
     "tutorial_completed",
+    "tutorial_card_add_method_selected",
+    "tutorial_cards_added",
     "onboarding_completed",
     "app_opened",
     "first_card_added",
@@ -120,6 +127,55 @@ const analyticsEventSchema = z.object({
         code: z.ZodIssueCode.custom,
         path: ["properties", "restriction_code"],
         message: "Invalid restriction code",
+      });
+    }
+  }
+
+  if (event.event_name === "tutorial_card_add_method_selected") {
+    const method = event.properties?.method;
+    if (method === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["properties", "method"],
+        message: "Tutorial card-add method events require a method",
+      });
+    } else if (!tutorialCardAddMethodSchema.safeParse(method).success) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["properties", "method"],
+        message: "Invalid tutorial card-add method",
+      });
+    }
+  }
+
+  if (event.event_name === "tutorial_cards_added") {
+    const addedCount = event.properties?.added_count;
+    if (addedCount === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["properties", "added_count"],
+        message: "Tutorial card-add events require an added count",
+      });
+    } else if (!tutorialCardsAddedCountSchema.safeParse(addedCount).success) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["properties", "added_count"],
+        message: "Invalid tutorial added card count",
+      });
+    }
+
+    const method = event.properties?.method;
+    if (method === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["properties", "method"],
+        message: "Tutorial card-add events require a method",
+      });
+    } else if (!tutorialCardAddMethodSchema.safeParse(method).success) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["properties", "method"],
+        message: "Invalid tutorial card-add method",
       });
     }
   }

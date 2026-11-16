@@ -171,10 +171,16 @@ public final class NativeMetaAnalytics {
                 return "fb_mobile_content_view";
             case "fd_subscription_purchase":
                 return "fb_mobile_purchase";
+            case "fd_subscription_purchase_started":
+                return "fb_mobile_initiated_checkout";
             case "fd_login":
                 return sourceEvent;
             case "fd_onboarding_completed":
             case "fd_custom_card_added":
+            case "fd_tutorial_cards_added":
+            case "fd_first_quiz_completed":
+            case "fd_first_card_learned":
+            case "fd_learn_session_completed":
             case "fd_rank_up":
             case "fd_quiz_completed":
             case "fd_mission_reward_claimed":

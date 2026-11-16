@@ -648,6 +648,11 @@ export function LandingTutorial() {
 
   function handleChoice(choice: (typeof TUTORIAL_CHOICES)[number], sourceButton: HTMLButtonElement) {
     if (phaseRef.current !== "visible" || isChoiceExiting || choiceExitActionRef.current) return;
+    if (!testMode) {
+      trackAnalyticsEvent("tutorial_card_add_method_selected", {
+        method: choice.key === "groups" ? "group" : choice.key,
+      });
+    }
     finishWelcomeUnderlayTransition();
     const target = findVisibleElement(choice.selector);
     const rect = (target ?? sourceButton).getBoundingClientRect();

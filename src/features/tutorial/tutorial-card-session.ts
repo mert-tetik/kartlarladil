@@ -1,4 +1,11 @@
+"use client";
+
+import { useTutorialStore } from "@/features/tutorial/tutorial-store";
+import { trackAnalyticsEvent } from "@/lib/analytics-events";
+import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
+
 export type TutorialCardLayer = "draw-cards" | "custom-card" | "card-groups";
+export type TutorialCardAddMethod = "random" | "custom" | "group";
 
 export interface TutorialLayerOrigin {
   x: number;
@@ -34,6 +41,12 @@ export interface TutorialCardLayerPromptChangedDetail {
   active: boolean;
 }
 
+export function getTutorialCardAddMethod(layer: TutorialCardLayer): TutorialCardAddMethod {
+  if (layer === "draw-cards") return "random";
+  if (layer === "custom-card") return "custom";
+  return "group";
+}
+
 export function dispatchTutorialCardLayerOpened(detail: TutorialCardLayerOpenedDetail) {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent<TutorialCardLayerOpenedDetail>(TUTORIAL_CARD_LAYER_OPENED_EVENT, { detail }));
@@ -51,6 +64,17 @@ export function dispatchTutorialCardLayerClosed(detail: TutorialCardLayerClosedD
 
 export function dispatchTutorialCardLayerAddAttempted(detail: TutorialCardLayerAddAttemptedDetail) {
   if (typeof window === "undefined" || !Number.isInteger(detail.count) || detail.count <= 0) return;
+
+  const tutorialState = useTutorialStore.getState();
+  if (tutorialState.active && !tutorialState.completed && !tutorialState.testMode) {
+    const analyticsProperties = {
+      method: getTutorialCardAddMethod(detail.layer),
+      added_count: detail.count,
+    };
+    trackAnalyticsEvent("tutorial_cards_added", analyticsProperties);
+    sendTwaAnalyticsEvent("fd_tutorial_cards_added", { params: analyticsProperties });
+  }
+
   window.dispatchEvent(new CustomEvent<TutorialCardLayerAddAttemptedDetail>(TUTORIAL_CARD_LAYER_ADD_ATTEMPTED_EVENT, { detail }));
 }
 

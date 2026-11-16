@@ -38,6 +38,70 @@ describe("analytics events route", () => {
     });
   });
 
+  it("records the tutorial card-add method", async () => {
+    const response = await POST(new Request("https://example.test/api/analytics/events", {
+      method: "POST",
+      body: JSON.stringify({
+        event_name: "tutorial_card_add_method_selected",
+        properties: { method: "group" },
+      }),
+      headers: { "content-type": "application/json" },
+    }));
+
+    expect(response.status).toBe(204);
+    expect(mocks.insert).toHaveBeenCalledWith({
+      user_id: "user-1",
+      event_name: "tutorial_card_add_method_selected",
+      properties: { method: "group" },
+    });
+  });
+
+  it("records cards added during the tutorial with the selected method", async () => {
+    const response = await POST(new Request("https://example.test/api/analytics/events", {
+      method: "POST",
+      body: JSON.stringify({
+        event_name: "tutorial_cards_added",
+        properties: { method: "group", added_count: 12 },
+      }),
+      headers: { "content-type": "application/json" },
+    }));
+
+    expect(response.status).toBe(204);
+    expect(mocks.insert).toHaveBeenCalledWith({
+      user_id: "user-1",
+      event_name: "tutorial_cards_added",
+      properties: { method: "group", added_count: 12 },
+    });
+  });
+
+  it("ignores tutorial card-add totals without a valid count or method", async () => {
+    const response = await POST(new Request("https://example.test/api/analytics/events", {
+      method: "POST",
+      body: JSON.stringify({
+        event_name: "tutorial_cards_added",
+        properties: { method: "groups", added_count: 0 },
+      }),
+      headers: { "content-type": "application/json" },
+    }));
+
+    expect(response.status).toBe(204);
+    expect(mocks.insert).not.toHaveBeenCalled();
+  });
+
+  it("ignores a tutorial card-add method event without a valid method", async () => {
+    const response = await POST(new Request("https://example.test/api/analytics/events", {
+      method: "POST",
+      body: JSON.stringify({
+        event_name: "tutorial_card_add_method_selected",
+        properties: { method: "groups" },
+      }),
+      headers: { "content-type": "application/json" },
+    }));
+
+    expect(response.status).toBe(204);
+    expect(mocks.insert).not.toHaveBeenCalled();
+  });
+
   it.each([
     "pricing_page_viewed",
     "pricing_subscription_details_opened",

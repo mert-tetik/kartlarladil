@@ -10,7 +10,10 @@ import {
   isGooglePlayPurchaseCancellation,
 } from "@/features/subscriptions/google-play-errors";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
-import { sendTwaSubscriptionPurchaseEvent } from "@/lib/twa-analytics";
+import {
+  sendTwaAnalyticsEvent,
+  sendTwaSubscriptionPurchaseEvent,
+} from "@/lib/twa-analytics";
 import {
   trackAnalyticsEvent,
   type AnalyticsEventProperties,
@@ -91,6 +94,7 @@ export function useGooglePlayBilling() {
     async (sku: string, context: PurchaseAnalyticsContext = {}) => {
       const analyticsProperties = getPurchaseAnalyticsProperties(sku, context);
       trackAnalyticsEvent("subscription_purchase_started", analyticsProperties);
+      sendTwaAnalyticsEvent("fd_subscription_purchase_started", { params: analyticsProperties });
       setIsLoading(true);
       setError(null);
 

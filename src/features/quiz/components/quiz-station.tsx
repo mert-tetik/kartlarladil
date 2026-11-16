@@ -2306,7 +2306,12 @@ export function QuizStation({
             once: true,
             dedupeKey: user.id,
           });
+          sendTwaAnalyticsEvent("fd_first_quiz_completed", {
+            once: true,
+            params: quizAnalyticsProperties,
+          });
           trackAnalyticsEvent("learn_session_completed", quizAnalyticsProperties);
+          sendTwaAnalyticsEvent("fd_learn_session_completed", { params: quizAnalyticsProperties });
         }
 
         if (quizStartedAtRef.current !== null) {
