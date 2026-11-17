@@ -29,6 +29,11 @@ declare global {
       setStatusTexts?: (statusesJson: string) => void;
       setBootstrapReady?: () => void;
       setEssentialDataReady?: () => void;
+      setProfileDataReady?: () => void;
+      setPerformanceDiagnosticsContext?: (enabled: boolean, ownerHash: string) => void;
+      getPerformanceDeviceInfo?: () => string;
+      getPendingPerformanceSnapshots?: () => string;
+      acknowledgePerformanceSnapshot?: (eventId: string) => void;
     };
   }
 }
@@ -55,6 +60,7 @@ export function NativeLoadingCardsBridge() {
     if (!isSessionReady) return;
 
     nativeLoading.setPreferences?.(learningLanguage, locale);
+    if (user) nativeLoading.setProfileDataReady?.();
     nativeLoading.setTitle?.(formatSuperWaterUppercaseText(locale, getNativeLoadingTitle(locale)));
     nativeLoading.setStatusTexts?.(JSON.stringify(localizedStatusTexts));
     const dateKey = getNativeLoadingDateKey();

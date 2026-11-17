@@ -1,6 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthSessionProvider, useAuthSession } from "@/features/auth/auth-client";
 import { writeCachedAuthProfile } from "@/features/auth/auth-profile-cache";
 import type { AuthShellUser } from "@/features/auth/auth-types";
@@ -172,6 +172,10 @@ describe("AuthSessionProvider", () => {
     expect(screen.getByTestId("session-state")).toHaveTextContent(initialUser.email);
   });
 
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("shows the matching local profile immediately and refreshes it in the background", async () => {
     let resolveBackgroundProfile!: (result: { data: typeof syncedProfile; error: null }) => void;
     writeCachedAuthProfile(initialUser.id, {
@@ -204,6 +208,33 @@ describe("AuthSessionProvider", () => {
     await act(async () => {
       resolveBackgroundProfile({ data: syncedProfile, error: null });
     });
+  });
+
+  it("bootstraps a missing profile after a client-side auth session is restored", async () => {
+    mocks.getSession.mockResolvedValue({
+      data: { session: { user: { id: initialUser.id, email: initialUser.email } } },
+      error: null,
+    });
+    mocks.from.mockImplementation(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    }));
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ available: true, profile: initialUser.profile }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <AuthSessionProvider user={null}>
+        <SessionStateProbe />
+      </AuthSessionProvider>,
+    );
+
+    expect(await screen.findByText(initialUser.email)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith("/api/auth/profile-bootstrap", expect.objectContaining({ method: "POST" }));
+    expect(screen.getByTestId("session-ready")).toHaveTextContent("true");
   });
 
   it("does not mark a signed-out server snapshot ready until the browser session is restored", async () => {

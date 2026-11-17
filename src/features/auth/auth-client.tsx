@@ -320,16 +320,35 @@ export function AuthSessionProvider({
         .maybeSingle());
     }
 
+    let recoveredProfile: AuthProfile | null = null;
+    if (!error && !data) {
+      const bootstrapResponse = await fetch("/api/auth/profile-bootstrap", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+      }).catch(() => null);
+
+      if (!bootstrapResponse?.ok) return;
+
+      const bootstrapResult = await bootstrapResponse.json().catch(() => null) as {
+        available?: boolean;
+        profile?: AuthProfile;
+      } | null;
+
+      if (!bootstrapResult?.available || !bootstrapResult.profile) return;
+      recoveredProfile = bootstrapResult.profile;
+    }
+
     if (
       error ||
-      !data ||
+      (!data && !recoveredProfile) ||
       locallySignedOutRef.current ||
       sessionSyncGenerationRef.current !== generation
     ) {
       return;
     }
 
-    const nextProfile = normalizeClientProfile(data);
+    const nextProfile = recoveredProfile ?? normalizeClientProfile(data!);
     const confirmedGemBalances = getGemBalances(nextProfile);
     gemLedgerRef.current.setConfirmedBalances(confirmedGemBalances);
     const visibleGemBalances = getVisibleGemBalances();

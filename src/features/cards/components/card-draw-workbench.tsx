@@ -36,7 +36,7 @@ import { EmptyState } from "@/components/empty-state";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { cn, normalizeSearch } from "@/lib/utils";
 import { vibrate } from "@/lib/vibration";
-import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
+import { sendTwaAnalyticsEvent, trackTwaQualityActivation } from "@/lib/twa-analytics";
 import { useAppMessage } from "@/components/app-message-provider";
 import type { LanguageCode, VocabularyCard } from "@/types/domain";
 
@@ -124,6 +124,7 @@ export function CardDrawWorkbench({ initialLanguage, initialTier }: CardDrawWork
     if (typeof document === "undefined") return;
     if (document.referrer.includes("/register/preferences")) {
       sendTwaAnalyticsEvent("fd_tutorial_complete", { once: true });
+      trackTwaQualityActivation("tutorial_completed");
     }
   }, []);
 

@@ -38,6 +38,8 @@ import { MobileBackNavigation } from "@/components/mobile-back-navigation";
 import { DevelopmentServiceWorkerCleanup } from "@/components/development-service-worker-cleanup";
 import { NativeLoadingCardsBridge } from "@/components/native-loading-cards-bridge";
 import { AnalyticsSessionTracker } from "@/components/analytics-session-tracker";
+import { PerformanceDiagnosticsProvider } from "@/components/performance-diagnostics-provider";
+import { PerformanceDiagnosticsDisclosure } from "@/features/auth/components/performance-diagnostics-disclosure";
 
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { LocaleCode } from "@/types/domain";
@@ -66,6 +68,8 @@ export function AppShell({
         <AuthSessionProvider user={user}>
         <AnalyticsSessionTracker />
         <NativeLoadingCardsBridge />
+        <PerformanceDiagnosticsProvider />
+        <PerformanceDiagnosticsDisclosure />
         <QuizPoolAuthBoundary />
         <OfflineInventorySync />
         <DailyStreakProvider>

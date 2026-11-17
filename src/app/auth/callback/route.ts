@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
   if (user) {
     const [, { onboardingCompleted }] = await Promise.all([
       recordAppLogin(user.id),
-      ensureUserProfile(supabase, user),
+      ensureUserProfile(supabase, user, { source: "oauth_callback" }),
     ]);
 
     if (!onboardingCompleted) {

@@ -4,6 +4,10 @@
     {
       "path": "/api/twitter-automation/maintenance",
       "schedule": "15 3 * * *"
+    },
+    {
+      "path": "/api/internal/profile-bootstrap-health",
+      "schedule": "30 3 * * *"
     }
   ]
 }

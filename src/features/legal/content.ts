@@ -1,6 +1,10 @@
 import type { LocaleCode } from "@/types/domain";
+import {
+  PERFORMANCE_DIAGNOSTICS_NOTICE,
+  PERFORMANCE_DIAGNOSTICS_PURPOSE,
+} from "@/features/legal/performance-diagnostics-notice";
 
-export const LEGAL_LAST_UPDATED = "2026-10-11";
+export const LEGAL_LAST_UPDATED = "2026-11-18";
 
 export const GOOGLE_PLAY_SUBSCRIPTIONS_URL = "https://play.google.com/store/account/subscriptions";
 export const GOOGLE_PLAY_REFUND_POLICY_URL = "https://support.google.com/googleplay/answer/15574908?hl=en";
@@ -120,5 +124,8 @@ const META_ANALYTICS_NOTICE = `<h2>7. Mobile advertising measurement</h2><p>When
 
 export function getLegalContent(locale: LocaleCode, section: LegalSection): string {
   const content = legalContent[locale]?.[section] ?? fallbackLegalContent[section];
-  return section === "privacy" ? `${content}${META_ANALYTICS_NOTICE}` : content;
+  if (section !== "privacy") return content;
+
+  const localizedMetaNotice = META_ANALYTICS_NOTICE.replaceAll("<h2>7.", "<h2>8.");
+  return `${content}${PERFORMANCE_DIAGNOSTICS_NOTICE[locale] ?? PERFORMANCE_DIAGNOSTICS_NOTICE.en}${PERFORMANCE_DIAGNOSTICS_PURPOSE[locale] ?? PERFORMANCE_DIAGNOSTICS_PURPOSE.en}${localizedMetaNotice}`;
 }

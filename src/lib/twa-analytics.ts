@@ -4,7 +4,16 @@ import { getTwaMode } from "@/features/install-app/twa-mode";
 
 const TWA_ANALYTICS_SENT_KEY = "foxiesdeck:twa-analytics-sent";
 const TWA_REGISTRATION_EVENT_KEY = "foxiesdeck:twa-registration-event";
+const TWA_QUALITY_ACTIVATION_SIGNALS_KEY = "foxiesdeck:twa-quality-activation-signals";
 const REGISTRATION_DEDUPLICATION_WINDOW_MS = 10 * 60 * 1000;
+
+const QUALITY_ACTIVATION_SIGNALS = [
+  "tutorial_completed",
+  "first_card_added",
+  "first_quiz_completed",
+] as const;
+
+export type TwaQualityActivationSignal = (typeof QUALITY_ACTIVATION_SIGNALS)[number];
 
 function getSentSet(): Set<string> {
   if (typeof window === "undefined") {
@@ -113,6 +122,38 @@ export function sendTwaAnalyticsEvent(
   if (options.once) {
     markSent(eventName);
   }
+}
+
+/**
+ * Records the three actions that define a meaningful first activation in the
+ * TWA. The bridge emits one deduplicated event only after all three signals
+ * are present, so ad platforms optimize for users who actually use the app.
+ */
+export function trackTwaQualityActivation(signal: TwaQualityActivationSignal): void {
+  if (!isTwaMode() || typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(TWA_QUALITY_ACTIVATION_SIGNALS_KEY);
+    const signals = new Set<string>(raw ? (JSON.parse(raw) as string[]) : []);
+    signals.add(signal);
+    window.localStorage.setItem(
+      TWA_QUALITY_ACTIVATION_SIGNALS_KEY,
+      JSON.stringify([...signals]),
+    );
+
+    if (!QUALITY_ACTIVATION_SIGNALS.every((requiredSignal) => signals.has(requiredSignal))) {
+      return;
+    }
+  } catch {
+    return;
+  }
+
+  sendTwaAnalyticsEvent("fd_quality_activation", {
+    once: true,
+    params: { activation_type: "tutorial_card_quiz" },
+  });
 }
 
 /** Send registration once across the form-success and auth-session paths. */

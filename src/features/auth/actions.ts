@@ -91,7 +91,7 @@ export async function loginAction(_state: AuthActionState, formData: FormData): 
 
   if (user) {
     await recordAppLogin(user.id);
-    const { onboardingCompleted } = await ensureUserProfile(supabase, user);
+    const { onboardingCompleted } = await ensureUserProfile(supabase, user, { source: "password_login" });
 
     if (!onboardingCompleted) {
       redirect(`/register/preferences?next=${encodeURIComponent(nextPath)}`);
@@ -141,7 +141,10 @@ export async function registerAction(_state: AuthActionState, formData: FormData
   }
 
   if (data.session && data.user) {
-    await ensureUserProfile(supabase, data.user, { displayName: parsed.data.displayName });
+    await ensureUserProfile(supabase, data.user, {
+      displayName: parsed.data.displayName,
+      source: "password_signup",
+    });
     revalidatePath("/", "layout");
     redirect(`/register/preferences?next=${encodeURIComponent(nextPath)}`);
   }

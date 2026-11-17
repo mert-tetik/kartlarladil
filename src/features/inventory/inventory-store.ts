@@ -7,7 +7,7 @@ import { localCardRepository } from "@/features/cards/card-repository";
 import { countActiveCardsForLanguage, limitCardIdsByLanguage } from "@/features/inventory/active-card-limits";
 import { FIRST_CARD_ADDED_EVENT } from "@/features/push/push-client";
 import { STORAGE_KEY } from "@/lib/constants";
-import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
+import { sendTwaAnalyticsEvent, trackTwaQualityActivation } from "@/lib/twa-analytics";
 import { isFirstLearnedTransition } from "@/lib/twa-analytics-events";
 import { trackAnalyticsEvent } from "@/lib/analytics-events";
 import { DEFAULT_LOCALE, LOCALE_STORAGE_KEY, normalizeLocale } from "@/i18n/config";
@@ -426,6 +426,7 @@ export const useInventoryStore = create<InventoryState>()(
           }
           if (optimisticCards.length > 0) {
             sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
+            trackTwaQualityActivation("first_card_added");
           }
           const firstCardAdded = previousCount === 0 && optimisticCards.length > 0;
           if (firstCardAdded) {
@@ -497,6 +498,7 @@ export const useInventoryStore = create<InventoryState>()(
         }
         if (nextCards.length > 0) {
           sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
+          trackTwaQualityActivation("first_card_added");
         }
         if (firstCardAdded) {
           trackAnalyticsEvent("first_card_added", {
@@ -568,6 +570,7 @@ export const useInventoryStore = create<InventoryState>()(
 
           if (optimisticCardIds.length > 0) {
             sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
+            trackTwaQualityActivation("first_card_added");
           }
           if (firstCardAdded) {
             dispatchFirstCardAddedEvent();
@@ -685,6 +688,7 @@ export const useInventoryStore = create<InventoryState>()(
 
         if (addedCardIds.length > 0) {
           sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
+          trackTwaQualityActivation("first_card_added");
         }
 
         const firstCardAdded = previousCount === 0 && nextCards.length > 0;

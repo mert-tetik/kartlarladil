@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.ClipData;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
@@ -15,6 +16,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.view.Window;
 import android.view.WindowInsets;
@@ -44,7 +46,12 @@ import com.google.android.play.core.install.model.UpdateAvailability;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
+import java.util.UUID;
 
 public class LauncherActivity extends Activity {
     private static final int AUDIO_PERMISSION_REQUEST_CODE = 4101;
@@ -73,6 +80,17 @@ public class LauncherActivity extends Activity {
     private boolean nativeLoadingCardsReceived;
     private boolean nativeLoadingBootstrapReady;
     private boolean nativeLoadingEssentialDataReady;
+    private boolean performanceDiagnosticsEnabledAtLaunch;
+    private boolean nativeStartupSnapshotSaved;
+    private long nativeLaunchStartedAtMs;
+    private long nativeWebViewInitStartedAtMs;
+    private long nativeWebViewSetupFinishedAtMs;
+    private long nativeDocumentLoadStartedAtMs;
+    private long nativeFirstPageCommitAtMs;
+    private long nativeBootstrapReadyAtMs;
+    private long nativeProfileDataReadyAtMs;
+    private long nativeEssentialDataReadyAtMs;
+    private long nativeStartupCompletedAtMs;
     private String[] nativeLoadingStatuses;
     private String nativeLoadingFallbackStatus = "Foxies are stretching their tails...";
     private int nativeLoadingProgressPercent = 8;
@@ -85,6 +103,10 @@ public class LauncherActivity extends Activity {
     private static final long NATIVE_LOADING_TEST_STEP_DELAY_MS = 1200L;
     private static final String NATIVE_LOADING_TEST_PARAMETER = "native-loading-test";
     private static final String NATIVE_LOADING_PREFERENCES = "native_loading_preferences";
+    private static final String NATIVE_PERFORMANCE_PREFERENCES = "native_performance_diagnostics";
+    private static final String NATIVE_PERFORMANCE_ENABLED = "enabled";
+    private static final String NATIVE_PERFORMANCE_OWNER_HASH = "owner_hash";
+    private static final String NATIVE_PERFORMANCE_PENDING = "pending_snapshots";
     private static final String NATIVE_LOADING_LEARNING_LANGUAGE = "learning_language";
     private static final String NATIVE_LOADING_UI_LOCALE = "ui_locale";
     private static final AppUpdateOptions IMMEDIATE_UPDATE_OPTIONS =
@@ -94,6 +116,11 @@ public class LauncherActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        nativeLaunchStartedAtMs = SystemClock.elapsedRealtime();
+        performanceDiagnosticsEnabledAtLaunch = getSharedPreferences(
+                NATIVE_PERFORMANCE_PREFERENCES,
+                MODE_PRIVATE
+        ).getBoolean(NATIVE_PERFORMANCE_ENABLED, false);
         pendingLaunchIntent = getIntent();
         nativeLoadingTestMode = isNativeLoadingTestIntent(pendingLaunchIntent);
         contentRoot = new FrameLayout(this);
@@ -262,6 +289,7 @@ public class LauncherActivity extends Activity {
     private void initializeWebView() {
         if (webView != null || isFinishing()) return;
 
+        nativeWebViewInitStartedAtMs = SystemClock.elapsedRealtime();
         setNativeLoadingState("Waking up the card cave...", 24);
 
         webView = new WebView(this);
@@ -362,6 +390,7 @@ public class LauncherActivity extends Activity {
                         FrameLayout.LayoutParams.MATCH_PARENT
                 )
         );
+        nativeWebViewSetupFinishedAtMs = SystemClock.elapsedRealtime();
 
         // The app must never wait for Play Core. The native loader can remain
         // visible while the update check runs independently in the background.
@@ -403,6 +432,9 @@ public class LauncherActivity extends Activity {
 
     private void handleNativePageCommitVisible() {
         nativeLoadingPageCommitted = true;
+        if (nativeFirstPageCommitAtMs == 0L) {
+            nativeFirstPageCommitAtMs = SystemClock.elapsedRealtime();
+        }
         if (isOfflineScreenVisible()) {
             // The bundled offline shell does not boot the remote React app, so
             // it cannot send the regular bootstrap/cards/essential-data
@@ -410,6 +442,8 @@ public class LauncherActivity extends Activity {
             nativeLoadingCardsReceived = true;
             nativeLoadingBootstrapReady = true;
             nativeLoadingEssentialDataReady = true;
+            nativeBootstrapReadyAtMs = nativeFirstPageCommitAtMs;
+            nativeEssentialDataReadyAtMs = nativeFirstPageCommitAtMs;
             maybeHideNativeLaunchOverlay();
             return;
         }
@@ -463,6 +497,9 @@ public class LauncherActivity extends Activity {
     private void markNativeLoadingBootstrapReady() {
         runOnUiThread(() -> {
             nativeLoadingBootstrapReady = true;
+            if (nativeBootstrapReadyAtMs == 0L) {
+                nativeBootstrapReadyAtMs = SystemClock.elapsedRealtime();
+            }
             setNativeLoadingState("Opening the welcome gate!", 88);
             maybeHideNativeLaunchOverlay();
         });
@@ -480,6 +517,123 @@ public class LauncherActivity extends Activity {
     private String getNativeLoadingPreference(String key, String fallback) {
         return getSharedPreferences(NATIVE_LOADING_PREFERENCES, MODE_PRIVATE)
                 .getString(key, fallback);
+    }
+
+    private JSONObject getPerformanceDeviceInfo() {
+        JSONObject device = new JSONObject();
+        try {
+            PackageInfo appInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+            long versionCode = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+                    ? appInfo.getLongVersionCode()
+                    : appInfo.versionCode;
+            device.put("manufacturer", Build.MANUFACTURER == null ? "" : Build.MANUFACTURER);
+            device.put("model", Build.MODEL == null ? "" : Build.MODEL);
+            device.put("android_release", Build.VERSION.RELEASE == null ? "" : Build.VERSION.RELEASE);
+            device.put("android_api_level", Build.VERSION.SDK_INT);
+            device.put("app_version", (appInfo.versionName == null ? "" : appInfo.versionName)
+                    + " (" + versionCode + ")");
+
+            String webViewPackage = "";
+            String webViewVersion = "";
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                PackageInfo webViewInfo = WebView.getCurrentWebViewPackage();
+                if (webViewInfo != null) {
+                    webViewPackage = webViewInfo.packageName == null ? "" : webViewInfo.packageName;
+                    webViewVersion = webViewInfo.versionName == null ? "" : webViewInfo.versionName;
+                }
+            }
+            device.put("webview_package", webViewPackage);
+            device.put("webview_version", webViewVersion);
+        } catch (Exception ignored) {
+            // Incomplete device metadata must not affect app launch.
+        }
+        return device;
+    }
+
+    private void persistNativeStartupSnapshot() {
+        if (nativeStartupSnapshotSaved
+                || nativeLoadingTestMode
+                || nativeStartupCompletedAtMs == 0L
+                || !performanceDiagnosticsEnabledAtLaunch) {
+            return;
+        }
+
+        android.content.SharedPreferences preferences = getSharedPreferences(
+                NATIVE_PERFORMANCE_PREFERENCES,
+                MODE_PRIVATE
+        );
+        String ownerHash = preferences.getString(NATIVE_PERFORMANCE_OWNER_HASH, "");
+        if (!preferences.getBoolean(NATIVE_PERFORMANCE_ENABLED, false)
+                || ownerHash == null
+                || !ownerHash.matches("[a-f0-9]{64}")) {
+            return;
+        }
+
+        try {
+            JSONObject event = new JSONObject();
+            JSONObject stages = new JSONObject();
+            long totalStartupMs = Math.min(
+                    300_000L,
+                    Math.max(0L, nativeStartupCompletedAtMs - nativeLaunchStartedAtMs)
+            );
+            putDuration(stages, "activity_to_webview_ms", nativeWebViewInitStartedAtMs, nativeLaunchStartedAtMs);
+            putDuration(stages, "webview_setup_ms", nativeWebViewSetupFinishedAtMs, nativeWebViewInitStartedAtMs);
+            putDuration(stages, "document_commit_ms", nativeFirstPageCommitAtMs, nativeDocumentLoadStartedAtMs);
+            putDuration(stages, "page_commit_to_shell_handoff_ms", nativeBootstrapReadyAtMs, nativeFirstPageCommitAtMs);
+            putDuration(stages, "profile_bootstrap_ms", nativeProfileDataReadyAtMs, nativeDocumentLoadStartedAtMs);
+            putDuration(stages, "essential_data_ms", nativeEssentialDataReadyAtMs, nativeFirstPageCommitAtMs);
+
+            event.put("event_id", UUID.randomUUID().toString());
+            event.put("captured_at", newUtcTimestamp());
+            event.put("owner_hash", ownerHash);
+            event.put("device", getPerformanceDeviceInfo());
+            event.put("startup_ms", totalStartupMs);
+            event.put("startup_stage_ms", stages);
+
+            JSONArray pending = new JSONArray(preferences.getString(NATIVE_PERFORMANCE_PENDING, "[]"));
+            JSONArray updated = new JSONArray();
+            for (int index = Math.max(0, pending.length() - 7); index < pending.length(); index++) {
+                JSONObject previous = pending.optJSONObject(index);
+                if (previous != null) updated.put(previous);
+            }
+            updated.put(event);
+            preferences.edit().putString(NATIVE_PERFORMANCE_PENDING, updated.toString()).apply();
+            nativeStartupSnapshotSaved = true;
+        } catch (Exception ignored) {
+            // Startup diagnostics are optional and must never affect launch.
+        }
+    }
+
+    private static void putDuration(JSONObject target, String key, long end, long start) throws Exception {
+        if (end > 0L && start > 0L && end >= start) {
+            target.put(key, Math.min(300_000L, end - start));
+        }
+    }
+
+    private static String newUtcTimestamp() {
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+        format.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return format.format(new Date());
+    }
+
+    private synchronized void acknowledgeNativePerformanceSnapshot(String eventId) {
+        android.content.SharedPreferences preferences = getSharedPreferences(
+                NATIVE_PERFORMANCE_PREFERENCES,
+                MODE_PRIVATE
+        );
+        try {
+            JSONArray pending = new JSONArray(preferences.getString(NATIVE_PERFORMANCE_PENDING, "[]"));
+            JSONArray remaining = new JSONArray();
+            for (int index = 0; index < pending.length(); index++) {
+                JSONObject event = pending.optJSONObject(index);
+                if (event != null && !eventId.equals(event.optString("event_id"))) {
+                    remaining.put(event);
+                }
+            }
+            preferences.edit().putString(NATIVE_PERFORMANCE_PENDING, remaining.toString()).apply();
+        } catch (Exception ignored) {
+            preferences.edit().remove(NATIVE_PERFORMANCE_PENDING).apply();
+        }
     }
 
     private final class NativeLoadingBridge {
@@ -562,8 +716,58 @@ public class LauncherActivity extends Activity {
         public void setEssentialDataReady() {
             runOnUiThread(() -> {
                 nativeLoadingEssentialDataReady = true;
+                if (nativeEssentialDataReadyAtMs == 0L) {
+                    nativeEssentialDataReadyAtMs = SystemClock.elapsedRealtime();
+                }
                 maybeHideNativeLaunchOverlay();
             });
+        }
+
+        @JavascriptInterface
+        public void setProfileDataReady() {
+            runOnUiThread(() -> {
+                if (nativeProfileDataReadyAtMs == 0L) {
+                    nativeProfileDataReadyAtMs = SystemClock.elapsedRealtime();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void setPerformanceDiagnosticsContext(boolean enabled, String ownerHash) {
+            android.content.SharedPreferences preferences = getSharedPreferences(
+                    NATIVE_PERFORMANCE_PREFERENCES,
+                    MODE_PRIVATE
+            );
+            if (!enabled || ownerHash == null || !ownerHash.matches("[a-f0-9]{64}")) {
+                preferences.edit()
+                        .putBoolean(NATIVE_PERFORMANCE_ENABLED, false)
+                        .remove(NATIVE_PERFORMANCE_OWNER_HASH)
+                        .remove(NATIVE_PERFORMANCE_PENDING)
+                        .apply();
+                return;
+            }
+            preferences.edit()
+                    .putBoolean(NATIVE_PERFORMANCE_ENABLED, true)
+                    .putString(NATIVE_PERFORMANCE_OWNER_HASH, ownerHash)
+                    .apply();
+        }
+
+        @JavascriptInterface
+        public String getPerformanceDeviceInfo() {
+            return LauncherActivity.this.getPerformanceDeviceInfo().toString();
+        }
+
+        @JavascriptInterface
+        public String getPendingPerformanceSnapshots() {
+            return getSharedPreferences(NATIVE_PERFORMANCE_PREFERENCES, MODE_PRIVATE)
+                    .getString(NATIVE_PERFORMANCE_PENDING, "[]");
+        }
+
+        @JavascriptInterface
+        public void acknowledgePerformanceSnapshot(String eventId) {
+            if (eventId != null && eventId.matches("[a-f0-9-]{36}")) {
+                acknowledgeNativePerformanceSnapshot(eventId);
+            }
         }
     }
 
@@ -582,7 +786,11 @@ public class LauncherActivity extends Activity {
         overlay.animate()
                 .alpha(0f)
                 .setDuration(120L)
-                .withEndAction(() -> contentRoot.removeView(overlay))
+                .withEndAction(() -> {
+                    nativeStartupCompletedAtMs = SystemClock.elapsedRealtime();
+                    persistNativeStartupSnapshot();
+                    contentRoot.removeView(overlay);
+                })
                 .start();
     }
 
@@ -787,6 +995,9 @@ public class LauncherActivity extends Activity {
 
     private void loadStartUrl(Intent intent) {
         setNativeLoadingState("Opening the word door...", 60);
+        if (nativeDocumentLoadStartedAtMs == 0L) {
+            nativeDocumentLoadStartedAtMs = SystemClock.elapsedRealtime();
+        }
         Uri requested = intent == null ? null : intent.getData();
         Uri base = requested != null && isNativeAuthCallbackUrl(requested)
                 ? toWebNativeAuthLandingUrl(requested)

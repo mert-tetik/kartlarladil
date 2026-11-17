@@ -179,6 +179,7 @@ public final class NativeMetaAnalytics {
             case "fd_custom_card_added":
             case "fd_tutorial_cards_added":
             case "fd_first_quiz_completed":
+            case "fd_quality_activation":
             case "fd_first_card_learned":
             case "fd_learn_session_completed":
             case "fd_rank_up":

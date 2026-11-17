@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { buttonClassName } from "@/components/ui/button";
 import { AccountSettingsForm } from "@/features/auth/components/account-settings-form";
+import { PerformanceDiagnosticsSettingsCard } from "@/features/auth/components/performance-diagnostics-settings-card";
 import { DeleteAccountForm } from "@/features/auth/components/delete-account-form";
 import { requireAuthUser } from "@/features/auth/auth-session";
 import { NotificationSettingsCard } from "@/features/push/components/notification-settings-card";
@@ -45,6 +46,7 @@ export default async function AccountSettingsPage() {
 
       <div className="mt-8 grid gap-6">
         <AccountSettingsForm user={user} />
+        <PerformanceDiagnosticsSettingsCard />
         <NotificationSettingsCard />
         {entitlements ? (
           <>

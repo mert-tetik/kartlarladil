@@ -7,6 +7,7 @@ import {
   sendTwaRegistrationEvent,
   sendTwaSubscriptionPurchaseEvent,
   setTwaAnalyticsUserId,
+  trackTwaQualityActivation,
 } from "@/lib/twa-analytics";
 
 vi.mock("@/features/install-app/twa-mode", () => ({
@@ -70,6 +71,22 @@ describe("twa analytics bridge", () => {
     sendTwaAnalyticsEvent("fd_first_card_added", { once: true });
 
     expect(document.body.querySelectorAll("iframe")).toHaveLength(1);
+  });
+
+  it("sends quality activation only after tutorial, card, and quiz signals", () => {
+    vi.mocked(getTwaMode).mockReturnValue(true);
+
+    trackTwaQualityActivation("tutorial_completed");
+    trackTwaQualityActivation("first_card_added");
+    expect(document.body.querySelectorAll("iframe")).toHaveLength(0);
+
+    trackTwaQualityActivation("first_quiz_completed");
+    trackTwaQualityActivation("first_quiz_completed");
+
+    expect(document.body.querySelectorAll("iframe")).toHaveLength(1);
+    expect(document.body.querySelector("iframe")?.getAttribute("src")).toBe(
+      "foxiesdeck://event?type=fd_quality_activation&activation_type=tutorial_card_quiz",
+    );
   });
 
   it("deduplicates registration across the form and auth-session paths", () => {

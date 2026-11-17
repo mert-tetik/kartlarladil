@@ -4,6 +4,10 @@ import {
   legalContent,
   type LegalSection,
 } from "@/features/legal/content";
+import {
+  PERFORMANCE_DIAGNOSTICS_NOTICE,
+  PERFORMANCE_DIAGNOSTICS_PURPOSE,
+} from "@/features/legal/performance-diagnostics-notice";
 import type { LocaleCode } from "@/types/domain";
 
 const locales: LocaleCode[] = ["tr", "en", "de", "ru", "fr", "es", "it", "pt", "nl", "pl", "ar", "ja", "ko", "zh-CN"];
@@ -38,6 +42,20 @@ describe("legal content", () => {
       expect(privacy, `${locale}/privacy`).toContain("TWA");
       expect(privacy, `${locale}/privacy`).toMatch(/push/i);
       expect(privacy, `${locale}/privacy`).toMatch(/OCR/i);
+    }
+  });
+
+  it("discloses optional account-linked Android performance diagnostics in every locale", () => {
+    for (const locale of locales) {
+      const privacy = getLegalContent(locale, "privacy");
+      const diagnosticNotice = PERFORMANCE_DIAGNOSTICS_NOTICE[locale];
+      const diagnosticPurpose = PERFORMANCE_DIAGNOSTICS_PURPOSE[locale];
+
+      expect(diagnosticNotice, `${locale}/diagnostics`).toContain("Supabase");
+      expect(diagnosticNotice, `${locale}/diagnostics`).toContain("<h2>");
+      expect(privacy, `${locale}/privacy`).toContain(diagnosticNotice);
+      expect(privacy, `${locale}/privacy`).toContain(diagnosticPurpose);
+      expect(diagnosticNotice, `${locale}/diagnostics`).not.toMatch(/IMEI|Android ID/i);
     }
   });
 

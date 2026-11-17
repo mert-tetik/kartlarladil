@@ -226,7 +226,7 @@ import { cn } from "@/lib/utils";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
-import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
+import { sendTwaAnalyticsEvent, trackTwaQualityActivation } from "@/lib/twa-analytics";
 import { trackAnalyticsEvent } from "@/lib/analytics-events";
 import { useAppMessage } from "@/components/app-message-provider";
 import confetti from "canvas-confetti";
@@ -2310,6 +2310,7 @@ export function QuizStation({
             once: true,
             params: quizAnalyticsProperties,
           });
+          trackTwaQualityActivation("first_quiz_completed");
           trackAnalyticsEvent("learn_session_completed", quizAnalyticsProperties);
           sendTwaAnalyticsEvent("fd_learn_session_completed", { params: quizAnalyticsProperties });
         }

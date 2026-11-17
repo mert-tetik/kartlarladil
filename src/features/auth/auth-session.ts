@@ -10,6 +10,7 @@ import type { AuthProfile, AuthShellUser } from "@/features/auth/auth-types";
 import { DEFAULT_AUTH_REDIRECT, getSafeNextPath } from "@/features/auth/auth-redirects";
 import { hasSupabaseBrowserConfig } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getProfileUserFingerprint, logProfileEvent } from "@/features/auth/profile-observability";
 
 const LANGUAGE_CODE_SET = new Set<LanguageCode>(LANGUAGE_CODES);
 const LOCALE_CODE_SET = new Set<LocaleCode>(LOCALE_CODES);
@@ -124,13 +125,13 @@ async function readProfile(supabase: SupabaseClient, userId: string) {
     .maybeSingle<ProfileRow>();
 
   if (!result.error) {
-    return result.data;
+    return { profile: result.data, error: null };
   }
 
   // Keep auth/profile rendering alive while the new balance column is waiting
   // to be applied to the remote Supabase project.
   if (result.error.code !== "42703" || !result.error.message?.includes("quiz_result_medals")) {
-    return null;
+    return { profile: null, error: result.error };
   }
 
   const fallback = await supabase
@@ -139,7 +140,9 @@ async function readProfile(supabase: SupabaseClient, userId: string) {
     .eq("user_id", userId)
     .maybeSingle<ProfileRow>();
 
-  return fallback.error ? null : fallback.data;
+  return fallback.error
+    ? { profile: null, error: fallback.error }
+    : { profile: fallback.data, error: null };
 }
 
 function getMetadataString(user: User, key: string) {
@@ -161,6 +164,31 @@ function getEmailLocalPart(email: string): string | null {
   return localPart && localPart.length > 0 ? localPart : null;
 }
 
+function getSafeDisplayName(user: User, preferredName?: string | null) {
+  const candidates = [
+    { source: "preference", value: preferredName },
+    { source: "auth_metadata", value: getDisplayNameFromUser(user) },
+    { source: "email_local_part", value: getEmailLocalPart(user.email ?? "") },
+  ];
+
+  for (const candidate of candidates) {
+    const value = candidate.value?.trim();
+    const characterCount = value ? [...value].length : 0;
+    if (value && characterCount >= 2 && characterCount <= 80) {
+      return { value, source: candidate.source, characterCount };
+    }
+  }
+
+  return { value: null, source: "none", characterCount: 0 };
+}
+
+export type ProfileBootstrapSource =
+  | "password_login"
+  | "password_signup"
+  | "oauth_callback"
+  | "server_session"
+  | "client_session_recovery";
+
 export async function ensureUserProfile(
   supabase: SupabaseClient,
   user: User,
@@ -169,27 +197,60 @@ export async function ensureUserProfile(
     preferredLanguageCode?: LanguageCode | null;
     preferredUiLocale?: LocaleCode | null;
     preferredTier?: PreferredTier | null;
+    source?: ProfileBootstrapSource;
   },
-): Promise<{ profile: AuthProfile; onboardingCompleted: boolean }> {
-  const existingProfile = await readProfile(supabase, user.id);
+): Promise<{
+  profile: AuthProfile;
+  onboardingCompleted: boolean;
+  available: boolean;
+  created: boolean;
+  errorCode?: string;
+}> {
+  const source = preferences?.source ?? "server_session";
+  const userFingerprint = getProfileUserFingerprint(user.id);
+  const { profile: existingProfile, error: readError } = await readProfile(supabase, user.id);
 
   if (existingProfile) {
     return {
       profile: normalizeProfile(existingProfile),
       onboardingCompleted: existingProfile.onboarding_completed ?? true,
+      available: true,
+      created: false,
+    };
+  }
+
+  if (readError) {
+    logProfileEvent("error", "profile_read_failed", {
+      source,
+      userFingerprint,
+      errorCode: readError.code ?? "unknown",
+    });
+    return {
+      profile: normalizeProfile(),
+      onboardingCompleted: false,
+      available: false,
+      created: false,
+      errorCode: readError.code ?? "unknown",
     };
   }
 
   const metadataLanguage = getMetadataString(user, "preferred_language_code");
   const metadataUiLocale = getMetadataString(user, "preferred_ui_locale");
   const metadataTier = getMetadataString(user, "preferred_tier");
+  const displayName = getSafeDisplayName(user, preferences?.displayName);
+
+  logProfileEvent("warn", "profile_missing_attempting_create", {
+    source,
+    userFingerprint,
+    displayNameSource: displayName.source,
+    displayNameLength: displayName.characterCount,
+  });
 
   const { data, error } = await supabase
     .from("user_profiles")
     .insert({
       user_id: user.id,
-      display_name:
-        preferences?.displayName?.trim() || getDisplayNameFromUser(user) || getEmailLocalPart(user.email ?? "") || null,
+      display_name: displayName.value,
       preferred_language_code:
         preferences?.preferredLanguageCode ??
         (LANGUAGE_CODE_SET.has(metadataLanguage as LanguageCode) ? (metadataLanguage as LanguageCode) : "en"),
@@ -204,12 +265,63 @@ export async function ensureUserProfile(
     .maybeSingle<ProfileRow>();
 
   if (error) {
-    return { profile: normalizeProfile(), onboardingCompleted: false };
+    if (error.code === "23505") {
+      const retry = await readProfile(supabase, user.id);
+      if (retry.profile) {
+        logProfileEvent("info", "profile_create_race_recovered", {
+          source,
+          userFingerprint,
+        });
+        return {
+          profile: normalizeProfile(retry.profile),
+          onboardingCompleted: retry.profile.onboarding_completed ?? true,
+          available: true,
+          created: false,
+        };
+      }
+    }
+
+    logProfileEvent("error", "profile_create_failed", {
+      source,
+      userFingerprint,
+      errorCode: error.code ?? "unknown",
+      errorKind: error.code === "23514" ? "check_constraint" : "database_error",
+    });
+    return {
+      profile: normalizeProfile(),
+      onboardingCompleted: false,
+      available: false,
+      created: false,
+      errorCode: error.code ?? "unknown",
+    };
   }
+
+  if (!data) {
+    logProfileEvent("error", "profile_create_returned_empty", {
+      source,
+      userFingerprint,
+    });
+    return {
+      profile: normalizeProfile(),
+      onboardingCompleted: false,
+      available: false,
+      created: false,
+      errorCode: "empty_result",
+    };
+  }
+
+  logProfileEvent("info", "profile_created", {
+    source,
+    userFingerprint,
+    displayNameSource: displayName.source,
+    displayNameLength: displayName.characterCount,
+  });
 
   return {
     profile: normalizeProfile(data),
     onboardingCompleted: data?.onboarding_completed ?? false,
+    available: true,
+    created: true,
   };
 }
 
@@ -242,7 +354,7 @@ export async function getCurrentAuthUser(): Promise<AuthShellUser | null> {
   // WebView, so it does not pass through /auth/callback. Bootstrap the profile
   // here as the shared server-side session boundary instead of relying on one
   // particular OAuth callback route to create it.
-  const { profile } = await ensureUserProfile(supabase, user);
+  const { profile } = await ensureUserProfile(supabase, user, { source: "server_session" });
 
   return {
     id: user.id,

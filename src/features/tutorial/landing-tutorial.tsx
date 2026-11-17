@@ -35,7 +35,7 @@ import {
 } from "@/features/tutorial/tutorial-speech";
 import { vibrate } from "@/lib/vibration";
 import { trackAnalyticsEvent } from "@/lib/analytics-events";
-import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
+import { sendTwaAnalyticsEvent, trackTwaQualityActivation } from "@/lib/twa-analytics";
 
 const MOBILE_BREAKPOINT = 1023;
 const SPOTLIGHT_PADDING = 18;
@@ -607,6 +607,7 @@ export function LandingTutorial() {
         if (!testMode) {
           trackAnalyticsEvent("tutorial_completed");
           sendTwaAnalyticsEvent("fd_tutorial_complete", { once: true });
+          trackTwaQualityActivation("tutorial_completed");
         }
         allowProgrammaticTargetClickRef.current = true;
         try {

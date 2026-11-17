@@ -13,6 +13,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.analytics.FirebaseAnalytics;
 
 import java.util.concurrent.ExecutorService;
@@ -59,8 +60,9 @@ public final class NativeAnalyticsReceiver extends BroadcastReceiver {
     private static void logEvent(Context context, Uri data, String eventType) {
         if ("set_user_id".equals(eventType)) {
             try {
-                FirebaseAnalytics.getInstance(context).setUserId(data.getQueryParameter("user_id"));
+                getFirebaseAnalytics(context).setUserId(data.getQueryParameter("user_id"));
             } catch (Exception ignored) {
+                logFirebaseFailure(context, eventType, ignored);
                 // Firebase is best-effort and must not block the event bridge.
             }
             return;
@@ -74,12 +76,37 @@ public final class NativeAnalyticsReceiver extends BroadcastReceiver {
         }
 
         try {
-            FirebaseAnalytics.getInstance(context).logEvent(sanitizeEventName(eventType), params);
+            String firebaseEventName = sanitizeEventName(eventType);
+            getFirebaseAnalytics(context).logEvent(firebaseEventName, params);
+            if (isDebugBuild(context)) {
+                Log.i(TAG, "Firebase event queued: " + firebaseEventName);
+            }
         } catch (Exception ignored) {
+            logFirebaseFailure(context, eventType, ignored);
             // Firebase is best-effort and must not block Meta App Events.
         }
 
         NativeMetaAnalytics.logEvent(context, eventType, params);
+    }
+
+    private static FirebaseAnalytics getFirebaseAnalytics(Context context) {
+        if (FirebaseApp.getApps(context).isEmpty()) {
+            FirebaseApp.initializeApp(context);
+        }
+        return FirebaseAnalytics.getInstance(context);
+    }
+
+    private static void logFirebaseFailure(Context context, String eventType, Exception exception) {
+        if (isDebugBuild(context)) {
+            Log.w(TAG, "Firebase event failed: " + eventType + " ("
+                    + exception.getClass().getSimpleName() + ")");
+        }
+    }
+
+    private static boolean isDebugBuild(Context context) {
+        return context != null
+                && (context.getApplicationInfo().flags
+                & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0;
     }
 
     private static String sanitizeEventName(String name) {
