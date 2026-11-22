@@ -18,6 +18,10 @@ import {
 } from "@/features/progress/reward-scatter";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
+import {
+  finishCurrentWebAnimations,
+  useQuizAnimationFastForward,
+} from "@/features/quiz/components/quiz-animation-fast-forward";
 
 const MAX_GEOMETRY_ATTEMPTS = 60;
 const MEDAL_IMAGE_SRC = "/quiz/result-cards/star.webp?v=20261003-2";
@@ -68,6 +72,7 @@ export function RewardScatter({
   onMedalsUnavailable,
   onMedalsComplete,
   flightExit = false,
+  fastForwardSignal,
 }: {
   points?: PointsScatterRequest | null;
   gems?: GemsScatterRequest | null;
@@ -85,6 +90,7 @@ export function RewardScatter({
   onMedalsUnavailable?: () => void;
   onMedalsComplete?: () => void;
   flightExit?: boolean;
+  fastForwardSignal?: number;
 }) {
   const [flights, setFlights] = useState<RewardScatterFlight[]>([]);
   const flightsRef = useRef(flights);
@@ -107,6 +113,7 @@ export function RewardScatter({
     onMedalsUnavailable,
     onMedalsComplete,
   });
+  const previousFastForwardSignalRef = useRef(fastForwardSignal);
   callbacksRef.current = {
     onPointsStart,
     onPointsLaunch,
@@ -441,6 +448,31 @@ export function RewardScatter({
     setFlights((current) => current.filter((item) => item.id !== flight.id));
   }
 
+  const fastForwardActiveFlights = () => {
+    if (typeof document === "undefined") return false;
+
+    const elements = new Map(
+      Array.from(document.querySelectorAll<HTMLElement>("[data-reward-flight-id]"))
+        .map((element) => [element.dataset.rewardFlightId ?? "", element]),
+    );
+    let handled = false;
+    for (const flight of flightsRef.current) {
+      const element = elements.get(flight.id);
+      if (!element || finishCurrentWebAnimations(element) === 0) continue;
+      handled = true;
+      handleFlightEnd(flight);
+    }
+    return handled;
+  };
+
+  useQuizAnimationFastForward(fastForwardActiveFlights, flights.length > 0, 20);
+
+  useEffect(() => {
+    if (fastForwardSignal === undefined || fastForwardSignal === previousFastForwardSignalRef.current) return;
+    previousFastForwardSignalRef.current = fastForwardSignal;
+    fastForwardActiveFlights();
+  }, [fastForwardSignal, fastForwardActiveFlights]);
+
   useEffect(() => {
     if (!flightExit) return;
 
@@ -464,6 +496,7 @@ export function RewardScatter({
           key={flight.id}
           aria-hidden="true"
           data-reward-flight-channel={flight.channel}
+          data-reward-flight-id={flight.id}
           className={`pointer-events-none fixed left-0 top-0 ${flight.animation === "medal" ? "animate-quiz-medal-icon-flight" : "animate-quiz-score-icon-flight"} ${flightExit ? "quiz-performance-flight-exiting" : ""}`}
           onAnimationStart={() => {
             if (flight.channel === "points") callbacksRef.current.onPointsLaunch?.();

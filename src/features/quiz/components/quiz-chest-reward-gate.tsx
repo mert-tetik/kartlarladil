@@ -16,6 +16,7 @@ import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText }
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { cn } from "@/lib/utils";
+import { finishCurrentWebAnimations, useQuizAnimationFastForward } from "@/features/quiz/components/quiz-animation-fast-forward";
 
 const CHEST_OPENING_CHEST_MOVE_MS = 760;
 const CHEST_OPENING_OVERLAY_READY_MS = 800;
@@ -61,6 +62,7 @@ const { locale } = useLocale();
   const [openingFullyVisible, setOpeningFullyVisible] = useState(false);
   const [chestLanded, setChestLanded] = useState(false);
   const [landingCrackVisible, setLandingCrackVisible] = useState(false);
+  const [chestMotionFastForwarded, setChestMotionFastForwarded] = useState(false);
   const [chestOpeningMotion, setChestOpeningMotion] = useState<ChestOpeningMotion | null>(null);
   const [missedClosing, setMissedClosing] = useState(false);
   const chestMotionRef = useRef<HTMLDivElement | null>(null);
@@ -70,6 +72,7 @@ const { locale } = useLocale();
   const openingFrameRef = useRef<number | null>(null);
   const openingReadyTimeoutRef = useRef<number | null>(null);
   const missedCloseTimeoutRef = useRef<number | null>(null);
+  const missedCompleteRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -129,9 +132,12 @@ const { locale } = useLocale();
   const handleMissedContinue = () => {
     if (missedClosing) return;
 
+    missedCompleteRef.current = false;
     setMissedClosing(true);
     missedCloseTimeoutRef.current = window.setTimeout(() => {
       missedCloseTimeoutRef.current = null;
+      if (missedCompleteRef.current) return;
+      missedCompleteRef.current = true;
       onComplete();
     }, MISSED_CLOSE_DURATION_MS);
   };
@@ -149,6 +155,63 @@ const { locale } = useLocale();
     playSoundEffect("chest-crack");
     vibrate("chest-land");
   }, []);
+
+  const fastForwardCurrentAnimation = useCallback(() => {
+    if (missedClosing) {
+      if (missedCloseTimeoutRef.current !== null) {
+        window.clearTimeout(missedCloseTimeoutRef.current);
+        missedCloseTimeoutRef.current = null;
+      }
+      if (!missedCompleteRef.current) {
+        missedCompleteRef.current = true;
+        onComplete();
+      }
+      return true;
+    }
+
+    if (!tier) return false;
+
+    if (opening && !openingFullyVisible) {
+      if (openingFrameRef.current !== null) {
+        window.cancelAnimationFrame(openingFrameRef.current);
+        openingFrameRef.current = null;
+      }
+      if (openingReadyTimeoutRef.current !== null) {
+        window.clearTimeout(openingReadyTimeoutRef.current);
+        openingReadyTimeoutRef.current = null;
+      }
+
+      if (!openingVisible) {
+        setChestMotionFastForwarded(true);
+        setChestOpeningMotion((motion) => motion ? { ...motion, moving: true } : motion);
+        if (chestMotionRef.current) finishCurrentWebAnimations(chestMotionRef.current);
+        setOpeningVisible(true);
+        openingReadyTimeoutRef.current = window.setTimeout(() => {
+          openingReadyTimeoutRef.current = null;
+          setOpeningFullyVisible(true);
+        }, CHEST_OPENING_OVERLAY_READY_MS);
+      } else {
+        const openingScreen = document.querySelector<HTMLElement>("[data-chest-opening-view]");
+        if (openingScreen) finishCurrentWebAnimations(openingScreen);
+        setOpeningFullyVisible(true);
+      }
+      return true;
+    }
+
+    if (!chestLanded) {
+      if (chestLandingTimeoutRef.current !== null) {
+        window.clearTimeout(chestLandingTimeoutRef.current);
+        chestLandingTimeoutRef.current = null;
+      }
+      if (chestMotionRef.current) finishCurrentWebAnimations(chestMotionRef.current);
+      handleChestLanding();
+      return true;
+    }
+
+    return false;
+  }, [chestLanded, handleChestLanding, missedClosing, onComplete, opening, openingFullyVisible, openingVisible, tier]);
+
+  useQuizAnimationFastForward(fastForwardCurrentAnimation, true, 90);
 
   useEffect(() => {
     if (!tier || chestLandingHandledRef.current) return;
@@ -194,7 +257,9 @@ const { locale } = useLocale();
                       ? `translate3d(${chestOpeningMotion.deltaX}px, ${chestOpeningMotion.deltaY}px, 0) scale(1.02)`
                       : "translate3d(0, 0, 0) scale(1)",
                     transition: chestOpeningMotion.moving
-                      ? "transform 760ms cubic-bezier(0.85, 0, 0.15, 1)"
+                      ? chestMotionFastForwarded
+                        ? "none"
+                        : "transform 760ms cubic-bezier(0.85, 0, 0.15, 1)"
                       : "none",
                   }
                 : undefined

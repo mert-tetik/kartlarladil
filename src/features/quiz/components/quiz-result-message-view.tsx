@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { canUseSuperWater, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
+import { useQuizAnimationFastForward } from "@/features/quiz/components/quiz-animation-fast-forward";
 import { AchievementCardSection } from "@/features/quiz/components/quiz-achievement-card-section";
 import type { VocabularyCard } from "@/types/domain";
 
@@ -33,6 +34,25 @@ export function QuizResultMessageView({
   const [exiting, setExiting] = useState(false);
   const completionTimerRef = useRef<number | null>(null);
   const completionStartedRef = useRef(false);
+  const exitCompletedRef = useRef(false);
+
+  const completeExit = useCallback(() => {
+    if (exitCompletedRef.current) return;
+    exitCompletedRef.current = true;
+    if (completionTimerRef.current !== null) {
+      window.clearTimeout(completionTimerRef.current);
+      completionTimerRef.current = null;
+    }
+    onComplete();
+  }, [onComplete]);
+
+  const fastForwardExit = useCallback(() => {
+    if (!exiting) return false;
+    completeExit();
+    return true;
+  }, [completeExit, exiting]);
+
+  useQuizAnimationFastForward(fastForwardExit, true, 100);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => setCardsVisible(true));
@@ -56,11 +76,9 @@ export function QuizResultMessageView({
       playSoundEffect("result-action-press");
     }
     vibrate("firm-tap");
+    exitCompletedRef.current = false;
     setExiting(true);
-    completionTimerRef.current = window.setTimeout(() => {
-      completionTimerRef.current = null;
-      onComplete();
-    }, RESULT_MESSAGE_TRANSITION_DURATION_MS);
+    completionTimerRef.current = window.setTimeout(completeExit, RESULT_MESSAGE_TRANSITION_DURATION_MS);
   };
 
   return (

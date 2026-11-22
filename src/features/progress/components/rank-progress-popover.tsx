@@ -20,6 +20,7 @@ import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { VideoFrameAtlasPlayer, type VideoFrameAtlasPlayerHandle } from "@/components/video-frame-atlas-player";
+import { finishCurrentWebAnimations, useQuizAnimationFastForward } from "@/features/quiz/components/quiz-animation-fast-forward";
 import type { ProgressStats, RankDefinition } from "@/types/domain";
 
 const SCORE_GAIN_ANIMATION_MS = 700;
@@ -400,11 +401,13 @@ export function RankUpMenu({
   const [closing, setClosing] = useState(false);
   const [backgroundClosing, setBackgroundClosing] = useState(false);
   const [backgroundLoopVisible, setBackgroundLoopVisible] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const backgroundFirstVideoRef = useRef<VideoFrameAtlasPlayerHandle>(null);
   const backgroundLoopVideoRef = useRef<VideoFrameAtlasPlayerHandle>(null);
   const backgroundLoopRequestedRef = useRef(false);
   const foregroundCloseTimerRef = useRef<number | null>(null);
   const backgroundCloseTimerRef = useRef<number | null>(null);
+  const closeDeliveredRef = useRef(false);
 
   useEffect(() => {
     onOpen?.();
@@ -422,11 +425,18 @@ export function RankUpMenu({
       vibrate("firm-tap");
     }
 
+    closeDeliveredRef.current = false;
     setClosing(true);
     foregroundCloseTimerRef.current = window.setTimeout(() => {
+      foregroundCloseTimerRef.current = null;
       setBackgroundClosing(true);
       backgroundCloseTimerRef.current = window.setTimeout(
-        onClose,
+        () => {
+          backgroundCloseTimerRef.current = null;
+          if (closeDeliveredRef.current) return;
+          closeDeliveredRef.current = true;
+          onClose();
+        },
         RANK_UP_BACKGROUND_CLOSE_ANIMATION_MS,
       );
     }, RANK_UP_UI_CLOSE_SEQUENCE_MS);
@@ -466,19 +476,60 @@ export function RankUpMenu({
     });
   };
 
+  const fastForwardCurrentAnimation = () => {
+    const menu = menuRef.current;
+    if (closing) {
+      if (menu) finishCurrentWebAnimations(menu);
+      if (closeDeliveredRef.current) return true;
+      closeDeliveredRef.current = true;
+      if (foregroundCloseTimerRef.current !== null) {
+        window.clearTimeout(foregroundCloseTimerRef.current);
+        foregroundCloseTimerRef.current = null;
+      }
+      if (backgroundCloseTimerRef.current !== null) {
+        window.clearTimeout(backgroundCloseTimerRef.current);
+        backgroundCloseTimerRef.current = null;
+      }
+      setBackgroundClosing(true);
+      onClose();
+      return true;
+    }
+
+    if (menu && finishCurrentWebAnimations(menu) > 0) return true;
+
+    const firstVideo = backgroundFirstVideoRef.current;
+    if (revealed && !backgroundLoopRequestedRef.current && firstVideo) {
+      const duration = firstVideo.duration;
+      if (Number.isFinite(duration) && duration > 0) {
+        firstVideo.pause();
+        firstVideo.seek(duration);
+        startBackgroundLoop();
+        setBackgroundLoopVisible(true);
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  useQuizAnimationFastForward(fastForwardCurrentAnimation, true, 120);
+
   useEffect(() => {
     return () => {
       if (foregroundCloseTimerRef.current !== null) {
         window.clearTimeout(foregroundCloseTimerRef.current);
+        foregroundCloseTimerRef.current = null;
       }
       if (backgroundCloseTimerRef.current !== null) {
         window.clearTimeout(backgroundCloseTimerRef.current);
+        backgroundCloseTimerRef.current = null;
       }
     };
   }, []);
 
   return createPortal(
     <div
+      ref={menuRef}
       role="dialog"
       aria-label={t("rank.up")}
       className={cn("rank-up-menu fixed inset-0 z-50 flex", closing && "rank-up-menu--closing")}

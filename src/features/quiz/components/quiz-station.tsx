@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-  type CSSProperties, type ReactNode, type SyntheticEvent,
+  type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode, type SyntheticEvent,
 } from "react";
 import { createPortal, flushSync } from "react-dom";
 import Link from "next/link";
@@ -137,6 +137,12 @@ import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-
 import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibility";
 import { preloadSoundEffects } from "@/lib/sound-effects";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
+import {
+  finishCurrentWebAnimations,
+  QuizAnimationFastForwardProvider,
+  useQuizAnimationFastForward,
+  useQuizAnimationFastForwardRequest,
+} from "@/features/quiz/components/quiz-animation-fast-forward";
 import type { ChestRewardOutcome, GemBalances, GemRewards } from "@/features/gems/gem-types";
 import { createChestRewardPreview } from "@/features/gems/chest-reward-preview";
 import { awardProgressGemRewardAction, spendGemAction } from "@/features/gems/gem-actions";
@@ -6861,6 +6867,21 @@ function useIsMounted() {
   );
 }
 
+const QUIZ_ANIMATION_SCOPE_SELECTOR = [
+  "[data-quiz-result-message-view]",
+  "[data-quiz-result-main-layer]",
+  "[data-quiz-result-view]",
+  "[data-quiz-chest-reward-layer]",
+  "[data-quiz-chest-reward-gate]",
+  "[data-quiz-mission-rewards]",
+  "[data-quiz-deck-card-addition]",
+  "[data-quiz-leaderboard-progress]",
+  "[data-quiz-continuation-motivation]",
+  "[data-chest-celebration-view]",
+  "[data-chest-opening-view]",
+  ".rank-up-menu",
+].join(", ");
+
 function QuizViewportOverlay({
   children,
   className,
@@ -6879,15 +6900,66 @@ function QuizViewportOverlay({
   }
 
   return createPortal(
+    <QuizAnimationFastForwardProvider>
+      <QuizViewportOverlaySurface
+        overlay={overlay}
+        learnPagePhase={learnPagePhase}
+        className={className}
+      >
+        {children}
+      </QuizViewportOverlaySurface>
+    </QuizAnimationFastForwardProvider>,
+    document.body,
+  );
+}
+
+function QuizViewportOverlaySurface({
+  children,
+  className,
+  overlay,
+  learnPagePhase,
+}: {
+  children: ReactNode;
+  className: string;
+  overlay: "result" | "chest";
+  learnPagePhase?: "result";
+}) {
+  const fastForward = useQuizAnimationFastForwardRequest();
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  const handleClick = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (event.defaultPrevented || event.button !== 0) return;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest(
+      "button, a, input, select, textarea, [contenteditable='true'], [data-no-quiz-fast-forward]",
+    )) return;
+
+    const root = rootRef.current;
+    if (!root) return;
+    const scopedRoot = target.closest<HTMLElement>(QUIZ_ANIMATION_SCOPE_SELECTOR) ?? root;
+    finishCurrentWebAnimations(root, false);
+    for (let ancestor = scopedRoot.parentElement; ancestor && ancestor !== root; ancestor = ancestor.parentElement) {
+      if (ancestor.matches(QUIZ_ANIMATION_SCOPE_SELECTOR)) {
+        finishCurrentWebAnimations(ancestor, false);
+      }
+    }
+    if (fastForward?.(scopedRoot)) return;
+    finishCurrentWebAnimations(scopedRoot);
+  };
+
+  return (
     <div
+      ref={rootRef}
       data-quiz-overlay={overlay}
       data-tap-vibration="firm"
       data-learn-quiz-page={learnPagePhase}
+      data-quiz-animation-fast-forward-surface
       className={className}
+      onClick={handleClick}
     >
       {children}
-    </div>,
-    document.body,
+    </div>
   );
 }
 
@@ -7883,6 +7955,18 @@ export function ResultView({
     : t("quiz.continue");
   const isMedalStage = resultMedalStage === "medals";
   const isCollectingMedals = claimingMedals && !claimedMedals;
+  const fastForwardResultExit = useCallback(() => {
+    if (!isResultSummaryExiting) return false;
+    if (resultSummaryExitTimerRef.current !== null) {
+      window.clearTimeout(resultSummaryExitTimerRef.current);
+      resultSummaryExitTimerRef.current = null;
+    }
+    setResultMedalStage("medals");
+    setIsResultSummaryExiting(false);
+    return true;
+  }, [isResultSummaryExiting]);
+  useQuizAnimationFastForward(fastForwardResultExit, true, 90);
+
   const handleResultPrimaryAction = useCallback(() => {
     if (
       !isMedalStage &&

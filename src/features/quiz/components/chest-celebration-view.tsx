@@ -8,6 +8,10 @@ import { canUseSuperWater, formatSuperWaterUppercaseText } from "@/lib/super-wat
 import { VideoFrameAtlasPlayer, type VideoFrameAtlasPlayerHandle } from "@/components/video-frame-atlas-player";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { AchievementCardSection } from "@/features/quiz/components/quiz-achievement-card-section";
+import {
+  finishCurrentWebAnimations,
+  useQuizAnimationFastForward,
+} from "@/features/quiz/components/quiz-animation-fast-forward";
 import type { VocabularyCard } from "@/types/domain";
 
 interface ChestCelebrationViewProps {
@@ -128,6 +132,7 @@ export function ChestCelebrationView({
     CELEBRATION_MESSAGE_KEYS[Math.floor(Math.random() * CELEBRATION_MESSAGE_KEYS.length)],
   );
   const completeRef = useRef(onComplete);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<VideoFrameAtlasPlayerHandle | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoFinishedRef = useRef(false);
@@ -141,7 +146,9 @@ export function ChestCelebrationView({
   const summaryAutoCompleteTimerRef = useRef<number | null>(null);
   const completeTimerRef = useRef<number | null>(null);
   const messageRevealTimerRef = useRef<number | null>(null);
+  const viewEnterTimerRef = useRef<number | null>(null);
   const completionStartedRef = useRef(false);
+  const completionDeliveredRef = useRef(false);
   const messageRevealHandledRef = useRef(false);
   const hasSummaryCards = learnedCards.length > 0 || advancedCards.length > 0;
 
@@ -149,11 +156,11 @@ export function ChestCelebrationView({
     completeRef.current = onComplete;
   }, [onComplete]);
 
-  const showMessage = () => {
+  const showMessage = useCallback(() => {
     if (messageShownRef.current) return;
     messageShownRef.current = true;
     setMessageVisible(true);
-  };
+  }, []);
 
   const revealMessageParticles = useCallback(() => {
     if (messageRevealHandledRef.current) return;
@@ -194,14 +201,19 @@ export function ChestCelebrationView({
     }
 
     completeTimerRef.current = window.setTimeout(
-      () => completeRef.current?.(),
+      () => {
+        completeTimerRef.current = null;
+        if (completionDeliveredRef.current) return;
+        completionDeliveredRef.current = true;
+        completeRef.current?.();
+      },
       preserveMessageOnComplete && !hasSummaryCards
         ? 0
         : CELEBRATION_COMPLETE_DELAY_MS,
     );
   }, [hasSummaryCards, preserveMessageOnComplete]);
 
-  const showSummary = () => {
+  const showSummary = useCallback(() => {
     summaryTimerRef.current = window.setTimeout(() => {
       summaryTimerRef.current = null;
       setSummaryPanelVisible(true);
@@ -216,7 +228,7 @@ export function ChestCelebrationView({
         }, RESULT_SUMMARY_PANEL_ENTER_DURATION_MS + RESULT_SUMMARY_CONTENT_DELAY_MS);
       }
     }, CELEBRATION_MESSAGE_EXIT_DURATION_MS);
-  };
+  }, [hasSummaryCards]);
 
   const closeView = () => {
     if (!summaryVisible || closing) return;
@@ -246,7 +258,7 @@ export function ChestCelebrationView({
     };
   }, [completeView, hasSummaryCards, preserveMessageOnComplete, summaryPanelVisible]);
 
-  const finishVideo = () => {
+  const finishVideo = useCallback(() => {
     if (videoFinishedRef.current) return;
     videoFinishedRef.current = true;
     audioRef.current?.pause();
@@ -258,7 +270,75 @@ export function ChestCelebrationView({
       messageTimerRef.current = null;
       showSummary();
     }, CELEBRATION_MESSAGE_DELAY_MS);
-  };
+  }, [showMessage, showSummary]);
+
+  const fastForwardCurrentAnimation = useCallback(() => {
+    const root = rootRef.current;
+    if (closing || summaryExiting) {
+      if (root) finishCurrentWebAnimations(root);
+      if (completeTimerRef.current !== null) {
+        window.clearTimeout(completeTimerRef.current);
+        completeTimerRef.current = null;
+      }
+      if (!completionDeliveredRef.current) {
+        completionDeliveredRef.current = true;
+        completeRef.current?.();
+      }
+      return true;
+    }
+
+    if (!viewVisible) {
+      if (viewEnterTimerRef.current !== null) {
+        window.clearTimeout(viewEnterTimerRef.current);
+        viewEnterTimerRef.current = null;
+      }
+      setViewVisible(true);
+      return true;
+    }
+
+    if (!videoFinishedRef.current) {
+      if (earlyMessageTimerRef.current !== null) {
+        window.clearTimeout(earlyMessageTimerRef.current);
+        earlyMessageTimerRef.current = null;
+      }
+      videoRef.current?.pause();
+      const duration = videoRef.current?.duration;
+      if (typeof duration === "number" && Number.isFinite(duration) && duration > 0) {
+        videoRef.current?.seek(duration);
+      }
+      finishVideo();
+      return true;
+    }
+
+    if (summaryPanelVisible && !summaryVisible) {
+      if (summaryContentTimerRef.current !== null) {
+        window.clearTimeout(summaryContentTimerRef.current);
+        summaryContentTimerRef.current = null;
+      }
+      if (summaryMessageHideTimerRef.current !== null) {
+        window.clearTimeout(summaryMessageHideTimerRef.current);
+        summaryMessageHideTimerRef.current = null;
+      }
+      setMessageVisible(false);
+      setSummaryVisible(true);
+      return true;
+    }
+
+    if (messageVisible && !summaryPanelVisible) {
+      const activeAnimationCount = root ? finishCurrentWebAnimations(root) : 0;
+      if (activeAnimationCount > 0) return true;
+      if (messageTimerRef.current !== null) {
+        window.clearTimeout(messageTimerRef.current);
+        messageTimerRef.current = null;
+      }
+      showSummary();
+      return true;
+    }
+
+    return false;
+  }, [closing, finishVideo, messageVisible, showMessage, showSummary, summaryExiting, summaryPanelVisible, summaryVisible, viewVisible]);
+
+  useQuizAnimationFastForward(fastForwardCurrentAnimation, true, 80);
 
   const startSynchronizedAudio = (currentTime: number) => {
     const video = videoRef.current;
@@ -305,13 +385,16 @@ export function ChestCelebrationView({
   };
 
   useEffect(() => {
-    const enterTimer = window.setTimeout(
+    viewEnterTimerRef.current = window.setTimeout(
       () => setViewVisible(true),
       CELEBRATION_ENTER_DELAY_MS,
     );
 
     return () => {
-      window.clearTimeout(enterTimer);
+      if (viewEnterTimerRef.current !== null) {
+        window.clearTimeout(viewEnterTimerRef.current);
+        viewEnterTimerRef.current = null;
+      }
       if (earlyMessageTimerRef.current !== null) {
         window.clearTimeout(earlyMessageTimerRef.current);
       }
@@ -353,6 +436,7 @@ export function ChestCelebrationView({
             ? "opacity-100"
             : "opacity-0",
       )}
+      ref={rootRef}
       data-chest-celebration-view
     >
       <div

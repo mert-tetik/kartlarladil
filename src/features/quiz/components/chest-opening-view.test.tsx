@@ -154,7 +154,7 @@ describe("ChestOpeningView", () => {
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
-  it("skips the opening frames on a touch double tap and reveals the rewards immediately", () => {
+  it("skips the opening frames on a single touch and reveals the rewards immediately", () => {
     const onComplete = vi.fn();
     const reward = {
       points: 20,
@@ -179,13 +179,38 @@ describe("ChestOpeningView", () => {
 
     act(() => {
       fireEvent.pointerUp(view!, { pointerType: "touch" });
-      vi.advanceTimersByTime(100);
-      fireEvent.pointerUp(view!, { pointerType: "touch" });
     });
 
     expect(document.querySelector("[data-chest-reward-sources]")).toBeInTheDocument();
     expect(document.querySelector("[data-chest-opening-frames]")).toBeInTheDocument();
     expect(document.querySelector("[data-chest-opening-view]")).not.toHaveClass("animate-chest-screen-close");
     expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it("does not treat a dragged touch as a fast-forward tap", () => {
+    const reward = {
+      points: 20,
+      rewards: [{ type: "blue" as const, amount: 2 }],
+      balances: { blue: 2, green: 0, purple: 0 },
+    };
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <ChestOpeningView
+          tier={CHEST_TIERS[0]}
+          totalPoints={100}
+          reward={reward}
+          onComplete={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    const view = document.querySelector("[data-chest-opening-view]")!;
+    act(() => {
+      fireEvent.pointerDown(view, { pointerType: "touch", button: 0, clientX: 10, clientY: 10 });
+      fireEvent.pointerUp(view, { pointerType: "touch", button: 0, clientX: 30, clientY: 10 });
+    });
+
+    expect(document.querySelector("[data-chest-reward-sources]")).not.toBeInTheDocument();
   });
 });

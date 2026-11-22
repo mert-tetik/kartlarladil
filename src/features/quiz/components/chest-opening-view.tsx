@@ -26,6 +26,7 @@ import { GEM_ASSETS, type ChestRewardOutcome, type GemBalances, type GemType } f
 import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
 import { MainPointsDisplay } from "@/features/progress/components/main-points-display";
 import { RewardScatter } from "@/features/progress/components/reward-scatter";
+import { finishCurrentWebAnimations } from "@/features/quiz/components/quiz-animation-fast-forward";
 
 interface ChestOpeningViewProps {
   tier: ChestTierDefinition;
@@ -45,7 +46,7 @@ const REWARD_HOLD_BEFORE_FLIGHT_MS = 800;
 const ANIMATION_LAST_FRAME_HOLD_MS = 2000;
 const ANIMATION_AUDIO_FADE_DURATION_MS = 800;
 const DISAPPEAR_MS = 500;
-const DOUBLE_TAP_WINDOW_MS = 280;
+const TAP_MOVE_TOLERANCE_PX = 12;
 
 const GEM_REWARD_BOX_CLASSES: Record<GemType, string> = {
   blue: "border-sky-300/60 bg-sky-500/95",
@@ -81,6 +82,7 @@ export function ChestOpeningView({
   const [rewardResolved, setRewardResolved] = useState(!onRewardReady || Boolean(reward));
   const [rewardRevealReady, setRewardRevealReady] = useState(false);
   const [pointsDisplayPulse, setPointsDisplayPulse] = useState(0);
+  const [scatterFastForwardSignal, setScatterFastForwardSignal] = useState(0);
   const [pointsSourcePulse, setPointsSourcePulse] = useState(0);
   const [gemSourcePulse, setGemSourcePulse] = useState<Record<GemType, number>>({ blue: 0, green: 0, purple: 0 });
   const gemFinalBalancesRef = useRef<GemBalances | null>(null);
@@ -105,10 +107,11 @@ export function ChestOpeningView({
   const lastRequestedFrameRef = useRef<number | null>(null);
   const lastDrawnFrameRef = useRef<number | null>(null);
   const drawFrameRef = useRef<(frameIndex: number) => void>(() => undefined);
+  const screenRef = useRef<HTMLDivElement | null>(null);
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const loadedFramesRef = useRef(new Map<number, HTMLImageElement>());
   const framePromisesRef = useRef(new Map<number, Promise<HTMLImageElement | null>>());
   const frameGenerationRef = useRef(0);
-  const lastTapAtRef = useRef(0);
   const rewardPromiseRef = useRef<Promise<ChestRewardOutcome | null> | null>(null);
   const totalPointsRef = useRef<HTMLSpanElement | null>(null);
   const rewardPointsRef = useRef<HTMLDivElement | null>(null);
@@ -121,6 +124,7 @@ export function ChestOpeningView({
   const pointsScatterCompleteRef = useRef(false);
   const gemsScatterCompleteRef = useRef(false);
   const scatterCompletionTriggeredRef = useRef(false);
+  const completionDeliveredRef = useRef(false);
 
   const rewardGemSourceRefs = useMemo<Partial<Record<GemType, RefObject<HTMLElement | null>>>>(
     () => ({ blue: blueGemRewardRef, green: greenGemRewardRef, purple: purpleGemRewardRef }),
@@ -138,12 +142,22 @@ export function ChestOpeningView({
     setRewardRevealReady(true);
   }, []);
 
+  const finishDisappear = useCallback(() => {
+    if (completionDeliveredRef.current) return;
+    completionDeliveredRef.current = true;
+    if (completeTimeoutRef.current !== null) {
+      window.clearTimeout(completeTimeoutRef.current);
+      completeTimeoutRef.current = null;
+    }
+    onComplete();
+  }, [onComplete]);
+
   const handleCollect = useCallback(() => {
     if (hasCompleted.current) return;
     hasCompleted.current = true;
     setPhase("disappearing");
-    completeTimeoutRef.current = window.setTimeout(onComplete, DISAPPEAR_MS);
-  }, [onComplete]);
+    completeTimeoutRef.current = window.setTimeout(finishDisappear, DISAPPEAR_MS);
+  }, [finishDisappear]);
 
   const tryCompleteAfterSkippedScatter = useCallback(() => {
     if (animationCompletionModeRef.current !== "skipped") return;
@@ -159,7 +173,7 @@ export function ChestOpeningView({
     handleCollect();
   }, [handleCollect, rewardOutcome, tier.points]);
 
-  const ensureFrameImage = useCallback((frameIndex: number) => {
+  const ensureFrameImage = useCallback((frameIndex: number, allowDistantFrame = false) => {
     const loaded = loadedFramesRef.current.get(frameIndex);
     if (loaded) return Promise.resolve(loaded);
 
@@ -178,7 +192,7 @@ export function ChestOpeningView({
         }
 
         const requestedFrame = lastRequestedFrameRef.current;
-        if (
+        if (!allowDistantFrame &&
           requestedFrame !== null &&
           (frameIndex < requestedFrame - 1 || frameIndex > requestedFrame + CHEST_OPENING_FRAME_PREFETCH_AHEAD)
         ) {
@@ -386,6 +400,7 @@ export function ChestOpeningView({
     for (let frameIndex = 0; frameIndex <= lastInitialFrame; frameIndex += 1) {
       void ensureFrameImage(frameIndex);
     }
+    void ensureFrameImage(CHEST_OPENING_FRAME_COUNT - 1, true);
 
     return () => {
       if (frameGenerationRef.current === generation) frameGenerationRef.current += 1;
@@ -423,17 +438,70 @@ export function ChestOpeningView({
     revealAtAnimationTimestamp();
   }, [phase, revealAtAnimationTimestamp]);
 
-  const handleSurfacePointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === "mouse") return;
+  const fastForwardCurrentChestAnimation = useCallback(() => {
+    const root = screenRef.current;
+    if (root) finishCurrentWebAnimations(root);
 
-    const now = Date.now();
-    if (now - lastTapAtRef.current <= DOUBLE_TAP_WINDOW_MS) {
-      lastTapAtRef.current = 0;
-      skipOpeningToLastFrame();
+    if (phase === "disappearing") {
+      finishDisappear();
+      return true;
+    }
+
+    if (phase === "playing") {
+      if (animationCompletionModeRef.current === "playing") {
+        skipOpeningToLastFrame();
+      } else {
+        animationCompletionModeRef.current = "skipped";
+        if (animationEndCloseTimeoutRef.current !== null) {
+          window.clearTimeout(animationEndCloseTimeoutRef.current);
+          animationEndCloseTimeoutRef.current = null;
+        }
+        revealAtAnimationTimestamp();
+      }
+      return true;
+    }
+
+    if (phase === "revealed") {
+      animationCompletionModeRef.current = "skipped";
+      if (animationEndCloseTimeoutRef.current !== null) {
+        window.clearTimeout(animationEndCloseTimeoutRef.current);
+        animationEndCloseTimeoutRef.current = null;
+      }
+
+      if (pointsPhase === "flying" || pointsPhase === "added") {
+        setScatterFastForwardSignal((current) => current + 1);
+        tryCompleteAfterSkippedScatter();
+      } else {
+        if (pointsTimeoutRef.current !== null) {
+          window.clearTimeout(pointsTimeoutRef.current);
+          pointsTimeoutRef.current = null;
+        }
+        if (rewardResolved) setPointsPhase("flying");
+      }
+      return true;
+    }
+
+    return false;
+  }, [finishDisappear, phase, pointsPhase, rewardResolved, revealAtAnimationTimestamp, skipOpeningToLastFrame, tryCompleteAfterSkippedScatter]);
+
+  const handleSurfacePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (typeof event.button === "number" && event.button !== 0) return;
+    pointerStartRef.current = { x: event.clientX, y: event.clientY };
+  }, []);
+
+  const handleSurfacePointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (typeof event.button === "number" && event.button !== 0) return;
+    const start = pointerStartRef.current;
+    pointerStartRef.current = null;
+    if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > TAP_MOVE_TOLERANCE_PX) {
       return;
     }
-    lastTapAtRef.current = now;
-  }, [skipOpeningToLastFrame]);
+    if (event.target instanceof Element && event.target.closest(
+      "button, a, input, select, textarea, [contenteditable='true']",
+    )) return;
+
+    fastForwardCurrentChestAnimation();
+  }, [fastForwardCurrentChestAnimation]);
 
   useEffect(() => {
     if (reward) {
@@ -472,9 +540,14 @@ export function ChestOpeningView({
     if (!rewardRevealReady || !rewardResolved || hasShownRewardsRef.current) return;
     hasShownRewardsRef.current = true;
     setPhase("revealed");
+    if (animationCompletionModeRef.current === "skipped") {
+      setPointsPhase("flying");
+      return;
+    }
     setPointsPhase("shown");
     pointsTimeoutRef.current = window.setTimeout(() => {
       setPointsPhase("flying");
+      pointsTimeoutRef.current = null;
     }, REWARD_HOLD_BEFORE_FLIGHT_MS);
 
     return () => {
@@ -503,10 +576,12 @@ export function ChestOpeningView({
 
   return (
     <div
+      ref={screenRef}
       data-chest-opening-view
       data-chest-opening-layout
+      data-no-quiz-fast-forward
+      onPointerDown={handleSurfacePointerDown}
       onPointerUp={handleSurfacePointerUp}
-      onDoubleClick={skipOpeningToLastFrame}
       className={cn(
         "relative flex h-full min-h-full w-full touch-manipulation items-center justify-center overflow-hidden bg-[#121212] px-4 py-6 text-center sm:px-6 sm:py-8",
         phase === "disappearing"
@@ -678,6 +753,7 @@ export function ChestOpeningView({
           finishGemRewardDisplay(gemFinalBalancesRef.current);
           tryCompleteAfterSkippedScatter();
         }}
+        fastForwardSignal={scatterFastForwardSignal}
       />
     </div>
   );
