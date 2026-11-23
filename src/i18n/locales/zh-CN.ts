@@ -794,6 +794,8 @@ const dictionary = {
   "quiz.presentationClassic": "经典测验",
   "quiz.presentationClassicDescription": "使用熟悉的题型和奖励页面进行练习。",
   "quiz.practiceSwipePrompt": "认识卡片就向右滑动，想再复习就向左滑动",
+  "quiz.practiceSwipeProgressPrompt": "认识这张卡片就向右滑动",
+  "quiz.practiceSwipeLearnedPrompt": "学会这张卡片就向右滑动",
   "quiz.practiceReviewAgain": "再复习一次",
   "quiz.practiceUnderstood": "明白了",
   "quiz.practiceLearnedIt": "我学会了",

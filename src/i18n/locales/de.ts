@@ -793,6 +793,8 @@ const dictionary = {
   "quiz.presentationClassic": "Klassisches Quiz",
   "quiz.presentationClassicDescription": "Übe mit den vertrauten Fragetypen und Belohnungsbildschirmen.",
   "quiz.practiceSwipePrompt": "Nach rechts wischen, wenn du die Karte kennst, nach links zum Wiederholen",
+  "quiz.practiceSwipeProgressPrompt": "Nach rechts wischen, wenn du diese Karte kennst",
+  "quiz.practiceSwipeLearnedPrompt": "Nach rechts wischen, wenn du diese Karte gelernt hast",
   "quiz.practiceReviewAgain": "Noch einmal üben",
   "quiz.practiceUnderstood": "Verstanden",
   "quiz.practiceLearnedIt": "Gelernt",

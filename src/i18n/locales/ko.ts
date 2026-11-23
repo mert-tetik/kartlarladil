@@ -794,6 +794,8 @@ const dictionary = {
   "quiz.presentationClassic": "클래식 퀴즈",
   "quiz.presentationClassicDescription": "익숙한 문제 유형과 보상 화면으로 연습하세요.",
   "quiz.practiceSwipePrompt": "카드를 알고 있으면 오른쪽으로, 다시 복습하려면 왼쪽으로 스와이프",
+  "quiz.practiceSwipeProgressPrompt": "이 카드를 알고 있으면 오른쪽으로 스와이프하세요",
+  "quiz.practiceSwipeLearnedPrompt": "이 카드를 익혔다면 오른쪽으로 스와이프하세요",
   "quiz.practiceReviewAgain": "다시 복습",
   "quiz.practiceUnderstood": "알겠어요",
   "quiz.practiceLearnedIt": "배웠어요",

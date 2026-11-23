@@ -3850,6 +3850,10 @@ body:has([data-ask-chat-page]) [data-ask-chat-page] > section {
     height: calc(100dvh - var(--app-header-height));
   }
 
+  body:has([data-learn-page]):has([data-quiz-presentation-selection]:not([data-quiz-transition-fallback-presentation])) [data-learn-page] {
+    height: calc(100dvh - var(--app-header-height));
+  }
+
   body:has([data-learn-page]):not(:has([data-quiz-session-progress]:not([data-quiz-transition-fallback-old]))):not(:has([data-quiz-count-selection]:not([data-quiz-transition-fallback-old]))) [data-learn-page] {
     height: 100dvh;
   }
@@ -3895,6 +3899,10 @@ body:has([data-quiz-count-selection]:not([data-quiz-transition-fallback-old])) [
   background-color: #000000 !important;
 }
 
+body:has([data-quiz-presentation-selection]:not([data-quiz-transition-fallback-presentation])) [data-route-transition-navigation] {
+  background-color: #000000 !important;
+}
+
 body:has([data-learn-quiz-page]) [data-learn-page-header],
 body:has([data-learn-quiz-page]) footer,
 body:has([data-learn-page]) footer {
@@ -3909,6 +3917,10 @@ body:has([data-learn-page]) footer {
   }
 
   body:has([data-learn-page]):has([data-quiz-count-selection]:not([data-quiz-transition-fallback-old])) [data-route-transition-navigation] {
+    display: block;
+  }
+
+  body:has([data-learn-page]):has([data-quiz-presentation-selection]:not([data-quiz-transition-fallback-presentation])) [data-route-transition-navigation] {
     display: block;
   }
 
@@ -4049,7 +4061,15 @@ body:has([data-create-card-page]) [data-create-card-page] {
     display: none;
   }
 
+  body:has([data-quiz-presentation-selection]:not([data-quiz-transition-fallback-presentation])) [data-mobile-main-nav-frame] {
+    display: none;
+  }
+
   body:has([data-quiz-count-selection]:not([data-quiz-transition-fallback-old])) .page-transition-shell {
+    bottom: 0;
+  }
+
+  body:has([data-quiz-presentation-selection]:not([data-quiz-transition-fallback-presentation])) .page-transition-shell {
     bottom: 0;
   }
 

@@ -59,12 +59,14 @@ export function QuizCountSelection({
   availableCount,
   locked = false,
   preparing = false,
+  enterWithCss = false,
   onSelect,
 }: {
   mode: PracticeMode;
   availableCount: number;
   locked?: boolean;
   preparing?: boolean;
+  enterWithCss?: boolean;
   onSelect: (count: number) => void;
 }) {
   const { locale } = useLocale();
@@ -97,6 +99,7 @@ export function QuizCountSelection({
       data-quiz-count-selection
       className={cn(
         "quiz-flow-screen relative isolate flex h-full min-h-0 w-full flex-1 flex-col items-center justify-start overflow-hidden bg-transparent px-3 py-5 max-lg:pt-[calc(1.25rem+var(--app-header-height))] sm:px-5 sm:py-7",
+        enterWithCss && "quiz-flow-enter-right",
       )}
     >
       <div className="w-full max-w-xl">

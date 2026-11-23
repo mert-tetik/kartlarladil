@@ -392,6 +392,7 @@ export function LearnQuizShell({
                 setSelectedMode(null);
                 setPhase("mode");
               }}
+              onBackToLanding={redirectToLanding}
             />
           </div>
         ) : (

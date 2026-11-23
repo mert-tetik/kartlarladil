@@ -794,6 +794,8 @@ const dictionary = {
   "quiz.presentationClassic": "クラシッククイズ",
   "quiz.presentationClassicDescription": "おなじみの問題形式と報酬画面で練習します。",
   "quiz.practiceSwipePrompt": "知っていたら右へ、もう一度練習するなら左へスワイプ",
+  "quiz.practiceSwipeProgressPrompt": "このカードを知っていたら右へスワイプ",
+  "quiz.practiceSwipeLearnedPrompt": "このカードを覚えたら右へスワイプ",
   "quiz.practiceReviewAgain": "もう一度練習",
   "quiz.practiceUnderstood": "わかった",
   "quiz.practiceLearnedIt": "覚えた",

@@ -794,6 +794,8 @@ const dictionary = {
   "quiz.presentationClassic": "اختبار كلاسيكي",
   "quiz.presentationClassicDescription": "تدرّب باستخدام أنواع الأسئلة وشاشات المكافآت المعتادة.",
   "quiz.practiceSwipePrompt": "اسحب لليمين إذا كنت تعرف البطاقة، أو لليسار لمراجعتها مجددًا",
+  "quiz.practiceSwipeProgressPrompt": "اسحب لليمين إذا كنت تعرف هذه البطاقة",
+  "quiz.practiceSwipeLearnedPrompt": "اسحب لليمين إذا كنت قد تعلمت هذه البطاقة",
   "quiz.practiceReviewAgain": "راجع مجددًا",
   "quiz.practiceUnderstood": "فهمت",
   "quiz.practiceLearnedIt": "تعلمتها",

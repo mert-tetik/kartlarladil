@@ -794,6 +794,8 @@ const dictionary = {
   "quiz.presentationClassic": "Quiz classico",
   "quiz.presentationClassicDescription": "Esercitati con i tipi di domanda e le schermate premio di sempre.",
   "quiz.practiceSwipePrompt": "Scorri a destra se conosci la carta, a sinistra per ripassarla",
+  "quiz.practiceSwipeProgressPrompt": "Scorri a destra se conosci questa carta",
+  "quiz.practiceSwipeLearnedPrompt": "Scorri a destra se hai imparato questa carta",
   "quiz.practiceReviewAgain": "Ripassa ancora",
   "quiz.practiceUnderstood": "Ho capito",
   "quiz.practiceLearnedIt": "L’ho imparata",

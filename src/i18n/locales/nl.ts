@@ -794,6 +794,8 @@ const dictionary = {
   "quiz.presentationClassic": "Klassieke quiz",
   "quiz.presentationClassicDescription": "Oefen met de vertrouwde vraagtypen en beloningsschermen.",
   "quiz.practiceSwipePrompt": "Veeg naar rechts als je de kaart kent, of naar links om opnieuw te oefenen",
+  "quiz.practiceSwipeProgressPrompt": "Veeg naar rechts als je deze kaart kent",
+  "quiz.practiceSwipeLearnedPrompt": "Veeg naar rechts als je deze kaart hebt geleerd",
   "quiz.practiceReviewAgain": "Opnieuw oefenen",
   "quiz.practiceUnderstood": "Begrepen",
   "quiz.practiceLearnedIt": "Ik heb het geleerd",

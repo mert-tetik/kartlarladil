@@ -16,6 +16,10 @@ import { LOCALE_COOKIE_NAME } from "@/i18n/config";
 import { awardQuizResultPoints } from "@/features/quiz/actions";
 import { formatSuperWaterText } from "@/lib/super-water";
 import { clearQuizPoolCache } from "@/features/quiz/quiz-pool-preparation";
+import {
+  getMobileNavbarBackOverride,
+  requestMobileNavbarBack,
+} from "@/components/mobile-navbar-back";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { InventoryCard, LanguageCode, LocaleCode, ProgressStats } from "@/types/domain";
 import type { NormalQuizItem } from "@/features/quiz/components/quiz-station";
@@ -2465,11 +2469,28 @@ describe("QuizStation practice presentation", () => {
 
     const selection = await screen.findByTestId("quiz-presentation-selection");
     expect(selection).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: /Kolay çalışma/ }));
+    expect(selection.querySelector("#quiz-presentation-title"))
+      .toHaveClass("font-super-water");
+    expect(selection.textContent).not.toContain("Kartlarla");
+    expect(selection.querySelector("button")).toHaveClass("font-super-water");
+    expect(selection.querySelector('[data-quiz-presentation="classic"]'))
+      .toHaveClass("font-super-water");
+    expect(getMobileNavbarBackOverride()).toBe(true);
+    expect(screen.queryByRole("button", { name: /Geri|Back/i })).not.toBeInTheDocument();
+    fireEvent.click(selection.querySelector('[data-quiz-presentation="easy"]')!);
+
+    fireEvent.animationEnd(
+      selection.querySelector('[data-quiz-presentation="easy"]')!,
+      { animationName: "quiz-word-button-correct" },
+    );
 
     await waitFor(() => {
       expect(document.querySelector("[data-quiz-count-selection]")).toBeInTheDocument();
     });
+    act(() => requestMobileNavbarBack());
+    expect(await screen.findByTestId("quiz-presentation-selection")).toBeVisible();
+    act(() => requestMobileNavbarBack());
+    await waitFor(() => expect(routerMock.replace).toHaveBeenCalledWith("/"));
   });
 
   it("preserves the card-progress interstitial after a right swipe and reverses that first transition", async () => {

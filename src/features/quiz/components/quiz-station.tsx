@@ -91,7 +91,12 @@ import {
 import { buildPreparedQuizDeck, getQuizDeckItemKey } from "@/features/quiz/quiz-pool-deck";
 import { QuizPresentationSelection } from "@/features/quiz/components/quiz-presentation-selection";
 import { QuizPracticeSwipeCard } from "@/features/quiz/components/quiz-practice-swipe-card";
+import { QuizPracticeSwipePrompt } from "@/features/quiz/components/quiz-practice-swipe-prompt";
 import type { QuizPresentationMode } from "@/features/quiz/quiz-presentation-mode";
+import {
+  setMobileNavbarBackOverride,
+  subscribeMobileNavbarBackRequest,
+} from "@/components/mobile-navbar-back";
 import type {
   BonusQuizItem,
   ChoiceQuizItem,
@@ -636,6 +641,7 @@ export function QuizStation({
   quizWordRepetitionTest = false,
   onPhaseChange,
   onBackToMode,
+  onBackToLanding,
 }: {
   mode: PracticeMode;
   initialLanguage?: LanguageCode;
@@ -647,6 +653,7 @@ export function QuizStation({
   quizWordRepetitionTest?: boolean;
   onPhaseChange?: (phase: QuizPhase) => void;
   onBackToMode?: () => void;
+  onBackToLanding?: () => void;
 }) {
   const [phase, setPhase] = useState<QuizPhase>(
     initialLanguage
@@ -776,6 +783,7 @@ export function QuizStation({
   const [bonusPointsAwarded, setBonusPointsAwarded] = useState(0);
   const [bonusScorePulse, setBonusScorePulse] = useState(0);
   const [supportsViewTransition, setSupportsViewTransition] = useState(false);
+  const [countSelectionEnterFromRight, setCountSelectionEnterFromRight] = useState(false);
   const useCssQuizTransitionRef = useRef(false);
   const nextQuizTransitionDirectionRef = useRef<"forward" | "reverse" | null>(null);
   const reverseTransitionTimeoutRef = useRef<number | null>(null);
@@ -947,11 +955,13 @@ export function QuizStation({
       findLiveTransitionElement<HTMLElement>("[data-quiz-card-progress-reveal]") ??
       findLiveTransitionElement<HTMLElement>("[data-quiz-celebration]") ??
       findLiveTransitionElement<HTMLElement>("[data-quiz-count-selection]") ??
+      findLiveTransitionElement<HTMLElement>("[data-quiz-presentation-selection]") ??
       quizStage ??
       quizPage;
     if (!source) return null;
 
     const isCountSelectionSnapshot = source.matches("[data-quiz-count-selection]");
+    const isPresentationSelectionSnapshot = source.matches("[data-quiz-presentation-selection]");
     const isQuizStageSnapshot = source === quizStage;
     const snapshot = source.cloneNode(true) as HTMLElement;
     const sourceStreakLabels = Array.from(
@@ -1106,6 +1116,10 @@ export function QuizStation({
       snapshot.removeAttribute("data-quiz-count-selection");
       snapshot.setAttribute("data-quiz-transition-fallback-count", "true");
     }
+    if (isPresentationSelectionSnapshot) {
+      snapshot.removeAttribute("data-quiz-presentation-selection");
+      snapshot.setAttribute("data-quiz-transition-fallback-presentation", "true");
+    }
     if (isQuizStageSnapshot) {
       snapshot.setAttribute("data-quiz-transition-fallback-quiz-stage", "true");
     }
@@ -1233,6 +1247,18 @@ export function QuizStation({
     }
 
     snapshot.classList.add("quiz-transition-fallback-old");
+    if (reverseExit) {
+      const sourceBounds = source.getBoundingClientRect();
+      snapshot.style.setProperty(
+        "inset",
+        `${sourceBounds.top}px ${Math.max(0, window.innerWidth - sourceBounds.right)}px ${Math.max(0, window.innerHeight - sourceBounds.bottom)}px ${sourceBounds.left}px`,
+        "important",
+      );
+      snapshot.style.setProperty("width", `${sourceBounds.width}px`, "important");
+      snapshot.style.setProperty("height", `${sourceBounds.height}px`, "important");
+      snapshot.style.setProperty("min-height", `${sourceBounds.height}px`, "important");
+      snapshot.setAttribute("data-quiz-transition-reverse-snapshot", "true");
+    }
     if (reverseExit) snapshot.classList.add("quiz-transition-fallback-exit-right");
     document.body.appendChild(snapshot);
     return { snapshot, source };
@@ -1758,6 +1784,36 @@ export function QuizStation({
   useEffect(() => {
     onPhaseChange?.(phase);
   }, [phase, onPhaseChange]);
+
+  const setupBackOverrideEnabled =
+    !initialPresentationMode && (phase === "quiz-type" || phase === "count");
+  const onBackToLandingRef = useRef(onBackToLanding);
+  onBackToLandingRef.current = onBackToLanding;
+
+  useEffect(() => {
+    if (!setupBackOverrideEnabled) return;
+
+    setMobileNavbarBackOverride(true);
+    const unsubscribe = subscribeMobileNavbarBackRequest(() => {
+      if (phaseRef.current === "count") {
+        setPhase("quiz-type");
+        return;
+      }
+
+      if (phaseRef.current === "quiz-type") {
+        if (onBackToLandingRef.current) {
+          onBackToLandingRef.current();
+        } else {
+          navigateWithRouteTransition(() => router.replace("/"));
+        }
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      setMobileNavbarBackOverride(false);
+    };
+  }, [setupBackOverrideEnabled, router]);
 
   const effectivePlan = entitlements?.effectivePlan ?? "free";
 
@@ -2673,8 +2729,11 @@ export function QuizStation({
   }
 
   function handleSelectQuizPresentation(presentationMode: QuizPresentationMode) {
-    setQuizPresentationMode(presentationMode);
-    setPhase("count");
+    runQuizViewTransition(() => {
+      setQuizPresentationMode(presentationMode);
+      setCountSelectionEnterFromRight(true);
+      setPhase("count");
+    }, { forceCss: true });
   }
 
   function handleStartCount(count: number, _startSplashAlreadyShown = false) {
@@ -3803,7 +3862,6 @@ export function QuizStation({
     return (
       <QuizPresentationSelection
         preparing={isPreparingQuizPool}
-        onBack={() => setPhase("language")}
         onSelect={handleSelectQuizPresentation}
       />
     );
@@ -3817,6 +3875,7 @@ export function QuizStation({
             availableCount={availableCards.length}
             locked={interactionLocked}
             preparing={isPreparingQuizPool}
+            enterWithCss={countSelectionEnterFromRight && useCssQuizTransition}
             onSelect={handleStartCount}
           />
       </div>
@@ -4210,8 +4269,9 @@ export function QuizStation({
       <MobileQuizTopBar
         currentIndex={regularProgress.current - 1}
         total={regularProgress.total}
-        questionPrompt={quizPresentationMode === "easy" ? t("quiz.practiceSwipePrompt") : mobileQuestionPrompt}
-        questionPromptAccent={quizPresentationMode === "easy" || item.questionType === "definition" || item.questionType === "text"}
+        questionPrompt={quizPresentationMode === "easy" ? null : mobileQuestionPrompt}
+        practiceItem={quizPresentationMode === "easy" && !isBonusQuizItem(item) ? item : undefined}
+        questionPromptAccent={quizPresentationMode === "classic" && (item.questionType === "definition" || item.questionType === "text")}
         questionPromptIsBonus={quizPresentationMode === "classic" && isBonusQuizItem(item)}
         onExit={handleExit}
         entryAnimated={false}
@@ -5610,6 +5670,7 @@ export function MobileQuizTopBar({
   currentIndex,
   total,
   questionPrompt,
+  practiceItem,
   questionPromptAccent = false,
   questionPromptIsBonus = false,
   onExit,
@@ -5618,6 +5679,7 @@ export function MobileQuizTopBar({
   currentIndex: number;
   total: number;
   questionPrompt: string | null;
+  practiceItem?: NormalQuizItem;
   questionPromptAccent?: boolean;
   questionPromptIsBonus?: boolean;
   onExit: () => void;
@@ -5668,7 +5730,7 @@ export function MobileQuizTopBar({
 
       </div>
 
-      {questionPrompt ? (
+      {questionPrompt || practiceItem ? (
         <div
           className={cn(
             "fixed inset-x-0 top-[var(--app-header-height)] z-[55] flex h-14 items-center bg-background px-4 py-1.5 lg:hidden",
@@ -5676,6 +5738,9 @@ export function MobileQuizTopBar({
           )}
           data-mobile-quiz-question-prompt
         >
+          {practiceItem ? (
+            <QuizPracticeSwipePrompt item={practiceItem} />
+          ) : (
           <div className="flex w-fit max-w-full items-center gap-2">
             <p
               className={cn(
@@ -5689,7 +5754,7 @@ export function MobileQuizTopBar({
               )}
               data-quiz-mobile-prompt
             >
-              {formatSuperWaterText(locale, questionPrompt)}
+              {formatSuperWaterText(locale, questionPrompt ?? "")}
             </p>
             {questionPromptAccent ? (
               <span className="flex size-7 shrink-0 items-center justify-center">
@@ -5709,6 +5774,7 @@ export function MobileQuizTopBar({
               </span>
             ) : null}
           </div>
+          )}
         </div>
       ) : null}
 

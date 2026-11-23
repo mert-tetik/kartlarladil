@@ -794,6 +794,8 @@ const dictionary = {
   "quiz.presentationClassic": "Классическая викторина",
   "quiz.presentationClassicDescription": "Занимайтесь с привычными типами вопросов и экранами наград.",
   "quiz.practiceSwipePrompt": "Смахните вправо, если знаете карточку, или влево, чтобы повторить",
+  "quiz.practiceSwipeProgressPrompt": "Смахните вправо, если знаете эту карточку",
+  "quiz.practiceSwipeLearnedPrompt": "Смахните вправо, если выучили эту карточку",
   "quiz.practiceReviewAgain": "Повторить ещё раз",
   "quiz.practiceUnderstood": "Понятно",
   "quiz.practiceLearnedIt": "Я выучил(а)",

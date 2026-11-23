@@ -1,21 +1,60 @@
 "use client";
 
-import { ArrowLeft, BookOpenCheck, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useT } from "@/i18n/locale-provider";
+import { useEffect, useRef, useState, type AnimationEvent } from "react";
+import { BookOpenCheck, Sparkles } from "lucide-react";
+import { QuizWordButton } from "@/features/quiz/components/quiz-word-button";
+import { useLocale, useT } from "@/i18n/locale-provider";
+import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
+import { playSoundEffect } from "@/lib/sound-effects";
 import { cn } from "@/lib/utils";
 import type { QuizPresentationMode } from "@/features/quiz/quiz-presentation-mode";
 
 export function QuizPresentationSelection({
   preparing,
-  onBack,
   onSelect,
 }: {
   preparing: boolean;
-  onBack: () => void;
   onSelect: (mode: QuizPresentationMode) => void;
 }) {
+  const { locale } = useLocale();
   const t = useT();
+  const useSuperWater = canUseSuperWater(locale);
+  const [selectedMode, setSelectedMode] = useState<QuizPresentationMode | null>(null);
+  const selectedModeRef = useRef<QuizPresentationMode | null>(null);
+  const animationFallbackRef = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (animationFallbackRef.current !== null) {
+      window.clearTimeout(animationFallbackRef.current);
+    }
+  }, []);
+
+  function selectMode(mode: QuizPresentationMode) {
+    if (selectedModeRef.current) return;
+    selectedModeRef.current = mode;
+    setSelectedMode(mode);
+    playSoundEffect("correct");
+    animationFallbackRef.current = window.setTimeout(() => finishSelection(mode), 900);
+  }
+
+  function finishSelection(mode: QuizPresentationMode) {
+    if (selectedModeRef.current !== mode) return;
+    selectedModeRef.current = null;
+    if (animationFallbackRef.current !== null) {
+      window.clearTimeout(animationFallbackRef.current);
+      animationFallbackRef.current = null;
+    }
+    onSelect(mode);
+  }
+
+  function handleOptionAnimationEnd(
+    event: AnimationEvent<HTMLButtonElement>,
+    mode: QuizPresentationMode,
+  ) {
+    if (event.animationName === "quiz-word-button-correct") {
+      finishSelection(mode);
+    }
+  }
 
   return (
     <section
@@ -25,59 +64,60 @@ export function QuizPresentationSelection({
       aria-labelledby="quiz-presentation-title"
       aria-busy={preparing}
     >
-      <Button
-        type="button"
-        variant="ghost"
-        className="absolute left-4 top-4 gap-2 sm:left-6 sm:top-6"
-        onClick={onBack}
-        aria-label={t("common.back")}
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        {t("common.back")}
-      </Button>
-
       <div className="mx-auto w-full max-w-3xl text-center">
-        <h2 id="quiz-presentation-title" className="text-2xl font-semibold text-foreground sm:text-3xl">
-          {t("quiz.choosePresentationTitle")}
+        <h2
+          id="quiz-presentation-title"
+          className={cn("text-2xl font-semibold text-foreground sm:text-3xl", useSuperWater && "font-super-water")}
+        >
+          {formatSuperWaterText(locale, t("quiz.choosePresentationTitle"))}
         </h2>
-        <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-foreground-secondary sm:text-base">
-          {t("quiz.choosePresentationDescription")}
-        </p>
 
         <div className="mt-8 grid w-full gap-4 text-left sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => onSelect("easy")}
+          <QuizWordButton
+            wordType="correct"
+            disabled={selectedMode !== null && selectedMode !== "easy"}
+            onClick={() => selectMode("easy")}
+            onAnimationEnd={(event) => handleOptionAnimationEnd(event, "easy")}
+            correctClassName="border-emerald-300 bg-emerald-800 text-white"
             className={cn(
-              "group flex min-h-44 flex-col justify-center rounded-2xl border border-emerald-400/50 bg-emerald-600 p-5 text-white shadow-sm shadow-emerald-950/15 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-300/50 disabled:cursor-wait disabled:opacity-70 sm:min-h-52 sm:p-6",
+              "group min-h-44 w-full flex-col items-stretch justify-center rounded-xl border-emerald-300/70 border-b-emerald-950 bg-emerald-600 px-5 py-4 text-left text-white transition-colors hover:bg-emerald-500 disabled:cursor-wait disabled:opacity-70 sm:min-h-52 sm:px-6 sm:py-5",
+              useSuperWater && "font-super-water",
             )}
             data-quiz-presentation="easy"
           >
             <div className="flex items-center gap-3">
               <Sparkles className="size-6 shrink-0" aria-hidden="true" />
-              <span className="text-xl font-semibold sm:text-2xl">{t("quiz.presentationEasy")}</span>
+              <span className="text-xl font-semibold sm:text-2xl">
+                {formatSuperWaterText(locale, t("quiz.presentationEasy"))}
+              </span>
             </div>
-            <span className="mt-3 text-sm leading-6 text-white/90 sm:text-base">
+            <span className={cn("mt-3 text-sm leading-6 text-white/90 sm:text-base", useSuperWater && "font-sans")}>
               {t("quiz.presentationEasyDescription")}
             </span>
-          </button>
+          </QuizWordButton>
 
-          <button
-            type="button"
-            onClick={() => onSelect("classic")}
+          <QuizWordButton
+            wordType="correct"
+            disabled={selectedMode !== null && selectedMode !== "classic"}
+            onClick={() => selectMode("classic")}
+            onAnimationEnd={(event) => handleOptionAnimationEnd(event, "classic")}
+            correctClassName="border-sky-300 bg-sky-900 text-white"
             className={cn(
-              "group flex min-h-44 flex-col justify-center rounded-2xl border border-sky-300/50 bg-sky-700 p-5 text-white shadow-sm shadow-sky-950/20 transition duration-200 hover:-translate-y-0.5 hover:bg-sky-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300/50 disabled:cursor-wait disabled:opacity-70 sm:min-h-52 sm:p-6",
+              "group min-h-44 w-full flex-col items-stretch justify-center rounded-xl border-sky-300/70 border-b-sky-950 bg-sky-700 px-5 py-4 text-left text-white transition-colors hover:bg-sky-600 disabled:cursor-wait disabled:opacity-70 sm:min-h-52 sm:px-6 sm:py-5",
+              useSuperWater && "font-super-water",
             )}
             data-quiz-presentation="classic"
           >
             <div className="flex items-center gap-3">
               <BookOpenCheck className="size-6 shrink-0" aria-hidden="true" />
-              <span className="text-xl font-semibold sm:text-2xl">{t("quiz.presentationClassic")}</span>
+              <span className="text-xl font-semibold sm:text-2xl">
+                {formatSuperWaterText(locale, t("quiz.presentationClassic"))}
+              </span>
             </div>
-            <span className="mt-3 text-sm leading-6 text-white/90 sm:text-base">
+            <span className={cn("mt-3 text-sm leading-6 text-white/90 sm:text-base", useSuperWater && "font-sans")}>
               {t("quiz.presentationClassicDescription")}
             </span>
-          </button>
+          </QuizWordButton>
         </div>
         {preparing ? (
           <p className="mt-4 text-sm text-foreground-muted" role="status" aria-live="polite">

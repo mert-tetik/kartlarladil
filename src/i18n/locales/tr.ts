@@ -799,6 +799,8 @@ const dictionary = {
   "quiz.presentationClassic": "Klasik quiz",
   "quiz.presentationClassicDescription": "Soru türleri ve ödül ekranlarıyla alıştığın şekilde çalış.",
   "quiz.practiceSwipePrompt": "Bildiğin kartı sağa, tekrar edeceğin kartı sola kaydır",
+  "quiz.practiceSwipeProgressPrompt": "Kartı anladıysan sağa kaydır",
+  "quiz.practiceSwipeLearnedPrompt": "Kartı öğrendiysen sağa kaydır",
   "quiz.practiceReviewAgain": "Tekrar çalış",
   "quiz.practiceUnderstood": "Anladım",
   "quiz.practiceLearnedIt": "Öğrendim",
