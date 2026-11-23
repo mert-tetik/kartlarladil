@@ -2513,6 +2513,13 @@ describe("QuizStation practice presentation", () => {
     }, { timeout: 5_000 });
     expect(document.documentElement).toHaveAttribute("data-quiz-flow-reverse-transition", "true");
     expect(document.querySelector(".quiz-transition-fallback-exit-right")).toBeInTheDocument();
+    expect(document.querySelector("[data-quiz-card-progress-reveal] .quiz-flow-enter-right"))
+      .toBeInTheDocument();
+    await waitFor(() => {
+      expect(document.documentElement).not.toHaveAttribute("data-quiz-flow-reverse-transition");
+      expect(document.querySelector("[data-quiz-card-progress-reveal] .quiz-flow-enter-right"))
+        .not.toBeInTheDocument();
+    }, { timeout: 1_500 });
   });
 
   it("keeps easy-practice cards front-facing and routes a left swipe into wrong-card review without feedback", async () => {

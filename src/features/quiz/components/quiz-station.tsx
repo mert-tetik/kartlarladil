@@ -361,6 +361,16 @@ function playQuizAnswerPressSound(
   playSoundEffect("correct", { playbackRate: correctPlaybackRate });
 }
 
+function clearReverseQuizTransitionStyles() {
+  if (typeof document === "undefined") return;
+
+  document.querySelectorAll<HTMLElement>(".quiz-flow-enter-right").forEach((element) => {
+    if (element.closest("[data-quiz-transition-fallback-old]")) return;
+    element.classList.remove("quiz-flow-enter-right");
+  });
+  document.documentElement.removeAttribute("data-quiz-flow-reverse-transition");
+}
+
 const QUIZ_COUNT_BUTTON_COLORS = [
   "bg-yellow-400",
   "bg-red-500",
@@ -1289,14 +1299,16 @@ export function QuizStation({
     nextQuizTransitionDirectionRef.current = null;
     const reverseSwipeTransition =
       quizPresentationMode === "easy" && requestedDirection === "reverse";
+    if (reverseTransitionTimeoutRef.current !== null) {
+      window.clearTimeout(reverseTransitionTimeoutRef.current);
+      reverseTransitionTimeoutRef.current = null;
+      clearReverseQuizTransitionStyles();
+    }
     if (reverseSwipeTransition) {
       useCssQuizTransitionRef.current = true;
       document.documentElement.setAttribute("data-quiz-flow-reverse-transition", "true");
-      if (reverseTransitionTimeoutRef.current !== null) {
-        window.clearTimeout(reverseTransitionTimeoutRef.current);
-      }
       reverseTransitionTimeoutRef.current = window.setTimeout(() => {
-        document.documentElement.removeAttribute("data-quiz-flow-reverse-transition");
+        clearReverseQuizTransitionStyles();
         reverseTransitionTimeoutRef.current = null;
       }, QUIZ_FLOW_TRANSITION_DURATION_MS + 60);
     }
@@ -2632,8 +2644,9 @@ export function QuizStation({
       }
       if (reverseTransitionTimeoutRef.current !== null) {
         window.clearTimeout(reverseTransitionTimeoutRef.current);
+        reverseTransitionTimeoutRef.current = null;
+        clearReverseQuizTransitionStyles();
       }
-      document.documentElement.removeAttribute("data-quiz-flow-reverse-transition");
       correctAnswerAnimationCompletionRef.current = null;
 
       autoAdvanceTimeoutRef.current = window.setTimeout(() => {
@@ -2654,6 +2667,11 @@ export function QuizStation({
       }
       if (normalAnswerAdvanceTimeoutRef.current !== null) {
         window.clearTimeout(normalAnswerAdvanceTimeoutRef.current);
+      }
+      if (reverseTransitionTimeoutRef.current !== null) {
+        window.clearTimeout(reverseTransitionTimeoutRef.current);
+        reverseTransitionTimeoutRef.current = null;
+        clearReverseQuizTransitionStyles();
       }
       correctAnswerAnimationCompletionRef.current = null;
       cardProgressTimeoutIdsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
