@@ -89,6 +89,9 @@ import {
   prepareQuizPool as requestQuizPoolPreparation,
 } from "@/features/quiz/quiz-pool-preparation";
 import { buildPreparedQuizDeck, getQuizDeckItemKey } from "@/features/quiz/quiz-pool-deck";
+import { QuizPresentationSelection } from "@/features/quiz/components/quiz-presentation-selection";
+import { QuizPracticeSwipeCard } from "@/features/quiz/components/quiz-practice-swipe-card";
+import type { QuizPresentationMode } from "@/features/quiz/quiz-presentation-mode";
 import type {
   BonusQuizItem,
   ChoiceQuizItem,
@@ -269,6 +272,7 @@ import type {
 
 type QuizPhase =
   | "language"
+  | "quiz-type"
   | "count"
   | "quiz"
   | "word-repetition-intro"
@@ -288,6 +292,7 @@ export type { QuizPhase };
 type AdvanceQuizOptions = {
   bypassCelebration?: boolean;
   resultsOverride?: QuizResult;
+  lastLearnedOverride?: VocabularyCard | null;
   skipRankUpCheck?: boolean;
 };
 
@@ -597,6 +602,20 @@ function getQuizResultMessageKey(
   return messageKeys[hash % messageKeys.length] ?? messageKeys[0];
 }
 
+function getPresentationResultMessageKey(
+  messageKey: ReturnType<typeof getQuizResultMessageKey>,
+  presentationMode: QuizPresentationMode,
+) {
+  if (presentationMode !== "easy") return messageKey;
+  if (messageKey === "quiz.resultMessageMediumLow3") {
+    return "quiz.practiceResultMessageMediumLow3" as const;
+  }
+  if (messageKey === "quiz.resultMessageLow4") {
+    return "quiz.practiceResultMessageLow4" as const;
+  }
+  return messageKey;
+}
+
 const TEXT_MASCOT_SELECTION_ROLLS = [0.99, 0.6, 0.2] as const;
 
 function formatQuizDuration(totalSeconds: number) {
@@ -609,6 +628,7 @@ function formatQuizDuration(totalSeconds: number) {
 export function QuizStation({
   mode,
   initialLanguage,
+  initialPresentationMode,
   normalQuestionType = null,
   bonusAfterEachNormalQuestion = false,
   quizCompletionTest = false,
@@ -619,6 +639,7 @@ export function QuizStation({
 }: {
   mode: PracticeMode;
   initialLanguage?: LanguageCode;
+  initialPresentationMode?: QuizPresentationMode;
   normalQuestionType?: NormalQuizItem["questionType"] | null;
   bonusAfterEachNormalQuestion?: boolean;
   quizCompletionTest?: boolean;
@@ -627,7 +648,16 @@ export function QuizStation({
   onPhaseChange?: (phase: QuizPhase) => void;
   onBackToMode?: () => void;
 }) {
-  const [phase, setPhase] = useState<QuizPhase>(initialLanguage ? "count" : "language");
+  const [phase, setPhase] = useState<QuizPhase>(
+    initialLanguage
+      ? initialPresentationMode
+        ? "count"
+        : "quiz-type"
+      : "language",
+  );
+  const [quizPresentationMode, setQuizPresentationMode] = useState<QuizPresentationMode>(
+    initialPresentationMode ?? "classic",
+  );
   const {
     cards,
     refreshSnapshot: refreshResultInventorySnapshot,
@@ -747,6 +777,8 @@ export function QuizStation({
   const [bonusScorePulse, setBonusScorePulse] = useState(0);
   const [supportsViewTransition, setSupportsViewTransition] = useState(false);
   const useCssQuizTransitionRef = useRef(false);
+  const nextQuizTransitionDirectionRef = useRef<"forward" | "reverse" | null>(null);
+  const reverseTransitionTimeoutRef = useRef<number | null>(null);
   const pendingQuizTransitionRef = useRef<PendingQuizTransition | null>(null);
   const autoAdvanceTimeoutRef = useRef<number | null>(null);
   const normalAnswerAdvanceTimeoutRef = useRef<number | null>(null);
@@ -894,8 +926,10 @@ export function QuizStation({
 
   function createFallbackTransitionSnapshot({
     fadeQuizTopBar = false,
+    reverseExit = false,
   }: {
     fadeQuizTopBar?: boolean;
+    reverseExit?: boolean;
   } = {}): FallbackTransitionSnapshot | null {
     const findLiveTransitionElement = <T extends HTMLElement>(selector: string) =>
       Array.from(document.querySelectorAll<T>(selector)).find(
@@ -1199,6 +1233,7 @@ export function QuizStation({
     }
 
     snapshot.classList.add("quiz-transition-fallback-old");
+    if (reverseExit) snapshot.classList.add("quiz-transition-fallback-exit-right");
     document.body.appendChild(snapshot);
     return { snapshot, source };
   }
@@ -1207,6 +1242,7 @@ export function QuizStation({
     delayIncomingMs?: number;
     fadeQuizTopBar?: boolean;
     forceCss?: boolean;
+    direction?: "forward" | "reverse";
   };
 
   function runQuizViewTransition(
@@ -1215,11 +1251,28 @@ export function QuizStation({
       delayIncomingMs = 0,
       fadeQuizTopBar = false,
       forceCss = false,
+      direction,
     }: QuizViewTransitionOptions = {},
   ) {
     if (typeof document === "undefined") {
       update();
       return;
+    }
+
+    const requestedDirection = direction ?? nextQuizTransitionDirectionRef.current ?? "forward";
+    nextQuizTransitionDirectionRef.current = null;
+    const reverseSwipeTransition =
+      quizPresentationMode === "easy" && requestedDirection === "reverse";
+    if (reverseSwipeTransition) {
+      useCssQuizTransitionRef.current = true;
+      document.documentElement.setAttribute("data-quiz-flow-reverse-transition", "true");
+      if (reverseTransitionTimeoutRef.current !== null) {
+        window.clearTimeout(reverseTransitionTimeoutRef.current);
+      }
+      reverseTransitionTimeoutRef.current = window.setTimeout(() => {
+        document.documentElement.removeAttribute("data-quiz-flow-reverse-transition");
+        reverseTransitionTimeoutRef.current = null;
+      }, QUIZ_FLOW_TRANSITION_DURATION_MS + 60);
     }
 
     // A delayed transition can still be waiting for an animation event when
@@ -1269,6 +1322,7 @@ export function QuizStation({
       !isQuizCompletionBoundary &&
       !fadeQuizTopBar &&
       !shouldDelayIncoming &&
+      !reverseSwipeTransition &&
       !forceCss;
     useCssQuizTransitionRef.current = !useNativeTransition;
 
@@ -1445,7 +1499,10 @@ export function QuizStation({
       return;
     }
 
-    const fallbackTransition = createFallbackTransitionSnapshot({ fadeQuizTopBar });
+    const fallbackTransition = createFallbackTransitionSnapshot({
+      fadeQuizTopBar,
+      reverseExit: reverseSwipeTransition,
+    });
     const isCountFallback = Boolean(
       fallbackTransition?.snapshot.hasAttribute("data-quiz-transition-fallback-count"),
     );
@@ -1610,7 +1667,7 @@ export function QuizStation({
   }
 
   useEffect(() => {
-  const isQuizInProgress = phase !== "language" && phase !== "count";
+  const isQuizInProgress = phase !== "language" && phase !== "quiz-type" && phase !== "count";
     setQuizRankUpDeferred(isQuizInProgress);
     return () => setQuizRankUpDeferred(false);
   }, [phase]);
@@ -1644,7 +1701,11 @@ export function QuizStation({
     if (
       mode !== "active" ||
       !isCorrect ||
-      (item.questionType === "text" && !isNormalQuestionLevelUpSimulation) ||
+      (
+        item.questionType === "text" &&
+        !isNormalQuestionLevelUpSimulation &&
+        quizPresentationMode !== "easy"
+      ) ||
       isBonusQuizItem(item) ||
       isNormalQuestionLearnedSimulation ||
       (item.willLearn && !isNormalQuestionLevelUpSimulation)
@@ -1692,7 +1753,7 @@ export function QuizStation({
     // increment itself is intentionally owned by the one-time tap on the
     // reveal screen, so the learner cannot accidentally skip its animation.
     return revealCardProgress;
-  }, [clearCardProgressFeedback, currentIndex, deck.length, mode, normalQuestionType]);
+  }, [clearCardProgressFeedback, currentIndex, deck.length, mode, normalQuestionType, quizPresentationMode]);
 
   useEffect(() => {
     onPhaseChange?.(phase);
@@ -1800,6 +1861,7 @@ export function QuizStation({
       sessionId: session.sessionId,
       hasFixedQuestionType: normalQuestionType !== null,
       bonusAfterEachNormalQuestion,
+      includeBonusQuestions: quizPresentationMode === "classic",
     });
     const previousKeys = session.items.map(getQuizDeckItemKey);
     const nextKeys = nextDeck.items.map(getQuizDeckItemKey);
@@ -1847,7 +1909,7 @@ export function QuizStation({
         return generatedQuestion ? { ...item, bonusQuestion: generatedQuestion } : item;
       }));
     }));
-  }, [bonusAfterEachNormalQuestion, normalQuestionType, showMessage, t]);
+  }, [bonusAfterEachNormalQuestion, normalQuestionType, quizPresentationMode, showMessage, t]);
 
   const buildDeck = useCallback(
     (
@@ -1882,6 +1944,7 @@ export function QuizStation({
         sessionId,
         hasFixedQuestionType: normalQuestionType !== null,
         bonusAfterEachNormalQuestion,
+        includeBonusQuestions: quizPresentationMode === "classic",
       });
       const orderedItems = preparedDeck.items;
       const deckToken = bonusDeckTokenRef.current + 1;
@@ -2004,6 +2067,7 @@ export function QuizStation({
       appendPreparedQuizPool,
       clearCardProgressFeedback,
       bonusAfterEachNormalQuestion,
+      quizPresentationMode,
       getQuizPoolKey,
       normalQuestionType,
       prepareQuizPool,
@@ -2021,7 +2085,7 @@ export function QuizStation({
     quizPoolPreparationTokenRef.current = preparationToken;
     quizStartPreparationRef.current = false;
 
-    if ((phase !== "count" && phase !== "result") || !selectedLanguage) {
+    if ((phase !== "quiz-type" && phase !== "count" && phase !== "result") || !selectedLanguage) {
       setIsPreparingQuizPool(false);
       return;
     }
@@ -2034,6 +2098,14 @@ export function QuizStation({
     if (cachedPool) {
       preparedQuizPoolRef.current = cachedPool;
       if (phase === "count") setIsPreparingQuizPool(false);
+      if (phase === "quiz-type") {
+        setIsPreparingQuizPool(
+          !isQuizPoolReadyToStart(
+            cachedPool,
+            normalQuestionType !== null || quizWordRepetitionTest,
+          ),
+        );
+      }
       return;
     }
 
@@ -2044,7 +2116,7 @@ export function QuizStation({
         if (quizPoolPreparationTokenRef.current !== preparationToken) return;
         if (getQuizPoolKey(language) !== pool.key) return;
         preparedQuizPoolRef.current = pool;
-        if (shouldShowLoading) {
+        if (shouldShowLoading || phase === "quiz-type") {
           setIsPreparingQuizPool(
             !isQuizPoolReadyToStart(pool, normalQuestionType !== null || quizWordRepetitionTest),
           );
@@ -2054,7 +2126,10 @@ export function QuizStation({
         if (preparedQuizPoolRef.current?.key === key && !preparedQuizPoolRef.current.complete) {
           preparedQuizPoolRef.current = null;
         }
-        if (quizPoolPreparationTokenRef.current === preparationToken && shouldShowLoading) {
+        if (
+          quizPoolPreparationTokenRef.current === preparationToken &&
+          (shouldShowLoading || phase === "quiz-type")
+        ) {
           setIsPreparingQuizPool(false);
           showMessage(t("inventory.error.operationFailed"), "error");
         }
@@ -2217,14 +2292,19 @@ export function QuizStation({
     ({
       bypassCelebration = false,
       resultsOverride,
+      lastLearnedOverride,
       skipRankUpCheck = false,
     }: AdvanceQuizOptions = {}) => {
+      const learnedCard = lastLearnedOverride === undefined
+        ? lastLearned
+        : lastLearnedOverride;
       const isNormalQuestionLevelUpSimulation =
         normalQuestionType !== null &&
         currentIndex < Math.max(0, deck.length - 2);
 
-      if (!bypassCelebration && lastLearned && !isNormalQuestionLevelUpSimulation) {
+      if (!bypassCelebration && learnedCard && !isNormalQuestionLevelUpSimulation) {
         runQuizViewTransition(() => {
+          setLastLearned(learnedCard);
           setPhase("celebration");
         });
         return;
@@ -2242,7 +2322,11 @@ export function QuizStation({
         quizStartRankRef.current
       ) {
         if (pendingAnswerWrites > 0) {
-          pendingAdvanceRef.current = { bypassCelebration, resultsOverride };
+          pendingAdvanceRef.current = {
+            bypassCelebration,
+            resultsOverride,
+            lastLearnedOverride,
+          };
           return;
         }
 
@@ -2287,6 +2371,7 @@ export function QuizStation({
             advanceQuizRef.current({
               bypassCelebration,
               resultsOverride,
+              lastLearnedOverride,
               skipRankUpCheck: true,
             });
           }
@@ -2304,7 +2389,12 @@ export function QuizStation({
         activePoolSession &&
         !activePoolSession.complete
       ) {
-        pendingAdvanceRef.current = { bypassCelebration, resultsOverride, skipRankUpCheck };
+        pendingAdvanceRef.current = {
+          bypassCelebration,
+          resultsOverride,
+          lastLearnedOverride,
+          skipRankUpCheck,
+        };
         setIsWaitingForQuizPool(true);
         return;
       }
@@ -2436,6 +2526,7 @@ export function QuizStation({
       currentIndex,
       deck,
       lastLearned,
+      quizPresentationMode,
       maxStreak,
       mode,
       normalQuestionType,
@@ -2483,6 +2574,10 @@ export function QuizStation({
       if (normalAnswerAdvanceTimeoutRef.current !== null) {
         window.clearTimeout(normalAnswerAdvanceTimeoutRef.current);
       }
+      if (reverseTransitionTimeoutRef.current !== null) {
+        window.clearTimeout(reverseTransitionTimeoutRef.current);
+      }
+      document.documentElement.removeAttribute("data-quiz-flow-reverse-transition");
       correctAnswerAnimationCompletionRef.current = null;
 
       autoAdvanceTimeoutRef.current = window.setTimeout(() => {
@@ -2569,6 +2664,16 @@ export function QuizStation({
     setChestOpened(false);
     setAwardedChestTier(null);
     setChestCelebrationNextPhase(null);
+    if (initialPresentationMode) {
+      setQuizPresentationMode(initialPresentationMode);
+      setPhase("count");
+    } else {
+      setPhase("quiz-type");
+    }
+  }
+
+  function handleSelectQuizPresentation(presentationMode: QuizPresentationMode) {
+    setQuizPresentationMode(presentationMode);
     setPhase("count");
   }
 
@@ -2960,13 +3065,39 @@ export function QuizStation({
           (option) => option.card.id === item.question.correctOptionId,
         )?.card.term ?? ""
       : item.question.correctAnswer;
-    const answerFeedbackPlayedOnPress = answer.trim().length > 0 && [
+    const answerFeedbackPlayedOnPress = quizPresentationMode === "classic"
+      && answer.trim().length > 0 && [
       "choice",
       "group",
       "listening",
       "definition",
       "true-false",
     ].includes(item.questionType);
+
+    const persistAnswer = () => {
+      if (deferredRecordTimeoutRef.current !== null) {
+        window.clearTimeout(deferredRecordTimeoutRef.current);
+      }
+      pendingAnswerWritesRef.current += 1;
+      setPendingAnswerWrites(pendingAnswerWritesRef.current);
+      deferredRecordTimeoutRef.current = window.setTimeout(() => {
+        void recordAnswer({
+          cardId: item.card.id,
+          selectedAnswer: answer,
+          correctAnswer,
+          isCorrect,
+          mode,
+        }).catch((error: unknown) => {
+          if (error instanceof InventoryActionError && error.errorCode) {
+            setLimitError(error.errorCode);
+          }
+        }).finally(() => {
+          pendingAnswerWritesRef.current = Math.max(0, pendingAnswerWritesRef.current - 1);
+          setPendingAnswerWrites(pendingAnswerWritesRef.current);
+        });
+        deferredRecordTimeoutRef.current = null;
+      }, 0);
+    };
 
     if (item.willLearn && isCorrect) {
       const learnedLimit = PLAN_LIMITS[effectivePlan].learnedCards;
@@ -3004,7 +3135,9 @@ export function QuizStation({
         // Text answers have no answer-button feedback animation to wait for.
         // Once validation accepts the answer, move into the normal transition
         // immediately; the streak-based delay remains for button questions.
-        const correctAnswerFeedbackDurationMs =
+        const correctAnswerFeedbackDurationMs = quizPresentationMode === "easy"
+          ? 0
+          :
           item.questionType === "text"
             ? isCorrect
               ? 0
@@ -3045,6 +3178,19 @@ export function QuizStation({
           vibrate(isCorrect ? "correct" : "incorrect");
         }
 
+        const nextResults: QuizResult = {
+          correct: isCorrect
+            ? [...results.correct, item.card]
+            : results.correct,
+          incorrect: !isCorrect
+            ? [...results.incorrect, item.card]
+            : results.incorrect,
+          learned: willLearn
+            ? [...results.learned, item.card]
+            : results.learned,
+          bonusCorrect: results.bonusCorrect,
+          bonusIncorrect: results.bonusIncorrect,
+        };
         setResults((current) => ({
           correct: isCorrect
             ? [...current.correct, item.card]
@@ -3076,6 +3222,21 @@ export function QuizStation({
         const shouldShowStreak = nextStreak > 0 && nextStreak % 5 === 0;
         if (shouldShowStreak) {
           setPendingStreak(true);
+        }
+
+        if (quizPresentationMode === "easy") {
+          persistAnswer();
+          if (cardProgressCompletion) {
+            cardProgressCompletion();
+          } else if (shouldShowStreak && !willLearn && !isNormalQuestionLearnedSimulation) {
+            transitionToStreakCelebration();
+          } else {
+            advanceQuizRef.current({
+              resultsOverride: nextResults,
+              lastLearnedOverride: shouldShowLearnedCelebration ? item.card : null,
+            });
+          }
+          return;
         }
 
         if (!showCardProgress && isCorrect) {
@@ -3116,33 +3277,25 @@ export function QuizStation({
           );
         }
 
-        if (deferredRecordTimeoutRef.current !== null) {
-          window.clearTimeout(deferredRecordTimeoutRef.current);
-        }
-        pendingAnswerWritesRef.current += 1;
-        setPendingAnswerWrites(pendingAnswerWritesRef.current);
-        deferredRecordTimeoutRef.current = window.setTimeout(() => {
-          void recordAnswer({
-            cardId: item.card.id,
-            selectedAnswer: answer,
-            correctAnswer,
-            isCorrect,
-            mode,
-          }).catch((error: unknown) => {
-            if (error instanceof InventoryActionError && error.errorCode) {
-              setLimitError(error.errorCode);
-            }
-          }).finally(() => {
-            pendingAnswerWritesRef.current = Math.max(0, pendingAnswerWritesRef.current - 1);
-            setPendingAnswerWrites(pendingAnswerWritesRef.current);
-          });
-          deferredRecordTimeoutRef.current = null;
-        }, 0);
+        persistAnswer();
       },
       {
         nextPath: `/learn?mode=${mode}`,
       },
     );
+  }
+
+  function handlePracticeSwipe(isCorrect: boolean) {
+    if (showingAnswer) return;
+    const item = deck[currentIndex];
+    if (!item || isBonusQuizItem(item)) return;
+    nextQuizTransitionDirectionRef.current = isCorrect ? "reverse" : "forward";
+    const correctAnswer = item.questionType === "group"
+      ? item.question.options.find(
+          (option) => option.card.id === item.question.correctOptionId,
+        )?.card.term ?? ""
+      : item.question.correctAnswer;
+    void handleAnswer(isCorrect ? correctAnswer : "", isCorrect);
   }
 
   function completeCardProgressReveal() {
@@ -3646,6 +3799,16 @@ export function QuizStation({
     );
   }
 
+  if (phase === "quiz-type" && selectedLanguage) {
+    return (
+      <QuizPresentationSelection
+        preparing={isPreparingQuizPool}
+        onBack={() => setPhase("language")}
+        onSelect={handleSelectQuizPresentation}
+      />
+    );
+  }
+
   if (phase === "count" && selectedLanguage) {
     return (
       <div className="flex flex-1 flex-col items-stretch">
@@ -3698,6 +3861,7 @@ export function QuizStation({
     return (
       <QuizCompletionProgressView
         enterWithCss={useCssQuizTransition}
+        finishedLabel={quizPresentationMode === "easy" ? t("quiz.practiceFinished") : undefined}
         onComplete={handleQuizCompletionComplete}
       />
     );
@@ -3779,6 +3943,7 @@ export function QuizStation({
         <div className="flex h-full w-full max-w-3xl items-center justify-center">
           <ResultFlowView
             mode={mode}
+            presentationMode={quizPresentationMode}
             selectedLanguage={selectedLanguage}
             results={quizFlowTest ? quizFlowTestResults : results}
             earnedPoints={earnedPoints}
@@ -4045,9 +4210,9 @@ export function QuizStation({
       <MobileQuizTopBar
         currentIndex={regularProgress.current - 1}
         total={regularProgress.total}
-        questionPrompt={mobileQuestionPrompt}
-        questionPromptAccent={item.questionType === "definition" || item.questionType === "text"}
-        questionPromptIsBonus={isBonusQuizItem(item)}
+        questionPrompt={quizPresentationMode === "easy" ? t("quiz.practiceSwipePrompt") : mobileQuestionPrompt}
+        questionPromptAccent={quizPresentationMode === "easy" || item.questionType === "definition" || item.questionType === "text"}
+        questionPromptIsBonus={quizPresentationMode === "classic" && isBonusQuizItem(item)}
         onExit={handleExit}
         entryAnimated={false}
       />
@@ -4060,6 +4225,7 @@ export function QuizStation({
       >
         <MobileQuizFeedback
           isOpen={
+            quizPresentationMode === "classic" &&
             showingAnswer &&
             lastAnswerCorrect !== null &&
             !lastAnswerCorrect
@@ -4083,7 +4249,7 @@ export function QuizStation({
             mobileQuestionPrompt && "max-lg:pt-[3.5rem]",
           )}
           style={{ zIndex: 100 }}
-          data-quiz-mobile-layout={item.questionType}
+          data-quiz-mobile-layout={quizPresentationMode === "easy" ? "easy-practice" : item.questionType}
         >
           <div
             className={cn(
@@ -4095,9 +4261,20 @@ export function QuizStation({
             style={{ zIndex: 50 }}
             data-quiz-mobile-question
           >
-            <QuizCounter currentIndex={regularProgress.current - 1} total={regularProgress.total} />
-            <QuizProgressHeader mode={mode} item={item} />
-            <div className="flex flex-1 flex-col justify-center">
+            {quizPresentationMode === "easy" ? (
+              isBonusQuizItem(item) ? null : (
+                <QuizPracticeSwipeCard
+                  key={`${currentIndex}:${item.card.id}`}
+                  item={item}
+                  disabled={showingAnswer}
+                  onSwipe={handlePracticeSwipe}
+                />
+              )
+            ) : (
+              <>
+                <QuizCounter currentIndex={regularProgress.current - 1} total={regularProgress.total} />
+                <QuizProgressHeader mode={mode} item={item} />
+                <div className="flex flex-1 flex-col justify-center">
               {isBonusQuizItem(item) ? (
                 <BonusQuestionView
                   key={currentIndex}
@@ -4241,6 +4418,8 @@ export function QuizStation({
                 />
               )}
             </div>
+              </>
+            )}
           </div>
 
         </div>
@@ -7056,6 +7235,7 @@ function QuizViewportOverlaySurface({
 
 type ResultFlowViewProps = {
   mode: PracticeMode;
+  presentationMode?: QuizPresentationMode;
   selectedLanguage: LanguageCode | null;
   results: QuizResult;
   earnedPoints?: number;
@@ -7102,6 +7282,7 @@ type ResultFlowViewProps = {
 
 export function ResultFlowView({
   selectedLanguage,
+  presentationMode = "classic",
   showResultMessage = false,
   showChestRewardGate = false,
   chestTier = null,
@@ -7414,6 +7595,7 @@ export function ResultFlowView({
           >
             <ResultView
               {...resultProps}
+              presentationMode={presentationMode}
               quizFlowTest={quizFlowTest}
               earnedPoints={earnedPoints}
               currentTotalPoints={currentTotalPoints}
@@ -7485,6 +7667,7 @@ export function ResultFlowView({
     <div className="relative h-full w-full overflow-hidden" data-quiz-result-flow>
       <ResultView
         {...resultProps}
+        presentationMode={presentationMode}
         quizFlowTest={quizFlowTest}
         earnedPoints={earnedPoints}
         currentTotalPoints={currentTotalPoints}
@@ -7629,6 +7812,7 @@ function hasResultMedalScatterArea(
 
 export function ResultView({
   mode,
+  presentationMode = "classic",
   results,
   selectedCount,
   quizSessionId = null,
@@ -7647,6 +7831,7 @@ export function ResultView({
   showMedalHud = true,
 }: {
   mode: PracticeMode;
+  presentationMode?: QuizPresentationMode;
   results: QuizResult;
   selectedCount: number | null;
   quizSessionId?: string | null;
@@ -8123,15 +8308,22 @@ export function ResultView({
     incorrect: { title: t("quiz.resultIncorrect"), cards: results.incorrect, tone: "rose" as const },
     learned: { title: t("quiz.resultLearned"), cards: results.learned, tone: "amber" as const },
   } as const;
-  const title = canUseSuperWater(locale)
-    ? formatSuperWaterText(locale, t("quiz.resultFinishedTitle"))
+  const resultFinishedTitle = presentationMode === "easy"
+    ? t("quiz.practiceResultFinishedTitle")
     : t("quiz.resultFinishedTitle");
+  const title = canUseSuperWater(locale)
+    ? formatSuperWaterText(locale, resultFinishedTitle)
+    : resultFinishedTitle;
+  const resultMessageKey = getPresentationResultMessageKey(
+    getQuizResultMessageKey(performance.messageKeys, results, selectedCount, chestOpened),
+    presentationMode,
+  );
   const performanceMessage = canUseSuperWater(locale)
     ? formatSuperWaterText(
         locale,
-        t(getQuizResultMessageKey(performance.messageKeys, results, selectedCount, chestOpened)),
+        t(resultMessageKey),
       )
-    : t(getQuizResultMessageKey(performance.messageKeys, results, selectedCount, chestOpened));
+    : t(resultMessageKey);
   const performanceMessageText = performanceMessage.replace(/^[^\p{L}\p{N}]+/u, "");
   const totalPointsEarned = Number.isFinite(earnedPoints)
     ? Math.max(0, Math.floor(earnedPoints))

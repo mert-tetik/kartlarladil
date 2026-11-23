@@ -11,6 +11,7 @@ import { createCompletionParticles } from "@/lib/quiz-completion-particles";
 
 interface QuizCompletionProgressViewProps {
   enterWithCss?: boolean;
+  finishedLabel?: string;
   onComplete: () => void;
 }
 
@@ -22,6 +23,7 @@ const QUIZ_COMPLETION_LABEL_HOLD_MS = 1_000;
 const QUIZ_COMPLETION_EXIT_DURATION_MS = 420;
 export function QuizCompletionProgressView({
   enterWithCss = false,
+  finishedLabel,
   onComplete,
 }: QuizCompletionProgressViewProps) {
   const { locale, t } = useLocale();
@@ -167,7 +169,7 @@ export function QuizCompletionProgressView({
             data-quiz-completion-label
           >
             <span className="font-super-water">
-              {formatSuperWaterText(locale, t("quiz.finished"))}
+              {formatSuperWaterText(locale, finishedLabel ?? t("quiz.finished"))}
             </span>
           </p>
           </div>

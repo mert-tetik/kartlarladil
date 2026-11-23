@@ -19,6 +19,7 @@ import { clearQuizPoolCache } from "@/features/quiz/quiz-pool-preparation";
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { InventoryCard, LanguageCode, LocaleCode, ProgressStats } from "@/types/domain";
 import type { NormalQuizItem } from "@/features/quiz/components/quiz-station";
+import type { QuizPresentationMode } from "@/features/quiz/quiz-presentation-mode";
 
 const progressStatsMock = vi.hoisted(() => ({
   stats: null as ProgressStats | null,
@@ -2432,16 +2433,105 @@ describe("QuizStation learned-review transitions", () => {
   });
 });
 
+describe("QuizStation practice presentation", () => {
+  it("shows the presentation choice before count selection for a preselected language", async () => {
+    useInventoryStore.setState({
+      cards: [inventoryCard],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation("tr", undefined, "active", "en", null);
+
+    expect(await screen.findByTestId("quiz-presentation-selection")).toBeVisible();
+    expect(document.querySelector("[data-quiz-count-selection]")).not.toBeInTheDocument();
+  });
+
+  it("asks for a presentation after language selection and lets the learner choose easy practice", async () => {
+    useInventoryStore.setState({
+      cards: [inventoryCard],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+
+    renderQuizStation("tr", undefined, "active", undefined, null, null);
+    fireEvent.click(screen.getByRole("button", { name: /English|İngilizce/i }));
+
+    const selection = await screen.findByTestId("quiz-presentation-selection");
+    expect(selection).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: /Kolay çalışma/ }));
+
+    await waitFor(() => {
+      expect(document.querySelector("[data-quiz-count-selection]")).toBeInTheDocument();
+    });
+  });
+
+  it("preserves the card-progress interstitial after a right swipe and reverses that first transition", async () => {
+    useInventoryStore.setState({
+      cards: [inventoryCard],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+    quizCountSelectionTestState.autoSelectCount = 1;
+
+    renderQuizStation("tr", undefined, "active", "en", "easy");
+    const swipeCard = await screen.findByRole("group", { name: new RegExp(testCard.term) });
+    fireEvent.keyDown(swipeCard, { key: "ArrowRight" });
+
+    await waitFor(() => {
+      expect(document.querySelector("[data-quiz-card-progress-reveal]")).toBeInTheDocument();
+    }, { timeout: 5_000 });
+    expect(document.documentElement).toHaveAttribute("data-quiz-flow-reverse-transition", "true");
+    expect(document.querySelector(".quiz-transition-fallback-exit-right")).toBeInTheDocument();
+  });
+
+  it("keeps easy-practice cards front-facing and routes a left swipe into wrong-card review without feedback", async () => {
+    useInventoryStore.setState({
+      cards: [inventoryCard],
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+    quizCountSelectionTestState.autoSelectCount = 1;
+
+    renderQuizStation("tr", undefined, "active", "en", "easy");
+    const swipeCard = await screen.findByRole("group", { name: new RegExp(testCard.term) });
+
+    expect(document.querySelector("[data-quiz-practice-swipe]")).toBeInTheDocument();
+    fireEvent.keyDown(swipeCard, { key: "ArrowLeft" });
+
+    await waitFor(() => {
+      expect(document.querySelector("[data-quiz-word-repetition-intro]")).toBeInTheDocument();
+    }, { timeout: 5_000 });
+    expect(document.querySelector("[data-quiz-mobile-feedback]")).toHaveAttribute("aria-hidden", "true");
+  });
+});
+
 function renderQuizStation(
   locale: LocaleCode = "tr",
   normalQuestionType?: NormalQuizItem["questionType"],
   mode: "active" | "learned" = "active",
   initialLanguage?: LanguageCode,
+  initialPresentationMode: QuizPresentationMode | null = "classic",
+  autoSelectCount?: number | null,
 ) {
   // Most flow tests exercise question/answer behavior, not the count picker.
   // Keep their default path on one card while allowing a test to request a
   // different count explicitly.
-  if (quizCountSelectionTestState.autoSelectCount === null) {
+  if (autoSelectCount !== undefined) {
+    quizCountSelectionTestState.autoSelectCount = autoSelectCount;
+  } else if (quizCountSelectionTestState.autoSelectCount === null) {
     quizCountSelectionTestState.autoSelectCount = 1;
   }
 
@@ -2451,6 +2541,7 @@ function renderQuizStation(
         <QuizStation
           mode={mode}
           initialLanguage={initialLanguage}
+          initialPresentationMode={initialPresentationMode ?? undefined}
           normalQuestionType={normalQuestionType ?? null}
         />
       </AuthSessionProvider>

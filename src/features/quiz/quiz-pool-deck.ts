@@ -7,6 +7,7 @@ export interface BuildPreparedQuizDeckOptions {
   sessionId: string;
   hasFixedQuestionType: boolean;
   bonusAfterEachNormalQuestion: boolean;
+  includeBonusQuestions?: boolean;
 }
 
 export interface PreparedQuizDeck {
@@ -24,8 +25,13 @@ export function buildPreparedQuizDeck(
   // grows. Otherwise a later batch could add bonuses before earlier questions
   // and change the already-visible deck order.
   const bonusBasisCount = Math.min(options.targetRegularCount, pool.totalCandidateCount);
-  const forceBonusAfterEachQuestion = options.bonusAfterEachNormalQuestion && !options.hasFixedQuestionType;
-  const maxBonusQuestionCount = forceBonusAfterEachQuestion
+  const includeBonusQuestions = options.includeBonusQuestions !== false;
+  const forceBonusAfterEachQuestion = includeBonusQuestions
+    && options.bonusAfterEachNormalQuestion
+    && !options.hasFixedQuestionType;
+  const maxBonusQuestionCount = !includeBonusQuestions
+    ? 0
+    : forceBonusAfterEachQuestion
     ? bonusBasisCount
     : options.hasFixedQuestionType
       ? 0

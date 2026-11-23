@@ -144,8 +144,15 @@ export function LearnQuizShell({
   quizWordRepetitionTest = false,
 }: LearnQuizShellProps) {
   const [selectedMode, setSelectedMode] = useState<PracticeMode | null>(initialMode);
+  const presentationTestBypass = Boolean(
+    normalQuestionType || quizCompletionTest || quizFlowTest || quizWordRepetitionTest,
+  );
   const initialPhase: LearnShellPhase = initialMode
-    ? (initialLanguage ? "count" : "language")
+    ? initialLanguage
+      ? presentationTestBypass
+        ? "count"
+        : "quiz-type"
+      : "language"
     : "mode";
   const [phase, setPhase] = useState<LearnShellPhase>(initialPhase);
   const { cards } = useQuizInventoryCards(phase === "result");
@@ -159,7 +166,7 @@ export function LearnQuizShell({
   const { entitlements, isLoading: subscriptionLoading } = useSubscription();
   const { locale } = useLocale();
   const redirectStartedRef = useRef(false);
-  const showHeader = phase === "mode" || phase === "language" || phase === "count";
+  const showHeader = phase === "mode" || phase === "language" || phase === "quiz-type" || phase === "count";
   const canRenderPersistedPool = cards.length > 0;
   // The store starts with `cloudLoadComplete: true` for guest/local use. An
   // authenticated render can therefore not use that default as proof that
@@ -374,6 +381,7 @@ export function LearnQuizShell({
               key={selectedMode}
               mode={selectedMode}
               initialLanguage={initialLanguage ?? undefined}
+              initialPresentationMode={presentationTestBypass ? "classic" : undefined}
               normalQuestionType={normalQuestionType}
               bonusAfterEachNormalQuestion={bonusAfterEach}
               quizCompletionTest={quizCompletionTest}
@@ -399,7 +407,13 @@ export function LearnQuizShell({
                 return;
               }
               setSelectedMode(mode);
-              setPhase("language");
+              setPhase(
+                initialLanguage
+                  ? presentationTestBypass
+                    ? "count"
+                    : "quiz-type"
+                  : "language",
+              );
             }}
           />
         )}

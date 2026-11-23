@@ -1512,6 +1512,16 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   }
 }
 
+@keyframes quiz-flow-enter-left {
+  from {
+    transform: translate3d(-100%, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 .quiz-flow-exit-left {
   animation: quiz-flow-exit-left 360ms cubic-bezier(0.85, 0, 0.15, 1) both;
   pointer-events: none;
@@ -1521,6 +1531,10 @@ html[data-route-transition="entering"] [data-route-transition-item] {
 .quiz-flow-enter-right {
   animation: quiz-flow-enter-right 360ms cubic-bezier(0.85, 0, 0.15, 1) both;
   will-change: transform;
+}
+
+html[data-quiz-flow-reverse-transition="true"] .quiz-flow-enter-right {
+  animation-name: quiz-flow-enter-left;
 }
 
 @keyframes quiz-word-repetition-intro-character-enter {
@@ -1824,6 +1838,16 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   }
 }
 
+@keyframes quiz-transition-fallback-exit-right {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(100%, 0, 0);
+  }
+}
+
 .quiz-transition-fallback-old {
   box-sizing: border-box !important;
   contain: layout paint !important;
@@ -1840,6 +1864,10 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   z-index: 120 !important;
   animation: quiz-transition-fallback-exit-left 360ms cubic-bezier(0.85, 0, 0.15, 1) both;
   will-change: transform;
+}
+
+.quiz-transition-fallback-old.quiz-transition-fallback-exit-right {
+  animation-name: quiz-transition-fallback-exit-right;
 }
 
 /* During a delayed transition the detached visual copy owns the exit. Hide

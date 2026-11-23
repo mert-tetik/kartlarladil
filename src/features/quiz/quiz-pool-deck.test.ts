@@ -12,6 +12,46 @@ const matchingQuestion: BonusQuestion = {
 };
 
 describe("buildPreparedQuizDeck", () => {
+  it("omits bonus questions when building an easy-practice deck", async () => {
+    const cards = VOCABULARY_CARDS.filter((card) => card.language === "en").slice(0, 12);
+    const pool = await buildQuizPool({
+      key: "easy-deck-pool",
+      seed: "easy-deck-seed",
+      cards: cards.map((card) => ({
+        cardId: card.id,
+        status: "active",
+        correctCount: 0,
+        addedAt: "2026-01-01T00:00:00.000Z",
+      })),
+      customCards: [],
+      language: "en",
+      mode: "active",
+      locale: "en",
+      normalQuestionType: null,
+      bonusAfterEachNormalQuestion: false,
+    });
+    const poolWithBonuses = {
+      ...pool,
+      bonusPlans: pool.bonusPlans.map((plan) => ({
+        ...plan,
+        fallback: matchingQuestion,
+        selectedForMaxDeck: true,
+      })),
+    };
+
+    const deck = buildPreparedQuizDeck(poolWithBonuses, {
+      targetRegularCount: 8,
+      sessionId: "easy-session",
+      hasFixedQuestionType: false,
+      bonusAfterEachNormalQuestion: true,
+      includeBonusQuestions: false,
+    });
+
+    expect(deck.items).toHaveLength(Math.min(8, poolWithBonuses.regularItems.length));
+    expect(deck.items.every((item) => !item.isBonus)).toBe(true);
+    expect(deck.categoryBonusIds).toEqual([]);
+  });
+
   it("keeps the already prepared deck as a prefix while more questions arrive", async () => {
     const cards = VOCABULARY_CARDS.filter((card) => card.language === "en").slice(0, 12);
     const completePool = await buildQuizPool({
