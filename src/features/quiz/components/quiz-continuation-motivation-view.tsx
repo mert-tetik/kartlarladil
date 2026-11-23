@@ -1,11 +1,9 @@
 "use client";
 
-import { Flame, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
-import { ScoreIcon } from "@/components/score-icon";
 import {
   ImageActionButton,
   RESULT_BUTTON_IMAGES,
@@ -29,7 +27,6 @@ import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { cn } from "@/lib/utils";
 import { RANK_ICON_ASSETS } from "@/features/progress/rank-icons";
 import type { RankIconId } from "@/types/domain";
-import { RESULT_MEDAL_IMAGE_SRC } from "@/features/progress/components/reward-medal-hud";
 import { TUTORIAL_CHOICES } from "@/features/tutorial/tutorial-choice-options";
 import type { LanguageCode } from "@/types/domain";
 
@@ -38,38 +35,34 @@ type LeaderboardPositionKey =
   | "streakPosition"
   | "medalsPosition";
 
-const LEADERBOARD_ICON_FILTERS = {
-  points:
-    "brightness(0) saturate(100%) invert(83%) sepia(99%) saturate(1047%) hue-rotate(4deg) brightness(103%) contrast(101%)",
-  medals:
-    "brightness(0) saturate(100%) invert(47%) sepia(97%) saturate(2811%) hue-rotate(359deg) brightness(102%) contrast(98%)",
-} as const;
-
 const LEADERBOARD_DISPLAY_CONFIG = [
   {
     mode: "points",
     labelKey: "leaderboard.points",
     positionKey: "pointsPosition",
-    icon: "points",
+    slotCenterX: "25.5%",
   },
   {
     mode: "streaks",
     labelKey: "leaderboard.streaks",
     positionKey: "streakPosition",
-    icon: "streaks",
+    slotCenterX: "50%",
   },
   {
     mode: "medals",
     labelKey: "medals.name",
     positionKey: "medalsPosition",
-    icon: "medals",
+    slotCenterX: "74.5%",
   },
 ] satisfies ReadonlyArray<{
   mode: LeaderboardMode;
   labelKey: "leaderboard.points" | "leaderboard.streaks" | "medals.name";
   positionKey: LeaderboardPositionKey;
-  icon: "points" | "streaks" | "medals";
+  slotCenterX: string;
 }>;
+
+const LEADERBOARD_HUD_IMAGE = "/leaderboard/quiz-leaderboard-three-slot-hud.png?v=20261123-1";
+const LEADERBOARD_HUD_SLOT_CENTER_Y = "57.8%";
 
 const MOTIVATION_IMAGES: Record<QuizContinuationMotivation["id"], string> = {
   nearLearned: "/quiz/continuation-motivations/almost-learned-card-ref-20261004.webp?v=20261005-1",
@@ -166,77 +159,41 @@ export function QuizContinuationMotivationView({
 
   const leaderboardSection = (
     <div
-      className="quiz-continuation-stagger-enter relative z-20 pointer-events-auto top-10 flex w-full shrink-0 flex-col items-center gap-3 pb-1 pt-1 sm:pt-2"
+      className="quiz-continuation-stagger-enter pointer-events-auto relative top-10 z-20 flex w-full shrink-0 flex-col items-center py-1 sm:py-2"
       style={{ "--quiz-continuation-delay": "0ms" } as CSSProperties}
       data-quiz-continuation-leaderboard
     >
-      <p
-        className={cn(
-          "text-2xl font-bold leading-none text-foreground sm:text-3xl",
-          canUseSuperWater(locale) && "font-super-water",
-        )}
+      <div
+        className="relative isolate -translate-y-5 aspect-[1024/548] w-full max-w-[18.75rem]"
+        data-leaderboard-hud
       >
-        {formatSuperWaterText(locale, t("leaderboard.title"))}
-      </p>
-      <div className="flex items-start justify-center gap-7 sm:gap-11">
+        <Image
+          src={LEADERBOARD_HUD_IMAGE}
+          alt=""
+          aria-hidden="true"
+          fill
+          priority
+          sizes="300px"
+          className="pointer-events-none select-none object-contain"
+          data-leaderboard-hud-image
+        />
         {LEADERBOARD_DISPLAY_CONFIG.map((display) => {
           const position = resolvedLeaderboardData?.viewer[display.positionKey as keyof LeaderboardViewer];
           const positionText =
             typeof position === "number" ? `${formatNumber(locale, position)}.` : "-";
 
           return (
-            <button
+            <LeaderboardHudPositionButton
               key={display.mode}
-              type="button"
+              mode={display.mode}
+              label={t(display.labelKey)}
+              positionText={leaderboardLoading ? "-" : formatSuperWaterText(locale, positionText)}
+              useSuperWater={canUseSuperWater(locale)}
+              slotCenterX={display.slotCenterX}
+              slotCenterY={LEADERBOARD_HUD_SLOT_CENTER_Y}
               onClick={() => openLeaderboard(display.mode)}
-              className="relative z-10 pointer-events-auto flex min-w-16 flex-col items-center gap-1 rounded-lg px-1 py-0.5 text-foreground transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-              aria-label={`${t("leaderboard.title")}: ${t(display.labelKey)}`}
-              data-leaderboard-motivation-display={display.mode}
-            >
-              {display.icon === "points" ? (
-                <span
-                  className="inline-flex size-12 sm:size-14"
-                  style={{ filter: LEADERBOARD_ICON_FILTERS.points }}
-                >
-                  <ScoreIcon size={56} className="size-full" />
-                </span>
-              ) : display.icon === "streaks" ? (
-                <Flame
-                  className="size-12 fill-red-500 text-red-500 sm:size-14"
-                  aria-hidden="true"
-                />
-              ) : (
-                <span
-                  className="inline-flex size-12 sm:size-14"
-                  style={{ filter: LEADERBOARD_ICON_FILTERS.medals }}
-                >
-                  <Image
-                    src={RESULT_MEDAL_IMAGE_SRC}
-                    alt=""
-                    aria-hidden="true"
-                    width={56}
-                    height={56}
-                    className="size-full object-contain"
-                  />
-                </span>
-              )}
-              <span
-                className={cn(
-                  "inline-flex min-h-8 min-w-10 items-center justify-center text-2xl font-bold leading-none text-foreground sm:text-3xl",
-                  canUseSuperWater(locale) && "font-super-water",
-                )}
-              >
-                {leaderboardLoading ? (
-                  <Loader2
-                    className="size-5 animate-spin text-foreground-secondary"
-                    role="status"
-                    aria-label={t("common.loading")}
-                  />
-                ) : (
-                  formatSuperWaterText(locale, positionText)
-                )}
-              </span>
-            </button>
+              ariaLabel={`${t("leaderboard.title")}: ${t(display.labelKey)}, ${positionText}`}
+            />
           );
         })}
       </div>
@@ -254,7 +211,7 @@ export function QuizContinuationMotivationView({
     >
       {leaderboardSection}
 
-      <div className="relative -top-[60px] flex min-h-0 w-full flex-1 flex-col items-center justify-center">
+      <div className="relative -top-[80px] flex min-h-0 w-full flex-1 flex-col items-center justify-center">
         <div
           className="quiz-continuation-stagger-enter mx-auto flex w-full max-w-3xl flex-col items-center"
           style={{ "--quiz-continuation-delay": "90ms" } as CSSProperties}
@@ -437,7 +394,7 @@ export function QuizContinuationMotivationView({
             >
               <h3
                 className={cn(
-                  "quiz-continuation-stagger-enter mb-2 text-center text-xl font-bold text-white",
+                  "quiz-continuation-stagger-enter mb-2 text-center text-2xl font-bold text-white",
                   canUseSuperWater(locale) && "font-super-water",
                 )}
                 style={{ "--quiz-continuation-delay": "360ms" } as CSSProperties}
@@ -484,5 +441,105 @@ export function QuizContinuationMotivationView({
           )
         : null}
     </section>
+  );
+}
+
+function LeaderboardHudPositionButton({
+  mode,
+  label,
+  positionText,
+  useSuperWater,
+  slotCenterX,
+  slotCenterY,
+  onClick,
+  ariaLabel,
+}: {
+  mode: LeaderboardMode;
+  label: string;
+  positionText: string;
+  useSuperWater: boolean;
+  slotCenterX: string;
+  slotCenterY: string;
+  onClick: () => void;
+  ariaLabel: string;
+}) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+
+  useLayoutEffect(() => {
+    const button = buttonRef.current;
+    const text = textRef.current;
+    if (!button || !text) return;
+
+    const fitText = () => {
+      text.style.fontSize = "";
+      const availableWidth = Math.max(0, button.clientWidth - 8);
+      const maxFontSize = Number.parseFloat(window.getComputedStyle(text).fontSize) || 24;
+      let low = Math.min(13, maxFontSize);
+      let high = maxFontSize;
+
+      text.style.fontSize = `${maxFontSize}px`;
+      if (text.getBoundingClientRect().width <= availableWidth) return;
+
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const candidate = (low + high) / 2;
+        text.style.fontSize = `${candidate}px`;
+        if (text.getBoundingClientRect().width <= availableWidth) {
+          low = candidate;
+        } else {
+          high = candidate;
+        }
+      }
+
+      text.style.fontSize = `${low}px`;
+    };
+
+    fitText();
+    const observer = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(fitText);
+    observer?.observe(button);
+    const handleWindowResize = () => fitText();
+    window.addEventListener("resize", handleWindowResize, { passive: true });
+    let active = true;
+    void document.fonts?.ready.then(() => {
+      if (active) fitText();
+    });
+
+    return () => {
+      active = false;
+      observer?.disconnect();
+      window.removeEventListener("resize", handleWindowResize);
+    };
+  }, [positionText]);
+
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center overflow-hidden rounded-none border-0 bg-transparent p-0 text-foreground transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white"
+      style={{
+        left: slotCenterX,
+        top: slotCenterY,
+        width: "20.5%",
+        height: "34%",
+      }}
+      data-leaderboard-motivation-display={mode}
+      data-leaderboard-hud-slot={mode}
+      data-slot-label={label}
+    >
+      <span
+        ref={textRef}
+        className={cn(
+          "block w-max shrink-0 whitespace-nowrap text-2xl font-bold leading-none text-foreground sm:text-3xl",
+          useSuperWater && "font-super-water",
+        )}
+        data-leaderboard-position-text
+      >
+        {positionText}
+      </span>
+    </button>
   );
 }

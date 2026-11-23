@@ -893,6 +893,7 @@ const dictionary = {
   "page.leaderboard.title": "리더보드",
   "page.leaderboard.description": "FoxiesDeck 리더보드에서 내 순위를 확인하세요.",
   "leaderboard.title": "리더보드",
+  "leaderboard.rankUpTitle": "리더보드에서 순위가 올랐어요!",
   "leaderboard.open": "리더보드 열기",
   "leaderboard.yourStanding": "{position}위입니다!",
   "leaderboard.positionLoading": "순위를 불러오는 중...",
@@ -1192,6 +1193,10 @@ const dictionary = {
   "offline.notes.addingAllToDeck": "카드 추가 중…",
   "offline.notes.addedAllToDeck": "카드 {count}장을 덱에 추가했어요",
   "offline.notes.limitReachedDescription": "{addedCount}장을 추가했어요. 나머지 {remainingCount}장은 여기에 저장되어 있어요. 추가하려면 요금제를 업그레이드하세요.",
+  "quiz.deckAdd.title": "덱에 새 카드를 추가하세요",
+  "quiz.deckAdd.hint": "카드를 탭하세요",
+  "quiz.deckAdd.count": "학습할 카드: {count}장",
+  "quiz.deckAdd.empty": "지금은 추가할 새 카드가 없습니다.",
 } as const;
 
 export default dictionary;

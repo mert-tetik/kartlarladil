@@ -67,6 +67,10 @@ const imageRuntimeCaching = [
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
+  experimental: {
+    webpackMemoryOptimizations: true,
+    preloadEntriesOnStart: false,
+  },
   serverExternalPackages: ["@resvg/resvg-js", "ffmpeg-static", "sharp"],
   outputFileTracingIncludes: {
     "/*": ["./node_modules/ffmpeg-static/ffmpeg", "./node_modules/ffmpeg-static/ffmpeg.exe"],
@@ -76,6 +80,10 @@ const nextConfig: NextConfig = {
       {
         pathname: "/**",
         search: "",
+      },
+      {
+        pathname: "/leaderboard/quiz-leaderboard-three-slot-hud.png",
+        search: "?v=20261123-1",
       },
       {
         pathname: "/quiz/bonus_img.webp",

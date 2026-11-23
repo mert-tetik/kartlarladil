@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   vibrate: vi.fn(),
   onPointsComplete: null as null | (() => void),
   onGemsComplete: null as null | (() => void),
+  fastForwardSignal: undefined as number | undefined,
 }));
 
 vi.mock("@/lib/sound-effects", () => ({
@@ -23,9 +24,11 @@ vi.mock("@/features/progress/components/reward-scatter", () => ({
   RewardScatter: ({
     onPointsComplete,
     onGemsComplete,
-  }: { onPointsComplete?: () => void; onGemsComplete?: () => void }) => {
+    fastForwardSignal,
+  }: { onPointsComplete?: () => void; onGemsComplete?: () => void; fastForwardSignal?: number }) => {
     mocks.onPointsComplete = onPointsComplete ?? null;
     mocks.onGemsComplete = onGemsComplete ?? null;
+    mocks.fastForwardSignal = fastForwardSignal;
     return null;
   },
 }));
@@ -45,6 +48,7 @@ describe("QuizStreakCelebrationView", () => {
     mocks.vibrate.mockReset();
     mocks.onPointsComplete = null;
     mocks.onGemsComplete = null;
+    mocks.fastForwardSignal = undefined;
   });
 
   afterEach(() => {
@@ -117,6 +121,29 @@ describe("QuizStreakCelebrationView", () => {
 
     expect(pointsHud).toHaveClass("animate-streak-reward-hud-enter");
     expect(pointsHud).toHaveAttribute("data-streak-reward-points");
+  });
+
+  it("fast-forwards pending streak reward scatter flights only after a double tap", () => {
+    const onPress = vi.fn();
+    renderView({
+      streak: 5,
+      rewardPoints: 50,
+      totalPoints: 100,
+      gemRewards: [{ type: "blue", amount: 1 }],
+      gemBalances: { blue: 51, green: 31, purple: 16 },
+      onPress,
+    });
+    const view = document.querySelector("[data-streak-celebration-view]")!;
+
+    fireEvent.pointerUp(view, { pointerType: "touch" });
+    expect(mocks.fastForwardSignal).toBe(0);
+
+    fireEvent.pointerUp(view, { pointerType: "touch" });
+
+    expect(mocks.fastForwardSignal).toBe(1);
+    expect(mocks.vibrate).toHaveBeenCalledWith("quiz-animation-fast-forward");
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(mocks.playSoundEffect).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the points and gem HUD visible as the streak screen transitions away", () => {

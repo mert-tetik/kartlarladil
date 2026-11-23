@@ -893,6 +893,7 @@ const dictionary = {
   "page.leaderboard.title": "Таблица лидеров",
   "page.leaderboard.description": "Посмотри своё место в таблице лидеров FoxiesDeck.",
   "leaderboard.title": "Таблица лидеров",
+  "leaderboard.rankUpTitle": "Ты поднялся в таблице лидеров!",
   "leaderboard.open": "Открыть таблицу лидеров",
   "leaderboard.yourStanding": "Ты на {position}-м месте!",
   "leaderboard.positionLoading": "Загружаем твоё место...",
@@ -1205,6 +1206,10 @@ const dictionary = {
   "offline.notes.addingAllToDeck": "Добавление карточек…",
   "offline.notes.addedAllToDeck": "В колоду добавлено карточек: {count}",
   "offline.notes.limitReachedDescription": "Добавлено карточек: {addedCount}. Ещё {remainingCount} сохранены здесь. Повысите план, чтобы добавить их.",
+  "quiz.deckAdd.title": "Добавь новые карточки в колоду",
+  "quiz.deckAdd.hint": "Нажми на карточку",
+  "quiz.deckAdd.count": "Карточек для изучения: {count}",
+  "quiz.deckAdd.empty": "Сейчас нет новых карточек для добавления.",
 } as const;
 
 export default dictionary;

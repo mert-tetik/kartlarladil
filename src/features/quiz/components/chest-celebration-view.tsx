@@ -438,6 +438,7 @@ export function ChestCelebrationView({
       )}
       ref={rootRef}
       data-chest-celebration-view
+      data-quiz-end-triple-tap-screen
     >
       <div
         className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[var(--background)]"
@@ -589,6 +590,7 @@ export function ChestCelebrationView({
             type="button"
             onClick={closeView}
             disabled={!summaryVisible || closing}
+            data-quiz-end-continue
             className={cn(
               "pointer-events-auto mx-auto block h-14 w-full max-w-md rounded-2xl bg-brand px-5 text-lg font-bold uppercase text-brand-foreground shadow-[0_6px_0_var(--brand-hover)] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] disabled:pointer-events-none sm:h-16",
               canUseSuperWater(locale) && "font-super-water",

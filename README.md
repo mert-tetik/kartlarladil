@@ -40,9 +40,9 @@ Arayüz dili navbar dil seçicisinden değiştirilir. Seçim cookie ve localStor
 - Rank esikleri: `baslangic` = 0, `kart-ciragi` = 200, `kelime-toplayici` = 600, `dil-yolcusu` = 1400, `akici-ogrenci` = 2800, `kelime-ustasi` = 7500, `cok-dilli` = 20000, `seckin-koleksiyoncu` = 40000, `dil-bilgesi` = 60000, `efsane` = 100000.
 
 - Kart tierları: A1, A2, B1, B2, C1.
-- Doğru cevap eşikleri: A1 = 2, A2 = 3, B1 = 4, B2 = 5, C1 = 6.
+- Doğru cevap eşikleri: A1 = 2, A2 = 2, B1 = 3, B2 = 3, C1 = 4.
 - Kullanıcı kartı manuel olarak öğrenildi yapamaz.
-- Yanlış cevap doğru sayacını 1 azaltır, minimum 0.
+- Yanlış cevap doğru cevap sayacındaki mevcut ilerlemeyi azaltmaz.
 - Eşiğe ulaşan aktif kart otomatik öğrenildi olur.
 - Öğrenilen kartlar tierına göre puan kazandırır: A1 = 50, A2 = 50, B1 = 75, B2 = 75, C1 = 100.
 - Quiz streak'te tamamlanan her 5 streak için 50 puan verilir.

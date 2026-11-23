@@ -75,6 +75,26 @@ describe("useLeaderboardData", () => {
     });
   });
 
+  it("shares one preload request between concurrent consumers", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => payload,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => ({
+      preloader: useLeaderboardData({ refreshOnMount: true }),
+      learnPage: useLeaderboardData({ refreshOnMount: false }),
+    }));
+
+    await waitFor(() => {
+      expect(result.current.preloader.data).toEqual(payload);
+      expect(result.current.learnPage.data).toEqual(payload);
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("forces the consent-denied UI when the test URL parameter is active", async () => {
     mockUseSearchParams.mockReturnValue(new URLSearchParams("leaderboard-consent-test=1"));
     const fetchMock = vi.fn().mockResolvedValue({

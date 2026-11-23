@@ -11,6 +11,7 @@ import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
+import { isQuizAnimationFastForwardDoubleTap } from "@/features/quiz/components/quiz-animation-fast-forward";
 
 interface QuizStreakCelebrationViewProps {
   streak: number;
@@ -91,6 +92,8 @@ export function QuizStreakCelebrationView({
   const rewardTargetRef = useRef<HTMLSpanElement>(null);
   const completedRef = useRef(false);
   const pressedRef = useRef(false);
+  const lastFastForwardTapAtRef = useRef(0);
+  const rewardStartedRef = useRef(false);
   const completionTimerRef = useRef<number | null>(null);
   const completionFrameRef = useRef<number | null>(null);
   const pointsCompleteRef = useRef(false);
@@ -100,6 +103,7 @@ export function QuizStreakCelebrationView({
   const [isPressed, setIsPressed] = useState(false);
   const [streakParticles, setStreakParticles] = useState<StreakParticle[]>([]);
   const [rewardStarted, setRewardStarted] = useState(false);
+  const [scatterFastForwardSignal, setScatterFastForwardSignal] = useState(0);
   const [displayPoints, setDisplayPoints] = useState(totalPoints);
   const [scorePulse, setScorePulse] = useState(0);
   const hasPointReward = rewardPoints > 0;
@@ -183,13 +187,27 @@ export function QuizStreakCelebrationView({
   }, [cancelScheduledCompletion, gemRewards.length, maybeCompleteScatter, rewardStarted]);
 
   const handlePress = useCallback(() => {
-    if (pressedRef.current || completedRef.current) return;
+    if (completedRef.current) return;
+    if (pressedRef.current) {
+      if (
+        !rewardStartedRef.current ||
+        (pointsCompleteRef.current && gemsCompleteRef.current)
+      ) return;
+      if (!isQuizAnimationFastForwardDoubleTap(lastFastForwardTapAtRef)) return;
+
+      setScatterFastForwardSignal((current) => current + 1);
+      vibrate("quiz-animation-fast-forward");
+      return;
+    }
+
     pressedRef.current = true;
     setIsPressed(true);
     setStreakParticles(createStreakParticles());
     pointsCompleteRef.current = !hasPointReward;
-    gemsCompleteRef.current = true;
+    gemsCompleteRef.current = gemRewards.length === 0;
     if (hasPointReward || gemRewards.length > 0) {
+      lastFastForwardTapAtRef.current = Date.now();
+      rewardStartedRef.current = true;
       setRewardStarted(true);
     } else {
       completionTimerRef.current = window.setTimeout(complete, STREAK_EXIT_DELAY_MS);
@@ -197,7 +215,7 @@ export function QuizStreakCelebrationView({
     playSoundEffect("streak-count-reveal");
     vibrate("streak-reward-tap");
     onPressRef.current?.();
-  }, [gemRewards.length, hasPointReward]);
+  }, [complete, gemRewards.length, hasPointReward]);
 
   useEffect(() => {
     return () => {
@@ -302,6 +320,7 @@ export function QuizStreakCelebrationView({
       </div>
       {rewardStarted ? (
         <RewardScatter
+          fastForwardSignal={scatterFastForwardSignal}
           points={{
             amount: rewardPoints,
             source: rewardSourceRef,

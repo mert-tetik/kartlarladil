@@ -33,6 +33,7 @@ const EFFECT_NAMES: SoundEffectName[] = [
   "card-swipe-left",
   "chest-tap",
   "chest-open",
+  "chest-skipped",
   "chest-crack",
   "clock-tick-low",
   "clock-tick-high",
@@ -44,6 +45,7 @@ const EFFECT_NAMES: SoundEffectName[] = [
   "result-medal-collect",
   "result-action-press",
   "result-card-reveal",
+  "deck-card-add",
   "quiz-result-point-award",
 ];
 

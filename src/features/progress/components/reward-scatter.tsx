@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { ScoreIcon } from "@/components/score-icon";
 import { GEM_ASSETS, type GemRewards, type GemType } from "@/features/gems/gem-types";
@@ -19,11 +19,11 @@ import {
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import {
-  finishCurrentWebAnimations,
   useQuizAnimationFastForward,
 } from "@/features/quiz/components/quiz-animation-fast-forward";
 
 const MAX_GEOMETRY_ATTEMPTS = 60;
+const FAST_FORWARD_FLIGHT_DURATION_MS = 400;
 const MEDAL_IMAGE_SRC = "/quiz/result-cards/star.webp?v=20261003-2";
 
 export interface PointsScatterRequest {
@@ -92,9 +92,12 @@ export function RewardScatter({
   flightExit?: boolean;
   fastForwardSignal?: number;
 }) {
+  const scatterInstanceId = useId();
   const [flights, setFlights] = useState<RewardScatterFlight[]>([]);
   const flightsRef = useRef(flights);
   flightsRef.current = flights;
+  const fastForwardAnimationsRef = useRef(new Map<string, Animation>());
+  const fastForwardFallbackTimersRef = useRef(new Map<string, number>());
   const arrivedFlightIdsRef = useRef({ points: new Set<string>(), gems: new Set<string>(), medals: new Set<string>() });
   const groupFlightCountsRef = useRef({ points: 0, gems: 0, medals: 0 });
   const groupArrivalCountsRef = useRef({ points: 0, gems: 0, medals: 0 });
@@ -113,7 +116,7 @@ export function RewardScatter({
     onMedalsUnavailable,
     onMedalsComplete,
   });
-  const previousFastForwardSignalRef = useRef(fastForwardSignal);
+  const previousFastForwardSignalRef = useRef(0);
   callbacksRef.current = {
     onPointsStart,
     onPointsLaunch,
@@ -419,7 +422,24 @@ export function RewardScatter({
   function handleFlightEnd(flight: RewardScatterFlight) {
     const arrivedIds = arrivedFlightIdsRef.current[flight.channel];
     if (arrivedIds.has(flight.id)) return;
+
+    const fastForwardAnimation = fastForwardAnimationsRef.current.get(flight.id);
+    // Ignore the original CSS animation's end event while its accelerated
+    // replacement is still flying to the HUD.
+    if (fastForwardAnimation?.playState === "running") return;
     arrivedIds.add(flight.id);
+
+    if (fastForwardAnimation) {
+      fastForwardAnimationsRef.current.delete(flight.id);
+      fastForwardAnimation.onfinish = null;
+      fastForwardAnimation.cancel();
+    }
+    const fallbackTimer = fastForwardFallbackTimersRef.current.get(flight.id);
+    if (fallbackTimer !== undefined) {
+      window.clearTimeout(fallbackTimer);
+      fastForwardFallbackTimersRef.current.delete(flight.id);
+    }
+
     setFlights((current) => current.filter((item) => item.id !== flight.id));
 
     if (flight.channel === "points") {
@@ -453,12 +473,141 @@ export function RewardScatter({
 
     const elements = new Map(
       Array.from(document.querySelectorAll<HTMLElement>("[data-reward-flight-id]"))
+        .filter((element) => element.dataset.rewardScatterInstanceId === scatterInstanceId)
         .map((element) => [element.dataset.rewardFlightId ?? "", element]),
     );
     let handled = false;
     for (const flight of flightsRef.current) {
       const element = elements.get(flight.id);
-      if (!element || finishCurrentWebAnimations(element) === 0) continue;
+      if (!element) continue;
+
+      if (flight.channel === "points" || flight.channel === "gems") {
+        if (fastForwardAnimationsRef.current.has(flight.id)
+          || fastForwardFallbackTimersRef.current.has(flight.id)) {
+          handled = true;
+          continue;
+        }
+
+        const computedStyle = window.getComputedStyle(element);
+        const currentRect = element.getBoundingClientRect();
+        const layoutWidth = element.offsetWidth || flight.iconSize;
+        const layoutHeight = element.offsetHeight || flight.iconSize;
+        const hasCurrentRect = currentRect.width > 0 && currentRect.height > 0;
+        const currentTransform = hasCurrentRect
+          ? `translate3d(${currentRect.left}px, ${currentRect.top}px, 0) scale(${currentRect.width / layoutWidth}, ${currentRect.height / layoutHeight})`
+          : computedStyle.transform !== "none" && computedStyle.transform
+            ? computedStyle.transform
+            : element.style.transform;
+        const transformOrigin = hasCurrentRect ? "top left" : element.style.transformOrigin;
+        const parsedOpacity = Number.parseFloat(computedStyle.opacity);
+        // Delayed flights are hidden by their backwards-fill state; reveal them
+        // as they join the same accelerated trip to the HUD.
+        const currentOpacity = Number.isFinite(parsedOpacity) && parsedOpacity > 0
+          ? parsedOpacity
+          : 1;
+        const currentTargetRect = flight.channel === "points"
+          ? resolveRect(pointTarget, false)
+            ?? (pointTargetSelector
+              ? document.querySelector<HTMLElement>(pointTargetSelector)?.getBoundingClientRect() ?? null
+              : null)
+          : flight.gemType
+            ? document.querySelector<HTMLElement>(
+                appendGemTypeSelector(gemTargetSelector, flight.gemType),
+              )?.getBoundingClientRect() ?? null
+            : null;
+        const targetCenterX = currentTargetRect && hasArea(currentTargetRect)
+          ? currentTargetRect.left + currentTargetRect.width / 2
+          : flight.targetX;
+        const targetCenterY = currentTargetRect && hasArea(currentTargetRect)
+          ? currentTargetRect.top + currentTargetRect.height / 2
+          : flight.targetY;
+        const targetLeft = targetCenterX - layoutWidth * 0.25;
+        const targetTop = targetCenterY - layoutHeight * 0.25;
+        const targetTransform = hasCurrentRect
+          ? `translate3d(${targetLeft}px, ${targetTop}px, 0) scale(0.5)`
+          : `translate3d(${flight.targetX}px, ${flight.targetY}px, 0) scale(0.5)`;
+
+        try {
+          if (typeof element.getAnimations === "function") {
+            for (const animation of element.getAnimations({ subtree: false })) {
+              animation.cancel();
+            }
+          }
+        } catch {
+          // Continue with the explicit target flight if getAnimations options
+          // are unsupported by this embedded browser.
+        }
+
+        // Disable the declarative flight animation after sampling its current
+        // frame so it cannot restart or emit a stale completion during the
+        // accelerated WAAPI flight.
+        element.style.animation = "none";
+        element.style.transformOrigin = transformOrigin;
+        element.style.transform = currentTransform;
+        element.style.opacity = String(currentOpacity);
+        void element.offsetWidth;
+
+        let acceleratedAnimation: Animation | null = null;
+        if (typeof element.animate === "function") {
+          try {
+            acceleratedAnimation = element.animate(
+              [
+                { transform: currentTransform, opacity: currentOpacity },
+                { transform: targetTransform, opacity: 0 },
+              ],
+              {
+                duration: FAST_FORWARD_FLIGHT_DURATION_MS,
+                easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                fill: "forwards",
+              },
+            );
+          } catch {
+            acceleratedAnimation = null;
+          }
+        }
+
+        if (acceleratedAnimation) {
+          fastForwardAnimationsRef.current.set(flight.id, acceleratedAnimation);
+          acceleratedAnimation.onfinish = () => {
+            fastForwardAnimationsRef.current.delete(flight.id);
+            handleFlightEnd(flight);
+          };
+        } else {
+          // CSS-transition fallback for embedded browsers without Web Animations API.
+          element.style.animation = "none";
+          element.style.transition = "none";
+          element.style.transformOrigin = transformOrigin;
+          element.style.transform = currentTransform;
+          element.style.opacity = String(currentOpacity);
+          void element.offsetWidth;
+          element.style.transition = `transform ${FAST_FORWARD_FLIGHT_DURATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1), opacity ${FAST_FORWARD_FLIGHT_DURATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`;
+          element.style.transform = targetTransform;
+          element.style.opacity = "0";
+          const timer = window.setTimeout(() => {
+            fastForwardFallbackTimersRef.current.delete(flight.id);
+            handleFlightEnd(flight);
+          }, FAST_FORWARD_FLIGHT_DURATION_MS);
+          fastForwardFallbackTimersRef.current.set(flight.id, timer);
+        }
+
+        handled = true;
+        continue;
+      }
+
+      // Finish delayed/staggered flights too. They are already part of the
+      // active scatter even if their CSS animation has not reached its start
+      // offset yet. Medal flights keep their existing instant fast-forward behavior.
+      try {
+        if (typeof element.getAnimations === "function") {
+          for (const animation of element.getAnimations({ subtree: true })) {
+            if (animation.playState === "finished" || animation.playState === "idle") continue;
+            animation.finish();
+          }
+        }
+      } catch {
+        // The flight's logical arrival below still guarantees completion.
+      }
+
       handled = true;
       handleFlightEnd(flight);
     }
@@ -469,9 +618,12 @@ export function RewardScatter({
 
   useEffect(() => {
     if (fastForwardSignal === undefined || fastForwardSignal === previousFastForwardSignalRef.current) return;
+    // Keep an early tap pending until the scatter has actually created its
+    // flights; otherwise a very quick second tap could be consumed on mount.
+    if (flights.length === 0) return;
     previousFastForwardSignalRef.current = fastForwardSignal;
     fastForwardActiveFlights();
-  }, [fastForwardSignal, fastForwardActiveFlights]);
+  }, [fastForwardSignal, fastForwardActiveFlights, flights.length]);
 
   useEffect(() => {
     if (!flightExit) return;
@@ -487,6 +639,18 @@ export function RewardScatter({
     return () => window.clearTimeout(timeout);
   }, [flightExit]);
 
+  useEffect(() => () => {
+    for (const animation of fastForwardAnimationsRef.current.values()) {
+      animation.onfinish = null;
+      animation.cancel();
+    }
+    fastForwardAnimationsRef.current.clear();
+    for (const timer of fastForwardFallbackTimersRef.current.values()) {
+      window.clearTimeout(timer);
+    }
+    fastForwardFallbackTimersRef.current.clear();
+  }, []);
+
   if (typeof document === "undefined" || flights.length === 0) return null;
 
   return createPortal(
@@ -497,6 +661,7 @@ export function RewardScatter({
           aria-hidden="true"
           data-reward-flight-channel={flight.channel}
           data-reward-flight-id={flight.id}
+          data-reward-scatter-instance-id={scatterInstanceId}
           className={`pointer-events-none fixed left-0 top-0 ${flight.animation === "medal" ? "animate-quiz-medal-icon-flight" : "animate-quiz-score-icon-flight"} ${flightExit ? "quiz-performance-flight-exiting" : ""}`}
           onAnimationStart={() => {
             if (flight.channel === "points") callbacksRef.current.onPointsLaunch?.();

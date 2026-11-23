@@ -1,6 +1,7 @@
 import { act, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileCardSwipeOverlay } from "@/app/components/mobile-card-swipe-overlay";
+import { getCardSwipeTierBehaviorStorageKey } from "@/features/cards/card-swipe-tier-behavior";
 import {
   dispatchTutorialCardLayerOpened,
   dispatchTutorialCardLayerPromptChanged,
@@ -18,10 +19,12 @@ const addCardMock = vi.fn();
 const inventoryState: {
   cards: InventoryCard[];
   activeCardLimit: number | null;
+  ownerUserId: string | null;
   addCard: typeof addCardMock;
 } = {
   cards: [],
   activeCardLimit: null,
+  ownerUserId: "user-1",
   addCard: addCardMock,
 };
 
@@ -93,6 +96,7 @@ describe("MobileCardSwipeOverlay", () => {
     enqueueCardPronunciationMock.mockReset();
     inventoryState.cards = [];
     inventoryState.activeCardLimit = null;
+    inventoryState.ownerUserId = "user-1";
     useTutorialStore.setState({ active: false, completed: false, introSeen: true, step: 0, testMode: false });
   });
 
@@ -304,6 +308,11 @@ describe("MobileCardSwipeOverlay", () => {
 
     expect(addCardMock).toHaveBeenCalledWith("A1");
     expect(document.querySelector("[data-card-swipe-outgoing]")).not.toBeInTheDocument();
+
+    const storedBehavior = JSON.parse(
+      window.localStorage.getItem(getCardSwipeTierBehaviorStorageKey("user-1", "en")) ?? "null",
+    ) as { recentAddedTiers: string[] } | null;
+    expect(storedBehavior?.recentAddedTiers).toEqual(["A1"]);
   });
 
   it("cancels pronunciation work when the visible card is skipped", async () => {
@@ -319,6 +328,25 @@ describe("MobileCardSwipeOverlay", () => {
     fireEvent.pointerUp(swipeCard, { pointerId: 1, clientX: 50, clientY: 100 });
 
     expect(cancelCardPronunciationMock).toHaveBeenCalledWith("A1");
+    expect(window.localStorage.getItem(getCardSwipeTierBehaviorStorageKey("user-1", "en"))).toBeNull();
+  });
+
+  it("does not wait for the card persistence promise before continuing the swipe", async () => {
+    addCardMock.mockImplementation(() => new Promise(() => undefined));
+    render(<MobileCardSwipeOverlay open language="en" onClose={vi.fn()} />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    const swipeCard = document.querySelector("[data-card-swipe-card]") as HTMLElement;
+    fireEvent.pointerDown(swipeCard, { pointerId: 1, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(swipeCard, { pointerId: 1, clientX: 250, clientY: 100 });
+    fireEvent.pointerUp(swipeCard, { pointerId: 1, clientX: 250, clientY: 100 });
+
+    expect(addCardMock).toHaveBeenCalledWith("A1");
+    expect(document.querySelector("[data-card-swipe-outgoing]")).toBeInTheDocument();
+    expect(document.querySelector("[data-vocabulary-card='A2']")).toBeInTheDocument();
   });
 
   it("opens the active card limit popup instead of swiping a card into a full deck", async () => {

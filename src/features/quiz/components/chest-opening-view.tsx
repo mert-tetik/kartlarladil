@@ -6,6 +6,7 @@ import { ScoreIcon } from "@/components/score-icon";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { formatNumber } from "@/i18n/labels";
 import { cn } from "@/lib/utils";
+import { playSoundEffect, preloadSoundEffects } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { canUseSuperWater, formatSuperWaterText, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import {
@@ -26,7 +27,10 @@ import { GEM_ASSETS, type ChestRewardOutcome, type GemBalances, type GemType } f
 import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
 import { MainPointsDisplay } from "@/features/progress/components/main-points-display";
 import { RewardScatter } from "@/features/progress/components/reward-scatter";
-import { finishCurrentWebAnimations } from "@/features/quiz/components/quiz-animation-fast-forward";
+import {
+  finishCurrentWebAnimations,
+  isQuizAnimationFastForwardDoubleTap,
+} from "@/features/quiz/components/quiz-animation-fast-forward";
 
 interface ChestOpeningViewProps {
   tier: ChestTierDefinition;
@@ -37,6 +41,7 @@ interface ChestOpeningViewProps {
   enterWithCss?: boolean;
   autoPlay?: boolean;
   onOpeningReady?: (start: (() => void) | null) => void;
+  onFastForwardHandlerChange?: (handler: (() => boolean) | null) => void;
 }
 
 type ChestPhase = "playing" | "revealed" | "disappearing";
@@ -69,6 +74,7 @@ export function ChestOpeningView({
   enterWithCss = true,
   autoPlay = true,
   onOpeningReady,
+  onFastForwardHandlerChange,
 }: ChestOpeningViewProps) {
   const t = useT();
   const { locale } = useLocale();
@@ -109,6 +115,7 @@ export function ChestOpeningView({
   const drawFrameRef = useRef<(frameIndex: number) => void>(() => undefined);
   const screenRef = useRef<HTMLDivElement | null>(null);
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+  const lastFastForwardTapAtRef = useRef(0);
   const loadedFramesRef = useRef(new Map<number, HTMLImageElement>());
   const framePromisesRef = useRef(new Map<number, Promise<HTMLImageElement | null>>());
   const frameGenerationRef = useRef(0);
@@ -391,6 +398,10 @@ export function ChestOpeningView({
   }, [drawFrame]);
 
   useEffect(() => {
+    preloadSoundEffects(["chest-skipped"]);
+  }, []);
+
+  useEffect(() => {
     const generation = ++frameGenerationRef.current;
     lastRequestedFrameRef.current = 0;
     const lastInitialFrame = Math.min(
@@ -436,6 +447,7 @@ export function ChestOpeningView({
     }
     drawFrameRef.current(CHEST_OPENING_FRAME_COUNT - 1);
     revealAtAnimationTimestamp();
+    playSoundEffect("chest-skipped");
   }, [phase, revealAtAnimationTimestamp]);
 
   const fastForwardCurrentChestAnimation = useCallback(() => {
@@ -484,6 +496,11 @@ export function ChestOpeningView({
     return false;
   }, [finishDisappear, phase, pointsPhase, rewardResolved, revealAtAnimationTimestamp, skipOpeningToLastFrame, tryCompleteAfterSkippedScatter]);
 
+  useEffect(() => {
+    onFastForwardHandlerChange?.(fastForwardCurrentChestAnimation);
+    return () => onFastForwardHandlerChange?.(null);
+  }, [fastForwardCurrentChestAnimation, onFastForwardHandlerChange]);
+
   const handleSurfacePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     if (typeof event.button === "number" && event.button !== 0) return;
     pointerStartRef.current = { x: event.clientX, y: event.clientY };
@@ -499,8 +516,11 @@ export function ChestOpeningView({
     if (event.target instanceof Element && event.target.closest(
       "button, a, input, select, textarea, [contenteditable='true']",
     )) return;
+    if (!isQuizAnimationFastForwardDoubleTap(lastFastForwardTapAtRef)) return;
 
-    fastForwardCurrentChestAnimation();
+    if (fastForwardCurrentChestAnimation()) {
+      vibrate("quiz-animation-fast-forward");
+    }
   }, [fastForwardCurrentChestAnimation]);
 
   useEffect(() => {

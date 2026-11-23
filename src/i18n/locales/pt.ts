@@ -893,6 +893,7 @@ const dictionary = {
   "page.leaderboard.title": "Classificação",
   "page.leaderboard.description": "Veja sua posição na classificação do FoxiesDeck.",
   "leaderboard.title": "Classificação",
+  "leaderboard.rankUpTitle": "Você subiu no ranking!",
   "leaderboard.open": "Abrir classificação",
   "leaderboard.yourStanding": "Você está em {position}º!",
   "leaderboard.positionLoading": "Carregando sua posição...",
@@ -1192,6 +1193,10 @@ const dictionary = {
   "offline.notes.addingAllToDeck": "Adicionando cartões…",
   "offline.notes.addedAllToDeck": "{count} cartões adicionados ao seu baralho",
   "offline.notes.limitReachedDescription": "{addedCount} cartões foram adicionados. {remainingCount} continuam guardados aqui. Mude de plano para adicioná-los.",
+  "quiz.deckAdd.title": "Adicione novos cartões ao seu baralho",
+  "quiz.deckAdd.hint": "Toque em um cartão",
+  "quiz.deckAdd.count": "Cartões para aprender: {count}",
+  "quiz.deckAdd.empty": "Não há novos cartões para adicionar no momento.",
 } as const;
 
 export default dictionary;

@@ -58,7 +58,7 @@ describe("performance diagnostics route", () => {
     mocks.rpc.mockResolvedValue({ error: null });
   });
 
-  it("returns only the authenticated account's consent state", async () => {
+  it("returns automatic diagnostics state for the authenticated account", async () => {
     const response = await GET();
 
     expect(response.status).toBe(200);
@@ -69,34 +69,35 @@ describe("performance diagnostics route", () => {
     });
   });
 
-  it("marks consent as undecided when no preference exists", async () => {
+  it("keeps diagnostics enabled without a settings row", async () => {
     mocks.maybeSingle.mockResolvedValue({ data: null, error: null });
     const response = await GET();
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
-      enabled: false,
-      has_decided: false,
+      enabled: true,
+      has_decided: true,
       policy_version: PERFORMANCE_DIAGNOSTICS_POLICY_VERSION,
     });
   });
 
-  it("persists consent and deletes summaries when the user opts out", async () => {
+  it("keeps the legacy consent endpoint automatic for cached clients", async () => {
     const response = await PATCH(makeRequest("PATCH", {
       enabled: false,
       policy_version: PERFORMANCE_DIAGNOSTICS_POLICY_VERSION,
     }));
 
     expect(response.status).toBe(200);
-    expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({
-      user_id: "user-1",
-      enabled: false,
-      consented_at: null,
-    }), { onConflict: "user_id" });
-    expect(mocks.deleteEq).toHaveBeenCalledWith("user_id", "user-1");
+    await expect(response.json()).resolves.toEqual({
+      enabled: true,
+      has_decided: true,
+      policy_version: PERFORMANCE_DIAGNOSTICS_POLICY_VERSION,
+    });
+    expect(mocks.upsert).not.toHaveBeenCalled();
+    expect(mocks.deleteEq).not.toHaveBeenCalled();
   });
 
-  it("refuses diagnostics without current affirmative consent", async () => {
+  it("accepts diagnostics without a prior consent row", async () => {
     mocks.maybeSingle.mockResolvedValue({ data: { enabled: false }, error: null });
     const response = await POST(makeRequest("POST", {
       events: [{
@@ -108,8 +109,8 @@ describe("performance diagnostics route", () => {
       }],
     }));
 
-    expect(response.status).toBe(403);
-    expect(mocks.rpc).not.toHaveBeenCalled();
+    expect(response.status).toBe(204);
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
   });
 
   it("validates and stores high-water measurements using the session user", async () => {

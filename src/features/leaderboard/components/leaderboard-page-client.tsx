@@ -1,20 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import Image from "next/image";
-import { Flame, Loader2 } from "lucide-react";
-import { SuperWaterText } from "@/components/super-water-text";
+import { Flame } from "lucide-react";
 import { ScoreIcon } from "@/components/score-icon";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
-import { RankIcon } from "@/features/progress/rank-icons";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { LeaderboardConsentDialog } from "@/features/leaderboard/components/leaderboard-consent-dialog";
+import { LeaderboardEntriesList } from "@/features/leaderboard/components/leaderboard-entries-list";
 import { useLeaderboardConsentTestMode } from "@/features/leaderboard/leaderboard-consent-test-mode";
 import type {
   LeaderboardMode,
   LeaderboardViewer,
 } from "@/features/leaderboard/leaderboard-types";
-import { ProfilePicture } from "@/features/auth/components/profile-picture";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
 import { formatNumber } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
@@ -74,35 +72,6 @@ function LeaderboardWorldPositions({
   );
 }
 
-function LeaderboardPositionBadge({
-  locale,
-  position,
-}: {
-  locale: LocaleCode;
-  position: number;
-}) {
-  const digitCount = String(Math.max(0, position)).length;
-  const badgeSize = 2.25 + Math.max(0, digitCount - 1) * 0.6;
-  const fontSize = Math.max(0.9, 1.3 - Math.max(0, digitCount - 1) * 0.1);
-
-  return (
-    <span
-      data-leaderboard-position-badge
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-full bg-transparent font-bold leading-none text-foreground",
-        canUseSuperWater(locale) && "font-super-water",
-      )}
-      style={{
-        width: `${badgeSize}rem`,
-        height: `${badgeSize}rem`,
-        fontSize: `${fontSize}rem`,
-      }}
-    >
-      {formatNumber(locale, position)}.
-    </span>
-  );
-}
-
 export function LeaderboardPageClient({
   initialMode = "points",
 }: {
@@ -144,11 +113,6 @@ export function LeaderboardPageClient({
       setDataMode(nextMode);
     });
   }, [selectedMode]);
-
-  useEffect(() => {
-    setSelectedMode(initialMode);
-    setDataMode(initialMode);
-  }, [initialMode]);
 
   useEffect(() => {
     if (error) {
@@ -205,6 +169,12 @@ export function LeaderboardPageClient({
     } finally {
       setConsentBusy(false);
     }
+  }
+
+  function handleOpenConsent(event: MouseEvent<HTMLButtonElement>) {
+    setConsentError("");
+    setConsentSourceRect(event.currentTarget.getBoundingClientRect());
+    setConsentOpen(true);
   }
 
   return (
@@ -307,131 +277,14 @@ export function LeaderboardPageClient({
               className="mx-auto mb-2 hidden h-1 w-[calc(100%+0.75rem)] shrink-0 rounded-full bg-white max-lg:block"
             />
 
-            <div
-              data-leaderboard-list
-              data-state={modeLoading ? "loading" : "loaded"}
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 max-lg:px-0 max-lg:py-1"
-            >
-              {modeLoading ? (
-                <div className="flex h-full flex-col items-center justify-center gap-3 text-foreground-secondary">
-                  <Loader2 className="size-6 animate-spin" aria-hidden="true" />
-                  <p className="text-sm font-medium"><SuperWaterText>{t("common.loading")}</SuperWaterText></p>
-                </div>
-              ) : !modeData && error ? (
-                <div className="h-full" aria-hidden="true" />
-              ) : !modeData?.canViewLeaderboard ? (
-                <div className="flex h-full flex-col items-center justify-center gap-4 px-4 text-center">
-                  <div className="space-y-2">
-                    <p
-                      className={cn(
-                        "text-3xl font-semibold leading-tight text-foreground sm:text-4xl",
-                        canUseSuperWater(locale) && "font-super-water",
-                      )}
-                    >
-                      {formatSuperWaterText(locale, t("leaderboard.lockedTitle"))}
-                    </p>
-                    <p
-                      className={cn(
-                        "text-lg font-medium leading-7 text-white sm:text-xl",
-                        canUseSuperWater(locale) && "font-super-water",
-                      )}
-                    >
-                      {formatSuperWaterText(locale, t("leaderboard.lockedDescription"))}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      setConsentError("");
-                      setConsentSourceRect(event.currentTarget.getBoundingClientRect());
-                      setConsentOpen(true);
-                    }}
-                    className={cn(
-                      "inline-flex h-14 items-center justify-center rounded-full bg-black px-9 text-lg font-semibold text-white transition-colors hover:bg-black/85 sm:text-xl",
-                      canUseSuperWater(locale) && "font-super-water",
-                    )}
-                  >
-                    {formatSuperWaterText(locale, t("leaderboard.allow"))}
-                  </button>
-                </div>
-              ) : modeData.entries.length === 0 ? (
-                <div className="flex h-full items-center justify-center px-4 text-center text-sm text-foreground-secondary">
-                  {t("leaderboard.empty")}
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {modeData.entries.map((entry) => (
-                    <div
-                      key={entry.userId}
-                      ref={entry.isViewer ? viewerRowRef : null}
-                      data-leaderboard-entry={entry.isViewer ? "viewer" : "item"}
-                      className={cn(
-                        "grid grid-cols-[auto_2.75rem_3rem_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border px-3 py-3 text-left",
-                        entry.isViewer
-                          ? "border-brand/40 bg-brand/10"
-                          : "border-border bg-background",
-                        entry.isViewer
-                          ? "max-lg:block max-lg:rounded-full max-lg:border-0 max-lg:bg-white max-lg:p-[3px]"
-                          : "max-lg:block max-lg:rounded-full max-lg:border-0 max-lg:bg-[linear-gradient(180deg,color-mix(in_oklab,var(--leaderboard-hue),black_52%)_0%,color-mix(in_oklab,var(--leaderboard-hue),white_30%)_100%)] max-lg:p-px",
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "contents max-lg:grid max-lg:grid-cols-[auto_2.25rem_2.25rem_minmax(0,1fr)_auto] max-lg:items-center max-lg:gap-0.5 max-lg:rounded-full max-lg:px-2.5 max-lg:py-2",
-                          entry.isViewer
-                            ? "max-lg:bg-[color-mix(in_oklab,var(--leaderboard-hue),black_45%)]"
-                            : "max-lg:bg-[color-mix(in_oklab,var(--leaderboard-hue),black_28%)]",
-                        )}
-                      >
-                        <LeaderboardPositionBadge locale={locale} position={entry.position} />
-                        <ProfilePicture
-                          profilePictureIndex={entry.profilePictureIndex}
-                          alt=""
-                          className={cn("size-9 rounded-full", entry.isViewer && "max-lg:ring-2 max-lg:ring-white")}
-                        />
-                        <div className="flex items-center justify-center">
-                          <RankIcon icon={entry.rankIcon} className="size-8" sizes="32px" />
-                        </div>
-                        <span className="truncate text-sm font-semibold text-foreground max-lg:text-brand-foreground">
-                          {entry.displayName || t("leaderboard.anonymous")}
-                        </span>
-                        <div className={cn(
-                          "flex items-center gap-1.5 justify-self-end text-base font-bold text-foreground max-lg:text-white",
-                          canUseSuperWater(locale) && "font-super-water",
-                        )}>
-                          <span>
-                            {dataMode === "points"
-                              ? formatSuperWaterText(locale, formatNumber(locale, entry.totalPoints))
-                              : formatNumber(
-                                  locale,
-                                  dataMode === "streaks" ? entry.streak : entry.medals,
-                                )}
-                          </span>
-                          {dataMode === "streaks" ? (
-                            <Flame
-                              className="size-5 fill-red-500 text-red-500"
-                              aria-hidden="true"
-                            />
-                          ) : dataMode === "medals" ? (
-                            <Image
-                              src={RESULT_MEDAL_IMAGE_SRC}
-                              alt=""
-                              aria-hidden="true"
-                              width={20}
-                              height={20}
-                              className="size-5 object-contain"
-                            />
-                          ) : (
-                            <ScoreIcon size={20} className="size-5" />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-            </div>
+            <LeaderboardEntriesList
+              data={modeData}
+              mode={dataMode}
+              loading={modeLoading}
+              error={error}
+              viewerRowRef={viewerRowRef}
+              onAllow={handleOpenConsent}
+            />
           </div>
         </div>
       </section>

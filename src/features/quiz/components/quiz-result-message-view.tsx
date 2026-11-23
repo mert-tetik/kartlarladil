@@ -90,6 +90,7 @@ export function QuizResultMessageView({
       )}
       data-quiz-result-message-view
       data-quiz-result-message-cards
+      data-quiz-end-triple-tap-screen
     >
       <div className="pointer-events-auto h-full min-h-0 w-full overflow-y-auto overscroll-contain pb-24">
         <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col justify-center gap-8 p-4 sm:p-6">
@@ -133,6 +134,7 @@ export function QuizResultMessageView({
             cardsVisible && !exiting ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
           )}
           data-quiz-result-message-continue
+          data-quiz-end-continue
         >
           {formatSuperWaterUppercaseText(locale, t("quiz.continue"))}
         </button>

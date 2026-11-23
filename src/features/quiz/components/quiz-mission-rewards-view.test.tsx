@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { QUIZ_END_ACTION_TAP_GUARD_GRACE_MS } from "@/features/quiz/quiz-end-triple-tap";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { QuizMissionRewardsView } from "./quiz-mission-rewards-view";
 
@@ -83,6 +84,16 @@ describe("QuizMissionRewardsView", () => {
     expect(screen.getByTestId("shared-mission-list")).toHaveAttribute("data-claimable-first", "true");
     expect(screen.getByTestId("shared-mission-list")).toHaveAttribute("data-visible", "true");
     expect(onInitialClaimableAvailabilityResolved).toHaveBeenCalledWith(true);
+  });
+
+  it("guards mission-card taps only during the first 2 seconds on screen", () => {
+    vi.useFakeTimers();
+    renderMissionRewards();
+    const root = document.querySelector("[data-quiz-mission-rewards]");
+
+    expect(root).toHaveAttribute("data-mission-tap-guard-active", "true");
+    act(() => vi.advanceTimersByTime(QUIZ_END_ACTION_TAP_GUARD_GRACE_MS));
+    expect(root).toHaveAttribute("data-mission-tap-guard-active", "false");
   });
 
   it("stagger-scales the UI in top-to-bottom and waits for reverse exit animations", async () => {

@@ -45,7 +45,7 @@ describe("legal content", () => {
     }
   });
 
-  it("discloses optional account-linked Android performance diagnostics in every locale", () => {
+  it("discloses automatic account-linked Android performance diagnostics in every locale", () => {
     for (const locale of locales) {
       const privacy = getLegalContent(locale, "privacy");
       const diagnosticNotice = PERFORMANCE_DIAGNOSTICS_NOTICE[locale];

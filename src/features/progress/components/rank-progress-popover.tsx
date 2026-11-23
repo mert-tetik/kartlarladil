@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type CSSProperties, type Ref } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type Ref } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { X } from "lucide-react";
@@ -21,6 +21,10 @@ import { vibrate } from "@/lib/vibration";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { VideoFrameAtlasPlayer, type VideoFrameAtlasPlayerHandle } from "@/components/video-frame-atlas-player";
 import { finishCurrentWebAnimations, useQuizAnimationFastForward } from "@/features/quiz/components/quiz-animation-fast-forward";
+import {
+  activateQuizEndPrimaryActionOnTripleTap,
+  createQuizEndTripleTapState,
+} from "@/features/quiz/quiz-end-triple-tap";
 import type { ProgressStats, RankDefinition } from "@/types/domain";
 
 const SCORE_GAIN_ANIMATION_MS = 700;
@@ -384,6 +388,7 @@ export function RankUpMenu({
   onOpen,
   zIndex = 50,
   firmCloseVibration = false,
+  enableQuizEndTripleTapContinue = false,
 }: {
   rank: RankDefinition;
   fromRank?: RankDefinition;
@@ -391,6 +396,7 @@ export function RankUpMenu({
   onOpen?: () => void;
   zIndex?: number;
   firmCloseVibration?: boolean;
+  enableQuizEndTripleTapContinue?: boolean;
 }) {
   const { locale } = useLocale();
   const t = useT();
@@ -408,6 +414,8 @@ export function RankUpMenu({
   const foregroundCloseTimerRef = useRef<number | null>(null);
   const backgroundCloseTimerRef = useRef<number | null>(null);
   const closeDeliveredRef = useRef(false);
+  const tripleTapStateRef = useRef(createQuizEndTripleTapState());
+  const activatingContinueRef = useRef(false);
 
   useEffect(() => {
     onOpen?.();
@@ -512,6 +520,33 @@ export function RankUpMenu({
     return false;
   };
 
+  const handleTripleTapContinue = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (!enableQuizEndTripleTapContinue) return;
+    if (activatingContinueRef.current) {
+      event.stopPropagation();
+      return;
+    }
+    if (event.defaultPrevented || event.button !== 0 || event.detail <= 0) return;
+
+    const menu = menuRef.current;
+    if (!menu) return;
+
+    const didContinue = activateQuizEndPrimaryActionOnTripleTap(
+      tripleTapStateRef.current,
+      menu,
+      performance.now(),
+      (button) => {
+        activatingContinueRef.current = true;
+        try {
+          button.click();
+        } finally {
+          activatingContinueRef.current = false;
+        }
+      },
+    );
+    if (didContinue) event.stopPropagation();
+  };
+
   useQuizAnimationFastForward(fastForwardCurrentAnimation, true, 120);
 
   useEffect(() => {
@@ -533,7 +568,9 @@ export function RankUpMenu({
       role="dialog"
       aria-label={t("rank.up")}
       className={cn("rank-up-menu fixed inset-0 z-50 flex", closing && "rank-up-menu--closing")}
+      data-quiz-end-triple-tap-screen={enableQuizEndTripleTapContinue ? "" : undefined}
       onPointerDown={handleReveal}
+      onClick={handleTripleTapContinue}
       style={{ zIndex }}
     >
       <div
@@ -644,6 +681,9 @@ export function RankUpMenu({
             <button
               type="button"
               onClick={() => handleClose(true)}
+              data-quiz-end-continue={enableQuizEndTripleTapContinue ? "" : undefined}
+              data-quiz-end-continue-locked={!revealed || closing ? "true" : undefined}
+              aria-disabled={enableQuizEndTripleTapContinue ? !revealed || closing : undefined}
               data-no-tap-vibrate=""
               className={cn(
                 "rank-up-sequence-item rank-up-sequence-action relative isolate mt-8 inline-flex h-16 w-[12.38rem] shrink-0 items-center justify-center overflow-hidden rounded-full border border-transparent px-4 text-center text-2xl font-semibold text-white transition-[filter,transform] hover:brightness-105 active:scale-[0.98]",

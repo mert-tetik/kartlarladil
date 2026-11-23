@@ -111,6 +111,8 @@ describe("analytics events route", () => {
     "first_quiz_completed",
     "first_card_learned",
     "learn_session_completed",
+    "landing_review_opened",
+    "landing_card_podium_opened",
     "subscription_purchase_started",
     "subscription_purchase_succeeded",
     "subscription_purchase_failed",

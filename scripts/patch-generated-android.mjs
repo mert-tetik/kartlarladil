@@ -267,6 +267,11 @@ const HYBRID_MANIFEST = ({ packageName, meta }) => {
     <uses-permission android:name="com.android.vending.BILLING" />
 ${advertiserIdPermission}
 
+    <!-- Keep the portrait UI lock without making portrait hardware a Play install requirement. -->
+    <uses-feature
+        android:name="android.hardware.screen.portrait"
+        android:required="false" />
+
     <!-- Android 11+ hides TTS engines unless the app declares this query. -->
     <queries>
         <intent>

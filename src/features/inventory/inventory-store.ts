@@ -28,6 +28,7 @@ import {
 import {
   addCardToInventory,
   applyAnswerProgress,
+  createInventoryCard,
   createPracticeAttempt,
 } from "@/features/quiz/quiz-engine";
 import { syncMissionsFromClientState } from "@/features/missions/mission-sync";
@@ -393,9 +394,14 @@ export const useInventoryStore = create<InventoryState>()(
       },
 
       async addCard(cardId) {
-        const previousCount = get().cards.length;
+        const currentCards = get().cards;
+        const previousCount = currentCards.length;
+        if (currentCards.some((card) => card.cardId === cardId)) {
+          return { ok: true, firstCardAdded: false };
+        }
+
         const activeCardLimit = get().activeCardLimit;
-        const targetCard = localCardRepository.findById(cardId);
+        const targetCard = activeCardLimit === null ? null : localCardRepository.findById(cardId);
 
         if (
           activeCardLimit !== null &&
@@ -408,10 +414,12 @@ export const useInventoryStore = create<InventoryState>()(
         if (get().cloudEnabled) {
           // Local inventory is authoritative for the user-facing add. The
           // cloud write starts below and can reconcile or roll back later.
-          const cardWasAlreadyPresent = get().cards.some((card) => card.cardId === cardId);
-          const optimisticCards = addCardToInventory(get().cards, cardId);
-          set({ cards: optimisticCards });
-          addPendingCardId(set, cardId);
+          const optimisticCards = [...currentCards, createInventoryCard(cardId)];
+          set((state) => ({
+            ...state,
+            cards: optimisticCards,
+            pendingCardIds: new Set(state.pendingCardIds).add(cardId),
+          }));
           const addedCard = localCardRepository.findById(cardId);
 
           if (addedCard) {
@@ -433,7 +441,7 @@ export const useInventoryStore = create<InventoryState>()(
             dispatchFirstCardAddedEvent();
           }
 
-          void syncMissionsFromClientState();
+          scheduleMissionSyncFromClientState();
 
           void (async () => {
             const result = await runInventoryCloudAction(
@@ -445,9 +453,7 @@ export const useInventoryStore = create<InventoryState>()(
             if (result.status === "error" || !result.data) {
               const currentState = get();
               set({
-                cards: cardWasAlreadyPresent
-                  ? currentState.cards
-                  : currentState.cards.filter((card) => card.cardId !== cardId),
+                cards: currentState.cards.filter((card) => card.cardId !== cardId),
                 cloudError: "",
               });
               dispatchInventoryBackgroundError("add card", result);
@@ -481,7 +487,7 @@ export const useInventoryStore = create<InventoryState>()(
           return { ok: true, firstCardAdded };
         }
 
-        const nextCards = addCardToInventory(get().cards, cardId);
+        const nextCards = [...currentCards, createInventoryCard(cardId)];
         set({ cards: nextCards });
         const firstCardAdded = previousCount === 0 && nextCards.length > 0;
         const addedCard = localCardRepository.findById(cardId);
@@ -512,7 +518,7 @@ export const useInventoryStore = create<InventoryState>()(
           dispatchFirstCardAddedEvent();
         }
 
-        void syncMissionsFromClientState();
+        scheduleMissionSyncFromClientState();
 
         return { ok: true, firstCardAdded };
       },
@@ -1117,6 +1123,24 @@ function addPendingCardId(set: (fn: (state: InventoryState) => InventoryState) =
     ...state,
     pendingCardIds: new Set(state.pendingCardIds).add(cardId),
   }));
+}
+
+function scheduleMissionSyncFromClientState() {
+  if (typeof window === "undefined") {
+    void syncMissionsFromClientState();
+    return;
+  }
+
+  const idleWindow = window as Window & {
+    requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+  };
+  const sync = () => void syncMissionsFromClientState();
+
+  if (idleWindow.requestIdleCallback) {
+    idleWindow.requestIdleCallback(sync, { timeout: 750 });
+  } else {
+    window.setTimeout(sync, 0);
+  }
 }
 
 function dispatchInventoryBackgroundError(

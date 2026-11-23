@@ -964,6 +964,7 @@ const dictionary = {
   "page.leaderboard.title": "Leaderboard",
   "page.leaderboard.description": "See your place on the FoxiesDeck leaderboard.",
   "leaderboard.title": "Leaderboard",
+  "leaderboard.rankUpTitle": "You moved up in the leaderboard!",
   "leaderboard.open": "Open leaderboard",
   "leaderboard.yourStanding": "You're #{position}!",
   "leaderboard.positionLoading": "Loading your place...",
@@ -1217,6 +1218,10 @@ const dictionary = {
   "offline.notes.addingAllToDeck": "Adding cards…",
   "offline.notes.addedAllToDeck": "Added {count} cards to your deck",
   "offline.notes.limitReachedDescription": "{addedCount} cards were added. {remainingCount} remain saved here. Upgrade your plan to add them.",
+  "quiz.deckAdd.title": "Add New Cards to Your Deck",
+  "quiz.deckAdd.hint": "Tap a card",
+  "quiz.deckAdd.count": "You have {count} cards to learn",
+  "quiz.deckAdd.empty": "There are no new cards to add right now.",
 } as const;
 
 export default dictionary;

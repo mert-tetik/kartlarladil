@@ -11,7 +11,6 @@ import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
 import { QUIZ_BUTTON_FEEDBACK_DURATION_MS } from "@/features/quiz/quiz-answer-feedback-timing";
-import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibility";
 import { sendTwaAnalyticsEvent } from "@/lib/twa-analytics";
 import { LOCALE_COOKIE_NAME } from "@/i18n/config";
 import { awardQuizResultPoints } from "@/features/quiz/actions";
@@ -27,6 +26,7 @@ const progressStatsMock = vi.hoisted(() => ({
 }));
 
 const claimQuizResultMedalsMock = vi.hoisted(() => vi.fn());
+const requestGooglePlayReviewMock = vi.hoisted(() => vi.fn());
 const learnedConfettiMock = vi.hoisted(() => {
   const reset = vi.fn();
   const instance = Object.assign(vi.fn(() => Promise.resolve()), { reset });
@@ -64,6 +64,7 @@ beforeEach(() => {
   progressStatsMock.refreshStats.mockReset();
   progressStatsMock.refreshStats.mockResolvedValue(undefined);
   claimQuizResultMedalsMock.mockReset();
+  requestGooglePlayReviewMock.mockReset();
   learnedConfettiMock.create.mockClear();
   learnedConfettiMock.defaultConfetti.mockClear();
   learnedConfettiMock.instance.mockClear();
@@ -126,11 +127,9 @@ vi.mock("@/lib/vibration", () => ({
 
 vi.mock("@/lib/twa-analytics", () => ({
   sendTwaAnalyticsEvent: vi.fn(),
+  requestGooglePlayReview: requestGooglePlayReviewMock,
+  trackTwaQualityActivation: vi.fn(),
   setTwaAnalyticsUserId: vi.fn(),
-}));
-
-vi.mock("@/features/reviews/play-review-eligibility", () => ({
-  markPlayReviewEligible: vi.fn(),
 }));
 
 vi.mock("canvas-confetti", () => ({
@@ -147,11 +146,17 @@ vi.mock("@/features/progress/progress-client", () => ({
 vi.mock("@/features/leaderboard/use-leaderboard", () => ({
   useLeaderboardData: () => ({
     data: {
+      mode: "points",
       viewer: {
         userId: "user-1",
         position: 20,
+        pointsPosition: 20,
+        streakPosition: 1,
+        medalsPosition: 1,
         displayName: "Test User",
         totalPoints: 0,
+        streak: 0,
+        medals: 0,
         leaderboardVisible: true,
       },
       entries: [],
@@ -548,7 +553,6 @@ describe("ResultView star rating", () => {
         streak_reward_points: 100,
       },
     });
-    expect(markPlayReviewEligible).toHaveBeenCalledWith("quiz");
   });
 });
 
@@ -567,6 +571,42 @@ describe("ResultView medal stages", () => {
     } as DOMRect;
 
     return vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(rect);
+  }
+
+  async function advancePastDeckAdditionAndLeaderboard() {
+    for (let step = 0; step < 5; step += 1) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(600);
+      });
+
+      const missionScreen = document.querySelector<HTMLElement>("[data-quiz-mission-rewards]");
+      const missionContinue = document.querySelector<HTMLButtonElement>("[data-quiz-mission-rewards-continue]");
+      if (missionScreen?.dataset.transitionState !== "hidden" && missionContinue) {
+        fireEvent.click(missionContinue);
+        continue;
+      }
+
+      const deckContinue = document.querySelector<HTMLButtonElement>("[data-quiz-deck-card-addition-continue]");
+      if (deckContinue && !deckContinue.disabled) {
+        fireEvent.click(deckContinue);
+        expect(document.querySelector("[data-quiz-leaderboard-progress]")).not.toBeInTheDocument();
+        continue;
+      }
+
+      if (document.querySelector("[data-quiz-leaderboard-progress]")) {
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(2_000);
+        });
+      }
+
+      if (document.querySelector("[data-quiz-continuation-motivation]")) return;
+    }
+    throw new Error(`Quiz end flow did not reach motivation: ${[
+      "[data-quiz-mission-rewards]",
+      "[data-quiz-deck-card-addition]",
+      "[data-quiz-leaderboard-progress]",
+      "[data-quiz-continuation-motivation]",
+    ].map((selector) => `${selector}=${Boolean(document.querySelector(selector))}`).join(", ")}`);
   }
 
   it("shows five medals when the quiz-flow test mode reaches the result screen", () => {
@@ -661,6 +701,81 @@ describe("ResultView medal stages", () => {
       "text-white",
       "font-super-water",
     );
+  });
+
+  it("waits for the multi-tap window before opening a result card during screen entry", () => {
+    vi.useFakeTimers();
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={null}>
+          <ResultView
+            mode="active"
+            results={{
+              correct: VOCABULARY_CARDS.slice(0, 7),
+              incorrect: VOCABULARY_CARDS.slice(7, 10),
+              learned: VOCABULARY_CARDS.slice(10, 11),
+            }}
+            selectedCount={10}
+            chestOpened={false}
+            earnedPoints={85}
+            onContinue={vi.fn()}
+            onRestart={vi.fn()}
+            onExit={vi.fn()}
+          />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    const correctCard = document.querySelector<HTMLButtonElement>('[data-result-card="correct"]');
+    expect(correctCard).toBeEnabled();
+
+    fireEvent.click(correctCard!, { detail: 1 });
+    expect(document.querySelector("[data-result-menu]")).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(501);
+    });
+    expect(document.querySelector("[data-result-menu]")).toBeInTheDocument();
+  });
+
+  it("cancels result-card actions on multi-tap and restores immediate taps after 2 seconds", () => {
+    vi.useFakeTimers();
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={null}>
+          <ResultView
+            mode="active"
+            results={{
+              correct: VOCABULARY_CARDS.slice(0, 7),
+              incorrect: VOCABULARY_CARDS.slice(7, 10),
+              learned: VOCABULARY_CARDS.slice(10, 11),
+            }}
+            selectedCount={10}
+            chestOpened={false}
+            earnedPoints={85}
+            onContinue={vi.fn()}
+            onRestart={vi.fn()}
+            onExit={vi.fn()}
+          />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    const correctCard = document.querySelector<HTMLButtonElement>('[data-result-card="correct"]')!;
+    fireEvent.click(correctCard, { detail: 1 });
+    fireEvent.click(correctCard, { detail: 2 });
+    act(() => {
+      vi.advanceTimersByTime(501);
+    });
+    expect(document.querySelector("[data-result-menu]")).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1_500);
+    });
+    fireEvent.click(correctCard, { detail: 1 });
+    expect(document.querySelector("[data-result-menu]")).toBeInTheDocument();
   });
 
   it("keeps the medal stage open when scatter geometry is not measurable yet", () => {
@@ -944,7 +1059,7 @@ describe("ResultView medal stages", () => {
     geometrySpy.mockRestore();
   });
 
-  it("keeps the motivation screen visible while the main-menu route transition is pending", () => {
+  it("keeps the motivation screen visible while the main-menu route transition is pending", async () => {
     vi.useFakeTimers();
     const geometrySpy = mockMedalGeometry();
     const onExit = vi.fn();
@@ -958,7 +1073,7 @@ describe("ResultView medal stages", () => {
             results={{
               correct: [],
               incorrect: VOCABULARY_CARDS.slice(0, 1),
-              learned: [],
+              learned: [VOCABULARY_CARDS[1]],
             }}
             selectedCount={1}
             chestOpened={false}
@@ -997,11 +1112,10 @@ describe("ResultView medal stages", () => {
     const chestGate = document.querySelector<HTMLElement>("[data-quiz-chest-reward-layer]");
     expect(chestGate).toBeInTheDocument();
     fireEvent.click(chestGate!.querySelector("button")!);
-    act(() => {
-      vi.advanceTimersByTime(600);
-    });
+    await advancePastDeckAdditionAndLeaderboard();
 
     expect(document.querySelector("[data-quiz-continuation-motivation]")).toBeInTheDocument();
+    expect(requestGooglePlayReviewMock).toHaveBeenCalledOnce();
     fireEvent.click(document.querySelector('[data-continuation-action="menu"]')!);
 
     expect(onExit).toHaveBeenCalledTimes(1);
@@ -1010,6 +1124,66 @@ describe("ResultView medal stages", () => {
       vi.advanceTimersByTime(290);
     });
     expect(document.querySelector("[data-quiz-continuation-motivation]")).toBeInTheDocument();
+
+    geometrySpy.mockRestore();
+  });
+
+  it("does not request a review from the motivation screen when no card was learned", async () => {
+    vi.useFakeTimers();
+    const geometrySpy = mockMedalGeometry();
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <AuthSessionProvider user={null}>
+          <ResultFlowView
+            mode="active"
+            selectedLanguage="en"
+            results={{
+              correct: [],
+              incorrect: VOCABULARY_CARDS.slice(0, 1),
+              learned: [],
+            }}
+            selectedCount={1}
+            chestOpened={false}
+            showChestRewardGate
+            chestTier={null}
+            remainingActiveCards={1}
+            onContinue={vi.fn()}
+            onRestart={vi.fn()}
+            onExit={vi.fn()}
+          />
+        </AuthSessionProvider>
+      </LocaleProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Devam et" }));
+    act(() => {
+      vi.advanceTimersByTime(360);
+    });
+    act(() => {
+      vi.advanceTimersByTime(2500);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Madalyaları al" }));
+
+    const medalCollector = document.querySelector<HTMLButtonElement>(
+      "[data-result-medal-center-collector]",
+    );
+    expect(medalCollector).toBeInTheDocument();
+    fireEvent.pointerDown(medalCollector!);
+    fireEvent.pointerDown(medalCollector!);
+    fireEvent.pointerDown(medalCollector!);
+
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    const chestGate = document.querySelector<HTMLElement>("[data-quiz-chest-reward-layer]");
+    expect(chestGate).toBeInTheDocument();
+    fireEvent.click(chestGate!.querySelector("button")!);
+    await advancePastDeckAdditionAndLeaderboard();
+
+    expect(document.querySelector("[data-quiz-continuation-motivation]")).toBeInTheDocument();
+    expect(requestGooglePlayReviewMock).not.toHaveBeenCalled();
 
     geometrySpy.mockRestore();
   });
@@ -1799,14 +1973,14 @@ describe("QuizStation sound feedback", () => {
 
     expect(card).toHaveAttribute("data-quiz-card-feedback", "revealing");
     expect(document.querySelector("[data-card-footer-mode='progress']")).toBeInTheDocument();
-    expect(document.querySelector("[data-card-progress]")).toHaveTextContent("0/4");
+    expect(document.querySelector("[data-card-progress]")).toHaveTextContent("0/2");
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(500);
     });
 
     expect(card).toHaveAttribute("data-quiz-card-feedback", "updating");
-    expect(document.querySelector("[data-card-progress]")).toHaveTextContent("1/4");
+    expect(document.querySelector("[data-card-progress]")).toHaveTextContent("1/2");
     expect(playSoundEffect).toHaveBeenCalledWith("points");
     expect(document.querySelector("[data-progress-indicator-overlay]")).toBeInTheDocument();
   });

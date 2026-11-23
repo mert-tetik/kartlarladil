@@ -893,6 +893,7 @@ const dictionary = {
   "page.leaderboard.title": "排行榜",
   "page.leaderboard.description": "查看你在 FoxiesDeck 排行榜中的名次。",
   "leaderboard.title": "排行榜",
+  "leaderboard.rankUpTitle": "你在排行榜上升了名次！",
   "leaderboard.open": "打开排行榜",
   "leaderboard.yourStanding": "你现在是第 {position} 名！",
   "leaderboard.positionLoading": "正在加载你的排名...",
@@ -1192,6 +1193,10 @@ const dictionary = {
   "offline.notes.addingAllToDeck": "正在添加卡片…",
   "offline.notes.addedAllToDeck": "已将 {count} 张卡片添加到卡组",
   "offline.notes.limitReachedDescription": "已添加 {addedCount} 张卡片。剩余 {remainingCount} 张仍保存在这里。升级套餐即可添加。",
+  "quiz.deckAdd.title": "向牌组添加新卡片",
+  "quiz.deckAdd.hint": "点击一张卡片",
+  "quiz.deckAdd.count": "待学习卡片：{count}张",
+  "quiz.deckAdd.empty": "目前没有可添加的新卡片。",
 } as const;
 
 export default dictionary;

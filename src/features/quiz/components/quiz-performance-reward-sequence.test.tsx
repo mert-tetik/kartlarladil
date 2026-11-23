@@ -1,7 +1,12 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import type { Ref } from "react";
+import { useRef, type ReactNode, type Ref } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QuizPerformanceRewardSequence } from "@/features/quiz/components/quiz-performance-reward-sequence";
+import {
+  isQuizAnimationFastForwardDoubleTap,
+  QuizAnimationFastForwardProvider,
+  useQuizAnimationFastForwardRequest,
+} from "@/features/quiz/components/quiz-animation-fast-forward";
 import { getScoreFlightAwardAtArrival, getScoreFlightIconCount } from "@/features/progress/reward-scatter";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
@@ -52,7 +57,7 @@ vi.mock("@/features/progress/components/reward-gem-hud", () => ({
 }));
 
 vi.mock("@/features/progress/components/reward-scatter", () => ({
-  RewardScatter: ({ points, onPointsStart, onPointsArrive, onPointsComplete, flightExit }: {
+  RewardScatter: ({ points, onPointsStart, onPointsArrive, onPointsComplete, flightExit, fastForwardSignal }: {
     points: {
       amount: number;
       startDelayMs?: number;
@@ -64,9 +69,11 @@ vi.mock("@/features/progress/components/reward-scatter", () => ({
     onPointsArrive?: (amount: number, index: number) => void;
     onPointsComplete?: () => void;
     flightExit?: boolean;
+    fastForwardSignal?: number;
   }) => (
     <div
       data-performance-scatter
+      data-fast-forward-signal={fastForwardSignal ?? 0}
       data-amount={points.amount}
       data-start-delay={points.startDelayMs}
       data-flight-stagger={points.flightStaggerMs}
@@ -92,6 +99,40 @@ vi.mock("@/features/progress/components/reward-scatter", () => ({
     </div>
   ),
 }));
+
+function FastForwardTapSurface({ children }: { children: ReactNode }) {
+  const requestFastForward = useQuizAnimationFastForwardRequest();
+  const lastTapAtRef = useRef(0);
+
+  return (
+    <div
+      onClick={(event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        if (target.closest("button, a, input, select, textarea, [role='button']")) {
+          lastTapAtRef.current = 0;
+          return;
+        }
+
+        const tappedScope = target.closest<HTMLElement>(
+          "[data-quiz-result-view], [data-quiz-mission-rewards], [data-quiz-deck-card-addition], [data-quiz-leaderboard-progress]",
+        ) ?? event.currentTarget;
+        if (!isQuizAnimationFastForwardDoubleTap(lastTapAtRef)) return;
+        requestFastForward?.(tappedScope);
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function FastForwardTestHarness({ children }: { children: ReactNode }) {
+  return (
+    <QuizAnimationFastForwardProvider>
+      <FastForwardTapSurface>{children}</FastForwardTapSurface>
+    </QuizAnimationFastForwardProvider>
+  );
+}
 
 describe("QuizPerformanceRewardSequence", () => {
   beforeEach(() => {
@@ -238,12 +279,16 @@ describe("QuizPerformanceRewardSequence", () => {
 
     render(
       <LocaleProvider initialLocale="en">
-        <div data-result-stat="accuracy" />
-        <div data-result-stat="time" />
-        <div data-result-card="correct" />
-        <div data-result-card="learned" />
-        <div data-result-stat="points" />
-        <QuizPerformanceRewardSequence {...props} />
+        <FastForwardTestHarness>
+          <div data-quiz-result-view data-quiz-result-stage="summary">
+            <div data-result-stat="accuracy" />
+            <div data-result-stat="time" />
+            <div data-result-card="correct" />
+            <div data-result-card="learned" />
+            <div data-result-stat="points" />
+            <QuizPerformanceRewardSequence {...props} />
+          </div>
+        </FastForwardTestHarness>
       </LocaleProvider>,
     );
 
@@ -253,9 +298,28 @@ describe("QuizPerformanceRewardSequence", () => {
     expect(mocks.award).not.toHaveBeenCalled();
     expect(mocks.onRankCheckComplete).toHaveBeenCalledExactlyOnceWith(null);
 
-    act(() => vi.advanceTimersByTime(200));
+    const resultScreen = document.querySelector<HTMLElement>(
+      '[data-quiz-result-view][data-quiz-result-stage="summary"]',
+    )!;
+    fireEvent.click(resultScreen, { button: 0, detail: 1 });
+    expect(document.querySelectorAll("[data-performance-scatter]")).toHaveLength(0);
+    act(() => vi.advanceTimersByTime(100));
+    fireEvent.click(resultScreen, { button: 0, detail: 1 });
+    act(() => vi.advanceTimersByTime(100));
+
     const scatterGroups = Array.from(document.querySelectorAll<HTMLElement>("[data-performance-scatter]"));
     expect(scatterGroups).toHaveLength(4);
+    expect(scatterGroups.map((group) => group.dataset.fastForwardSignal)).toEqual(["1", "1", "1", "1"]);
+    expect(scatterGroups.map((group) => group.dataset.startDelay)).toEqual(["0", "0", "0", "0"]);
+    act(() => vi.advanceTimersByTime(100));
+    fireEvent.click(resultScreen, { button: 0, detail: 3 });
+    expect(scatterGroups.map((group) => group.dataset.fastForwardSignal)).toEqual(["1", "1", "1", "1"]);
+    act(() => vi.advanceTimersByTime(100));
+    fireEvent.click(resultScreen, { button: 0, detail: 2 });
+    expect(scatterGroups.map((group) => group.dataset.fastForwardSignal)).toEqual(["1", "1", "1", "1"]);
+    expect(scatterGroups.map((group) => group.dataset.startDelay)).toEqual(["0", "0", "0", "0"]);
+    expect(vibrate).toHaveBeenCalledExactlyOnceWith("quiz-animation-fast-forward");
+
     for (const group of scatterGroups) {
       fireEvent.click(group.querySelector("[data-scatter-start]")!);
       fireEvent.click(group.querySelector("[data-scatter-arrive-all]")!);
@@ -265,6 +329,106 @@ describe("QuizPerformanceRewardSequence", () => {
     expect(screen.getByText("400")).toBeInTheDocument();
     expect(playSoundEffect).toHaveBeenCalledWith("quiz-reward-box-pulse", expect.any(Object));
     expect(vibrate).toHaveBeenCalledWith("quiz-reward-pulse");
+  });
+
+  it("fast-forwards all result scatters on synthesized touch clicks even when click detail stays at one", async () => {
+    vi.useFakeTimers();
+    render(
+      <LocaleProvider initialLocale="en">
+        <FastForwardTestHarness>
+          <div data-quiz-result-view data-quiz-result-stage="summary">
+            <div data-result-stat="accuracy" />
+            <div data-result-stat="time" />
+            <div data-result-card="correct" />
+            <div data-result-card="learned" />
+            <div data-result-stat="points" />
+            <QuizPerformanceRewardSequence
+              sessionId={null}
+              input={{
+                selectedCount: 10,
+                durationSeconds: 0,
+                correctAnswerCount: 10,
+                answeredCount: 10,
+                correctCardCount: 10,
+                learnedCardCount: 3,
+              }}
+              currentTotalPoints={200}
+              entered
+              exiting={false}
+              onPointsArrive={mocks.onPointsArrive}
+              testMode
+            />
+          </div>
+        </FastForwardTestHarness>
+      </LocaleProvider>,
+    );
+
+    act(() => vi.advanceTimersByTime(200));
+    const resultScreen = document.querySelector<HTMLElement>(
+      '[data-quiz-result-view][data-quiz-result-stage="summary"]',
+    )!;
+    const scatterGroups = Array.from(document.querySelectorAll<HTMLElement>("[data-performance-scatter]"));
+    expect(scatterGroups).toHaveLength(4);
+
+    fireEvent.click(resultScreen, { detail: 1, button: 0 });
+    expect(scatterGroups.map((group) => group.dataset.fastForwardSignal)).toEqual(["0", "0", "0", "0"]);
+    act(() => vi.advanceTimersByTime(100));
+    fireEvent.click(resultScreen, { detail: 1, button: 0 });
+
+    expect(scatterGroups.map((group) => group.dataset.fastForwardSignal)).toEqual(["1", "1", "1", "1"]);
+    expect(scatterGroups.map((group) => group.dataset.startDelay)).toEqual(["0", "0", "0", "0"]);
+    expect(vibrate).toHaveBeenCalledExactlyOnceWith("quiz-animation-fast-forward");
+  });
+
+  it("does not fast-forward hidden result scatters when a different result overlay is tapped", () => {
+    vi.useFakeTimers();
+    render(
+      <LocaleProvider initialLocale="en">
+        <FastForwardTestHarness>
+          <div
+            data-quiz-result-view
+            data-quiz-result-stage="summary"
+            aria-hidden="true"
+          >
+            <div data-result-stat="accuracy" />
+            <div data-result-stat="time" />
+            <div data-result-card="correct" />
+            <div data-result-card="learned" />
+            <div data-result-stat="points" />
+            <QuizPerformanceRewardSequence
+              sessionId={null}
+              input={{
+                selectedCount: 10,
+                durationSeconds: 0,
+                correctAnswerCount: 10,
+                answeredCount: 10,
+                correctCardCount: 10,
+                learnedCardCount: 3,
+              }}
+              currentTotalPoints={200}
+              entered
+              exiting={false}
+              onPointsArrive={mocks.onPointsArrive}
+              testMode
+            />
+          </div>
+          <div data-quiz-mission-rewards>
+            <span data-overlay-tap-target>Overlay content</span>
+          </div>
+        </FastForwardTestHarness>
+      </LocaleProvider>,
+    );
+
+    act(() => vi.advanceTimersByTime(200));
+    const scatterGroups = Array.from(document.querySelectorAll<HTMLElement>("[data-performance-scatter]"));
+    expect(scatterGroups).toHaveLength(4);
+    const overlay = document.querySelector<HTMLElement>("[data-overlay-tap-target]")!;
+    fireEvent.click(overlay, { detail: 1, button: 0 });
+    act(() => vi.advanceTimersByTime(100));
+    fireEvent.click(overlay, { detail: 1, button: 0 });
+
+    expect(scatterGroups.map((group) => group.dataset.fastForwardSignal)).toEqual(["0", "0", "0", "0"]);
+    expect(vibrate).not.toHaveBeenCalledWith("quiz-animation-fast-forward");
   });
 
   it("turns the pulsed stat border and foreground white and animates them back", async () => {

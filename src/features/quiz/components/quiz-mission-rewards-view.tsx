@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { MissionListContent } from "@/features/missions/components/mission-list-content";
+import { QUIZ_END_ACTION_TAP_GUARD_GRACE_MS } from "@/features/quiz/quiz-end-triple-tap";
 import { canUseSuperWater, formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ export function QuizMissionRewardsView({
   const { locale } = useLocale();
   const [exiting, setExiting] = useState(false);
   const [pending, setPending] = useState(false);
+  const [missionCardTapGuardActive, setMissionCardTapGuardActive] = useState(false);
   const continueConsumedRef = useRef(false);
   const onContinueRef = useRef(onContinue);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -44,6 +46,20 @@ export function QuizMissionRewardsView({
   useLayoutEffect(() => {
     onContinueRef.current = onContinue;
   }, [onContinue]);
+
+  useLayoutEffect(() => {
+    if (!visible) {
+      setMissionCardTapGuardActive(false);
+      return;
+    }
+
+    setMissionCardTapGuardActive(true);
+    const timer = window.setTimeout(
+      () => setMissionCardTapGuardActive(false),
+      QUIZ_END_ACTION_TAP_GUARD_GRACE_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [visible]);
 
   useLayoutEffect(() => {
     if (!visible) return;
@@ -115,6 +131,8 @@ export function QuizMissionRewardsView({
   return (
     <section
       data-quiz-mission-rewards
+      data-quiz-end-triple-tap-screen
+      data-mission-tap-guard-active={missionCardTapGuardActive ? "true" : "false"}
       data-transition-state={!visible ? "hidden" : exiting ? "exiting" : "entering"}
       aria-hidden={!visible}
       className={cn(
@@ -159,6 +177,7 @@ export function QuizMissionRewardsView({
         <button
           type="button"
           data-quiz-mission-rewards-continue
+          data-quiz-end-continue
           data-tap-vibration="firm"
           disabled={pending || exiting}
           onClick={handleContinue}

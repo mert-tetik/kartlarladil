@@ -25,6 +25,7 @@ export type SoundEffectName =
   | "card-swipe-left"
   | "chest-tap"
   | "chest-open"
+  | "chest-skipped"
   | "chest-crack"
   | "clock-tick-low"
   | "clock-tick-high"
@@ -36,6 +37,7 @@ export type SoundEffectName =
   | "result-medal-collect"
   | "result-action-press"
   | "result-card-reveal"
+  | "deck-card-add"
   | "quiz-result-point-award";
 
 interface BrowserAudioWindow extends Window {
@@ -69,6 +71,7 @@ const SOUND_EFFECT_AUDIO_FILES: Partial<Record<SoundEffectName, string>> = {
   "rank-up-opening": "/sounds/rank-up-opening-poyo-v3.mp3",
   "rank-up-reveal": "/sounds/rank-up-reveal.mp3",
   "chest-open": "/sounds/chest.mp3",
+  "chest-skipped": "/sounds/chest-skipped.mp3",
   "chest-crack": "/sounds/crack-audio.mp3",
   "bonus-reward-loot": "/sounds/bonus-reward-loot-collect.mp3?v=20261008-1",
   "level-fail": "/sounds/level-fail-elevenlabs-v1.mp3",
@@ -777,6 +780,18 @@ function chestOpen(context: AudioContext, now: number) {
   playTone(context, { frequency: SCALE.C6, startTime: now + 0.45, duration: 0.35, gain: 0.04 });
 }
 
+function chestSkipped(context: AudioContext, now: number) {
+  playNoise(context, { startTime: now, duration: 0.12, gain: 0.07, filterFrequency: 1100 });
+  playTone(context, {
+    frequency: 620,
+    endFrequency: 190,
+    startTime: now,
+    duration: 0.2,
+    gain: 0.07,
+    type: "triangle",
+  });
+}
+
 function clockTickLow(context: AudioContext, now: number) {
   // Soft, short tick for the last 10 seconds.
   playTone(context, { frequency: 800, startTime: now, duration: 0.04, gain: 0.025 });
@@ -918,6 +933,35 @@ function resultCardReveal(context: AudioContext, now: number) {
   });
 }
 
+function deckCardAdd(context: AudioContext, now: number, playbackRate = 1) {
+  const rate = Math.max(0.8, Math.min(playbackRate, 2.5));
+  // A soft, bright pluck with a two-note upward chime; the caller nudges the
+  // playback rate upward for every newly added card.
+  playTone(context, {
+    frequency: 440 * rate,
+    endFrequency: 660 * rate,
+    startTime: now,
+    duration: 0.105 / rate,
+    gain: 0.065,
+    type: "triangle",
+  });
+  playTone(context, {
+    frequency: 880 * rate,
+    endFrequency: 1175 * rate,
+    startTime: now + 0.035 / rate,
+    duration: 0.16 / rate,
+    gain: 0.055,
+    type: "sine",
+  });
+  playTone(context, {
+    frequency: 1320 * rate,
+    startTime: now + 0.075 / rate,
+    duration: 0.11 / rate,
+    gain: 0.022,
+    type: "sine",
+  });
+}
+
 const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: number, playbackRate?: number) => void> = {
   correct,
   incorrect,
@@ -945,6 +989,7 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "card-swipe-left": cardSwipeLeft,
   "chest-tap": chestTap,
   "chest-open": chestOpen,
+  "chest-skipped": chestSkipped,
   "chest-crack": chestCrack,
   "clock-tick-low": clockTickLow,
   "clock-tick-high": clockTickHigh,
@@ -956,6 +1001,7 @@ const EFFECT_SYNTHESIZERS: Record<SoundEffectName, (context: AudioContext, now: 
   "result-medal-collect": resultMedalCollect,
   "result-action-press": resultActionPress,
   "result-card-reveal": resultCardReveal,
+  "deck-card-add": deckCardAdd,
   "quiz-result-point-award": quizResultPointAward,
 };
 

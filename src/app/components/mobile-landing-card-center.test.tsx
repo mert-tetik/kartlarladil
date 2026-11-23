@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { MobileLandingCardCenter } from "@/app/components/mobile-landing-card-center";
 import { VOCABULARY_CARDS } from "@/data/cards";
@@ -6,6 +6,12 @@ import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { LOCALE_CODES } from "@/i18n/config";
 import { DICTIONARIES, translate } from "@/i18n/dictionaries";
 import { LocaleProvider } from "@/i18n/locale-provider";
+
+const trackAnalyticsEventMock = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/analytics-events", () => ({
+  trackAnalyticsEvent: trackAnalyticsEventMock,
+}));
 
 vi.mock("@/app/components/mobile-card-podium-overlay", () => ({
   MobileCardPodiumOverlay: () => null,
@@ -33,6 +39,10 @@ const learnedCards = [{
 }];
 
 describe("MobileLandingCardCenter", () => {
+  beforeEach(() => {
+    trackAnalyticsEventMock.mockClear();
+  });
+
   it("shows a localized empty message with the selected card language", () => {
     render(
       <AuthSessionProvider user={null}>
@@ -124,5 +134,59 @@ describe("MobileLandingCardCenter", () => {
     expect(visibleCards.map((item) => item.getAttribute("aria-label"))).toEqual(
       expect.arrayContaining([card.term, learnedCard.term]),
     );
+  });
+
+  it("records when the landing review screen is opened", () => {
+    render(
+      <AuthSessionProvider user={null}>
+        <LocaleProvider initialLocale="tr">
+          <MobileLandingCardCenter
+            activeCards={activeCards}
+            learnedCards={learnedCards}
+            selectedLanguage="en"
+            status="all"
+            isOpen
+            onStatusChange={vi.fn()}
+            onOpenChange={vi.fn()}
+            onOpenDraw={vi.fn()}
+            onOpenImageTranslate={vi.fn()}
+            onOpenCreate={vi.fn()}
+            onOpenGroups={vi.fn()}
+            showEmptyDeckPointer={false}
+          />
+        </LocaleProvider>
+      </AuthSessionProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: translate("tr", "cards.review") }));
+
+    expect(trackAnalyticsEventMock).toHaveBeenCalledWith("landing_review_opened");
+  });
+
+  it("records each landing card podium opening", () => {
+    render(
+      <AuthSessionProvider user={null}>
+        <LocaleProvider initialLocale="tr">
+          <MobileLandingCardCenter
+            activeCards={activeCards}
+            learnedCards={learnedCards}
+            selectedLanguage="en"
+            status="all"
+            isOpen
+            onStatusChange={vi.fn()}
+            onOpenChange={vi.fn()}
+            onOpenDraw={vi.fn()}
+            onOpenImageTranslate={vi.fn()}
+            onOpenCreate={vi.fn()}
+            onOpenGroups={vi.fn()}
+            showEmptyDeckPointer={false}
+          />
+        </LocaleProvider>
+      </AuthSessionProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: card.term }));
+
+    expect(trackAnalyticsEventMock).toHaveBeenCalledWith("landing_card_podium_opened");
   });
 });

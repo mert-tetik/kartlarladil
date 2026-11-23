@@ -11,12 +11,12 @@ Temel kavramlar:
 - **Kart**: Bir dildeki tek bir kelimeyi (`termKind: "word"`) temsil eden katalog öğesi. Modelde `fixed_phrase` desteği vardır, ancak mevcut otomatik katalog 28.000 adet `word` kartından oluşur.
 - **Tier**: `A1`, `A2`, `B1`, `B2`, `C1`.
 - **Öğrenme**: Doğru cevap sayısı tier eşiğine ulaştığında kart otomatik `learned` olur; kullanıcı manuel olarak öğrenildi yapamaz. Kaynak kodundaki eşik değerleri:
-  - `A1 = 4`
-  - `A2 = 4`
-  - `B1 = 6`
-  - `B2 = 6`
-  - `C1 = 8`
-- **Yanlış cevap**: Doğru sayacını 1 azaltır, minimum `0`.
+  - `A1 = 2`
+  - `A2 = 2`
+  - `B1 = 3`
+  - `B2 = 3`
+  - `C1 = 4`
+- **Yanlış cevap**: Doğru cevap sayacındaki mevcut ilerlemeyi azaltmaz.
 - **Puan / Rank**: Öğrenilmiş kart tier puanları ile server-side puan kaynaklarının toplamından türetilir; ayrı bir manuel rank sayacı tutulmaz. Kaynak kodundaki kart puan değerleri:
   - `A1 = 50`
   - `A2 = 50`

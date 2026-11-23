@@ -3,9 +3,11 @@ import { vi } from "vitest";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import { CHEST_TIERS } from "@/features/quiz/chest-rewards";
 import { LocaleProvider } from "@/i18n/locale-provider";
+import { playSoundEffect, preloadSoundEffects } from "@/lib/sound-effects";
 
 vi.mock("@/lib/sound-effects", () => ({
   playSoundEffect: vi.fn(),
+  preloadSoundEffects: vi.fn(),
 }));
 
 vi.mock("@/lib/vibration", () => ({
@@ -31,6 +33,7 @@ describe("ChestOpeningView", () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.clearAllMocks();
     queuedAnimationFrame = null;
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       queuedAnimationFrame = callback;
@@ -136,6 +139,7 @@ describe("ChestOpeningView", () => {
 
     expect(document.querySelector("[data-chest-opening-frames]")).toBeInTheDocument();
     expect(document.querySelector("[data-chest-opening-view]")).not.toHaveClass("animate-chest-screen-close");
+    expect(playSoundEffect).not.toHaveBeenCalledWith("chest-skipped");
 
     act(() => {
       vi.advanceTimersByTime(1999);
@@ -154,7 +158,7 @@ describe("ChestOpeningView", () => {
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
-  it("skips the opening frames on a single touch and reveals the rewards immediately", () => {
+  it("requires a double touch to skip the opening frames and reveal rewards", () => {
     const onComplete = vi.fn();
     const reward = {
       points: 20,
@@ -176,6 +180,14 @@ describe("ChestOpeningView", () => {
     const view = document.querySelector("[data-chest-opening-view]");
     expect(view).toBeInTheDocument();
     expect(document.querySelector("[data-chest-opening-frames]")).toBeInTheDocument();
+    expect(preloadSoundEffects).toHaveBeenCalledWith(["chest-skipped"]);
+
+    act(() => {
+      fireEvent.pointerUp(view!, { pointerType: "touch" });
+    });
+
+    expect(document.querySelector("[data-chest-reward-sources]")).not.toBeInTheDocument();
+    expect(playSoundEffect).not.toHaveBeenCalledWith("chest-skipped");
 
     act(() => {
       fireEvent.pointerUp(view!, { pointerType: "touch" });
@@ -185,6 +197,8 @@ describe("ChestOpeningView", () => {
     expect(document.querySelector("[data-chest-opening-frames]")).toBeInTheDocument();
     expect(document.querySelector("[data-chest-opening-view]")).not.toHaveClass("animate-chest-screen-close");
     expect(onComplete).not.toHaveBeenCalled();
+    expect(playSoundEffect).toHaveBeenCalledTimes(1);
+    expect(playSoundEffect).toHaveBeenCalledWith("chest-skipped");
   });
 
   it("does not treat a dragged touch as a fast-forward tap", () => {

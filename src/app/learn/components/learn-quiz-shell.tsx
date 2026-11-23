@@ -1,28 +1,17 @@
 "use client";
 
 import { GraduationCap, RotateCcw } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
+import { RouteLoadingState } from "@/components/route-loading-state";
 import { NoCardsEmptyState } from "@/features/inventory/components/no-cards-empty-state";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
-import { QuizStation } from "@/features/quiz/components/quiz-station";
+import { useQuizInventoryCards } from "@/features/quiz/use-quiz-inventory-cards";
 import type { NormalQuizItem, QuizPhase } from "@/features/quiz/components/quiz-station";
-import { LearnedCelebrationTest } from "@/app/learn/components/learned-celebration-test";
-import { CardProgressRevealTest } from "@/app/learn/components/card-progress-reveal-test";
-import { QuizStartTest } from "@/app/learn/components/quiz-start-test";
-import { StreakCelebrationTest } from "@/app/learn/components/streak-celebration-test";
-import { StreakRewardTest } from "@/app/learn/components/streak-reward-test";
-import { QuizResultTest } from "@/app/learn/components/quiz-result-test";
-import { QuizResultMessageTest } from "@/app/learn/components/quiz-result-message-test";
-import { QuizChestRewardTest } from "@/app/learn/components/quiz-chest-reward-test";
-import { QuizContinuationMotivationTest } from "@/app/learn/components/quiz-continuation-motivation-test";
-import { BonusQuestionsTest } from "@/app/learn/components/bonus-questions-test";
-import { BonusRewardTest } from "@/app/learn/components/bonus-reward-test";
-import { NormalQuestionsTest } from "@/app/learn/components/normal-questions-test";
-import { QuizWordButtonTest } from "@/app/learn/components/quiz-word-button-test";
 import { cn } from "@/lib/utils";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { useOptionalAuthSession } from "@/features/auth/auth-client";
@@ -30,6 +19,75 @@ import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialo
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import type { LanguageCode, PracticeMode } from "@/types/domain";
+
+const QuizStation = dynamic(
+  () => import("@/features/quiz/components/quiz-station").then((module) => module.QuizStation),
+  { ssr: false, loading: () => <LearnQuizLoadingState /> },
+);
+const LearnedCelebrationTest = dynamic(
+  () => import("@/app/learn/components/learned-celebration-test").then((module) => module.LearnedCelebrationTest),
+  { ssr: false },
+);
+const CardProgressRevealTest = dynamic(
+  () => import("@/app/learn/components/card-progress-reveal-test").then((module) => module.CardProgressRevealTest),
+  { ssr: false },
+);
+const QuizStartTest = dynamic(
+  () => import("@/app/learn/components/quiz-start-test").then((module) => module.QuizStartTest),
+  { ssr: false },
+);
+const StreakCelebrationTest = dynamic(
+  () => import("@/app/learn/components/streak-celebration-test").then((module) => module.StreakCelebrationTest),
+  { ssr: false },
+);
+const StreakRewardTest = dynamic(
+  () => import("@/app/learn/components/streak-reward-test").then((module) => module.StreakRewardTest),
+  { ssr: false },
+);
+const QuizResultTest = dynamic(
+  () => import("@/app/learn/components/quiz-result-test").then((module) => module.QuizResultTest),
+  { ssr: false },
+);
+const QuizResultMessageTest = dynamic(
+  () => import("@/app/learn/components/quiz-result-message-test").then((module) => module.QuizResultMessageTest),
+  { ssr: false },
+);
+const QuizChestRewardTest = dynamic(
+  () => import("@/app/learn/components/quiz-chest-reward-test").then((module) => module.QuizChestRewardTest),
+  { ssr: false },
+);
+const QuizContinuationMotivationTest = dynamic(
+  () => import("@/app/learn/components/quiz-continuation-motivation-test").then((module) => module.QuizContinuationMotivationTest),
+  { ssr: false },
+);
+const BonusQuestionsTest = dynamic(
+  () => import("@/app/learn/components/bonus-questions-test").then((module) => module.BonusQuestionsTest),
+  { ssr: false },
+);
+const BonusRewardTest = dynamic(
+  () => import("@/app/learn/components/bonus-reward-test").then((module) => module.BonusRewardTest),
+  { ssr: false },
+);
+const NormalQuestionsTest = dynamic(
+  () => import("@/app/learn/components/normal-questions-test").then((module) => module.NormalQuestionsTest),
+  { ssr: false },
+);
+const QuizWordButtonTest = dynamic(
+  () => import("@/app/learn/components/quiz-word-button-test").then((module) => module.QuizWordButtonTest),
+  { ssr: false },
+);
+const QuizLeaderboardProgressTest = dynamic(
+  () => import("@/app/learn/components/quiz-leaderboard-progress-test").then((module) => module.QuizLeaderboardProgressTest),
+  { ssr: false },
+);
+
+function LearnQuizLoadingState() {
+  return (
+    <div className="flex min-h-0 flex-1 items-center justify-center bg-background" aria-busy="true">
+      <RouteLoadingState idPrefix="learn-quiz-loading" />
+    </div>
+  );
+}
 
 type LearnShellPhase = QuizPhase | "mode";
 
@@ -56,6 +114,7 @@ interface LearnQuizShellProps {
   quizWordButtonTest?: boolean;
   quizCompletionTest?: boolean;
   quizFlowTest?: boolean;
+  quizLeaderboardTest?: boolean;
   quizWordRepetitionTest?: boolean;
 }
 
@@ -81,6 +140,7 @@ export function LearnQuizShell({
   quizWordButtonTest = false,
   quizCompletionTest = false,
   quizFlowTest = false,
+  quizLeaderboardTest = false,
   quizWordRepetitionTest = false,
 }: LearnQuizShellProps) {
   const [selectedMode, setSelectedMode] = useState<PracticeMode | null>(initialMode);
@@ -88,7 +148,7 @@ export function LearnQuizShell({
     ? (initialLanguage ? "count" : "language")
     : "mode";
   const [phase, setPhase] = useState<LearnShellPhase>(initialPhase);
-  const cards = useInventoryStore((state) => state.cards);
+  const { cards } = useQuizInventoryCards(phase === "result");
   const hydrated = useInventoryStore((state) => state.hydrated);
   const cloudLoading = useInventoryStore((state) => state.cloudLoading);
   const cloudEnabled = useInventoryStore((state) => state.cloudEnabled);
@@ -138,11 +198,11 @@ export function LearnQuizShell({
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
       setSelectedMode(initialMode);
-      setPhase(initialMode ? "language" : "mode");
+      setPhase(initialPhase);
     });
 
     return () => window.cancelAnimationFrame(frameId);
-  }, [initialMode]);
+  }, [initialMode, initialPhase]);
 
   useLayoutEffect(() => {
     const learnPage = document.querySelector<HTMLElement>("[data-learn-page]");
@@ -160,7 +220,15 @@ export function LearnQuizShell({
   }, [phase]);
 
   useEffect(() => {
-    if (bonusTest || bonusRewardTest || normalTest || chestRewardTest || continuationMotivationTest) return;
+    if (
+      quizFlowTest ||
+      bonusTest ||
+      bonusRewardTest ||
+      normalTest ||
+      chestRewardTest ||
+      continuationMotivationTest ||
+      quizLeaderboardTest
+    ) return;
 
     // The quiz itself may consume the final active cards by marking them
     // learned. Only redirect for an empty/unavailable setup; once the session
@@ -179,6 +247,7 @@ export function LearnQuizShell({
       redirectToLanding();
     }
   }, [
+    quizFlowTest,
     bonusTest,
     bonusRewardTest,
     cloudInventoryReady,
@@ -188,6 +257,7 @@ export function LearnQuizShell({
     normalTest,
     chestRewardTest,
     continuationMotivationTest,
+    quizLeaderboardTest,
     phase,
     ownerUserId,
     redirectToLanding,
@@ -232,6 +302,10 @@ export function LearnQuizShell({
 
   if (quizWordButtonTest) {
     return <QuizWordButtonTest />;
+  }
+
+  if (quizLeaderboardTest) {
+    return <QuizLeaderboardProgressTest />;
   }
 
   // Isolated test routes must remain available even when the visual-test

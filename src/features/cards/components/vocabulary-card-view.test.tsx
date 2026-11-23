@@ -194,7 +194,7 @@ describe("VocabularyCardView", () => {
       />,
     );
 
-    expect(container.querySelector("[data-card-progress]")).toHaveTextContent("1/4");
+    expect(container.querySelector("[data-card-progress]")).toHaveTextContent("1/2");
     expect(screen.queryByRole("button", { name: `${testCard.term} Sor` })).not.toBeInTheDocument();
     expect(screen.getByTestId("card-pronunciation")).toBeVisible();
     expect(screen.getByTestId("card-reference-example")).toBeVisible();
@@ -210,13 +210,13 @@ describe("VocabularyCardView", () => {
           correctCount: 1,
           addedAt: "2026-07-19T00:00:00.000Z",
         }}
-        footerProgressCount={2}
+        footerProgressCount={1}
         progressAnimationActive
       />,
     );
 
-    expect(container.querySelector("[data-card-progress]")).toHaveTextContent("2/4");
-    expect(container.querySelector("[data-card-progress][role='progressbar']")).toHaveAttribute("aria-valuenow", "2");
+    expect(container.querySelector("[data-card-progress]")).toHaveTextContent("1/2");
+    expect(container.querySelector("[data-card-progress][role='progressbar']")).toHaveAttribute("aria-valuenow", "1");
     expect(container.querySelector("[data-card-progress]")).toHaveAttribute("data-progress-animation-active", "true");
     expect(container.querySelector("[data-card-progress] [data-progress-indicator-overlay]")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: `${testCard.term} Sor` })).not.toBeInTheDocument();
@@ -226,13 +226,13 @@ describe("VocabularyCardView", () => {
     inventoryCardsMock.value = [{
       cardId: testCard.sourceKey,
       status: "active",
-      correctCount: 2,
+      correctCount: 1,
       addedAt: "2026-07-19T00:00:00.000Z",
     }];
 
     const { container } = renderCard(<VocabularyCardView card={testCard} />);
 
-    expect(container.querySelector("[data-card-progress]")).toHaveTextContent("2/4");
+    expect(container.querySelector("[data-card-progress]")).toHaveTextContent("1/2");
     expect(container.firstElementChild).toHaveAttribute("data-card-learning-status", "active");
     expect(screen.queryByRole("button", { name: `${testCard.term} Sor` })).not.toBeInTheDocument();
   });
@@ -256,7 +256,7 @@ describe("VocabularyCardView", () => {
 
   it("shows the learned medal when quiz progress reaches the tier requirement", () => {
     const { container } = renderCard(
-      <VocabularyCardView card={testCard} footerProgressCount={4} />,
+      <VocabularyCardView card={testCard} footerProgressCount={2} />,
     );
 
     expect(container.querySelector("[data-card-progress-medal]")).toBeInTheDocument();
@@ -267,13 +267,13 @@ describe("VocabularyCardView", () => {
     inventoryCardsMock.value = [{
       cardId: testCard.id,
       status: "learned",
-      correctCount: 4,
+      correctCount: 2,
       addedAt: "2026-07-19T00:00:00.000Z",
       learnedAt: "2026-07-20T00:00:00.000Z",
     }];
 
     const { container, rerender } = renderCard(
-      <VocabularyCardView card={testCard} footerProgressCount={4} progressAnimationActive />,
+      <VocabularyCardView card={testCard} footerProgressCount={2} progressAnimationActive />,
     );
 
     expect(container.querySelector("[data-card-progress]")).toBeInTheDocument();
@@ -281,7 +281,7 @@ describe("VocabularyCardView", () => {
 
     rerender(
       <LocaleProvider initialLocale="tr">
-        <VocabularyCardView card={testCard} footerProgressCount={4} />
+        <VocabularyCardView card={testCard} footerProgressCount={2} />
       </LocaleProvider>,
     );
 
@@ -292,7 +292,7 @@ describe("VocabularyCardView", () => {
   it("shows a zero progress slice and hides Ask for an explicitly owned card without a record", () => {
     const { container } = renderCard(<VocabularyCardView card={testCard} owned />);
 
-    expect(container.querySelector("[data-card-progress]")).toHaveTextContent("0/4");
+    expect(container.querySelector("[data-card-progress]")).toHaveTextContent("0/2");
     expect(screen.queryByRole("button", { name: `${testCard.term} Sor` })).not.toBeInTheDocument();
   });
 

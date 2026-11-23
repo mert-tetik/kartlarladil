@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { BodyScrollLock } from "@/components/body-scroll-lock";
 import { CookieNotice } from "@/components/cookie-notice";
 import { GlobalTapVibration } from "@/components/global-tap-vibration";
@@ -15,6 +15,7 @@ import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { MobileAuthGateway } from "@/features/auth/components/mobile-auth-gateway";
 import { NativeGoogleAuthCallback } from "@/features/auth/components/native-google-auth-callback";
 import { PostPracticeLeaderboardConsentGate } from "@/features/leaderboard/components/post-practice-leaderboard-consent-gate";
+import { LeaderboardDataPreloader } from "@/features/leaderboard/components/leaderboard-data-preloader";
 import { LeaderboardOverlayProvider } from "@/features/leaderboard/components/leaderboard-overlay-provider";
 import { AskOverlayProvider } from "@/features/ask/components/ask-overlay-provider";
 import { PushNotificationsProvider } from "@/features/push/components/push-notifications-provider";
@@ -39,7 +40,6 @@ import { DevelopmentServiceWorkerCleanup } from "@/components/development-servic
 import { NativeLoadingCardsBridge } from "@/components/native-loading-cards-bridge";
 import { AnalyticsSessionTracker } from "@/components/analytics-session-tracker";
 import { PerformanceDiagnosticsProvider } from "@/components/performance-diagnostics-provider";
-import { PerformanceDiagnosticsDisclosure } from "@/features/auth/components/performance-diagnostics-disclosure";
 
 import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { LocaleCode } from "@/types/domain";
@@ -66,10 +66,12 @@ export function AppShell({
         <MobileViewportController />
         <GlobalTapVibration />
         <AuthSessionProvider user={user}>
+        <Suspense fallback={null}>
+          <LeaderboardDataPreloader />
+        </Suspense>
         <AnalyticsSessionTracker />
         <NativeLoadingCardsBridge />
         <PerformanceDiagnosticsProvider />
-        <PerformanceDiagnosticsDisclosure />
         <QuizPoolAuthBoundary />
         <OfflineInventorySync />
         <DailyStreakProvider>

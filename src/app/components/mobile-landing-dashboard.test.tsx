@@ -18,13 +18,9 @@ import {
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
 
 const {
-  consumePlayReviewEligibilityMock,
-  hasPlayReviewEligibilityMock,
   addCardsMock,
   inventoryCardsMock,
-  isTwaModeMock,
   refreshEntitlementsMock,
-  requestGooglePlayReviewMock,
   routerPushMock,
   searchParamsMock,
   subscriptionEntitlementsMock,
@@ -33,13 +29,9 @@ const {
   prepareQuizPoolMock,
   useLeaderboardDataMock,
 } = vi.hoisted(() => ({
-  consumePlayReviewEligibilityMock: vi.fn(),
-  hasPlayReviewEligibilityMock: vi.fn(),
   addCardsMock: vi.fn(),
   inventoryCardsMock: { value: [] as InventoryCard[] },
-  isTwaModeMock: { value: false },
   refreshEntitlementsMock: vi.fn(),
-  requestGooglePlayReviewMock: vi.fn(),
   routerPushMock: vi.fn(),
   searchParamsMock: { value: "" as string },
   subscriptionEntitlementsMock: {
@@ -120,19 +112,6 @@ vi.mock("@/app/components/mobile-day-streak-overlay-provider", () => ({
   useOptionalMobileDayStreakOverlay: () => dayStreakOverlayMock.value,
 }));
 
-vi.mock("@/features/install-app/use-twa-mode", () => ({
-  useTwaMode: () => isTwaModeMock.value,
-}));
-
-vi.mock("@/features/reviews/play-review-eligibility", () => ({
-  consumePlayReviewEligibility: consumePlayReviewEligibilityMock,
-  hasPlayReviewEligibility: hasPlayReviewEligibilityMock,
-}));
-
-vi.mock("@/lib/twa-analytics", () => ({
-  requestGooglePlayReview: requestGooglePlayReviewMock,
-}));
-
 vi.mock("@/features/inventory/inventory-store", () => {
   const useInventoryStore = Object.assign(
     (selector: (state: {
@@ -195,12 +174,6 @@ describe("MobileLandingDashboard language sync", () => {
       remainingCardIds: [],
       limitReached: false,
     });
-    isTwaModeMock.value = false;
-    hasPlayReviewEligibilityMock.mockReset();
-    hasPlayReviewEligibilityMock.mockReturnValue(false);
-    consumePlayReviewEligibilityMock.mockReset();
-    consumePlayReviewEligibilityMock.mockReturnValue(null);
-    requestGooglePlayReviewMock.mockReset();
     subscriptionPlanMock.value = "free";
     subscriptionEntitlementsMock.value = { effectivePlan: subscriptionPlanMock.value };
     dayStreakOverlayMock.value = null;
@@ -408,49 +381,6 @@ describe("MobileLandingDashboard language sync", () => {
     expect(selectedIds).not.toEqual(starterCards.slice(0, 3).map((card) => card.sourceKey));
     expect(selectedIds.every((id) => starterCards.some((card) => card.sourceKey === id))).toBe(true);
     expect(new Set(selectedIds).size).toBe(3);
-  });
-
-  it("requests the native review flow after eligible activity when the TWA deck has 10 cards", async () => {
-    isTwaModeMock.value = true;
-    hasPlayReviewEligibilityMock.mockReturnValue(true);
-    consumePlayReviewEligibilityMock.mockReturnValue("quiz");
-    inventoryCardsMock.value = VOCABULARY_CARDS.slice(0, 10).map((card) => ({
-      cardId: card.id,
-      status: "active",
-      correctCount: 0,
-      addedAt: "2026-07-12T00:00:00.000Z",
-    }));
-
-    render(
-      <LocaleProvider initialLocale="tr">
-        <MobileLandingDashboard />
-      </LocaleProvider>,
-    );
-
-    await waitFor(() => {
-      expect(consumePlayReviewEligibilityMock).toHaveBeenCalledOnce();
-      expect(requestGooglePlayReviewMock).toHaveBeenCalledOnce();
-    });
-  });
-
-  it("does not request a review before the deck reaches 10 cards", () => {
-    isTwaModeMock.value = true;
-    hasPlayReviewEligibilityMock.mockReturnValue(true);
-    inventoryCardsMock.value = VOCABULARY_CARDS.slice(0, 9).map((card) => ({
-      cardId: card.id,
-      status: "active",
-      correctCount: 0,
-      addedAt: "2026-07-12T00:00:00.000Z",
-    }));
-
-    render(
-      <LocaleProvider initialLocale="tr">
-        <MobileLandingDashboard />
-      </LocaleProvider>,
-    );
-
-    expect(consumePlayReviewEligibilityMock).not.toHaveBeenCalled();
-    expect(requestGooglePlayReviewMock).not.toHaveBeenCalled();
   });
 
   it("temporarily hides the how-to action on mobile", () => {

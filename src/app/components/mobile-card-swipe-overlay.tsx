@@ -6,6 +6,11 @@ import { Check, X } from "lucide-react";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { localCardRepository } from "@/features/cards/card-repository";
 import { takeRandomCardsInTierOrder } from "@/app/components/mobile-card-swipe-deck";
+import {
+  getCardSwipeTierRepeatCounts,
+  recordCardSwipeTierAdded,
+  type TierRepeatCounts,
+} from "@/features/cards/card-swipe-tier-behavior";
 import { cancelCardPronunciation } from "@/features/cards/card-pronunciation-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { countActiveCardsForLanguage } from "@/features/inventory/active-card-limits";
@@ -52,6 +57,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
   const inventory = useInventoryStore((state) => state.cards);
   const activeCardLimit = useInventoryStore((state) => state.activeCardLimit);
   const addCard = useInventoryStore((state) => state.addCard);
+  const ownerUserId = useInventoryStore((state) => state.ownerUserId);
   const [deck, setDeck] = useState<VocabularyCard[]>([]);
   const [demoX, setDemoX] = useState(0);
   const [swipeFeedback, setSwipeFeedback] = useState<SwipeDirection | null>(null);
@@ -140,7 +146,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
     }, 0);
 
     return () => window.clearTimeout(resetTimer);
-  }, [language, open]);
+  }, [language, open, ownerUserId]);
 
   useEffect(() => {
     if (!open || !entered) return;
@@ -165,10 +171,20 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
     const choices = localCardRepository
       .list({ language })
       .filter((candidate) => !excludedIds.has(candidate.sourceKey) && !excludedIds.has(candidate.id));
+    let tierRepeatCounts: TierRepeatCounts | undefined;
+    try {
+      tierRepeatCounts = typeof window === "undefined"
+        ? undefined
+        : getCardSwipeTierRepeatCounts(window.localStorage, ownerUserId, language);
+    } catch {
+      tierRepeatCounts = undefined;
+    }
     const { cards: additions, nextTierIndex } = takeRandomCardsInTierOrder(
       choices,
       needed,
       nextTierIndexRef.current,
+      Math.random,
+      tierRepeatCounts,
     );
 
     if (additions.length > 0) {
@@ -179,7 +195,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
         return deckIsUnchanged ? [...current, ...additions] : current;
       });
     }
-  }, [deck, language, usedIds]);
+  }, [deck, language, ownerUserId, usedIds]);
 
   useEffect(() => {
     if (!open || typeof window === "undefined") return;
@@ -276,6 +292,7 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
 
     if (direction === "add") {
       dispatchTutorialCardLayerAddAttempted({ layer: "draw-cards", count: 1 });
+      scheduleTierBehaviorRecord(card.tier);
     }
 
     if (direction === "skip") {
@@ -372,6 +389,22 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
         }
       })
       .catch(() => undefined);
+  }
+
+  function scheduleTierBehaviorRecord(tier: VocabularyCard["tier"]) {
+    const record = () => {
+      try {
+        recordCardSwipeTierAdded(window.localStorage, ownerUserId, language, tier);
+      } catch {
+        // Storage access must never interrupt the swipe interaction.
+      }
+    };
+
+    if (typeof queueMicrotask === "function") {
+      queueMicrotask(record);
+    } else {
+      window.setTimeout(record, 0);
+    }
   }
 
   function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {

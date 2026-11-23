@@ -24,7 +24,7 @@ type CardFace = "front" | "back";
 
 interface VocabularyCardViewProps {
   card: VocabularyCard;
-  inventory?: InventoryCard;
+  inventory?: InventoryCard | null;
   owned?: boolean;
   allowOwnedAdd?: boolean;
   initialFace?: CardFace;
@@ -99,7 +99,7 @@ export const VocabularyCardView = memo(function VocabularyCardView({
   const storedInventory = useInventoryStore((state) => inventory === undefined
     ? state.cards.find(({ cardId }) => cardId === card.id || cardId === card.sourceKey)
     : undefined);
-  const resolvedInventory = inventory ?? storedInventory;
+  const resolvedInventory = inventory === undefined ? storedInventory : inventory ?? undefined;
   const { pronunciation: resolvedPronunciation } = useCardPronunciation(card);
   const displayCard = resolvedPronunciation ? { ...card, pronunciation: resolvedPronunciation } : card;
   const [faceState, setFaceState] = useState<CardFaceState>(() => ({

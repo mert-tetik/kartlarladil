@@ -35,15 +35,10 @@ import { UpgradeDialog, type UpgradeDialogErrorCode } from "@/features/subscript
 import { updateLanguagePreferenceAction } from "@/features/auth/actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
-import { useTwaMode } from "@/features/install-app/use-twa-mode";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { customCardRegistry } from "@/features/cards/custom-card-registry";
 import { prepareQuizPool } from "@/features/quiz/quiz-pool-preparation";
-import {
-  consumePlayReviewEligibility,
-  hasPlayReviewEligibility,
-} from "@/features/reviews/play-review-eligibility";
 import { useProgressStats } from "@/features/progress/progress-client";
 import { RANK_ICON_ASSETS } from "@/features/progress/rank-icons";
 import { formatNumber, getLanguageDisplayName, getRankLabel } from "@/i18n/labels";
@@ -78,7 +73,6 @@ import { useLeaderboardOverlay } from "@/features/leaderboard/components/leaderb
 import { vibrate } from "@/lib/vibration";
 import { beginNavigationIntent, isActiveNavigationIntent } from "@/lib/navigation-intent";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
-import { requestGooglePlayReview } from "@/lib/twa-analytics";
 import type {
   ActiveCardLimitDetails,
   LanguageCode,
@@ -157,7 +151,6 @@ export function MobileLandingDashboard() {
   const cloudLoadComplete = useInventoryStore((state) => state.cloudLoadComplete);
   const cloudError = useInventoryStore((state) => state.cloudError);
   const ownerUserId = useInventoryStore((state) => state.ownerUserId);
-  const isTwa = useTwaMode();
   const waitingMissionCount = useMissionWaitingCount();
   const {
     data: leaderboardData,
@@ -378,18 +371,6 @@ export function MobileLandingDashboard() {
 
     return () => window.clearTimeout(timeoutId);
   }, [cards, cloudEnabled, cloudLoadComplete, cloudLoading, hydrated, locale, selectedLanguage, user?.id]);
-
-  useEffect(() => {
-    if (!isTwa || !hydrated || cards.length < 10 || !hasPlayReviewEligibility()) {
-      return;
-    }
-
-    if (!consumePlayReviewEligibility()) {
-      return;
-    }
-
-    requestGooglePlayReview();
-  }, [cards.length, hydrated, isTwa]);
 
   useEffect(() => {
     // Browser storage is intentionally read after hydration. Reading it while

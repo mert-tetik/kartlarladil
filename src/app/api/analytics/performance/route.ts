@@ -105,25 +105,15 @@ export async function GET() {
   const user = await getCurrentAuthUser();
   if (!user) return Response.json({ error: "auth_required" }, { status: 401 });
 
-  try {
-    const { data, error } = await createSupabaseAdminClient()
-      .from("user_performance_diagnostics_settings")
-      .select("enabled, policy_version")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (error) throw error;
-
-    return Response.json({
-      enabled: data?.enabled === true && data.policy_version === PERFORMANCE_DIAGNOSTICS_POLICY_VERSION,
-      has_decided: data?.policy_version === PERFORMANCE_DIAGNOSTICS_POLICY_VERSION,
-      policy_version: PERFORMANCE_DIAGNOSTICS_POLICY_VERSION,
-    }, { headers: { "cache-control": "no-store" } });
-  } catch (error) {
-    console.error("[analytics.performance] Consent lookup failed", error);
-    return Response.json({ error: "unavailable" }, { status: 503 });
-  }
+  return Response.json({
+    enabled: true,
+    has_decided: true,
+    policy_version: PERFORMANCE_DIAGNOSTICS_POLICY_VERSION,
+  }, { headers: { "cache-control": "no-store" } });
 }
 
+// Keep the old endpoint shape harmless for cached clients. Diagnostics are
+// automatic now, so this compatibility handler never disables collection.
 export async function PATCH(request: Request) {
   const user = await getCurrentAuthUser();
   if (!user) return Response.json({ error: "auth_required" }, { status: 401 });
@@ -134,35 +124,11 @@ export async function PATCH(request: Request) {
   }).strict().safeParse(await readSmallJson(request));
   if (!parsed.success) return Response.json({ error: "invalid_request" }, { status: 400 });
 
-  try {
-    const admin = createSupabaseAdminClient();
-    const now = new Date().toISOString();
-    const { error: settingsError } = await admin
-      .from("user_performance_diagnostics_settings")
-      .upsert({
-        user_id: user.id,
-        enabled: parsed.data.enabled,
-        policy_version: parsed.data.policy_version,
-        consented_at: parsed.data.enabled ? now : null,
-        updated_at: now,
-      }, { onConflict: "user_id" });
-    if (settingsError) throw settingsError;
-
-    if (!parsed.data.enabled) {
-      const { error } = await admin
-        .from("user_performance_summaries")
-        .delete()
-        .eq("user_id", user.id);
-      if (error) throw error;
-    }
-
-    return Response.json({ enabled: parsed.data.enabled, policy_version: PERFORMANCE_DIAGNOSTICS_POLICY_VERSION }, {
-      headers: { "cache-control": "no-store" },
-    });
-  } catch (error) {
-    console.error("[analytics.performance] Consent update failed", error);
-    return Response.json({ error: "unavailable" }, { status: 503 });
-  }
+  return Response.json({
+    enabled: true,
+    has_decided: true,
+    policy_version: PERFORMANCE_DIAGNOSTICS_POLICY_VERSION,
+  }, { headers: { "cache-control": "no-store" } });
 }
 
 export async function POST(request: Request) {
@@ -174,15 +140,6 @@ export async function POST(request: Request) {
 
   try {
     const admin = createSupabaseAdminClient();
-    const { data: consent, error: consentError } = await admin
-      .from("user_performance_diagnostics_settings")
-      .select("enabled, policy_version")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (consentError) throw consentError;
-    if (consent?.enabled !== true || consent.policy_version !== PERFORMANCE_DIAGNOSTICS_POLICY_VERSION) {
-      return Response.json({ error: "consent_required" }, { status: 403 });
-    }
 
     const writes = parsed.data.events.map(async (event) => {
       const environmentKey = createHash("sha256")

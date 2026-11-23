@@ -58,6 +58,7 @@ import {
 } from "@/features/ai-practice/ai-practice-data";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { InventoryActionError, useInventoryStore } from "@/features/inventory/inventory-store";
+import { useQuizInventoryCards } from "@/features/quiz/use-quiz-inventory-cards";
 import { customCardRegistry } from "@/features/cards/custom-card-registry";
 import {
   getTierRequirement,
@@ -133,12 +134,25 @@ import {
   awardQuizStreakPoints,
 } from "@/features/quiz/actions";
 import { useLeaderboardData } from "@/features/leaderboard/use-leaderboard";
+import {
+  createQuizFlowTestLeaderboardScenario,
+  hasReadyQuizPointsLeaderboard,
+} from "@/features/quiz/quiz-leaderboard-readiness";
 import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
-import { markPlayReviewEligible } from "@/features/reviews/play-review-eligibility";
+import type { LeaderboardPayload } from "@/features/leaderboard/leaderboard-types";
 import { preloadSoundEffects } from "@/lib/sound-effects";
+import {
+  activateQuizEndPrimaryActionOnTripleTap,
+  createQuizEndTripleTapState,
+  QUIZ_END_ACTION_TAP_GUARD_GRACE_MS,
+  QUIZ_END_CONTINUE_TRIPLE_TAP_WINDOW_MS,
+  resetQuizEndTripleTapState,
+} from "@/features/quiz/quiz-end-triple-tap";
+import { runQuizEndActionAfterSingleTap } from "@/features/quiz/quiz-end-action-tap-guard";
 import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view";
 import {
   finishCurrentWebAnimations,
+  isQuizAnimationFastForwardDoubleTap,
   QuizAnimationFastForwardProvider,
   useQuizAnimationFastForward,
   useQuizAnimationFastForwardRequest,
@@ -152,6 +166,8 @@ import { ChestIcon } from "@/features/quiz/components/chest-icon";
 import { QuizChestRewardGate } from "@/features/quiz/components/quiz-chest-reward-gate";
 import { QuizContinuationMotivationView } from "@/features/quiz/components/quiz-continuation-motivation-view";
 import { QuizMissionRewardsView } from "@/features/quiz/components/quiz-mission-rewards-view";
+import { QuizDeckCardAdditionView } from "@/features/quiz/components/quiz-deck-card-addition-view";
+import { QuizLeaderboardProgressView } from "@/features/quiz/components/quiz-leaderboard-progress-view";
 import type { QuizContinuationMotivationInput } from "@/features/quiz/quiz-continuation-motivations";
 import { QuizStartSplash } from "@/features/quiz/components/quiz-start-splash";
 import {
@@ -232,7 +248,11 @@ import { cn } from "@/lib/utils";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
-import { sendTwaAnalyticsEvent, trackTwaQualityActivation } from "@/lib/twa-analytics";
+import {
+  requestGooglePlayReview,
+  sendTwaAnalyticsEvent,
+  trackTwaQualityActivation,
+} from "@/lib/twa-analytics";
 import { trackAnalyticsEvent } from "@/lib/analytics-events";
 import { useAppMessage } from "@/components/app-message-provider";
 import confetti from "canvas-confetti";
@@ -607,7 +627,11 @@ export function QuizStation({
   onPhaseChange?: (phase: QuizPhase) => void;
   onBackToMode?: () => void;
 }) {
-  const cards = useInventoryStore((state) => state.cards);
+  const [phase, setPhase] = useState<QuizPhase>(initialLanguage ? "count" : "language");
+  const {
+    cards,
+    refreshSnapshot: refreshResultInventorySnapshot,
+  } = useQuizInventoryCards(phase === "result");
   const hydrated = useInventoryStore((state) => state.hydrated);
   const cloudEnabled = useInventoryStore((state) => state.cloudEnabled);
   const cloudLoading = useInventoryStore((state) => state.cloudLoading);
@@ -628,6 +652,11 @@ export function QuizStation({
     rollbackGemSpend,
   } = useAuthSession();
   const { stats, refreshStats } = useProgressStats();
+  const {
+    data: quizLeaderboardData,
+    loading: quizLeaderboardLoading,
+    refreshing: quizLeaderboardRefreshing,
+  } = useLeaderboardData({ enabled: Boolean(user), mode: "points" });
   const handlePerformanceRewardError = useCallback(() => {
     showMessage(t("inventory.error.operationFailed"), "error");
   }, [showMessage, t]);
@@ -648,7 +677,6 @@ export function QuizStation({
   }, [refreshStats]);
   const chestRewardsEnabled = mode === "active";
 
-  const [phase, setPhase] = useState<QuizPhase>(initialLanguage ? "count" : "language");
   const [isPreparingQuizPool, setIsPreparingQuizPool] = useState(Boolean(initialLanguage));
   const [isWaitingForQuizPool, setIsWaitingForQuizPool] = useState(false);
   const phaseRef = useRef(phase);
@@ -730,6 +758,13 @@ export function QuizStation({
   const correctAnswerAnimationCompletionRef = useRef<(() => void) | null>(null);
   const awardedStreakSessionRef = useRef<string | null>(null);
   const quizStartRankRef = useRef<RankDefinition | null>(null);
+  const quizStartLeaderboardPositionRef = useRef<number | null>(null);
+  const latestLeaderboardPositionRef = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    if (quizLeaderboardData?.mode === "points") {
+      latestLeaderboardPositionRef.current = quizLeaderboardData.viewer.pointsPosition;
+    }
+  }, [quizLeaderboardData?.mode, quizLeaderboardData?.viewer.pointsPosition]);
   const quizStartedAtRef = useRef<number | null>(null);
   const quizBasePointsRef = useRef(stats.totalPoints);
   const quizResultPointsBaseRef = useRef(user?.profile.quizResultPoints ?? 0);
@@ -1621,10 +1656,7 @@ export function QuizStation({
 
     const id = `${currentIndex}:${item.card.id}`;
     const baseCount = item.inventoryCard.correctCount;
-    const targetCount = Math.max(
-      0,
-      Math.min(getTierRequirement(item.card.tier), baseCount + (isCorrect ? 1 : -1)),
-    );
+    const targetCount = Math.min(getTierRequirement(item.card.tier), baseCount + 1);
 
     let revealTimeoutId: number | null = null;
     let revealStarted = false;
@@ -1843,6 +1875,7 @@ export function QuizStation({
           : Math.min(count, pool.totalCandidateCount);
       const sessionId = createQuizSessionId();
       quizStartedAtRef.current = Date.now();
+      quizStartLeaderboardPositionRef.current = latestLeaderboardPositionRef.current;
       setQuizDurationSeconds(null);
       const preparedDeck = buildPreparedQuizDeck(pool, {
         targetRegularCount,
@@ -3693,6 +3726,15 @@ export function QuizStation({
     const quizFlowTestCards = VOCABULARY_CARDS.filter(
       (card) => card.language === (selectedLanguage ?? "en"),
     ).slice(0, 20);
+    const quizFlowTestResults: QuizResult = {
+      correct: quizFlowTestCards.slice(0, 10),
+      incorrect: [],
+      learned: quizFlowTestCards.slice(0, 3),
+      // Include bonus-question answers so the test can show 80% accuracy
+      // while the regular-card correct count remains exactly ten.
+      bonusCorrect: 2,
+      bonusIncorrect: 3,
+    };
     const resultAchievementCards = quizFlowTest
       ? {
           learnedCards: quizFlowTestCards.slice(0, 10),
@@ -3738,17 +3780,23 @@ export function QuizStation({
           <ResultFlowView
             mode={mode}
             selectedLanguage={selectedLanguage}
-            results={results}
+            results={quizFlowTest ? quizFlowTestResults : results}
             earnedPoints={earnedPoints}
-            selectedCount={selectedCount}
+            selectedCount={quizFlowTest ? 10 : selectedCount}
             quizSessionId={quizSessionId}
-            quizDurationSeconds={quizDurationSeconds ?? 0}
+            quizDurationSeconds={quizFlowTest ? 60 : quizDurationSeconds ?? 0}
             chestOpened={chestOpened}
             showChestRewardGate
             chestTier={awardedChestTier}
             chestTotalPoints={stats.totalPoints}
             currentTotalPoints={stats.totalPoints}
             quizFlowTest={quizFlowTest}
+            performanceRewardTest={quizFlowTest}
+            leaderboardPayload={quizLeaderboardData}
+            leaderboardLoading={quizLeaderboardLoading}
+            leaderboardRefreshing={quizLeaderboardRefreshing}
+            leaderboardPositionBeforeQuiz={quizStartLeaderboardPositionRef.current}
+            leaderboardPointsBeforeQuiz={quizBasePointsRef.current}
             onRewardError={handlePerformanceRewardError}
             onRewardPersisted={handlePerformanceRewardPersisted}
             onRewardRankUp={announceQuizRankUp}
@@ -3771,6 +3819,7 @@ export function QuizStation({
             currentRankIcon={stats.rank.icon}
             nextRankIcon={stats.nextRank?.icon ?? null}
             gainedGems={0}
+            onResultInventoryRefresh={refreshResultInventorySnapshot}
             onResultMessageComplete={() => setResultMessageOnResult(false)}
             onRestart={handleRestart}
             onExit={handleExit}
@@ -3785,6 +3834,7 @@ export function QuizStation({
       <RankUpMenu
         rank={pendingRankUp}
         fromRank={pendingRankUpFromRank ?? undefined}
+        enableQuizEndTripleTapContinue
         firmCloseVibration
         onClose={() => {
           const completedRank = pendingRankUp;
@@ -6881,6 +6931,7 @@ const QUIZ_ANIMATION_SCOPE_SELECTOR = [
   "[data-chest-opening-view]",
   ".rank-up-menu",
 ].join(", ");
+const QUIZ_END_TRIPLE_TAP_SCREEN_SELECTOR = "[data-quiz-end-triple-tap-screen]";
 
 function QuizViewportOverlay({
   children,
@@ -6926,26 +6977,66 @@ function QuizViewportOverlaySurface({
 }) {
   const fastForward = useQuizAnimationFastForwardRequest();
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const lastFastForwardTapAtRef = useRef(0);
+  const tripleTapStateRef = useRef(createQuizEndTripleTapState());
+  const activatingContinueRef = useRef(false);
 
   const handleClick = (event: ReactMouseEvent<HTMLDivElement>) => {
-    if (event.defaultPrevented || event.button !== 0) return;
+    if (event.defaultPrevented || event.button !== 0) {
+      lastFastForwardTapAtRef.current = 0;
+      return;
+    }
+    if (activatingContinueRef.current) return;
     const target = event.target;
     if (!(target instanceof Element)) return;
+
+    const screen = target.closest<HTMLElement>(QUIZ_END_TRIPLE_TAP_SCREEN_SELECTOR);
+    if (screen?.matches(".rank-up-menu")) {
+      resetQuizEndTripleTapState(tripleTapStateRef.current);
+    } else if (screen && event.detail > 0) {
+      const didContinue = activateQuizEndPrimaryActionOnTripleTap(
+        tripleTapStateRef.current,
+        screen,
+        performance.now(),
+        (button) => {
+          activatingContinueRef.current = true;
+          try {
+            button.click();
+          } finally {
+            activatingContinueRef.current = false;
+          }
+        },
+      );
+      if (didContinue) {
+        lastFastForwardTapAtRef.current = 0;
+        return;
+      }
+    } else {
+      resetQuizEndTripleTapState(tripleTapStateRef.current);
+    }
+
     if (target.closest(
-      "button, a, input, select, textarea, [contenteditable='true'], [data-no-quiz-fast-forward]",
-    )) return;
+      "button, a, input, select, textarea, [role='button'], [contenteditable='true'], [data-no-quiz-fast-forward]",
+    )) {
+      // Do not let a tap on a control combine with a later background tap.
+      lastFastForwardTapAtRef.current = 0;
+      return;
+    }
 
     const root = rootRef.current;
     if (!root) return;
+    if (!isQuizAnimationFastForwardDoubleTap(lastFastForwardTapAtRef)) return;
+
     const scopedRoot = target.closest<HTMLElement>(QUIZ_ANIMATION_SCOPE_SELECTOR) ?? root;
-    finishCurrentWebAnimations(root, false);
+    let didFastForward = finishCurrentWebAnimations(root, false) > 0;
     for (let ancestor = scopedRoot.parentElement; ancestor && ancestor !== root; ancestor = ancestor.parentElement) {
       if (ancestor.matches(QUIZ_ANIMATION_SCOPE_SELECTOR)) {
-        finishCurrentWebAnimations(ancestor, false);
+        didFastForward = finishCurrentWebAnimations(ancestor, false) > 0 || didFastForward;
       }
     }
     if (fastForward?.(scopedRoot)) return;
-    finishCurrentWebAnimations(scopedRoot);
+    didFastForward = finishCurrentWebAnimations(scopedRoot) > 0 || didFastForward;
+    if (didFastForward) vibrate("quiz-animation-fast-forward");
   };
 
   return (
@@ -6981,6 +7072,11 @@ type ResultFlowViewProps = {
   chestTotalPoints?: number;
   currentTotalPoints?: number;
   quizFlowTest?: boolean;
+  leaderboardPayload?: LeaderboardPayload | null;
+  leaderboardLoading?: boolean;
+  leaderboardRefreshing?: boolean;
+  leaderboardPositionBeforeQuiz?: number | null;
+  leaderboardPointsBeforeQuiz?: number | null;
   performanceRewardTest?: boolean;
   onChestRewardReady?: () => Promise<ChestRewardOutcome | null>;
   learnedCards?: readonly VocabularyCard[];
@@ -6994,6 +7090,7 @@ type ResultFlowViewProps = {
   currentRankIcon?: RankIconId;
   nextRankIcon?: RankIconId | null;
   gainedGems?: number;
+  onResultInventoryRefresh?: () => void;
   onResultMessageComplete?: () => void;
   onRewardError?: () => void;
   onRewardPersisted?: (pointsBeforeAward: number) => Promise<QuizPerformanceRankUp | null>;
@@ -7023,16 +7120,37 @@ export function ResultFlowView({
   nextRankIcon = "medal",
   gainedGems = 0,
   quizFlowTest = false,
+  leaderboardPayload = null,
+  leaderboardLoading = false,
+  leaderboardRefreshing = false,
+  leaderboardPositionBeforeQuiz = null,
+  leaderboardPointsBeforeQuiz = null,
   performanceRewardTest = false,
   earnedPoints = 0,
+  onResultInventoryRefresh,
   onResultMessageComplete,
   ...resultProps
 }: ResultFlowViewProps) {
   const t = useT();
   const { locale } = useLocale();
+  const [testLeaderboardScenario] = useState(() => (
+    quizFlowTest ? createQuizFlowTestLeaderboardScenario() : null
+  ));
+  const resultLeaderboardPayload = quizFlowTest
+    ? testLeaderboardScenario?.payload ?? null
+    : leaderboardPayload;
+  const resultLeaderboardLoading = quizFlowTest ? false : leaderboardLoading;
+  const resultLeaderboardRefreshing = quizFlowTest ? false : leaderboardRefreshing;
+  const resultLeaderboardBeforePosition = quizFlowTest
+    ? testLeaderboardScenario?.beforePosition ?? null
+    : leaderboardPositionBeforeQuiz;
+  const resultLeaderboardPreviousViewerPoints = quizFlowTest
+    ? testLeaderboardScenario?.previousViewerPoints ?? null
+    : leaderboardPointsBeforeQuiz;
   const resultActionPressIndexRef = useRef(0);
   const resultViewContinueConsumedRef = useRef(false);
   const resultFlowCompletedRef = useRef(false);
+  const playReviewRequestedRef = useRef(false);
   const missionAvailabilityStartedRef = useRef(false);
   const missionAvailabilityHandledRef = useRef(false);
   const playResultActionPress = useCallback(() => {
@@ -7047,6 +7165,7 @@ export function ResultFlowView({
     resultActionPressIndexRef.current = 0;
     resultViewContinueConsumedRef.current = false;
     resultFlowCompletedRef.current = false;
+    playReviewRequestedRef.current = false;
     missionAvailabilityStartedRef.current = false;
     missionAvailabilityHandledRef.current = false;
   }, [resultProps.quizSessionId]);
@@ -7054,6 +7173,8 @@ export function ResultFlowView({
   const [messageStageVisible, setMessageStageVisible] = useState(showResultMessage);
   const [resultStageVisible, setResultStageVisible] = useState(!showResultMessage);
   const [chestGateVisible, setChestGateVisible] = useState(false);
+  const [deckCardAdditionVisible, setDeckCardAdditionVisible] = useState(false);
+  const [leaderboardProgressVisible, setLeaderboardProgressVisible] = useState(false);
   const [continuationMotivationVisible, setContinuationMotivationVisible] = useState(false);
   const [motivationEntering, setMotivationEntering] = useState(false);
   const [missionAvailabilityChecking, setMissionAvailabilityChecking] = useState(false);
@@ -7170,9 +7291,9 @@ export function ResultFlowView({
       return;
     }
 
-    setMotivationEntering(true);
-    setContinuationMotivationVisible(true);
+    setDeckCardAdditionVisible(true);
   }, [
+    setDeckCardAdditionVisible,
     setChestGateVisible,
     setContinuationMotivationVisible,
     setMissionAvailabilityChecking,
@@ -7180,8 +7301,44 @@ export function ResultFlowView({
     setMotivationEntering,
   ]);
 
+  useEffect(() => {
+    if (
+      !continuationMotivationVisible ||
+      resultProps.mode !== "active" ||
+      resultProps.results.learned.length === 0 ||
+      playReviewRequestedRef.current
+    ) {
+      return;
+    }
+
+    playReviewRequestedRef.current = true;
+    requestGooglePlayReview();
+  }, [continuationMotivationVisible, resultProps.mode, resultProps.results.learned.length]);
+
   const handleMissionRewardsContinue = () => {
     setMissionRewardsVisible(false);
+    setDeckCardAdditionVisible(true);
+  };
+
+  const handleDeckCardAdditionContinue = () => {
+    onResultInventoryRefresh?.();
+    setDeckCardAdditionVisible(false);
+
+    const hasReadyLeaderboard = hasReadyQuizPointsLeaderboard(
+      resultLeaderboardPayload,
+      resultLeaderboardLoading || resultLeaderboardRefreshing,
+      resultLeaderboardBeforePosition,
+    );
+
+    setLeaderboardProgressVisible(hasReadyLeaderboard);
+    if (!hasReadyLeaderboard) {
+      setMotivationEntering(true);
+      setContinuationMotivationVisible(true);
+    }
+  };
+
+  const handleLeaderboardProgressComplete = () => {
+    setLeaderboardProgressVisible(false);
     setMotivationEntering(true);
     setContinuationMotivationVisible(true);
   };
@@ -7249,7 +7406,10 @@ export function ResultFlowView({
         />
         {resultStageVisible ? (
           <div
-            className="quiz-flow-enter-right absolute inset-0 z-30 flex items-center justify-center overflow-hidden bg-[var(--background)]"
+            className={cn(
+              "quiz-flow-enter-right absolute inset-0 z-30 flex items-center justify-center overflow-hidden bg-[var(--background)]",
+              deckCardAdditionVisible && "pointer-events-none",
+            )}
             data-quiz-result-main-layer
           >
             <ResultView
@@ -7260,7 +7420,8 @@ export function ResultFlowView({
               performanceRewardTest={performanceRewardTest}
               onResultActionPress={playResultActionPress}
               onContinue={handleResultContinue}
-              showMedalHud={!chestGateVisible && !missionAvailabilityChecking && !missionRewardsVisible && !continuationMotivationVisible}
+              coveredByOverlay={deckCardAdditionVisible || leaderboardProgressVisible}
+              showMedalHud={!chestGateVisible && !missionAvailabilityChecking && !missionRewardsVisible && !deckCardAdditionVisible && !leaderboardProgressVisible && !continuationMotivationVisible}
             />
           </div>
         ) : null}
@@ -7273,6 +7434,7 @@ export function ResultFlowView({
               missedReason={missedChestReason}
               missedProgress={missedChestProgress}
               onComplete={handleChestGateComplete}
+              onActionPress={playResultActionPress}
               onRewardReady={onChestRewardReady ? handleChestRewardReady : undefined}
             />
           </div>
@@ -7284,6 +7446,23 @@ export function ResultFlowView({
             onInitialClaimableAvailabilityResolved={handleMissionAvailabilityResolved}
             onContinue={handleMissionRewardsContinue}
             onActionPress={playResultActionPress}
+          />
+        ) : null}
+        {resultStageVisible && deckCardAdditionVisible ? (
+          <QuizDeckCardAdditionView
+            key={selectedLanguage ?? "en"}
+            language={selectedLanguage ?? "en"}
+            onContinue={handleDeckCardAdditionContinue}
+            onActionPress={playResultActionPress}
+          />
+        ) : null}
+        {resultStageVisible && leaderboardProgressVisible ? (
+          <QuizLeaderboardProgressView
+            payload={resultLeaderboardPayload}
+            loading={resultLeaderboardLoading}
+            beforePosition={resultLeaderboardBeforePosition}
+            previousViewerPoints={resultLeaderboardPreviousViewerPoints}
+            onComplete={handleLeaderboardProgressComplete}
           />
         ) : null}
         {resultStageVisible && continuationMotivationVisible ? (
@@ -7312,7 +7491,8 @@ export function ResultFlowView({
         performanceRewardTest={performanceRewardTest}
         onResultActionPress={playResultActionPress}
         onContinue={handleResultContinue}
-        showMedalHud={!chestGateVisible && !missionAvailabilityChecking && !missionRewardsVisible && !continuationMotivationVisible}
+        coveredByOverlay={deckCardAdditionVisible || leaderboardProgressVisible}
+        showMedalHud={!chestGateVisible && !missionAvailabilityChecking && !missionRewardsVisible && !deckCardAdditionVisible && !leaderboardProgressVisible && !continuationMotivationVisible}
       />
       {chestGateVisible ? (
         <div className="absolute inset-0 z-40 overflow-hidden bg-[var(--background)]" data-quiz-chest-reward-layer>
@@ -7323,6 +7503,7 @@ export function ResultFlowView({
             missedReason={missedChestReason}
             missedProgress={missedChestProgress}
             onComplete={handleChestGateComplete}
+            onActionPress={playResultActionPress}
             onRewardReady={onChestRewardReady ? handleChestRewardReady : undefined}
           />
         </div>
@@ -7334,6 +7515,23 @@ export function ResultFlowView({
           onInitialClaimableAvailabilityResolved={handleMissionAvailabilityResolved}
           onContinue={handleMissionRewardsContinue}
           onActionPress={playResultActionPress}
+        />
+      ) : null}
+      {deckCardAdditionVisible ? (
+        <QuizDeckCardAdditionView
+          key={selectedLanguage ?? "en"}
+          language={selectedLanguage ?? "en"}
+          onContinue={handleDeckCardAdditionContinue}
+          onActionPress={playResultActionPress}
+        />
+      ) : null}
+      {leaderboardProgressVisible ? (
+        <QuizLeaderboardProgressView
+          payload={resultLeaderboardPayload}
+          loading={resultLeaderboardLoading}
+          beforePosition={resultLeaderboardBeforePosition}
+          previousViewerPoints={resultLeaderboardPreviousViewerPoints}
+          onComplete={handleLeaderboardProgressComplete}
         />
       ) : null}
       {continuationMotivationVisible ? (
@@ -7445,6 +7643,7 @@ export function ResultView({
   onRewardRankUp,
   onResultActionPress,
   onContinue,
+  coveredByOverlay = false,
   showMedalHud = true,
 }: {
   mode: PracticeMode;
@@ -7462,6 +7661,7 @@ export function ResultView({
   onRewardRankUp?: (rank: RankDefinition) => void;
   onResultActionPress?: () => void;
   onContinue?: () => void;
+  coveredByOverlay?: boolean;
   showMedalHud?: boolean;
   onRestart: () => void;
   onExit: () => void;
@@ -7496,12 +7696,14 @@ export function ResultView({
   const [resultMedalStage, setResultMedalStage] = useState<"summary" | "medals">("summary");
   const [isResultSummaryExiting, setIsResultSummaryExiting] = useState(false);
   const [resultSummaryEntered, setResultSummaryEntered] = useState(false);
+  const [resultCardTapGuardActive, setResultCardTapGuardActive] = useState(false);
   const [performancePointsArrived, setPerformancePointsArrived] = useState(0);
   const [medalRevealComplete, setMedalRevealComplete] = useState(false);
   const [medalClaimButtonVisible, setMedalClaimButtonVisible] = useState(false);
   const [openMenu, setOpenMenu] = useState<
     "correct" | "incorrect" | "learned" | null
   >(null);
+  const resultViewRef = useRef<HTMLDivElement>(null);
   const [medalCenterFlight, setMedalCenterFlight] = useState<{
     sources: RewardScatterRect[];
     center: RewardScatterRect;
@@ -7548,8 +7750,7 @@ export function ResultView({
 
   const hasPerformanceRewardSequence = Boolean(
     mode === "active" &&
-    !quizFlowTest &&
-    (performanceRewardTest || (user && quizSessionId)) &&
+    (performanceRewardTest || (!quizFlowTest && user && quizSessionId)) &&
     performanceRewardInput &&
     (getQuizPerformanceRewardBreakdown(performanceRewardInput)?.totalPoints ?? 0) > 0,
   );
@@ -7604,6 +7805,20 @@ export function ResultView({
     const fallbackTimer = window.setTimeout(() => setResultSummaryEntered(true), 1100);
     return () => window.clearTimeout(fallbackTimer);
   }, [resultMedalStage, resultSummaryEntered]);
+
+  useLayoutEffect(() => {
+    if (coveredByOverlay || resultMedalStage !== "summary") {
+      setResultCardTapGuardActive(false);
+      return;
+    }
+
+    setResultCardTapGuardActive(true);
+    const timer = window.setTimeout(
+      () => setResultCardTapGuardActive(false),
+      QUIZ_END_ACTION_TAP_GUARD_GRACE_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [coveredByOverlay, resultMedalStage]);
 
   useEffect(() => {
     return () => {
@@ -7998,9 +8213,17 @@ export function ResultView({
 
   return (
     <div
+      ref={resultViewRef}
       data-quiz-result-view
+      data-quiz-end-triple-tap-screen
+      data-quiz-end-action-tap-guard-active={resultCardTapGuardActive ? "true" : "false"}
       data-quiz-result-stage={isMedalStage ? "medals" : "summary"}
-      className="relative isolate flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--background)] text-center"
+      data-transition-state={coveredByOverlay ? "hidden" : isResultSummaryExiting ? "exiting" : "visible"}
+      aria-hidden={coveredByOverlay}
+      className={cn(
+        "relative isolate flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--background)] text-center",
+        coveredByOverlay && "invisible pointer-events-none",
+      )}
     >
       <main
         className={cn(
@@ -8086,7 +8309,20 @@ export function ResultView({
                       label={card.label}
                       count={card.count}
                       disabled={card.count === 0}
-                      onClick={() => setOpenMenu(card.key)}
+                      onClick={(event) => {
+                        const openCardMenu = () => setOpenMenu(card.key);
+                        if (event.detail === 0) {
+                          openCardMenu();
+                          return;
+                        }
+                        const screen = resultViewRef.current;
+                        if (!screen) return;
+                        runQuizEndActionAfterSingleTap(
+                          screen,
+                          openCardMenu,
+                          QUIZ_END_CONTINUE_TRIPLE_TAP_WINDOW_MS,
+                        );
+                      }}
                     />
                   ))}
                 </div>
@@ -8142,10 +8378,11 @@ export function ResultView({
                 key="claim-medals"
                 type="button"
                 onClick={handleResultPrimaryAction}
-                disabled={!medalRevealComplete || claimingMedals || claimedMedals}
+                disabled={!medalRevealComplete || !medalClaimButtonVisible || claimingMedals || claimedMedals}
                 data-no-tap-vibrate
                 data-result-primary-action
                 data-result-claim-medals="true"
+                data-quiz-end-triple-tap-action
                 style={
                   {
                     "--result-stagger-delay": "0ms",
@@ -8170,6 +8407,7 @@ export function ResultView({
                 disabled={(isResultSummaryExiting && !performanceRewardSafetyElapsed) || isPerformanceContinueLocked}
                 aria-busy={isPerformanceContinueLocked}
                 data-result-primary-action
+                data-quiz-end-continue
                 data-performance-rewards-locked={isPerformanceContinueLocked ? "true" : "false"}
                 className={cn(
                   "pointer-events-auto flex h-14 w-[calc(100%-2rem)] max-w-[400px] items-center justify-center rounded-xl bg-emerald-500 px-5 text-lg font-bold text-white shadow-[0_6px_0_rgba(0,0,0,0.22)] transition-[opacity,transform] active:translate-y-1 active:shadow-[0_2px_0_rgba(0,0,0,0.22)] disabled:pointer-events-none disabled:opacity-60 sm:h-16 sm:text-xl",
@@ -8197,6 +8435,7 @@ export function ResultView({
         <RankUpMenu
           rank={performanceRewardRankUp.rank}
           fromRank={performanceRewardRankUp.fromRank}
+          enableQuizEndTripleTapContinue
           firmCloseVibration
           onClose={handlePerformanceRankOverlayClose}
           onOpen={handlePerformanceRankOverlayPresented}
@@ -8206,11 +8445,10 @@ export function ResultView({
 
       {!isMedalStage &&
       mode === "active" &&
-      !quizFlowTest &&
-      (performanceRewardTest || (user && quizSessionId)) &&
+      (performanceRewardTest || (!quizFlowTest && user && quizSessionId)) &&
       performanceRewardInput ? (
         <QuizPerformanceRewardSequence
-          sessionId={performanceRewardTest ? null : quizSessionId}
+          sessionId={performanceRewardTest || quizFlowTest ? null : quizSessionId}
           input={performanceRewardInput}
           currentTotalPoints={currentTotalPoints}
           entered={resultSummaryEntered}
@@ -8220,7 +8458,7 @@ export function ResultView({
           onRankCheckComplete={handlePerformanceRankCheckComplete}
           onAwardError={onRewardError}
           onAwardPersisted={onRewardPersisted}
-          testMode={performanceRewardTest}
+          testMode={performanceRewardTest || quizFlowTest}
         />
       ) : null}
 
@@ -8551,7 +8789,6 @@ export function LegacyResultView({
         streak_reward_points: streakRewardPoints,
       },
     });
-    markPlayReviewEligible("quiz");
     playSoundEffect("quiz-complete");
     vibrate("result");
 
@@ -8764,7 +9001,7 @@ function ResultCard({
   label: string;
   count: number;
   disabled?: boolean;
-  onClick?: () => void;
+  onClick?: (event: ReactMouseEvent<HTMLButtonElement>) => void;
   nonInteractive?: boolean;
 }) {
   return (

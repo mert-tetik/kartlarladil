@@ -1,5 +1,4 @@
 import {
-  PERFORMANCE_DIAGNOSTICS_CONSENT_EVENT,
   PERFORMANCE_DIAGNOSTICS_ENDPOINT,
   PERFORMANCE_DIAGNOSTICS_QUEUE_PREFIX,
 } from "@/lib/performance-diagnostics-contract";
@@ -28,14 +27,6 @@ export interface PerformanceDiagnosticEvent {
   janky_frames?: number;
 }
 
-export interface PerformanceDiagnosticsConsent {
-  enabled: boolean;
-  has_decided: boolean;
-  policy_version: string;
-}
-
-const consentRequests = new Map<string, Promise<PerformanceDiagnosticsConsent>>();
-
 interface NativePerformanceSnapshot extends PerformanceDiagnosticEvent {
   owner_hash?: string;
 }
@@ -63,24 +54,6 @@ function createEventId(): string {
 
 function queueStorageKey(userId: string) {
   return `${PERFORMANCE_DIAGNOSTICS_QUEUE_PREFIX}${userId}`;
-}
-
-export function getPerformanceDiagnosticsConsent(userId: string): Promise<PerformanceDiagnosticsConsent> {
-  const pendingRequest = consentRequests.get(userId);
-  if (pendingRequest) return pendingRequest;
-
-  const request = fetch(PERFORMANCE_DIAGNOSTICS_ENDPOINT, {
-    credentials: "same-origin",
-    cache: "no-store",
-  }).then(async (response) => {
-    if (!response.ok) throw new Error("performance_diagnostics_consent_unavailable");
-    return await response.json() as PerformanceDiagnosticsConsent;
-  }).finally(() => {
-    if (consentRequests.get(userId) === request) consentRequests.delete(userId);
-  });
-
-  consentRequests.set(userId, request);
-  return request;
 }
 
 export function createPerformanceDiagnosticEvent(
@@ -148,13 +121,6 @@ export function setNativePerformanceConsent(enabled: boolean, ownerHash = "") {
   }
 }
 
-export function notifyPerformanceDiagnosticsConsentChanged(enabled: boolean, hasDecided = true) {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent(PERFORMANCE_DIAGNOSTICS_CONSENT_EVENT, {
-    detail: { enabled, has_decided: hasDecided },
-  }));
-}
-
 export function readPendingPerformanceEvents(userId: string): PerformanceDiagnosticEvent[] {
   try {
     const key = queueStorageKey(userId);
@@ -203,7 +169,7 @@ export function clearPendingPerformanceEvents(userId: string) {
   }
 }
 
-export async function flushPendingPerformanceEvents(userId: string): Promise<"sent" | "consent_required" | "failed"> {
+export async function flushPendingPerformanceEvents(userId: string): Promise<"sent" | "failed"> {
   const events = readPendingPerformanceEvents(userId);
   if (!events.length) return "sent";
 
@@ -215,7 +181,6 @@ export async function flushPendingPerformanceEvents(userId: string): Promise<"se
       body: JSON.stringify({ events: events.slice(0, 20) }),
       keepalive: true,
     });
-    if (response.status === 403) return "consent_required";
     if (!response.ok) return "failed";
     acknowledgePerformanceEvents(userId, new Set(events.slice(0, 20).map((event) => event.event_id)));
     return "sent";

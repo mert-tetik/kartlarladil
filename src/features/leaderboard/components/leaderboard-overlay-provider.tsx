@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { usePathname } from "next/navigation";
 import { LeaderboardPageClient } from "@/features/leaderboard/components/leaderboard-page-client";
 import type { LeaderboardMode } from "@/features/leaderboard/leaderboard-types";
 import {
@@ -23,19 +24,43 @@ interface LeaderboardOverlayContextValue {
 const LeaderboardOverlayContext = createContext<LeaderboardOverlayContextValue | null>(null);
 
 export function LeaderboardOverlayProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const [phase, setPhase] = useState<OverlayPhase>("closed");
   const [initialMode, setInitialMode] = useState<LeaderboardMode>("points");
+  const [showLearnOverlayNavbar, setShowLearnOverlayNavbar] = useState(false);
 
   const openLeaderboard = useCallback((mode: LeaderboardMode = "points") => {
+    const openedFromMotivation =
+      pathname === "/learn" &&
+      typeof document !== "undefined" &&
+      document.querySelector("[data-quiz-continuation-motivation]") !== null;
+    setShowLearnOverlayNavbar(openedFromMotivation);
+    if (openedFromMotivation) document.documentElement.dataset.learnLeaderboardOverlayOpen = "true";
+    else delete document.documentElement.dataset.learnLeaderboardOverlayOpen;
     setInitialMode(mode);
     setPhase((current) => (current === "closed" || current === "closing" ? "opening" : current));
-  }, []);
+  }, [pathname]);
 
   const closeLeaderboard = useCallback(() => {
+    delete document.documentElement.dataset.learnLeaderboardOverlayOpen;
+    setShowLearnOverlayNavbar(false);
     setPhase((current) => (current === "open" || current === "opening" ? "closing" : current));
   }, []);
 
   useEffect(() => subscribeMobileNavbarBackRequest(closeLeaderboard), [closeLeaderboard]);
+
+  useEffect(() => {
+    if (
+      showLearnOverlayNavbar &&
+      (phase === "opening" || phase === "open") &&
+      pathname === "/learn"
+    ) {
+      document.documentElement.dataset.learnLeaderboardOverlayOpen = "true";
+      return;
+    }
+
+    delete document.documentElement.dataset.learnLeaderboardOverlayOpen;
+  }, [pathname, phase, showLearnOverlayNavbar]);
 
   useEffect(() => {
     if (phase !== "opening") return;
@@ -127,7 +152,7 @@ function LeaderboardOverlay({
       data-leaderboard-overlay
       data-state={phase}
       className={cn(
-        "fixed inset-x-0 bottom-0 top-[var(--app-header-height)] z-[80] overflow-hidden transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "fixed inset-x-0 bottom-0 top-16 z-[80] overflow-hidden transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
         isOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0",
       )}
     >
@@ -138,7 +163,7 @@ function LeaderboardOverlay({
         className="absolute inset-0 z-0 w-full bg-black/70"
       />
       <div className="relative z-10 h-full w-full">
-        <LeaderboardPageClient initialMode={initialMode} />
+        <LeaderboardPageClient key={initialMode} initialMode={initialMode} />
       </div>
     </div>
   );

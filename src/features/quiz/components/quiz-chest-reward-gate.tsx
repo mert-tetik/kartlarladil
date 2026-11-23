@@ -43,6 +43,7 @@ interface QuizChestRewardGateProps {
   missedReason: string;
   missedProgress: string;
   onComplete: () => void;
+  onActionPress?: () => void;
   onRewardReady?: () => Promise<ChestRewardOutcome | null>;
 }
 
@@ -53,6 +54,7 @@ export function QuizChestRewardGate({
   missedReason,
   missedProgress,
   onComplete,
+  onActionPress,
   onRewardReady,
 }: QuizChestRewardGateProps) {
   const t = useT();
@@ -69,6 +71,7 @@ const { locale } = useLocale();
   const chestLandingHandledRef = useRef(false);
   const chestLandingTimeoutRef = useRef<number | null>(null);
   const openingStartRef = useRef<(() => void) | null>(null);
+  const chestOpeningFastForwardHandlerRef = useRef<(() => boolean) | null>(null);
   const openingFrameRef = useRef<number | null>(null);
   const openingReadyTimeoutRef = useRef<number | null>(null);
   const missedCloseTimeoutRef = useRef<number | null>(null);
@@ -92,8 +95,15 @@ const { locale } = useLocale();
     openingStartRef.current = start;
   }, []);
 
+  const handleChestOpeningFastForwardHandlerChange = useCallback((handler: (() => boolean) | null) => {
+    chestOpeningFastForwardHandlerRef.current = handler;
+  }, []);
+
   const handleOpen = () => {
     if (!tier || opening) return;
+
+    if (onActionPress) onActionPress();
+    else playSoundEffect("result-action-press");
 
     const chestRect = chestMotionRef.current?.getBoundingClientRect();
     if (chestRect) {
@@ -132,6 +142,8 @@ const { locale } = useLocale();
   const handleMissedContinue = () => {
     if (missedClosing) return;
 
+    onActionPress?.();
+    if (!onActionPress) playSoundEffect("result-action-press");
     missedCompleteRef.current = false;
     setMissedClosing(true);
     missedCloseTimeoutRef.current = window.setTimeout(() => {
@@ -145,7 +157,7 @@ const { locale } = useLocale();
   const formatCopy = (text: string) =>
     canUseSuperWater(locale) ? formatSuperWaterText(locale, text) : text;
 
-  const handleChestLanding = useCallback(() => {
+  const handleChestLanding = useCallback((fastForwarded = false) => {
     if (chestLandingHandledRef.current) return;
 
     chestLandingHandledRef.current = true;
@@ -153,7 +165,7 @@ const { locale } = useLocale();
     setChestLanded(true);
     setLandingCrackVisible(true);
     playSoundEffect("chest-crack");
-    vibrate("chest-land");
+    if (!fastForwarded) vibrate("chest-land");
   }, []);
 
   const fastForwardCurrentAnimation = useCallback(() => {
@@ -172,6 +184,23 @@ const { locale } = useLocale();
     if (!tier) return false;
 
     if (opening && !openingFullyVisible) {
+      if (chestOpeningFastForwardHandlerRef.current?.()) {
+        if (openingFrameRef.current !== null) {
+          window.cancelAnimationFrame(openingFrameRef.current);
+          openingFrameRef.current = null;
+        }
+        if (openingReadyTimeoutRef.current !== null) {
+          window.clearTimeout(openingReadyTimeoutRef.current);
+          openingReadyTimeoutRef.current = null;
+        }
+        setChestMotionFastForwarded(true);
+        setChestOpeningMotion((motion) => motion ? { ...motion, moving: true } : motion);
+        if (chestMotionRef.current) finishCurrentWebAnimations(chestMotionRef.current);
+        setOpeningVisible(true);
+        setOpeningFullyVisible(true);
+        return true;
+      }
+
       if (openingFrameRef.current !== null) {
         window.cancelAnimationFrame(openingFrameRef.current);
         openingFrameRef.current = null;
@@ -204,7 +233,7 @@ const { locale } = useLocale();
         chestLandingTimeoutRef.current = null;
       }
       if (chestMotionRef.current) finishCurrentWebAnimations(chestMotionRef.current);
-      handleChestLanding();
+      handleChestLanding(true);
       return true;
     }
 
@@ -232,6 +261,7 @@ const { locale } = useLocale();
   const rewardGate = (
     <div
       data-quiz-chest-reward-gate
+      data-quiz-end-triple-tap-screen
       className={cn(
         "relative flex h-full min-h-full w-full flex-col items-center justify-center overflow-hidden bg-[var(--background)] px-5 pb-28 pt-10 text-center text-foreground",
         opening && "bg-transparent",
@@ -344,7 +374,8 @@ const { locale } = useLocale();
             <button
               type="button"
               onClick={handleOpen}
-              disabled={opening}
+              data-quiz-end-triple-tap-action
+              disabled={!chestLanded || opening}
               className={cn(
                 "flex h-14 min-w-52 translate-y-[80px] items-center justify-center rounded-xl px-7 text-lg font-bold uppercase text-white shadow-[0_6px_0_rgba(0,0,0,0.25)] transition-[filter,transform] duration-200 hover:brightness-105 active:translate-y-[84px] active:shadow-[0_2px_0_rgba(0,0,0,0.25)] disabled:pointer-events-none disabled:opacity-0 sm:h-16 sm:text-xl",
                 CHEST_TIER_BUTTON_CLASSES[tier.tier],
@@ -397,6 +428,8 @@ const { locale } = useLocale();
         <button
           type="button"
           onClick={handleMissedContinue}
+          data-quiz-end-continue
+          aria-disabled={missedClosing}
           className={cn(
             "absolute inset-x-5 bottom-[calc(1.5rem+30px+env(safe-area-inset-bottom))] z-20 mx-auto flex h-14 max-w-md items-center justify-center rounded-xl bg-rose-500 px-5 text-lg font-bold uppercase text-white shadow-[0_6px_0_rgba(0,0,0,0.25)] transition-[filter,transform] duration-200 active:translate-y-1 active:shadow-[0_2px_0_rgba(0,0,0,0.25)] sm:h-16 sm:text-xl",
             missedClosing ? "quiz-chest-missed-button-exit" : "quiz-chest-missed-button-enter",
@@ -441,6 +474,7 @@ const { locale } = useLocale();
             onComplete={onComplete}
             autoPlay={false}
             onOpeningReady={handleOpeningReady}
+            onFastForwardHandlerChange={handleChestOpeningFastForwardHandlerChange}
             onRewardReady={opening ? onRewardReady : undefined}
           />
         ) : null}

@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import "tailwindcss" source("../../src");
 
 .control-gradient-outline {
   --control-outline-fill: #ffffff;
@@ -2020,6 +2020,49 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   to {
     transform: translateX(0);
   }
+}
+
+@keyframes quiz-leaderboard-rank-position-pulse {
+  0% { transform: scale(1); }
+  42% { transform: scale(1.38); }
+  100% { transform: scale(1); }
+}
+
+.animate-quiz-leaderboard-rank-pulse {
+  animation: quiz-leaderboard-rank-position-pulse 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes quiz-leaderboard-viewer-row-pulse {
+  0%, 100% { transform: scale(1); }
+  38% { transform: scale(1.055); }
+}
+
+@keyframes quiz-leaderboard-viewer-row-rank-flash {
+  0%, 12% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.animate-quiz-leaderboard-viewer-row-rank-pulse {
+  isolation: isolate;
+  animation: quiz-leaderboard-viewer-row-pulse 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.animate-quiz-leaderboard-viewer-row-rank-pulse::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  border-radius: inherit;
+  background: #fff;
+  content: "";
+  pointer-events: none;
+  animation: quiz-leaderboard-viewer-row-rank-flash 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-quiz-leaderboard-viewer-row-rank-pulse > div > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* Keep the shared transition viewport fixed. The browser's default group
@@ -6519,6 +6562,16 @@ body:has([data-mobile-hide-bottom-nav="true"]) [data-mobile-main-nav-frame] {
 body:has([data-leaderboard-overlay]) [data-mobile-main-nav-frame] {
   display: block !important;
   z-index: 90;
+}
+
+body:has([data-learn-page]):has([data-leaderboard-overlay]) [data-mobile-main-nav-frame] {
+  display: none !important;
+}
+
+@media (max-width: 1023px) {
+  html[data-learn-leaderboard-overlay-open="true"] [data-route-transition-navigation] {
+    display: block !important;
+  }
 }
 
 body:has([data-pricing-active-subscription]) [data-mobile-main-nav-frame] {

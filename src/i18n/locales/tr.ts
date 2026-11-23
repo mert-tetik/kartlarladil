@@ -966,6 +966,7 @@ const dictionary = {
   "page.leaderboard.title": "Leaderboard",
   "page.leaderboard.description": "FoxiesDeck leaderboard'indaki yerini gor.",
   "leaderboard.title": "Leaderboard",
+  "leaderboard.rankUpTitle": "Sıralamada rütbe atladın!",
   "leaderboard.open": "Leaderboard'u ac",
   "leaderboard.yourStanding": "{position}. siradasin!",
   "leaderboard.positionLoading": "Siran yukleniyor...",
@@ -1217,6 +1218,10 @@ const dictionary = {
   "offline.notes.addingAllToDeck": "Kartlar ekleniyor…",
   "offline.notes.addedAllToDeck": "{count} kart destene eklendi",
   "offline.notes.limitReachedDescription": "{addedCount} kart destene eklendi. {remainingCount} kart burada kayıtlı kaldı. Bunları eklemek için abonelik planını yükselt.",
+  "quiz.deckAdd.title": "Destene Yeni Kartlar Ekle",
+  "quiz.deckAdd.hint": "Kartların üstüne bas",
+  "quiz.deckAdd.count": "{count} öğrenilecek kartın var",
+  "quiz.deckAdd.empty": "Şu anda ekleyebileceğin yeni kart yok.",
 } as const;
 
 export default dictionary;

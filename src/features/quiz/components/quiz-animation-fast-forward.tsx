@@ -9,12 +9,34 @@ import {
   useRef,
   type ReactNode,
 } from "react";
+import { vibrate } from "@/lib/vibration";
 
-type FastForwardHandler = () => boolean;
+type FastForwardHandler = (root: HTMLElement) => boolean;
 type FastForwardRegistration = {
   handler: FastForwardHandler;
   priority: number;
 };
+
+export const QUIZ_ANIMATION_FAST_FORWARD_DOUBLE_TAP_MS = 500;
+
+export function isQuizAnimationFastForwardDoubleTap(
+  lastTapAtRef: { current: number },
+  now = Date.now(),
+) {
+  const previousTapAt = lastTapAtRef.current;
+  lastTapAtRef.current = now;
+
+  if (
+    previousTapAt <= 0 ||
+    now < previousTapAt ||
+    now - previousTapAt > QUIZ_ANIMATION_FAST_FORWARD_DOUBLE_TAP_MS
+  ) {
+    return false;
+  }
+
+  lastTapAtRef.current = 0;
+  return true;
+}
 
 interface FastForwardContextValue {
   register: (id: symbol, registration: FastForwardRegistration | null) => void;
@@ -34,16 +56,30 @@ export function QuizAnimationFastForwardProvider({ children }: { children: React
   const fastForward = useCallback((root: HTMLElement) => {
     const registrations = [...registrationsRef.current.values()]
       .sort((left, right) => right.priority - left.priority);
+    let handled = false;
+    let handledPriority: number | null = null;
 
     for (const registration of registrations) {
+      if (handledPriority !== null && registration.priority < handledPriority) break;
+
       try {
-        if (registration.handler()) return true;
+        if (registration.handler(root)) {
+          handled = true;
+          handledPriority ??= registration.priority;
+        }
       } catch {
         // A fast-forward helper must never interrupt the quiz result flow.
       }
     }
 
-    return finishCurrentWebAnimations(root) > 0;
+    if (handled) {
+      vibrate("quiz-animation-fast-forward");
+      return true;
+    }
+
+    const finishedCount = finishCurrentWebAnimations(root);
+    if (finishedCount > 0) vibrate("quiz-animation-fast-forward");
+    return finishedCount > 0;
   }, []);
 
   const value = useMemo(() => ({ register, fastForward }), [fastForward, register]);
@@ -66,7 +102,7 @@ export function useQuizAnimationFastForward(
 
   useEffect(() => {
     if (!context || !enabled) return;
-    context.register(idRef.current, { handler: () => handlerRef.current(), priority });
+    context.register(idRef.current, { handler: (root) => handlerRef.current(root), priority });
     return () => context.register(idRef.current, null);
   }, [context, enabled, priority]);
 }

@@ -1,20 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { getTwaMode } from "@/features/install-app/twa-mode";
 import {
-  PERFORMANCE_DIAGNOSTICS_CONSENT_EVENT,
-  PERFORMANCE_DIAGNOSTICS_POLICY_VERSION,
   PERFORMANCE_DIAGNOSTICS_QUEUE_PREFIX,
 } from "@/lib/performance-diagnostics-contract";
 import {
   acknowledgeNativePerformanceSnapshot,
-  clearPendingPerformanceEvents,
   createPerformanceDiagnosticEvent,
   enqueuePerformanceEvent,
-  getPerformanceDiagnosticsConsent,
   flushPendingPerformanceEvents,
   getNativePerformanceSnapshots,
   hashPerformanceOwner,
@@ -46,7 +42,10 @@ function routeCategory(pathname: string) {
 export function PerformanceDiagnosticsProvider() {
   const pathname = usePathname();
   const { user, isSessionReady } = useAuthSession();
-  const [isDiagnosticsEnabled, setIsDiagnosticsEnabled] = useState(false);
+  const [isDiagnosticsEnabled, setIsDiagnosticsEnabled] = useReducer(
+    (_current: boolean, next: boolean) => next,
+    false,
+  );
   const enabledRef = useRef(false);
   const deviceRef = useRef<PerformanceDiagnosticDevice | null>(null);
   const userIdRef = useRef<string | null>(null);
@@ -61,26 +60,15 @@ export function PerformanceDiagnosticsProvider() {
     enabledRef.current = false;
     setIsDiagnosticsEnabled(false);
     deviceRef.current = null;
+    setNativePerformanceConsent(false);
     if (!isSessionReady || !userId || !getTwaMode()) return;
 
     let disposed = false;
     const ownerHashPromise = hashPerformanceOwner(userId).catch(() => "");
     const activate = async () => {
-      const consent = await getPerformanceDiagnosticsConsent(userId);
-      if (disposed) return;
-      const enabled = consent.enabled === true && consent.policy_version === PERFORMANCE_DIAGNOSTICS_POLICY_VERSION;
-      if (!enabled) {
-        enabledRef.current = false;
-        setIsDiagnosticsEnabled(false);
-        deviceRef.current = null;
-        clearPendingPerformanceEvents(userId);
-        setNativePerformanceConsent(false);
-        return;
-      }
-
       const ownerHash = await ownerHashPromise;
       const device = readNativePerformanceDevice();
-      if (!device || disposed) return;
+      if (!ownerHash || !device || disposed) return;
       enabledRef.current = true;
       setIsDiagnosticsEnabled(true);
       deviceRef.current = device;
@@ -92,7 +80,8 @@ export function PerformanceDiagnosticsProvider() {
           acknowledgeNativePerformanceSnapshot(snapshot.event_id);
           continue;
         }
-        const { owner_hash: _ownerHash, ...event } = snapshot;
+        const event = { ...snapshot };
+        delete event.owner_hash;
         enqueuePerformanceEvent(userId, event);
         acknowledgeNativePerformanceSnapshot(snapshot.event_id);
       }
@@ -105,13 +94,6 @@ export function PerformanceDiagnosticsProvider() {
       try {
         for (let attempt = 0; attempt < 5; attempt += 1) {
           const status = await flushPendingPerformanceEvents(userId);
-          if (status === "consent_required") {
-            enabledRef.current = false;
-            deviceRef.current = null;
-            clearPendingPerformanceEvents(userId);
-            setNativePerformanceConsent(false);
-            break;
-          }
           if (status !== "sent") break;
           let hasMore = false;
           try {
@@ -128,24 +110,10 @@ export function PerformanceDiagnosticsProvider() {
     };
     flushRef.current = () => void flush();
 
-    const onConsentChanged = (event: Event) => {
-      const enabled = (event as CustomEvent<{ enabled?: boolean }>).detail?.enabled === true;
-      if (!enabled) {
-        enabledRef.current = false;
-        setIsDiagnosticsEnabled(false);
-        deviceRef.current = null;
-      clearPendingPerformanceEvents(userId);
-        setNativePerformanceConsent(false);
-        return;
-      }
-      void activate().catch(() => undefined);
-    };
-
     const onVisibilityChange = () => {
       if (document.visibilityState === "hidden") void flush();
     };
     const flushTimer = window.setInterval(() => void flush(), 30_000);
-    window.addEventListener(PERFORMANCE_DIAGNOSTICS_CONSENT_EVENT, onConsentChanged);
     document.addEventListener("visibilitychange", onVisibilityChange);
     void activate().catch(() => undefined);
 
@@ -154,7 +122,6 @@ export function PerformanceDiagnosticsProvider() {
       enabledRef.current = false;
       deviceRef.current = null;
       window.clearInterval(flushTimer);
-      window.removeEventListener(PERFORMANCE_DIAGNOSTICS_CONSENT_EVENT, onConsentChanged);
       document.removeEventListener("visibilitychange", onVisibilityChange);
       flushRef.current = () => undefined;
     };

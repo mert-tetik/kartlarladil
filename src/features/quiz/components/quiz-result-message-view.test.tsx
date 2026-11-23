@@ -29,6 +29,9 @@ describe("QuizResultMessageView continue action feedback", () => {
     const { container } = renderResultView(onResultActionPress);
 
     const continueButton = container.querySelector<HTMLButtonElement>("[data-quiz-result-message-continue]")!;
+    expect(container.querySelector("[data-quiz-result-message-view]"))
+      .toHaveAttribute("data-quiz-end-triple-tap-screen");
+    expect(continueButton).toHaveAttribute("data-quiz-end-continue");
     await waitFor(() => expect(continueButton).toBeEnabled());
     fireEvent.click(continueButton);
     fireEvent.click(continueButton);

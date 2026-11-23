@@ -161,7 +161,7 @@ describe("QuizContinuationMotivationView", () => {
     expect(leaderboard).toHaveClass("quiz-continuation-stagger-enter");
     expect(leaderboard).toHaveClass("z-20", "pointer-events-auto");
     expect(speech).toHaveClass("quiz-continuation-stagger-enter");
-    expect(speech?.parentElement).toHaveClass("-top-[60px]");
+    expect(speech?.parentElement).toHaveClass("-top-[80px]");
     expect(actions).toHaveClass("quiz-continuation-stagger-enter");
     expect(leaderboard).toHaveAttribute("style", expect.stringContaining("--quiz-continuation-delay: 0ms"));
     expect(speech).toHaveAttribute("style", expect.stringContaining("--quiz-continuation-delay: 90ms"));
@@ -276,7 +276,7 @@ describe("QuizContinuationMotivationView", () => {
     expect(container.querySelector('[data-continuation-action="continue"]')).not.toBeInTheDocument();
   });
 
-  it("shows each leaderboard position and opens the matching mode", () => {
+  it("centers each leaderboard position in the matching HUD recess and opens that mode", () => {
     openLeaderboardMock.mockReset();
 
     const { container } = render(
@@ -305,18 +305,83 @@ describe("QuizContinuationMotivationView", () => {
       />,
     );
 
+    const hud = container.querySelector("[data-leaderboard-hud]");
+    expect(hud).toBeInTheDocument();
+    expect(hud?.querySelector("[data-leaderboard-hud-image]")?.getAttribute("src"))
+      .toContain("quiz-leaderboard-three-slot-hud.png");
+    expect(hud?.querySelectorAll("button[data-leaderboard-hud-slot]")).toHaveLength(3);
+    expect(hud).not.toHaveTextContent("leaderboard.title");
+    expect(hud?.querySelectorAll("svg")).toHaveLength(0);
+
     expect(container.querySelector('[data-leaderboard-motivation-display="points"]'))
       .toHaveTextContent("7.");
     expect(container.querySelector('[data-leaderboard-motivation-display="streaks"]'))
       .toHaveTextContent("3.");
     expect(container.querySelector('[data-leaderboard-motivation-display="medals"]'))
       .toHaveTextContent("5.");
+    expect(container.querySelector('[data-leaderboard-hud-slot="points"]'))
+      .toHaveStyle({ left: "25.5%", top: "57.8%", width: "20.5%", height: "34%" });
+    expect(container.querySelector('[data-leaderboard-hud-slot="streaks"]'))
+      .toHaveStyle({ left: "50%", top: "57.8%" });
+    expect(container.querySelector('[data-leaderboard-hud-slot="medals"]'))
+      .toHaveStyle({ left: "74.5%", top: "57.8%" });
+    expect(container.querySelector("[data-leaderboard-position-text]"))
+      .toHaveClass("text-2xl", "sm:text-3xl", "font-super-water");
+    expect(container.querySelector('[data-leaderboard-hud-slot="points"]'))
+      .toHaveClass("bg-transparent", "overflow-hidden");
 
+    fireEvent.click(container.querySelector('[data-leaderboard-motivation-display="points"]')!);
     fireEvent.click(container.querySelector('[data-leaderboard-motivation-display="streaks"]')!);
     fireEvent.click(container.querySelector('[data-leaderboard-motivation-display="medals"]')!);
 
-    expect(openLeaderboardMock).toHaveBeenNthCalledWith(1, "streaks");
-    expect(openLeaderboardMock).toHaveBeenNthCalledWith(2, "medals");
+    expect(openLeaderboardMock).toHaveBeenNthCalledWith(1, "points");
+    expect(openLeaderboardMock).toHaveBeenNthCalledWith(2, "streaks");
+    expect(openLeaderboardMock).toHaveBeenNthCalledWith(3, "medals");
+  });
+
+  it("reduces only an overflowing rank label to keep it inside its HUD recess", () => {
+    const { container } = render(
+      <QuizContinuationMotivationView
+        input={input}
+        hasMoreCardsToLearn
+        leaderboardData={{
+          mode: "points",
+          viewer: {
+            userId: "user-1",
+            position: 123456,
+            pointsPosition: 123456,
+            streakPosition: 3,
+            medalsPosition: 5,
+            displayName: "Fox",
+            totalPoints: 420,
+            streak: 8,
+            medals: 12,
+            leaderboardVisible: true,
+          },
+          entries: [],
+          canViewLeaderboard: true,
+        }}
+        onContinue={vi.fn()}
+        onExit={vi.fn()}
+      />,
+    );
+
+    const pointsButton = container.querySelector<HTMLButtonElement>(
+      '[data-leaderboard-hud-slot="points"]',
+    )!;
+    const pointsText = pointsButton.querySelector<HTMLSpanElement>(
+      "[data-leaderboard-position-text]",
+    )!;
+    Object.defineProperty(pointsButton, "clientWidth", { configurable: true, value: 48 });
+    vi.spyOn(pointsText, "getBoundingClientRect").mockImplementation(() => {
+      const fontSize = Number.parseFloat(pointsText.style.fontSize) || 24;
+      return new DOMRect(0, 0, fontSize * 3, fontSize);
+    });
+
+    fireEvent(window, new Event("resize"));
+
+    expect(Number.parseFloat(pointsText.style.fontSize)).toBeLessThan(24);
+    expect(Number.parseFloat(pointsText.style.fontSize)).toBeGreaterThanOrEqual(13);
   });
 
   it("uses the review character, title, motivations, and replay action for learned quizzes", () => {

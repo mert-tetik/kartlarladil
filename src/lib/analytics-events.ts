@@ -10,6 +10,8 @@ export type AnalyticsEventName =
   | "first_quiz_completed"
   | "first_card_learned"
   | "learn_session_completed"
+  | "landing_review_opened"
+  | "landing_card_podium_opened"
   | "pricing_page_viewed"
   | "pricing_subscription_details_opened"
   | "subscription_restriction_opened"

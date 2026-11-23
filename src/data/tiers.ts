@@ -3,11 +3,11 @@ import type { Tier } from "@/types/domain";
 export const TIERS: Tier[] = ["A1", "A2", "B1", "B2", "C1"];
 
 export const TIER_REQUIREMENTS: Record<Tier, number> = {
-  A1: 4,
-  A2: 4,
-  B1: 6,
-  B2: 6,
-  C1: 8,
+  A1: 2,
+  A2: 2,
+  B1: 3,
+  B2: 3,
+  C1: 4,
 };
 
 export const TIER_LABELS: Record<Tier, string> = {

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRef } from "react";
 import { ScoreIcon } from "@/components/score-icon";
 import { Progress } from "@/components/ui/progress";
 import { useLocale, useT } from "@/i18n/locale-provider";
@@ -14,6 +15,8 @@ import {
 } from "@/lib/super-water";
 import { AI_PRACTICE_CHARACTERS } from "@/features/ai-practice/ai-practice-data";
 import { ChestIcon } from "@/features/quiz/components/chest-icon";
+import { QUIZ_END_CONTINUE_TRIPLE_TAP_WINDOW_MS } from "@/features/quiz/quiz-end-triple-tap";
+import { runMissionCardActionAfterSingleTap } from "@/features/missions/mission-card-tap-guard";
 import { GEM_ASSETS } from "@/features/gems/gem-types";
 import type { MissionDefinition, MissionReward, MissionStatus } from "@/features/missions/mission-types";
 
@@ -111,6 +114,7 @@ export function MissionCard({
   onOpenDetails,
   claiming,
 }: MissionCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
   const t = useT();
   const { locale } = useLocale();
   const progressPercent = Math.min(100, Math.round((progress / requirement) * 100));
@@ -125,7 +129,7 @@ export function MissionCard({
     ? formatSuperWaterText(locale, description)
     : description;
 
-  function handleClick(source?: DOMRect) {
+  function performClick(source?: DOMRect) {
     if (claiming) return;
 
     if (isWaiting) {
@@ -147,6 +151,22 @@ export function MissionCard({
     }
   }
 
+  function handleClick(source?: DOMRect, deferQuizMultiTap = false) {
+    if (claiming) return;
+
+    const quizRewardsScreen = cardRef.current?.closest<HTMLElement>("[data-quiz-mission-rewards]");
+    if (deferQuizMultiTap && quizRewardsScreen) {
+      runMissionCardActionAfterSingleTap(
+        quizRewardsScreen,
+        () => performClick(source),
+        QUIZ_END_CONTINUE_TRIPLE_TAP_WINDOW_MS,
+      );
+      return;
+    }
+
+    performClick(source);
+  }
+
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -156,6 +176,7 @@ export function MissionCard({
 
   return (
     <div
+      ref={cardRef}
       data-mission-card={missionId}
       data-mission-status={isClaimed ? "claimed" : status}
       data-mission-reward-kind={reward.kind}
@@ -165,7 +186,7 @@ export function MissionCard({
       role="button"
       tabIndex={isClickable ? 0 : -1}
       aria-label={isClaimed ? t("missions.claimed") : isWaiting ? t("missions.claim") : description}
-      onClick={(event) => handleClick(event.currentTarget.getBoundingClientRect())}
+      onClick={(event) => handleClick(event.currentTarget.getBoundingClientRect(), event.detail > 0)}
       onKeyDown={handleKeyDown}
       style={{
         aspectRatio: "4 / 5",

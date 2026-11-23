@@ -25,12 +25,12 @@ import type { InventoryCard, VocabularyCard } from "@/types/domain";
 
 describe("quiz engine", () => {
   it("exposes the planned tier requirements", () => {
-    expect(getTierRequirement("A1")).toBe(4);
-    expect(getTierRequirement("A2")).toBe(4);
-    expect(getTierRequirement("B1")).toBe(6);
-    expect(getTierRequirement("B2")).toBe(6);
-    expect(getTierRequirement("C1")).toBe(8);
-    expect(TIER_REQUIREMENTS).toEqual({ A1: 4, A2: 4, B1: 6, B2: 6, C1: 8 });
+    expect(getTierRequirement("A1")).toBe(2);
+    expect(getTierRequirement("A2")).toBe(2);
+    expect(getTierRequirement("B1")).toBe(3);
+    expect(getTierRequirement("B2")).toBe(3);
+    expect(getTierRequirement("C1")).toBe(4);
+    expect(TIER_REQUIREMENTS).toEqual({ A1: 2, A2: 2, B1: 3, B2: 3, C1: 4 });
   });
 
   it("increments correct answers and marks a card learned at its tier threshold", () => {
@@ -38,7 +38,7 @@ describe("quiz engine", () => {
     expect(card).toBeDefined();
 
     let state = createInventoryCard(card!.id);
-    for (let step = 1; step <= 4; step += 1) {
+    for (let step = 1; step <= 2; step += 1) {
       state = applyAnswerProgress(
         state,
         card!,
@@ -47,12 +47,12 @@ describe("quiz engine", () => {
       );
     }
 
-    expect(state.correctCount).toBe(4);
+    expect(state.correctCount).toBe(2);
     expect(state.status).toBe("learned");
-    expect(state.learnedAt).toBe("2026-01-04T00:00:00.000Z");
+    expect(state.learnedAt).toBe("2026-01-02T00:00:00.000Z");
   });
 
-  it("decrements wrong answers without going below zero", () => {
+  it("keeps learning progress unchanged after wrong answers", () => {
     const card = VOCABULARY_CARDS[0];
     const activeCard: InventoryCard = {
       ...createInventoryCard(card.id),
@@ -62,8 +62,8 @@ describe("quiz engine", () => {
     const firstWrong = applyAnswerProgress(activeCard, card, false);
     const secondWrong = applyAnswerProgress(firstWrong, card, false);
 
-    expect(firstWrong.correctCount).toBe(0);
-    expect(secondWrong.correctCount).toBe(0);
+    expect(firstWrong.correctCount).toBe(1);
+    expect(secondWrong.correctCount).toBe(1);
     expect(secondWrong.status).toBe("active");
   });
 

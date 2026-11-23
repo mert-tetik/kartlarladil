@@ -10,6 +10,7 @@ import { LanguageFlag } from "@/components/language-flag";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { getLanguageDisplayName } from "@/i18n/labels";
 import { useLocale, useT } from "@/i18n/locale-provider";
+import { trackAnalyticsEvent } from "@/lib/analytics-events";
 import { formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
 import type { InventoryCardView } from "@/features/inventory/inventory-selectors";
@@ -236,12 +237,14 @@ export function MobileLandingCardCenter({
     const firstCard = activeCards[0]?.card;
     if (!firstCard) return;
 
+    trackAnalyticsEvent("landing_review_opened");
     setPodiumMode("review");
     setSelectedCardId(firstCard.id);
     setPodiumOpen(true);
   }
 
   const handleCardSelect = useCallback((cardId: string) => {
+    trackAnalyticsEvent("landing_card_podium_opened");
     setPodiumMode("collection");
     setSelectedCardId(cardId);
     setPodiumOpen(true);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { MainPointsDisplay } from "@/features/progress/components/main-points-display";
 import { RewardGemHud } from "@/features/progress/components/reward-gem-hud";
@@ -17,6 +17,7 @@ import { useLocale } from "@/i18n/locale-provider";
 import { formatNumber } from "@/i18n/labels";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
+import { useQuizAnimationFastForward } from "@/features/quiz/components/quiz-animation-fast-forward";
 
 type RewardCategory = "accuracy" | "time" | "correct" | "learned";
 
@@ -73,6 +74,12 @@ type RewardPulsePaint = Partial<Record<RewardPulseColorProperty, string>>;
 const REWARD_PULSE_OPACITY_PROPERTIES = ["opacity", "fillOpacity", "strokeOpacity"] as const;
 type RewardPulseOpacityProperty = (typeof REWARD_PULSE_OPACITY_PROPERTIES)[number];
 type RewardPulseOpacity = Partial<Record<RewardPulseOpacityProperty, string>>;
+const INITIAL_SCATTER_FAST_FORWARD_SIGNALS: Record<RewardCategory, number> = {
+  accuracy: 0,
+  time: 0,
+  correct: 0,
+  learned: 0,
+};
 const activeBoxPulseAnimations = new WeakMap<Element, Animation>();
 const activeBoxColorAnimations = new WeakMap<Element, Animation>();
 const initialBoxPaints = new WeakMap<Element, RewardPulsePaint>();
@@ -127,6 +134,12 @@ export function QuizPerformanceRewardSequence({
   const [scorePulse, setScorePulse] = useState(0);
   const [hudVisible, setHudVisible] = useState(false);
   const [hudExiting, setHudExiting] = useState(false);
+  const [scatterFastForwardSignals, setScatterFastForwardSignals] = useState(
+    INITIAL_SCATTER_FAST_FORWARD_SIGNALS,
+  );
+  const [immediateStartCategories, setImmediateStartCategories] = useState<Set<RewardCategory>>(
+    () => new Set(),
+  );
   const targetRef = useRef<HTMLSpanElement>(null);
   const scheduleStartedRef = useRef(false);
   const persistStartedSessionRef = useRef<string | null>(null);
@@ -140,6 +153,7 @@ export function QuizPerformanceRewardSequence({
     learned: 0,
   });
   const completedCategoriesRef = useRef(new Set<RewardCategory>());
+  const fastForwardRequestedCategoriesRef = useRef(new Set<RewardCategory>());
   const sequenceTimerRef = useRef<number | null>(null);
   const exitTimerRef = useRef<number | null>(null);
   const cleanupTimerRef = useRef<number | null>(null);
@@ -151,7 +165,9 @@ export function QuizPerformanceRewardSequence({
     : 0;
   const [baseTotalPoints] = useState(safeCurrentTotalPoints);
 
-  useEffect(() => {
+  // Sync before browser input can run after a commit; a passive effect leaves a
+  // small window where a rapid tap could still see the previous stage.
+  useLayoutEffect(() => {
     exitingRef.current = exiting;
   }, [exiting]);
 
@@ -344,6 +360,58 @@ export function QuizPerformanceRewardSequence({
     beginHudExit();
   }, [beginHudExit, categories.length]);
 
+  const requestScatterFastForward = useCallback((root: HTMLElement) => {
+    const visibleSummary = root.closest<HTMLElement>(
+      '[data-quiz-result-view][data-quiz-result-stage="summary"]',
+    );
+    if (
+      !entered ||
+      exitingRef.current ||
+      !visibleSummary ||
+      visibleSummary.getAttribute("aria-hidden") === "true"
+    ) return false;
+    // Fast-forward the whole remaining reward batch together. Unstarted
+    // categories lose their stagger delay; active categories keep their
+    // current flights and accelerate them from their current positions.
+    const pendingCategories = categories.filter(({ id }) =>
+      !completedCategoriesRef.current.has(id)
+      && !fastForwardRequestedCategoriesRef.current.has(id),
+    );
+    if (pendingCategories.length === 0) return false;
+
+    for (const category of pendingCategories) {
+      fastForwardRequestedCategoriesRef.current.add(category.id);
+    }
+    setScatterFastForwardSignals((current) => {
+      const next = { ...current };
+      for (const category of pendingCategories) next[category.id] += 1;
+      return next;
+    });
+
+    const unstartedCategories = pendingCategories.filter(
+      ({ id }) => !startedCategoriesRef.current.has(id),
+    );
+    if (unstartedCategories.length > 0) {
+      setImmediateStartCategories((current) => {
+        if (unstartedCategories.every(({ id }) => current.has(id))) return current;
+        const next = new Set(current);
+        for (const category of unstartedCategories) next.add(category.id);
+        return next;
+      });
+    }
+    return true;
+  }, [categories, entered]);
+
+  // The quiz overlay owns tap recognition. Register one batch handler there
+  // instead of counting the same touch again in document/pointer listeners.
+  // A successful request accelerates active flights and releases every
+  // staggered category together; the provider owns the single haptic pulse.
+  useQuizAnimationFastForward(
+    requestScatterFastForward,
+    entered && !exiting && categories.length > 0,
+    30,
+  );
+
   if (typeof document === "undefined") return null;
 
   return createPortal(
@@ -378,13 +446,14 @@ export function QuizPerformanceRewardSequence({
       {requests.map((request) => (
         <RewardScatter
           key={request.id}
+          fastForwardSignal={scatterFastForwardSignals[request.id]}
           points={{
             amount: request.amount,
             source: document.querySelector<HTMLElement>(request.id === "correct" || request.id === "learned"
               ? `[data-result-card="${request.id}"]`
               : `[data-result-stat="${request.id}"]`),
             target: targetRef,
-            startDelayMs: request.startDelayMs,
+            startDelayMs: immediateStartCategories.has(request.id) ? 0 : request.startDelayMs,
             flightStaggerMs: REWARD_POINT_ARRIVAL_STAGGER_MS,
             iconSize: 30,
             zIndex: 270,

@@ -124,6 +124,11 @@ function parseQuizFlowTest(value: string | string[] | undefined): boolean {
   return rawValue === "1" || rawValue === "true";
 }
 
+function parseQuizLeaderboardTest(value: string | string[] | undefined): boolean {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return rawValue === "1" || rawValue === "true";
+}
+
 function parseQuizWordRepetitionTest(value: string | string[] | undefined): boolean {
   const rawValue = Array.isArray(value) ? value[0] : value;
   return rawValue === "1" || rawValue === "true";
@@ -190,6 +195,7 @@ export default async function LearnPage({
   );
   const quizCompletionTest = parseQuizCompletionTest(params["quiz-completion-test"]);
   const quizFlowTest = parseQuizFlowTest(params["quiz-flow-test"]);
+  const quizLeaderboardTest = parseQuizLeaderboardTest(params["quiz-leaderboard-test"]);
   const quizWordRepetitionTest = parseQuizWordRepetitionTest(
     params["quiz-word-repetition-test"] ??
       params["word-repetition-test"] ??
@@ -224,6 +230,7 @@ export default async function LearnPage({
         quizWordButtonTest={quizWordButtonTest}
         quizCompletionTest={quizCompletionTest}
         quizFlowTest={quizFlowTest}
+        quizLeaderboardTest={quizLeaderboardTest}
         quizWordRepetitionTest={quizWordRepetitionTest}
       />
     </section>

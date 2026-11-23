@@ -112,12 +112,11 @@ function SubscriptionProviderSession({
 }) {
   const pathname = usePathname();
   const isVisualTestMode = isMissionVisualTestRoute(pathname);
-  const [entitlements, setEntitlements] = useState<UserEntitlements | null>(() =>
-    readCachedEntitlements(userId),
-  );
-  const [isLoading, setIsLoading] = useState(() =>
-    Boolean(userId && !readCachedEntitlements(userId)),
-  );
+  // Keep the server render and the client's hydration render identical. The
+  // local entitlement cache is browser-only, so read it after hydration rather
+  // than from a useState initializer that runs on both server and client.
+  const [entitlements, setEntitlements] = useState<UserEntitlements | null>(null);
+  const [isLoading, setIsLoading] = useState(Boolean(userId));
   const [error, setError] = useState<string | null>(null);
   const [subscriptionDetailsRequest, setSubscriptionDetailsRequest] = useState<SubscriptionDetailsRequest | null>(null);
   const entitlementsRef = useRef<UserEntitlements | null>(entitlements);
@@ -128,6 +127,13 @@ function SubscriptionProviderSession({
     promise: Promise<UserEntitlements | null>;
   } | null>(null);
   const { showMessage } = useAppMessage();
+
+  useEffect(() => {
+    const cachedEntitlements = readCachedEntitlements(userId);
+    entitlementsRef.current = cachedEntitlements;
+    setEntitlements(cachedEntitlements);
+    setIsLoading(Boolean(userId && !cachedEntitlements));
+  }, [userId]);
 
   useEffect(() => {
     if (error) {

@@ -24,7 +24,7 @@ describe("offline vocabulary-card renderer", () => {
     expect(renderer).toBeDefined();
 
     const markup = renderer!.render(
-      [{ card, inventory: { cardId: card.id, status: "active", correctCount: 2 } }],
+      [{ card, inventory: { cardId: card.id, status: "active", correctCount: 1 } }],
       "en",
       { active: "In progress", learned: "Learned" },
     );
@@ -35,14 +35,14 @@ describe("offline vocabulary-card renderer", () => {
     expect(markup).toContain("sunlight, dappled light");
     expect(markup).toContain("data-saved-card-status=\"active\"");
     expect(markup).toContain("data-card-progress=\"true\"");
-    expect(markup).toContain("2/4");
+    expect(markup).toContain("1/2");
     expect(markup).not.toContain("offline-card-progress");
     expect(markup).not.toMatch(/(?:src|href)=\"https?:\/\//i);
   });
 
   it("renders the learned medal when saved progress has reached the tier requirement", () => {
     const markup = window.FoxiesDeckOfflineCardRenderer!.render(
-      [{ card, inventory: { cardId: card.id, status: "active", correctCount: 4 } }],
+      [{ card, inventory: { cardId: card.id, status: "active", correctCount: 2 } }],
       "en",
       { active: "In progress", learned: "Learned" },
     );
@@ -60,7 +60,7 @@ describe("offline vocabulary-card renderer", () => {
       examples: undefined,
     } as unknown as VocabularyCard;
     const markup = window.FoxiesDeckOfflineCardRenderer!.render(
-      [{ card: fixtureCard, inventory: { cardId: "fixture-card", status: "learned", correctCount: 4 } }],
+      [{ card: fixtureCard, inventory: { cardId: "fixture-card", status: "learned", correctCount: 2 } }],
       "en",
       { active: "In progress", learned: "Learned" },
     );

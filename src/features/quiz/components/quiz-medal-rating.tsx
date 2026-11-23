@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { playSoundEffect, preloadSoundEffects } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
+import { useQuizAnimationFastForward } from "@/features/quiz/components/quiz-animation-fast-forward";
 
 interface QuizMedalRatingProps {
   rating: number;
@@ -50,7 +51,11 @@ export function QuizMedalRating({
   const revealStepMs = sequentialReveal ? DROP_DURATION_MS + STAGGER_MS : STAGGER_MS;
   const [ready, setReady] = useState(false);
   const [showEmpty, setShowEmpty] = useState(clampedRating === 0);
+  const [fastForwarded, setFastForwarded] = useState(false);
+  const [revealComplete, setRevealComplete] = useState(false);
   const onRevealCompleteRef = useRef(onRevealComplete);
+  const revealFinishedRef = useRef(false);
+  const fastForwardedRef = useRef(false);
 
   useEffect(() => {
     onRevealCompleteRef.current = onRevealComplete;
@@ -62,16 +67,38 @@ export function QuizMedalRating({
   }, [clampedRating, sequentialReveal]);
 
   useEffect(() => {
+    if (fastForwarded) return;
     const timer = window.setTimeout(() => setReady(true), PANEL_REVEAL_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [fastForwarded]);
+
+  const fastForwardReveal = useCallback(() => {
+    if (!sequentialReveal || clampedRating === 0 || revealFinishedRef.current) return false;
+
+    revealFinishedRef.current = true;
+    fastForwardedRef.current = true;
+    setFastForwarded(true);
+    setReady(true);
+    setShowEmpty(true);
+    setRevealComplete(true);
+    playSoundEffect("quiz-medal-reveal");
+    onRevealCompleteRef.current?.();
+    return true;
+  }, [clampedRating, sequentialReveal]);
+
+  useQuizAnimationFastForward(
+    fastForwardReveal,
+    sequentialReveal && clampedRating > 0 && !revealComplete,
+    140,
+  );
 
   useEffect(() => {
-    if (clampedRating === 0) return;
+    if (clampedRating === 0 || fastForwarded) return;
     const lastFilledIndex = clampedRating - 1;
     const revealAt = PANEL_REVEAL_DELAY_MS + lastFilledIndex * revealStepMs + DROP_DURATION_MS;
     let completeTimer: number | null = null;
     const timer = window.setTimeout(() => {
+      if (revealFinishedRef.current) return;
       setShowEmpty(true);
       playSoundEffect("quiz-medals-complete");
       const placeholderCount = Math.max(0, max - clampedRating);
@@ -79,6 +106,9 @@ export function QuizMedalRating({
         ? PLACEHOLDER_REVEAL_DURATION_MS + (placeholderCount - 1) * PLACEHOLDER_STAGGER_MS
         : 0;
       completeTimer = window.setTimeout(() => {
+        if (revealFinishedRef.current) return;
+        revealFinishedRef.current = true;
+        setRevealComplete(true);
         onRevealCompleteRef.current?.();
       }, placeholderRevealTime);
     }, revealAt);
@@ -86,7 +116,7 @@ export function QuizMedalRating({
       window.clearTimeout(timer);
       if (completeTimer !== null) window.clearTimeout(completeTimer);
     };
-  }, [clampedRating, max, revealStepMs]);
+  }, [clampedRating, fastForwarded, max, revealStepMs]);
 
   return (
     <div
@@ -117,13 +147,13 @@ export function QuizMedalRating({
                   sizeClass,
                   "origin-bottom",
                   "object-contain",
-                  ready ? "animate-medal-drop" : "opacity-0",
+                  fastForwarded ? "opacity-100" : ready ? "animate-medal-drop" : "opacity-0",
                 )}
                 style={{
-                  animationDelay: `${index * revealStepMs}ms`,
+                  animationDelay: fastForwarded ? undefined : `${index * revealStepMs}ms`,
                 }}
                 onAnimationEnd={(event) => {
-                  if (event.animationName !== "star-drop") return;
+                  if (fastForwardedRef.current || event.animationName !== "star-drop") return;
                   playSoundEffect(sequentialReveal ? "quiz-medal-reveal" : "points", {
                     playbackRate: sequentialReveal ? 1 + index * 0.08 : 1,
                   });
@@ -142,10 +172,10 @@ export function QuizMedalRating({
               className={cn(
                 "relative origin-bottom shrink-0",
                 sizeClass,
-                showEmpty ? "animate-medal-placeholder" : "opacity-0",
+                fastForwarded ? "opacity-100" : showEmpty ? "animate-medal-placeholder" : "opacity-0",
               )}
               style={{
-                animationDelay: showEmpty
+                animationDelay: !fastForwarded && showEmpty
                   ? `${Math.max(0, index - clampedRating) * PLACEHOLDER_STAGGER_MS}ms`
                   : undefined,
               }}
