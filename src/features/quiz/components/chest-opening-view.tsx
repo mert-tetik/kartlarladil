@@ -552,6 +552,18 @@ export function ChestOpeningView({
     const drawHeight = CHEST_OPENING_FRAME_HEIGHT * scale;
     const drawX = (width - drawWidth) / 2;
     const drawY = (height - drawHeight) / 2;
+    let firstFrameCanvasBaseline: Uint8ClampedArray | null = null;
+    if (frameToDraw === 0) {
+      try {
+        const centerX = Math.min(canvas.width - 1, Math.floor(canvas.width / 2));
+        const centerY = Math.min(canvas.height - 1, Math.floor(canvas.height / 2));
+        firstFrameCanvasBaseline = context.getImageData(centerX, centerY, 1, 1).data;
+      } catch {
+        // A WebView that cannot read its canvas safely uses the DOM image path.
+        displayFrameWithImageRenderer(frameImage, frameToDraw, "canvas pixel verification unavailable");
+        return;
+      }
+    }
     try {
       context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
       context.imageSmoothingEnabled = true;
@@ -572,6 +584,21 @@ export function ChestOpeningView({
       }));
       displayFrameWithImageRenderer(frameImage, frameToDraw, "canvas draw failed");
       return;
+    }
+
+    if (firstFrameCanvasBaseline) {
+      try {
+        const centerX = Math.min(canvas.width - 1, Math.floor(canvas.width / 2));
+        const centerY = Math.min(canvas.height - 1, Math.floor(canvas.height / 2));
+        const firstFrameCanvasPixel = context.getImageData(centerX, centerY, 1, 1).data;
+        if (firstFrameCanvasPixel.every((channel, index) => channel === firstFrameCanvasBaseline?.[index])) {
+          displayFrameWithImageRenderer(frameImage, frameToDraw, "canvas produced no visible pixels");
+          return;
+        }
+      } catch {
+        displayFrameWithImageRenderer(frameImage, frameToDraw, "canvas pixel verification failed");
+        return;
+      }
     }
 
     lastDrawnFrameRef.current = frameToDraw;

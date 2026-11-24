@@ -62,6 +62,11 @@ describe("ChestOpeningView", () => {
       setTransform: vi.fn(),
       clearRect: vi.fn(),
       drawImage: drawImageMock,
+      getImageData: vi.fn(() => ({
+        data: drawImageMock.mock.calls.length > 0
+          ? new Uint8ClampedArray([91, 50, 25, 255])
+          : new Uint8ClampedArray([0, 0, 0, 255]),
+      })),
       imageSmoothingEnabled: true,
       imageSmoothingQuality: "high",
     } as unknown as CanvasRenderingContext2D;
@@ -293,6 +298,37 @@ describe("ChestOpeningView", () => {
 
     expect(imageRenderer).toHaveAttribute("src", expect.stringContaining("frame-003.webp"));
     expect(HTMLCanvasElement.prototype.getContext).toHaveBeenCalledTimes(2);
+  });
+
+  it("switches to the image renderer when the canvas reports a successful draw but stays blank", async () => {
+    const silentCanvasContext = {
+      setTransform: vi.fn(),
+      clearRect: vi.fn(),
+      drawImage: vi.fn(),
+      getImageData: vi.fn(() => ({ data: new Uint8ClampedArray([0, 0, 0, 255]) })),
+      imageSmoothingEnabled: true,
+      imageSmoothingQuality: "high",
+    } as unknown as CanvasRenderingContext2D;
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockImplementation(() => silentCanvasContext);
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <ChestOpeningView tier={CHEST_TIERS[0]} totalPoints={0} onComplete={vi.fn()} />
+      </LocaleProvider>,
+    );
+    await flushFrameLoads();
+
+    const imageRenderer = document.querySelector<HTMLImageElement>("[data-chest-opening-image-fallback]");
+    expect(silentCanvasContext.drawImage).toHaveBeenCalledTimes(1);
+    expect(imageRenderer).not.toHaveClass("hidden");
+    expect(imageRenderer).toHaveAttribute("src", expect.stringContaining("frame-001.webp"));
+
+    Object.defineProperty(imageRenderer, "naturalWidth", { configurable: true, value: 480 });
+    Object.defineProperty(imageRenderer, "naturalHeight", { configurable: true, value: 854 });
+    fireEvent.load(imageRenderer!);
+
+    expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
   });
 
   it("releases old decoded frames while the image renderer advances", async () => {
