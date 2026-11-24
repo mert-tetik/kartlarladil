@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   deactivateTutorial: vi.fn(),
   resetTutorial: vi.fn(),
   clearUser: vi.fn(),
+  preloadSeriousLearnerAssets: vi.fn(),
   authUser: { profile: { onboardingCompleted: true } } as { profile: { onboardingCompleted: boolean } } | null,
   isSessionReady: true,
   pathname: "/",
@@ -53,6 +54,10 @@ vi.mock("@/features/auth/auth-client", () => ({
     updateProfileField: vi.fn(),
     clearUser: mocks.clearUser,
   }),
+}));
+
+vi.mock("@/features/auth/serious-learner-assets", () => ({
+  preloadSeriousLearnerAssets: mocks.preloadSeriousLearnerAssets,
 }));
 
 vi.mock("@/features/subscriptions/subscription-client", () => ({
@@ -152,6 +157,8 @@ describe("MobileAuthGateway returning-login flow", () => {
     mocks.router.replace.mockImplementation((href) => {
       window.history.replaceState({}, "", String(href));
     });
+    mocks.preloadSeriousLearnerAssets.mockReset();
+    mocks.preloadSeriousLearnerAssets.mockImplementation(() => new Promise<void>(() => undefined));
     window.sessionStorage.clear();
     mocks.authUser = { profile: { onboardingCompleted: true } };
     mocks.isSessionReady = true;
@@ -256,6 +263,26 @@ describe("MobileAuthGateway returning-login flow", () => {
     render(<MobileAuthGateway countryCode="US" />);
 
     expect(screen.queryByTestId("mobile-subscription-offer")).not.toBeInTheDocument();
+  });
+
+  it("starts asset warming during login without waiting for the image requests", async () => {
+    mocks.authUser = null;
+    window.history.replaceState({}, "", "/");
+
+    render(<MobileAuthGateway countryCode="US" />);
+
+    expect(await screen.findByTestId("mobile-auth-screen")).toBeInTheDocument();
+    await waitFor(() => expect(mocks.preloadSeriousLearnerAssets).toHaveBeenCalledOnce());
+  });
+
+  it("starts asset warming during onboarding without blocking the onboarding controls", async () => {
+    mocks.authUser = { profile: { onboardingCompleted: false } };
+    window.history.replaceState({}, "", "/");
+
+    render(<MobileAuthGateway countryCode="US" />);
+
+    expect(await screen.findByTestId("mobile-login-language-refresh")).toBeInTheDocument();
+    await waitFor(() => expect(mocks.preloadSeriousLearnerAssets).toHaveBeenCalledOnce());
   });
 
   it("plays the shared serious-learner exit animation in visual-test mode before reopening", () => {

@@ -6584,17 +6584,19 @@ body:has([data-learn-page]):has([data-leaderboard-overlay]) [data-mobile-main-na
 html[data-learn-leaderboard-overlay-open="true"] body:has([data-leaderboard-overlay]) [data-mobile-main-nav-frame] {
   display: block !important;
   z-index: 90;
-  background-color: #090909;
+  background-color: #000000;
 }
 
 html[data-learn-leaderboard-overlay-open="true"] body:has([data-leaderboard-overlay]) [data-mobile-main-nav] {
-  background-color: #090909 !important;
-  border-color: #090909 !important;
+  background-color: #000000 !important;
+  border-color: #000000 !important;
 }
 
 @media (max-width: 1023px) {
   html[data-learn-leaderboard-overlay-open="true"] [data-route-transition-navigation] {
     display: block !important;
+    background-color: #000000 !important;
+    border-color: #000000 !important;
   }
 }
 

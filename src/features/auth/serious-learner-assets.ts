@@ -26,12 +26,18 @@ export function preloadSeriousLearnerAssets() {
   if (typeof window === "undefined") return Promise.resolve();
   if (seriousLearnerPreloadPromise) return seriousLearnerPreloadPromise;
 
-  seriousLearnerPreloadPromise = (async () => {
-    await waitForImage(SERIOUS_LEARNER_HERO_PATH);
-    for (let frame = 1; frame <= SERIOUS_LEARNER_FRAME_COUNT; frame += 1) {
-      await waitForImage(`${SERIOUS_LEARNER_FRAME_BASE_PATH}/${frame}.webp`);
-    }
-  })();
+  const sources = [
+    SERIOUS_LEARNER_HERO_PATH,
+    ...Array.from(
+      { length: SERIOUS_LEARNER_FRAME_COUNT },
+      (_, index) => `${SERIOUS_LEARNER_FRAME_BASE_PATH}/${index + 1}.webp`,
+    ),
+  ];
+
+  // These independent static assets should warm together during login or
+  // onboarding; serial loading can leave most of the animation cold when the
+  // offer screen appears. Callers intentionally do not await this promise.
+  seriousLearnerPreloadPromise = Promise.all(sources.map(waitForImage)).then(() => undefined);
 
   return seriousLearnerPreloadPromise;
 }
