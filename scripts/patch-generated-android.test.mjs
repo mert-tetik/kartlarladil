@@ -149,6 +149,36 @@ describe("reproducible Android Firebase bootstrap", () => {
     expect(webViewClientSource).toContain("NativeAnalyticsReceiver.class");
     expect(webViewClientSource).toContain("activity.sendBroadcast(analyticsIntent)");
     expect(webViewClientSource).toContain("EventReceiverActivity.class");
+    expect(webViewClientSource).toContain("LOCAL_MEDIA_FALLBACK_DEBUG_MODE_ENABLED = true");
+    expect(webViewClientSource).toContain("foxiesdeck:native-media-local-hit");
+    expect(webViewClientSource).toContain("foxiesdeck:native-media-local-miss");
+    expect(webViewClientSource).toContain("notifyLocalMediaHit(view, localPath)");
+    expect(webViewClientSource).toContain("notifyLocalMediaMiss(view, localPath)");
+    expect(webViewClientSource).toContain("loggedFirstChestFrameHit");
+    expect(webViewClientSource).toContain("loggedFirstChestFrameMiss");
+    expect(webViewClientSource).toContain("window.__foxiesDeckNativeMediaDiagnostics");
+    expect(webViewClientSource).toContain("createServiceWorkerClient()");
+    expect(webViewClientSource).toContain("return intercept(");
+
+    const mediaStoreSource = fs.readFileSync(
+      path.join(PROJECT_ROOT, "scripts", "android-template", "NativeMediaStore.java"),
+      "utf8",
+    );
+    expect(mediaStoreSource).toContain("Install-time packs can finish mounting");
+    expect(mediaStoreSource).toContain("String refreshedPackPath = packAssetsPath;");
+    expect(mediaStoreSource).toContain("new File(refreshedPackPath, relativePath)");
+
+    const launcherActivitySource = fs.readFileSync(
+      path.join(PROJECT_ROOT, "scripts", "android-template", "LauncherActivity.java"),
+      "utf8",
+    );
+    const serviceWorkerSetupIndex = launcherActivitySource.indexOf(
+      "ServiceWorkerController.getInstance().setServiceWorkerClient(",
+    );
+    const webViewConstructionIndex = launcherActivitySource.indexOf("webView = new WebView(this)");
+    expect(serviceWorkerSetupIndex).toBeGreaterThanOrEqual(0);
+    expect(serviceWorkerSetupIndex).toBeLessThan(webViewConstructionIndex);
+    expect(launcherActivitySource).toContain("mediaWebViewClient.attachWebView(webView)");
 
     const reviewActivitySource = fs.readFileSync(
       path.join(PROJECT_ROOT, "scripts", "android-template", "EventReceiverActivity.java"),

@@ -5,15 +5,17 @@ import { CHEST_TIERS, type ChestTierDefinition } from "@/features/quiz/chest-rew
 import { ChestOpeningTestOverlay } from "./chest-opening-test-overlay";
 
 vi.mock("./chest-opening-view", () => ({
-  ChestOpeningView: ({ tier, totalPoints, onComplete }: {
+  ChestOpeningView: ({ tier, totalPoints, debugFramePlayback, onComplete }: {
     tier: ChestTierDefinition;
     totalPoints: number;
+    debugFramePlayback?: boolean;
     onComplete: () => void;
   }) => (
     <button
       data-chest-opening-view-mock
       data-chest-tier={tier.tier}
       data-total-points={totalPoints}
+      data-chest-debug={debugFramePlayback ? "enabled" : "disabled"}
       onClick={onComplete}
     >
       open {tier.tier}
@@ -69,6 +71,25 @@ describe("ChestOpeningTestOverlay", () => {
       vi.advanceTimersByTime(1);
     });
     expect(document.body.querySelector("[data-chest-opening-test-tier]")).toHaveAttribute("data-chest-opening-test-tier", "iron");
+  });
+
+  it("enables visible playback diagnostics only when the chest test and debug params are both enabled", () => {
+    window.history.replaceState({}, "", "/?chest-opening-test=1&chest-debug=1");
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <ChestOpeningTestOverlay />
+      </LocaleProvider>,
+    );
+
+    act(() => {
+      vi.runOnlyPendingTimers();
+    });
+
+    expect(document.body.querySelector("[data-chest-opening-view-mock]")).toHaveAttribute(
+      "data-chest-debug",
+      "enabled",
+    );
   });
 
   it("wraps back to the first chest after showing every tier", () => {

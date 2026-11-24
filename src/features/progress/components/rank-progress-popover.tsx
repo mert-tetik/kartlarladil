@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type Ref } from "react";
+import { useEffect, useId, useRef, useState, type MouseEvent as ReactMouseEvent, type Ref } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { X } from "lucide-react";
@@ -623,7 +623,6 @@ export function RankUpMenu({
         />
       </div>
       <div className={cn("rank-up-foreground", closing && "rank-up-foreground--closing")}>
-        <RankUpConfetti revealed={revealed} />
         <div
           className="relative z-10 flex min-h-full w-full items-center justify-center lg:p-4"
           onMouseDown={(event) => {
@@ -711,65 +710,6 @@ export function RankUpMenu({
       </div>
     </div>,
     document.body,
-  );
-}
-
-const RANK_UP_CONFETTI = [
-  { x: "-40vw", y: "58vh", rotate: "-430deg", delay: "0ms", size: "0.7rem", color: "#ffd43b" },
-  { x: "-32vw", y: "76vh", rotate: "320deg", delay: "35ms", size: "0.46rem", color: "#ffffff" },
-  { x: "-25vw", y: "48vh", rotate: "-260deg", delay: "80ms", size: "0.58rem", color: "#fff3a6" },
-  { x: "-19vw", y: "88vh", rotate: "390deg", delay: "120ms", size: "0.8rem", color: "#f8c531" },
-  { x: "-14vw", y: "64vh", rotate: "-520deg", delay: "165ms", size: "0.52rem", color: "#ffffff" },
-  { x: "-10vw", y: "40vh", rotate: "280deg", delay: "220ms", size: "0.72rem", color: "#ffd43b" },
-  { x: "-7vw", y: "96vh", rotate: "-350deg", delay: "70ms", size: "0.44rem", color: "#ffffff" },
-  { x: "-4vw", y: "72vh", rotate: "480deg", delay: "250ms", size: "0.6rem", color: "#fff3a6" },
-  { x: "-2vw", y: "52vh", rotate: "-300deg", delay: "105ms", size: "0.82rem", color: "#f8c531" },
-  { x: "3vw", y: "62vh", rotate: "410deg", delay: "45ms", size: "0.5rem", color: "#ffffff" },
-  { x: "6vw", y: "92vh", rotate: "-460deg", delay: "185ms", size: "0.68rem", color: "#ffd43b" },
-  { x: "9vw", y: "44vh", rotate: "290deg", delay: "95ms", size: "0.44rem", color: "#fff3a6" },
-  { x: "13vw", y: "74vh", rotate: "-380deg", delay: "140ms", size: "0.78rem", color: "#ffffff" },
-  { x: "17vw", y: "52vh", rotate: "500deg", delay: "20ms", size: "0.54rem", color: "#f8c531" },
-  { x: "21vw", y: "84vh", rotate: "-300deg", delay: "230ms", size: "0.68rem", color: "#ffd43b" },
-  { x: "26vw", y: "62vh", rotate: "430deg", delay: "60ms", size: "0.48rem", color: "#ffffff" },
-  { x: "31vw", y: "94vh", rotate: "-520deg", delay: "155ms", size: "0.76rem", color: "#fff3a6" },
-  { x: "39vw", y: "70vh", rotate: "340deg", delay: "100ms", size: "0.52rem", color: "#f8c531" },
-  { x: "-47vw", y: "82vh", rotate: "-620deg", delay: "45ms", size: "0.92rem", color: "#ffffff" },
-  { x: "-43vw", y: "38vh", rotate: "360deg", delay: "190ms", size: "0.64rem", color: "#ffd43b" },
-  { x: "-36vw", y: "98vh", rotate: "-470deg", delay: "270ms", size: "0.5rem", color: "#fff8cc" },
-  { x: "-29vw", y: "56vh", rotate: "540deg", delay: "125ms", size: "0.86rem", color: "#f8c531" },
-  { x: "-23vw", y: "90vh", rotate: "-330deg", delay: "210ms", size: "0.62rem", color: "#ffffff" },
-  { x: "-17vw", y: "46vh", rotate: "450deg", delay: "15ms", size: "0.94rem", color: "#ffd43b" },
-  { x: "-11vw", y: "82vh", rotate: "-580deg", delay: "175ms", size: "0.56rem", color: "#fff8cc" },
-  { x: "-6vw", y: "100vh", rotate: "390deg", delay: "300ms", size: "0.9rem", color: "#ffffff" },
-  { x: "7vw", y: "48vh", rotate: "-410deg", delay: "115ms", size: "0.9rem", color: "#ffd43b" },
-  { x: "12vw", y: "100vh", rotate: "570deg", delay: "280ms", size: "0.58rem", color: "#fff8cc" },
-  { x: "18vw", y: "42vh", rotate: "-490deg", delay: "30ms", size: "0.96rem", color: "#ffffff" },
-  { x: "24vw", y: "96vh", rotate: "350deg", delay: "200ms", size: "0.62rem", color: "#ffd43b" },
-  { x: "29vw", y: "54vh", rotate: "-560deg", delay: "135ms", size: "0.88rem", color: "#fff8cc" },
-  { x: "36vw", y: "86vh", rotate: "430deg", delay: "260ms", size: "0.52rem", color: "#ffffff" },
-  { x: "46vw", y: "46vh", rotate: "-390deg", delay: "85ms", size: "0.82rem", color: "#ffd43b" },
-] as const;
-
-function RankUpConfetti({ revealed }: { revealed: boolean }) {
-  return (
-    <div className={cn("rank-up-confetti", revealed && "rank-up-confetti--visible")} aria-hidden="true">
-      {RANK_UP_CONFETTI.map((piece, index) => (
-        <span
-          key={index}
-          className="rank-up-confetti-piece"
-          style={
-            {
-              "--confetti-x": piece.x,
-              "--confetti-y": piece.y,
-              "--confetti-rotate": piece.rotate,
-              "--confetti-delay": piece.delay,
-              "--confetti-size": piece.size,
-              "--confetti-color": piece.color,
-            } as CSSProperties
-          }
-        />
-      ))}
-    </div>
   );
 }
 

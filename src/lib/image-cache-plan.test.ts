@@ -21,6 +21,27 @@ describe("image cache plan", () => {
     expect(getCriticalImageAssets(manifest)).toEqual([assets[0]]);
   });
 
+  it("never pre-caches chest frame sequences, even if a manifest marks them critical", () => {
+    const chestFrame = {
+      url: "/chests/opening-frames/wood-frames/frame-001.webp",
+      revision: "chest-frame-v1",
+    };
+
+    expect(
+      getCriticalImageAssets({
+        ...manifest,
+        criticalAssets: [assets[0], chestFrame],
+      }),
+    ).toEqual([assets[0]]);
+    expect(
+      getAssetsRequiringCache({
+        candidates: [...assets, chestFrame],
+        cachedPaths: new Set(),
+        cachedManifest: null,
+      }),
+    ).toEqual(assets);
+  });
+
   it("caches every candidate on a first install", () => {
     expect(
       getAssetsRequiringCache({

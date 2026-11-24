@@ -32,6 +32,7 @@ import android.webkit.WebChromeClient;
 import android.webkit.PermissionRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.ServiceWorkerController;
 import android.webkit.ValueCallback;
 import android.webkit.JavascriptInterface;
 import org.json.JSONArray;
@@ -292,7 +293,23 @@ public class LauncherActivity extends Activity {
         nativeWebViewInitStartedAtMs = SystemClock.elapsedRealtime();
         setNativeLoadingState("Waking up the card cave...", 24);
 
+        NativeMediaStore mediaStore = new NativeMediaStore(this);
+        LocalMediaWebViewClient mediaWebViewClient = new LocalMediaWebViewClient(
+                this,
+                mediaStore,
+                this::handleNativePageCommitVisible
+        );
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            // Workbox requests run through WebView's ServiceWorkerController,
+            // not only the page's WebViewClient. Install this before creating
+            // the WebView so bundled media works on a cold per-device cache.
+            ServiceWorkerController.getInstance().setServiceWorkerClient(
+                    mediaWebViewClient.createServiceWorkerClient()
+            );
+        }
+
         webView = new WebView(this);
+        mediaWebViewClient.attachWebView(webView);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -371,8 +388,7 @@ public class LauncherActivity extends Activity {
             }
         });
 
-        NativeMediaStore mediaStore = new NativeMediaStore(this);
-        webView.setWebViewClient(new LocalMediaWebViewClient(this, mediaStore, this::handleNativePageCommitVisible));
+        webView.setWebViewClient(mediaWebViewClient);
 
         billingBridge = new NativeBillingBridge(this);
         webView.addJavascriptInterface(billingBridge, "FoxiesDeckNativeBilling");
@@ -1240,6 +1256,9 @@ public class LauncherActivity extends Activity {
         deletePendingCameraCapture();
         if (nativeLoadingView != null) {
             nativeLoadingView.stopAnimating();
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            ServiceWorkerController.getInstance().setServiceWorkerClient(null);
         }
         if (webView != null) {
             webView.removeJavascriptInterface("FoxiesDeckNativeBilling");

@@ -7,6 +7,10 @@ import {
   INVENTORY_BACKGROUND_ERROR_EVENT,
   type InventoryBackgroundErrorDetail,
 } from "@/features/inventory/inventory-events";
+import {
+  NATIVE_MEDIA_LOCAL_MISS_EVENT,
+  NATIVE_MEDIA_LOCAL_MISS_POPUP_ENABLED,
+} from "@/lib/native-media-fallback";
 
 export type AppMessageTone = "success" | "error";
 
@@ -30,6 +34,7 @@ const EMPTY_APP_MESSAGE_CONTEXT: AppMessageContextValue = {
 const DEFAULT_APP_MESSAGE_DURATION_MS = 5000;
 const APP_MESSAGE_TRANSITION_MS = 420;
 const APP_MESSAGE_SWIPE_THRESHOLD_PX = 96;
+const VISUAL_MEDIA_PATH_PATTERN = /\.(?:avif|gif|jpe?g|png|svg|webp)$/i;
 
 interface AppMessageSwipeState {
   pointerId: number;
@@ -194,6 +199,34 @@ export function AppMessageProvider({ children }: { children: ReactNode }) {
 
     window.addEventListener(INVENTORY_BACKGROUND_ERROR_EVENT, handleInventoryBackgroundError);
     return () => window.removeEventListener(INVENTORY_BACKGROUND_ERROR_EVENT, handleInventoryBackgroundError);
+  }, [showMessage]);
+
+  useEffect(() => {
+    if (!NATIVE_MEDIA_LOCAL_MISS_POPUP_ENABLED) return;
+
+    const handleNativeMediaLocalMiss = (event: Event) => {
+      const detail = (event as CustomEvent<unknown>).detail;
+      if (typeof detail !== "object" || detail === null) return;
+
+      const path = (detail as Record<string, unknown>).path;
+      if (
+        typeof path !== "string"
+        || path.length > 2048
+        || !path.startsWith("/")
+        || path.startsWith("//")
+        || path.includes("?")
+        || path.includes("#")
+        || path.split("/").includes("..")
+        || !VISUAL_MEDIA_PATH_PATTERN.test(path)
+      ) {
+        return;
+      }
+
+      showMessage(`${path} pathinde bulunamadı`, "error");
+    };
+
+    window.addEventListener(NATIVE_MEDIA_LOCAL_MISS_EVENT, handleNativeMediaLocalMiss);
+    return () => window.removeEventListener(NATIVE_MEDIA_LOCAL_MISS_EVENT, handleNativeMediaLocalMiss);
   }, [showMessage]);
 
   return (

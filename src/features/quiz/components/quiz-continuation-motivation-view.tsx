@@ -79,6 +79,16 @@ const MOTIVATION_IMAGES: Record<QuizContinuationMotivation["id"], string> = {
   drawCards: "/quiz/continuation-motivations/draw-cards-card-ref-20261004.webp?v=20261005-1",
 };
 
+export const QUIZ_CONTINUATION_IMAGE_SOURCES = [
+  LEADERBOARD_HUD_IMAGE,
+  ...Object.values(MOTIVATION_IMAGES),
+  ...TUTORIAL_CHOICES.map((choice) => choice.icon),
+  "/quiz/continuation-motivations/review-motivation-character.webp?v=20261005-1",
+  "/quiz/continuation-motivations/continue-motivation-character.webp?v=20261005-1",
+  "/mascots/mascot3.webp",
+  "/result-buttons/replay_button_blue.webp",
+] as const;
+
 const CONTINUATION_TITLE_KEYS = [
   "quiz.continuation.randomTitle.one",
   "quiz.continuation.randomTitle.two",

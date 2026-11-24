@@ -3,19 +3,19 @@ import withPWA from "@ducanh2912/next-pwa";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import {
+  getCriticalImageAssets,
+  type ImageCacheManifest,
+} from "./src/lib/image-cache-plan";
+import { shouldUseRuntimeImageCache } from "./src/lib/image-runtime-cache-policy";
 
 const IMAGE_CACHE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
-
-interface ImageCacheManifest {
-  assets: Array<{ url: string; revision: string }>;
-  criticalAssets?: Array<{ url: string; revision: string }>;
-}
 
 function readImageCacheManifest(): ImageCacheManifest {
   const manifestPath = join(process.cwd(), "public", "image-cache-manifest.json");
 
   if (!existsSync(manifestPath)) {
-    return { assets: [] };
+    return { version: "", assets: [] };
   }
 
   return JSON.parse(readFileSync(manifestPath, "utf8")) as ImageCacheManifest;
@@ -40,7 +40,7 @@ const offlineShellManifestEntries = [
 });
 
 const precacheEntries = [
-  ...(imageCacheManifest.criticalAssets ?? []),
+  ...getCriticalImageAssets(imageCacheManifest),
   ...offlineShellManifestEntries,
 ];
 const precacheEntriesByUrl = new Map(precacheEntries.map((entry) => [entry.url, entry]));
@@ -49,7 +49,11 @@ const precacheEntriesByUrl = new Map(precacheEntries.map((entry) => [entry.url, 
 // caching, while the compact offline shell is explicitly precached below.
 const imageRuntimeCaching = [
   {
-    urlPattern: ({ request }: { request: Request }) => request.destination === "image",
+    // Chest frames are streamed as a sequence and served from Android's
+    // install-time media pack. Avoid persisting them in a per-device SW cache:
+    // a stale/corrupt cached frame can otherwise make the whole animation look
+    // blank before the native/local or network path gets a chance to recover.
+    urlPattern: ({ request }: { request: Request }) => shouldUseRuntimeImageCache(request),
     handler: "StaleWhileRevalidate" as const,
     options: {
       cacheName: "foxiesdeck-image-assets",

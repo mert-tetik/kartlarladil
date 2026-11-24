@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LearnQuizShell } from "@/app/learn/components/learn-quiz-shell";
+import { LearnImageReadinessGate } from "@/app/learn/components/learn-image-readiness-gate";
 import { requireAuthUser } from "@/features/auth/auth-session";
 import { createTranslator } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
@@ -206,7 +207,9 @@ export default async function LearnPage({
     <section
       className="animate-screen-pop mx-auto flex min-h-[calc(100dvh-4rem)] max-w-7xl flex-col justify-center px-4 py-10 max-lg:h-dvh max-lg:w-full max-lg:max-w-none max-lg:overflow-hidden max-lg:px-0 max-lg:py-0 lg:px-8"
       data-learn-page
+      data-learn-image-readiness-gate
     >
+      <LearnImageReadinessGate />
       <LearnQuizShell
         title={t("page.learn.title")}
         description={t("page.learn.description")}

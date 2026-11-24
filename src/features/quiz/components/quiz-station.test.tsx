@@ -32,14 +32,6 @@ const progressStatsMock = vi.hoisted(() => ({
 
 const claimQuizResultMedalsMock = vi.hoisted(() => vi.fn());
 const requestGooglePlayReviewMock = vi.hoisted(() => vi.fn());
-const learnedConfettiMock = vi.hoisted(() => {
-  const reset = vi.fn();
-  const instance = Object.assign(vi.fn(() => Promise.resolve()), { reset });
-  const create = vi.fn(() => instance);
-  const defaultConfetti = Object.assign(vi.fn(() => Promise.resolve()), { create });
-  return { create, defaultConfetti, instance, reset };
-});
-
 const routerMock = vi.hoisted(() => ({
   push: vi.fn(),
   replace: vi.fn(),
@@ -70,10 +62,6 @@ beforeEach(() => {
   progressStatsMock.refreshStats.mockResolvedValue(undefined);
   claimQuizResultMedalsMock.mockReset();
   requestGooglePlayReviewMock.mockReset();
-  learnedConfettiMock.create.mockClear();
-  learnedConfettiMock.defaultConfetti.mockClear();
-  learnedConfettiMock.instance.mockClear();
-  learnedConfettiMock.reset.mockClear();
   quizCountSelectionTestState.autoSelectCount = null;
 });
 
@@ -135,10 +123,6 @@ vi.mock("@/lib/twa-analytics", () => ({
   requestGooglePlayReview: requestGooglePlayReviewMock,
   trackTwaQualityActivation: vi.fn(),
   setTwaAnalyticsUserId: vi.fn(),
-}));
-
-vi.mock("canvas-confetti", () => ({
-  default: learnedConfettiMock.defaultConfetti,
 }));
 
 vi.mock("@/features/progress/progress-client", () => ({
@@ -2084,8 +2068,8 @@ describe("QuizStation sound feedback", () => {
     expect(celebration?.querySelector(`button[aria-label=\"${testCard.term} Sor\"]`)).not.toBeInTheDocument();
   });
 
-  it("stops and removes its confetti canvas when the learned-card screen closes", () => {
-    const { unmount } = render(
+  it("does not mount a confetti canvas on the learned-card reward screen", () => {
+    render(
       <LocaleProvider initialLocale="tr">
         <AuthSessionProvider user={null}>
           <CelebrationView card={testCard} basePoints={0} onContinue={vi.fn()} />
@@ -2093,18 +2077,12 @@ describe("QuizStation sound feedback", () => {
       </LocaleProvider>,
     );
 
-    const canvas = document.querySelector<HTMLCanvasElement>("[data-quiz-learned-confetti-canvas]");
-    expect(canvas).toBeInTheDocument();
+    expect(document.querySelector("[data-quiz-learned-confetti-canvas]")).not.toBeInTheDocument();
 
     fireEvent.click(document.querySelector<HTMLElement>("[data-quiz-celebration]")!);
 
-    expect(learnedConfettiMock.create).toHaveBeenCalledWith(canvas, { resize: true });
-    expect(learnedConfettiMock.instance).toHaveBeenCalledWith(expect.objectContaining({ particleCount: 140 }));
-
-    unmount();
-
-    expect(learnedConfettiMock.reset).toHaveBeenCalledOnce();
-    expect(canvas).not.toBeInTheDocument();
+    expect(document.querySelector("[data-quiz-learned-confetti-canvas]")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-quiz-celebration-card]")).toHaveClass("animate-quiz-learned-card-reward");
   });
 
   it("renders the visual group question inside the Learn quiz flow", async () => {

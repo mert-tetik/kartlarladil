@@ -6,16 +6,6 @@ export const QUIZ_COUNT_SELECTION_FRAME_SOURCES = Array.from(
 );
 
 const QUIZ_CRITICAL_IMAGE_SOURCES = [
-  "/ai-characters/campus-friend.webp",
-  "/ai-characters/friendly-worker.webp",
-  "/ai-characters/gentle-companion.webp",
-  "/ai-characters/gothic-calm.webp",
-  "/ai-characters/skater-coach.webp",
-  "/ai-characters/sleepy-student.webp",
-  "/ai-characters/soft-artist.webp",
-  "/ai-characters/study-buddy.webp",
-  "/ai-characters/warm-grandmother.webp",
-  "/ai-characters/wise-elder.webp",
   "/quiz/quiz-word-repetition-teacher.webp?v=20261008-2",
   "/quiz/quiz-word-repetition-teacher-1.webp?v=20261008-1",
   "/chests/count-preview/wood.webp",
@@ -26,8 +16,25 @@ const QUIZ_CRITICAL_IMAGE_SOURCES = [
   "/chests/count-preview/ruby.webp",
 ] as const;
 
+// Keep this small URL-only list independent of the AI Practice data module so
+// the app-shell preloader does not pull character prompts/localizations into
+// the landing-page bundle.
+const QUIZ_CHARACTER_IMAGE_SOURCES = [
+  "/ai-characters/campus-friend.webp",
+  "/ai-characters/friendly-worker.webp",
+  "/ai-characters/gentle-companion.webp",
+  "/ai-characters/gothic-calm.webp",
+  "/ai-characters/skater-coach.webp",
+  "/ai-characters/sleepy-student.webp",
+  "/ai-characters/soft-artist.webp",
+  "/ai-characters/study-buddy.webp",
+  "/ai-characters/warm-grandmother.webp",
+  "/ai-characters/wise-elder.webp",
+] as const;
 const preloadedFrameImages = new Map<string, HTMLImageElement>();
 const preloadedCriticalImages = new Map<string, HTMLImageElement>();
+const preloadedCharacterImages = new Map<string, HTMLImageElement>();
+let quizCharacterImageLeaseCount = 0;
 const frameLoadStates: Array<"idle" | "loading" | "loaded" | "failed"> =
   QUIZ_COUNT_SELECTION_FRAME_SOURCES.map(() => "idle");
 let framesLoading = false;
@@ -89,6 +96,49 @@ function preloadCriticalImage(source: string) {
   image.src = source;
   preloadedCriticalImages.set(source, image);
   void image.decode?.().catch(() => undefined);
+}
+
+/** Start fetching and decoding images known to be needed later in this Learn run. */
+export function preloadQuizImageSources(sources: readonly string[]) {
+  if (typeof window === "undefined") return;
+
+  for (const source of sources) {
+    if (preloadedCharacterImages.has(source)) continue;
+
+    const image = new window.Image();
+    image.decoding = "async";
+    image.loading = "eager";
+    image.fetchPriority = "auto";
+    preloadedCharacterImages.set(source, image);
+    image.src = source;
+
+    if (typeof image.decode === "function") {
+      void image.decode().catch(() => {
+        if (preloadedCharacterImages.get(source) === image) {
+          preloadedCharacterImages.delete(source);
+        }
+      });
+    }
+  }
+}
+
+/** Keep all reusable AI Practice portraits decoded while Learn remains mounted. */
+export function preloadQuizCharacterImages() {
+  if (typeof window === "undefined") return () => undefined;
+
+  quizCharacterImageLeaseCount += 1;
+  preloadQuizImageSources(QUIZ_CHARACTER_IMAGE_SOURCES);
+
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    quizCharacterImageLeaseCount = Math.max(0, quizCharacterImageLeaseCount - 1);
+
+    if (quizCharacterImageLeaseCount === 0) {
+      preloadedCharacterImages.clear();
+    }
+  };
 }
 
 export function preloadQuizCriticalMedia() {

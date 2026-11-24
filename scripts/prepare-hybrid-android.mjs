@@ -32,6 +32,8 @@ const MEDIA_EXTENSIONS = new Set([
 ]);
 
 const TUTORIAL_WELCOME_FRAME_COUNT = 97;
+const CHEST_OPENING_FRAME_COUNT = 97;
+const CHEST_TIERS = ["wood", "iron", "gold", "diamond", "emerald", "ruby"];
 
 export const REQUIRED_OFFLINE_MEDIA_URLS = [
   "ar", "de", "en", "es", "fr", "it", "ja", "ko", "nl", "pl", "pt", "ru", "tr", "zh-CN",
@@ -41,6 +43,10 @@ export const REQUIRED_OFFLINE_MEDIA_URLS = [
     { length: TUTORIAL_WELCOME_FRAME_COUNT },
     (_, index) => `/mascots/tutorial-welcome/frames/frame-${String(index + 1).padStart(3, "0")}.webp`,
   ),
+  CHEST_TIERS.flatMap((tier) => Array.from(
+    { length: CHEST_OPENING_FRAME_COUNT },
+    (_, index) => `/chests/opening-frames/${tier}-frames/frame-${String(index + 1).padStart(3, "0")}.webp`,
+  )),
 );
 
 export function assertRequiredOfflineMedia(availableUrls) {

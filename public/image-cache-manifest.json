@@ -1,5 +1,5 @@
 {
-  "version": "2430f0b9ed0b2c65d18c48647ba0a77a34039e78c33d8e57b12d02eea3c7c98b",
+  "version": "58121da12f52b8e010d767680ff951b64a9910590a0b7596549e46d12a3c63ec",
   "assets": [
     {
       "url": "/AppLogdfo.png",
@@ -3076,6 +3076,10 @@
     {
       "url": "/leaderboard/points-background.webp",
       "revision": "3df5e156e5fcfd44d36905920ea5e383b335405332be26e2e6571910127e06f2"
+    },
+    {
+      "url": "/leaderboard/quiz-leaderboard-three-slot-hud.png",
+      "revision": "ba6698904f60387050999bdc80564af085d07a868d6319ed7c3000fe677e6bac"
     },
     {
       "url": "/leaderboard/series-leaderboard-icon-v20261006-4.webp",

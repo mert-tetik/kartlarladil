@@ -32,6 +32,7 @@ import { speakCardTerm } from "@/features/cards/card-speech";
 import type { LanguageCode } from "@/types/domain";
 import { QuizMobileActionPortal } from "@/features/quiz/components/quiz-mobile-action-portal";
 import { useRewardAnimationGate } from "@/features/progress/reward-animation-gate";
+import { BONUS_REWARD_IMAGE } from "@/features/quiz/bonus-reward-media";
 import {
   QuizWordButton,
   type QuizWordButtonFeedback,
@@ -40,10 +41,7 @@ import {
 const SENTENCE_TOKEN_ANIMATION_MS = 360;
 const AUTO_PLACED_SENTENCE_TOKEN_COUNT = 3;
 const CATEGORY_WORD_ANIMATION_MS = 260;
-const BONUS_REWARD_IMAGE = "/quiz/bonus_img.webp?v=20261001-1";
 const BONUS_REWARD_BURST_DURATION_MS = 700;
-let bonusRewardImagePreload: HTMLImageElement | null = null;
-const bonusRewardBurstImagePreloads: HTMLImageElement[] = [];
 const BONUS_INTRO_FRAME_COUNT = 13;
 const BONUS_INTRO_FRAME_DURATION_MS = 1_000 / 22;
 const BONUS_INTRO_HOLD_DURATION_MS = 800;
@@ -55,25 +53,6 @@ const BONUS_INTRO_SPRITE_IMAGE = "/quiz/bonus-intro-sprite.webp";
 const BONUS_INTRO_FRAME_WIDTH = 480;
 const BONUS_INTRO_FRAME_HEIGHT = 854;
 const BONUS_INTRO_SPRITE_COLUMNS = 4;
-
-export function preloadBonusRewardImage() {
-  if (typeof window === "undefined") return;
-
-  if (!bonusRewardImagePreload) {
-    bonusRewardImagePreload = new window.Image();
-    bonusRewardImagePreload.decoding = "async";
-    bonusRewardImagePreload.src = BONUS_REWARD_IMAGE;
-  }
-
-  if (bonusRewardBurstImagePreloads.length === 0) {
-    ["/score-icon.webp", ...Object.values(GEM_ASSETS)].forEach((source) => {
-      const image = new window.Image();
-      image.decoding = "async";
-      image.src = source;
-      bonusRewardBurstImagePreloads.push(image);
-    });
-  }
-}
 
 type BonusRewardBurstParticle = {
   id: number;
@@ -1582,7 +1561,7 @@ function ImposterBonus({
   return (
     <div className="flex w-full flex-col items-center gap-4" data-bonus-imposter>
       <div className="flex items-center gap-1 px-4 py-3">
-        <Image src={question.groupImageSrc} alt="" width={112} height={112} className="size-24 rounded-xl object-cover sm:size-28" />
+        <Image src={question.groupImageSrc} alt="" width={112} height={112} unoptimized className="size-24 rounded-xl object-cover sm:size-28" />
         <span className={cn(
           "text-2xl font-semibold text-foreground sm:text-3xl",
           canUseSuperWater(locale) && "font-super-water",

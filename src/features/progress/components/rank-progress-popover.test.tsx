@@ -213,6 +213,7 @@ describe("RankProgressPopover", () => {
 
     const rankUpDialog = screen.getByRole("dialog", { name: /Rütbe atlad/ });
     expect(rankUpDialog).toBeVisible();
+    expect(rankUpDialog.querySelector(".rank-up-confetti")).not.toBeInTheDocument();
 
     const fullScreenSurface = rankUpDialog.querySelector(".relative.z-10 > div");
     expect(fullScreenSurface).toHaveClass("h-full");

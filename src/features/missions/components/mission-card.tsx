@@ -58,6 +58,13 @@ const MISSION_LOCK_ASSETS = {
   fallback: "/missions/mission-lock-icon-v3.webp",
 } as const;
 
+export const QUIZ_MISSION_CARD_IMAGE_SOURCES = [
+  ...Object.values(MISSION_LOCK_ASSETS.gems),
+  MISSION_LOCK_ASSETS.points,
+  MISSION_LOCK_ASSETS.fallback,
+  "/missions/mission-claim-bubble-check-v4.webp",
+] as const;
+
 export function getMissionLockImageSrc(reward: MissionReward) {
   if (reward.kind === "points") return MISSION_LOCK_ASSETS.points;
   if (reward.kind === "gems") return MISSION_LOCK_ASSETS.gems[reward.gemType];

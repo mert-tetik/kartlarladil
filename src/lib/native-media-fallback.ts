@@ -1,4 +1,7 @@
 export const NATIVE_MEDIA_FALLBACK_QUERY = "native-media-fallback";
+export const NATIVE_MEDIA_LOCAL_HIT_EVENT = "foxiesdeck:native-media-local-hit";
+export const NATIVE_MEDIA_LOCAL_MISS_EVENT = "foxiesdeck:native-media-local-miss";
+export const NATIVE_MEDIA_LOCAL_MISS_POPUP_ENABLED = false;
 
 export function getNativeMediaFallbackSource(source: string): string {
   if (typeof window === "undefined") {

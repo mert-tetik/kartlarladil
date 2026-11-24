@@ -4,6 +4,19 @@ import { ChestOpeningView } from "@/features/quiz/components/chest-opening-view"
 import { CHEST_TIERS } from "@/features/quiz/chest-rewards";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect, preloadSoundEffects } from "@/lib/sound-effects";
+import { loadChestOpeningFrameImage } from "@/features/quiz/chest-opening-frames";
+import {
+  NATIVE_MEDIA_LOCAL_HIT_EVENT,
+  NATIVE_MEDIA_LOCAL_MISS_EVENT,
+} from "@/lib/native-media-fallback";
+
+function createMockFrame(source: string) {
+  return {
+    src: source,
+    naturalWidth: 480,
+    naturalHeight: 854,
+  } as HTMLImageElement;
+}
 
 vi.mock("@/lib/sound-effects", () => ({
   playSoundEffect: vi.fn(),
@@ -24,27 +37,42 @@ vi.mock("@/features/quiz/chest-opening-frames", () => ({
   getChestOpeningFrameSource: vi.fn((_tier: string, frameIndex: number) =>
     `/chests/opening-frames/wood-frames/frame-${String(frameIndex + 1).padStart(3, "0")}.webp`,
   ),
-  loadChestOpeningFrameImage: vi.fn(() => new Promise<HTMLImageElement>(() => undefined)),
+  loadChestOpeningFrameImage: vi.fn(async (source: string) => createMockFrame(source)),
   preloadChestOpeningFrames: vi.fn(() => Promise.resolve()),
 }));
 
 describe("ChestOpeningView", () => {
   let queuedAnimationFrame: FrameRequestCallback | null = null;
+  let drawImageMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
+    vi.mocked(loadChestOpeningFrameImage).mockImplementation(async (source) => createMockFrame(source));
     queuedAnimationFrame = null;
+    drawImageMock = vi.fn();
+    const canvasContext = {
+      setTransform: vi.fn(),
+      clearRect: vi.fn(),
+      drawImage: drawImageMock,
+      imageSmoothingEnabled: true,
+      imageSmoothingQuality: "high",
+    } as unknown as CanvasRenderingContext2D;
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       queuedAnimationFrame = callback;
       return 1;
     });
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockImplementation(() => canvasContext);
     vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
     vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(() => Promise.resolve());
   });
 
   afterEach(() => {
+    delete (window as Window & {
+      __foxiesDeckNativeMediaDiagnostics?: Record<string, unknown>;
+    }).__foxiesDeckNativeMediaDiagnostics;
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
@@ -55,7 +83,13 @@ describe("ChestOpeningView", () => {
     if (callback) act(() => callback(timestamp));
   }
 
-  it("plays tier frames with their audio and reveals rewards at the 3-second mark", () => {
+  async function flushFrameLoads() {
+    await act(async () => {
+      for (let index = 0; index < 8; index += 1) await Promise.resolve();
+    });
+  }
+
+  it("plays tier frames with their audio and reveals rewards at the 3-second mark", async () => {
     const onComplete = vi.fn();
     const reward = {
       points: 20,
@@ -76,6 +110,7 @@ describe("ChestOpeningView", () => {
         />
       </LocaleProvider>,
     );
+    await flushFrameLoads();
 
     expect(document.querySelector("[data-chest-opening-frames]")).toBeInTheDocument();
     expect(document.querySelector("video")).not.toBeInTheDocument();
@@ -101,7 +136,7 @@ describe("ChestOpeningView", () => {
     expect(onComplete).not.toHaveBeenCalled();
   });
 
-  it("starts the frame-and-audio timeline from the external chest-open click", () => {
+  it("starts the frame-and-audio timeline from the external chest-open click after drawing frame one", async () => {
     let startOpening: (() => void) | null = null;
 
     render(
@@ -122,17 +157,20 @@ describe("ChestOpeningView", () => {
     expect(startOpening).toEqual(expect.any(Function));
 
     act(() => startOpening?.());
+    await flushFrameLoads();
 
     expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
+    expect(drawImageMock).toHaveBeenCalled();
   });
 
-  it("holds the final frame for two seconds before starting the smooth close", () => {
+  it("holds the final frame for two seconds before starting the smooth close", async () => {
     const onComplete = vi.fn();
     render(
       <LocaleProvider initialLocale="en">
         <ChestOpeningView tier={CHEST_TIERS[1]} totalPoints={0} onComplete={onComplete} />
       </LocaleProvider>,
     );
+    await flushFrameLoads();
 
     const startTime = window.performance.now();
     advanceOpeningTo(startTime + 4042);
@@ -156,6 +194,256 @@ describe("ChestOpeningView", () => {
       vi.advanceTimersByTime(500);
     });
     expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it("holds the opening timeline until the first frame has decoded and been painted", async () => {
+    const onComplete = vi.fn();
+    let resolveFirstFrame: ((image: HTMLImageElement) => void) | null = null;
+    const firstFramePromise = new Promise<HTMLImageElement>((resolve) => {
+      resolveFirstFrame = resolve;
+    });
+    vi.mocked(loadChestOpeningFrameImage).mockImplementation((source) => {
+      if (source.includes("frame-001.webp")) return firstFramePromise;
+      return Promise.resolve(createMockFrame(source));
+    });
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <ChestOpeningView tier={CHEST_TIERS[0]} totalPoints={0} onComplete={onComplete} />
+      </LocaleProvider>,
+    );
+    await flushFrameLoads();
+
+    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+    expect(drawImageMock).not.toHaveBeenCalled();
+    expect(queuedAnimationFrame).toBeNull();
+    expect(loadChestOpeningFrameImage).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveFirstFrame?.(createMockFrame("/chests/opening-frames/wood-frames/frame-001.webp"));
+      for (let index = 0; index < 8; index += 1) await Promise.resolve();
+    });
+
+    expect(drawImageMock).toHaveBeenCalledTimes(1);
+    expect(loadChestOpeningFrameImage).toHaveBeenCalledTimes(7);
+    expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
+    expect(queuedAnimationFrame).toEqual(expect.any(Function));
+  });
+
+  it("does not retry or start a stale frame request after the chest view unmounts", async () => {
+    let resolveFirstFrame: ((image: HTMLImageElement) => void) | null = null;
+    const firstFramePromise = new Promise<HTMLImageElement>((resolve) => {
+      resolveFirstFrame = resolve;
+    });
+    vi.mocked(loadChestOpeningFrameImage).mockImplementation(() => firstFramePromise);
+
+    const { unmount } = render(
+      <LocaleProvider initialLocale="en">
+        <ChestOpeningView tier={CHEST_TIERS[0]} totalPoints={0} onComplete={vi.fn()} />
+      </LocaleProvider>,
+    );
+    await flushFrameLoads();
+    expect(loadChestOpeningFrameImage).toHaveBeenCalledTimes(1);
+
+    unmount();
+    await act(async () => {
+      resolveFirstFrame?.(createMockFrame("/chests/opening-frames/wood-frames/frame-001.webp"));
+      for (let index = 0; index < 8; index += 1) await Promise.resolve();
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    expect(loadChestOpeningFrameImage).toHaveBeenCalledTimes(1);
+    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+    expect(queuedAnimationFrame).toBeNull();
+  });
+
+  it("plays the same real frame sequence through an image element when canvas is unavailable", async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => null);
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <ChestOpeningView tier={CHEST_TIERS[0]} totalPoints={0} onComplete={vi.fn()} />
+      </LocaleProvider>,
+    );
+    await flushFrameLoads();
+
+    const imageRenderer = document.querySelector<HTMLImageElement>("[data-chest-opening-image-fallback]");
+    expect(imageRenderer).toBeInTheDocument();
+    expect(imageRenderer).not.toHaveClass("hidden");
+    expect(imageRenderer).toHaveAttribute("src", expect.stringContaining("frame-001.webp"));
+    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+
+    Object.defineProperty(imageRenderer, "naturalWidth", { configurable: true, value: 480 });
+    Object.defineProperty(imageRenderer, "naturalHeight", { configurable: true, value: 854 });
+    fireEvent.load(imageRenderer!);
+    expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
+
+    const startTime = window.performance.now();
+    advanceOpeningTo(startTime + 100);
+
+    expect(imageRenderer).toHaveAttribute("src", expect.stringContaining("frame-003.webp"));
+    expect(HTMLCanvasElement.prototype.getContext).toHaveBeenCalledTimes(2);
+  });
+
+  it("releases old decoded frames while the image renderer advances", async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => null);
+    const decodedFrames: HTMLImageElement[] = [];
+    vi.mocked(loadChestOpeningFrameImage).mockImplementation(async (source) => {
+      const frame = createMockFrame(source);
+      decodedFrames.push(frame);
+      return frame;
+    });
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <ChestOpeningView
+          tier={CHEST_TIERS[0]}
+          totalPoints={0}
+          debugFramePlayback
+          onComplete={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+    await flushFrameLoads();
+
+    const imageRenderer = document.querySelector<HTMLImageElement>("[data-chest-opening-image-fallback]")!;
+    Object.defineProperty(imageRenderer, "naturalWidth", { configurable: true, value: 480 });
+    Object.defineProperty(imageRenderer, "naturalHeight", { configurable: true, value: 854 });
+    fireEvent.load(imageRenderer);
+
+    const startTime = window.performance.now();
+    advanceOpeningTo(startTime + 2000);
+    await flushFrameLoads();
+
+    const debugText = document.querySelector("[data-chest-frame-debug]")?.textContent ?? "";
+    const cachedFrameCount = Number(debugText.match(/cached (\d+)/)?.[1] ?? Number.NaN);
+    expect(imageRenderer).toHaveAttribute("src", expect.stringContaining("frame-049.webp"));
+    expect(decodedFrames[0]?.src).toBe("data:,");
+    expect(cachedFrameCount).toBeLessThanOrEqual(8);
+  });
+
+  it("shows exact Android local-hit and local-miss frame paths in debug mode", () => {
+    render(
+      <LocaleProvider initialLocale="en">
+        <ChestOpeningView
+          tier={CHEST_TIERS[0]}
+          totalPoints={0}
+          debugFramePlayback
+          autoPlay={false}
+          onComplete={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent(NATIVE_MEDIA_LOCAL_HIT_EVENT, {
+        detail: { path: "/chests/opening-frames/wood-frames/frame-001.webp" },
+      }));
+      window.dispatchEvent(new CustomEvent(NATIVE_MEDIA_LOCAL_MISS_EVENT, {
+        detail: { path: "/chests/opening-frames/wood-frames/frame-002.webp" },
+      }));
+    });
+
+    expect(document.querySelector("[data-chest-frame-debug]")).toHaveTextContent(
+      "Native local miss: /chests/opening-frames/wood-frames/frame-002.webp",
+    );
+    expect(document.querySelector("[data-chest-frame-debug]")).toHaveTextContent(
+      "Native local hit: /chests/opening-frames/wood-frames/frame-001.webp",
+    );
+    expect(document.querySelector("[data-chest-frame-debug]")).toHaveTextContent(
+      "Native local miss: /chests/opening-frames/wood-frames/frame-002.webp",
+    );
+  });
+
+  it("shows native diagnostics emitted while chest frames were preloaded", () => {
+    (window as Window & {
+      __foxiesDeckNativeMediaDiagnostics?: Record<string, unknown>;
+    }).__foxiesDeckNativeMediaDiagnostics = {
+      [NATIVE_MEDIA_LOCAL_HIT_EVENT]: "/chests/opening-frames/wood-frames/frame-001.webp",
+      [NATIVE_MEDIA_LOCAL_MISS_EVENT]: "/chests/opening-frames/wood-frames/frame-002.webp",
+    };
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <ChestOpeningView
+          tier={CHEST_TIERS[0]}
+          totalPoints={0}
+          debugFramePlayback
+          autoPlay={false}
+          onComplete={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(document.querySelector("[data-chest-frame-debug]")).toHaveTextContent(
+      "Native local hit: /chests/opening-frames/wood-frames/frame-001.webp",
+    );
+    expect(document.querySelector("[data-chest-frame-debug]")).toHaveTextContent(
+      "Native local miss: /chests/opening-frames/wood-frames/frame-002.webp",
+    );
+  });
+
+  it("retries a transient first-frame load failure once and then starts playback", async () => {
+    let firstFrameAttempts = 0;
+    vi.mocked(loadChestOpeningFrameImage).mockImplementation(async (source) => {
+      if (source.includes("frame-001.webp") && firstFrameAttempts++ === 0) {
+        throw new Error("Temporary local media read failure");
+      }
+      return createMockFrame(source);
+    });
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <ChestOpeningView tier={CHEST_TIERS[0]} totalPoints={0} onComplete={vi.fn()} />
+      </LocaleProvider>,
+    );
+    await flushFrameLoads();
+
+    expect(firstFrameAttempts).toBe(1);
+    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+    expect(drawImageMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      vi.advanceTimersByTime(900);
+      for (let index = 0; index < 8; index += 1) await Promise.resolve();
+    });
+
+    expect(firstFrameAttempts).toBe(2);
+    expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
+    expect(drawImageMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the latest available decoded frame when the exact 24fps target is late", async () => {
+    let resolveSeventhFrame: ((image: HTMLImageElement) => void) | null = null;
+    const seventhFramePromise = new Promise<HTMLImageElement>((resolve) => {
+      resolveSeventhFrame = resolve;
+    });
+    vi.mocked(loadChestOpeningFrameImage).mockImplementation((source) => {
+      if (source.includes("frame-007.webp")) return seventhFramePromise;
+      return Promise.resolve(createMockFrame(source));
+    });
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <ChestOpeningView tier={CHEST_TIERS[0]} totalPoints={0} onComplete={vi.fn()} />
+      </LocaleProvider>,
+    );
+    await flushFrameLoads();
+
+    const startTime = window.performance.now();
+    advanceOpeningTo(startTime + 300);
+    expect(drawImageMock).toHaveBeenCalled();
+    const callsBeforeLateFrame = drawImageMock.mock.calls.length;
+
+    await act(async () => {
+      resolveSeventhFrame?.(createMockFrame("/chests/opening-frames/wood-frames/frame-007.webp"));
+      for (let index = 0; index < 8; index += 1) await Promise.resolve();
+    });
+
+    expect(drawImageMock.mock.calls.length).toBeGreaterThan(callsBeforeLateFrame);
   });
 
   it("requires a double touch to skip the opening frames and reveal rewards", () => {

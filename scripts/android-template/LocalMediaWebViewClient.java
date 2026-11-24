@@ -9,6 +9,9 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebResourceError;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.ServiceWorkerClient;
+
+import org.json.JSONObject;
 
 import java.io.InputStream;
 import java.util.LinkedHashMap;
@@ -17,13 +20,20 @@ import java.util.Map;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class LocalMediaWebViewClient extends WebViewClient {
     private static final String TAG = "FoxiesDeckMedia";
+    private static final boolean LOCAL_MEDIA_FALLBACK_DEBUG_MODE_ENABLED = true;
+    private static final String LOCAL_MEDIA_LOCAL_HIT_EVENT = "foxiesdeck:native-media-local-hit";
+    private static final String LOCAL_MEDIA_LOCAL_MISS_EVENT = "foxiesdeck:native-media-local-miss";
     private final Activity activity;
     private final NativeMediaStore mediaStore;
     private final Runnable onPageCommitVisible;
     private final Set<String> loggedRemoteFallbacks = Collections.synchronizedSet(new HashSet<>());
+    private final AtomicBoolean loggedFirstChestFrameHit = new AtomicBoolean(false);
+    private final AtomicBoolean loggedFirstChestFrameMiss = new AtomicBoolean(false);
+    private volatile WebView webView;
 
     public LocalMediaWebViewClient(
             Activity activity,
@@ -33,6 +43,24 @@ public final class LocalMediaWebViewClient extends WebViewClient {
         this.activity = activity;
         this.mediaStore = mediaStore;
         this.onPageCommitVisible = onPageCommitVisible;
+    }
+
+    public void attachWebView(WebView view) {
+        webView = view;
+    }
+
+    public ServiceWorkerClient createServiceWorkerClient() {
+        return new ServiceWorkerClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
+                WebView currentWebView = LocalMediaWebViewClient.this.webView;
+                return intercept(
+                        currentWebView,
+                        request.getUrl(),
+                        request.getRequestHeaders()
+                );
+            }
+        };
     }
 
     @Override
@@ -55,12 +83,12 @@ public final class LocalMediaWebViewClient extends WebViewClient {
 
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-        return intercept(request.getUrl(), request.getRequestHeaders());
+        return intercept(view, request.getUrl(), request.getRequestHeaders());
     }
 
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
-        return intercept(Uri.parse(url), null);
+        return intercept(view, Uri.parse(url), null);
     }
 
     @Override
@@ -85,7 +113,7 @@ public final class LocalMediaWebViewClient extends WebViewClient {
         super.onReceivedError(view, request, error);
     }
 
-    private WebResourceResponse intercept(Uri uri, Map<String, String> requestHeaders) {
+    private WebResourceResponse intercept(WebView view, Uri uri, Map<String, String> requestHeaders) {
         if (uri == null || !isAppHost(uri.getHost())) {
             return null;
         }
@@ -95,15 +123,16 @@ public final class LocalMediaWebViewClient extends WebViewClient {
             return offlineResponse;
         }
 
-        // A media element uses this one-shot query parameter after a local
-        // asset fails. Returning null here deliberately lets WebView fetch the
-        // same URL from the remote origin instead of retrying the broken pack.
-        if (uri.getQueryParameter("native-media-fallback") != null) {
+        String localPath = resolveLocalPath(uri);
+        if (localPath == null) {
             return null;
         }
 
-        String localPath = resolveLocalPath(uri);
-        if (localPath == null) {
+        // A media element uses this one-shot query parameter after a local
+        // asset fails. Returning null deliberately lets WebView fetch the same
+        // URL remotely; in debug mode, surface the local lookup path as well.
+        if (uri.getQueryParameter("native-media-fallback") != null) {
+            logRemoteFallback(view, localPath, "explicit remote media fallback");
             return null;
         }
 
@@ -111,7 +140,7 @@ public final class LocalMediaWebViewClient extends WebViewClient {
         // is the only remote fallback path: a bundled/indexed asset never
         // reaches the network because open() returns a WebResourceResponse.
         if (!mediaStore.contains(localPath)) {
-            logRemoteFallback(localPath, "not in bundled media index");
+            logRemoteFallback(view, localPath, "not in bundled media index");
             return null;
         }
 
@@ -121,8 +150,15 @@ public final class LocalMediaWebViewClient extends WebViewClient {
             // The index can outlive a damaged/incomplete install. Falling
             // through keeps the old app usable by loading the same URL from
             // the website instead of showing a broken media element.
-            logRemoteFallback(localPath, "bundled asset is not readable");
+            logRemoteFallback(view, localPath, "bundled asset is not readable");
             return null;
+        }
+
+        if (LOCAL_MEDIA_FALLBACK_DEBUG_MODE_ENABLED
+                && localPath.startsWith("/chests/opening-frames/")
+                && loggedFirstChestFrameHit.compareAndSet(false, true)) {
+            Log.i(TAG, "Serving bundled chest frame locally: " + localPath);
+            notifyLocalMediaHit(view, localPath);
         }
 
         Map<String, String> headers = new LinkedHashMap<>();
@@ -209,14 +245,53 @@ public final class LocalMediaWebViewClient extends WebViewClient {
                 || errorCode == ERROR_IO;
     }
 
-    private void logRemoteFallback(String localPath, String reason) {
+    private void logRemoteFallback(WebView view, String localPath, String reason) {
         if (!isMediaPath(localPath)) {
             return;
         }
 
         if (loggedRemoteFallbacks.add(localPath)) {
+            if (localPath.startsWith("/chests/opening-frames/")
+                    && !loggedFirstChestFrameMiss.compareAndSet(false, true)) {
+                return;
+            }
             Log.i(TAG, "Remote media fallback: " + localPath + " (" + reason + ")");
+            if (LOCAL_MEDIA_FALLBACK_DEBUG_MODE_ENABLED && isVisualMediaPath(localPath)) {
+                notifyLocalMediaMiss(view, localPath);
+            }
         }
+    }
+
+    private void notifyLocalMediaMiss(WebView view, String localPath) {
+        notifyMediaPathEvent(view, LOCAL_MEDIA_LOCAL_MISS_EVENT, localPath);
+    }
+
+    private void notifyLocalMediaHit(WebView view, String localPath) {
+        notifyMediaPathEvent(view, LOCAL_MEDIA_LOCAL_HIT_EVENT, localPath);
+    }
+
+    private void notifyMediaPathEvent(WebView view, String eventName, String localPath) {
+        if (view == null) return;
+
+        String quotedEventName = JSONObject.quote(eventName);
+        String quotedLocalPath = JSONObject.quote(localPath);
+        String script = "window.__foxiesDeckNativeMediaDiagnostics = window.__foxiesDeckNativeMediaDiagnostics || {};"
+                + "window.__foxiesDeckNativeMediaDiagnostics["
+                + quotedEventName
+                + "]="
+                + quotedLocalPath
+                + ";window.dispatchEvent(new CustomEvent("
+                + quotedEventName
+                + ",{detail:{path:"
+                + quotedLocalPath
+                + "}}));";
+        view.post(() -> {
+            try {
+                view.evaluateJavascript(script, null);
+            } catch (RuntimeException ignored) {
+                // Diagnostics must never interfere with media delivery.
+            }
+        });
     }
 
     private static boolean isMediaPath(String path) {
@@ -238,6 +313,17 @@ public final class LocalMediaWebViewClient extends WebViewClient {
                 || normalized.endsWith(".webp")
                 || normalized.endsWith(".woff")
                 || normalized.endsWith(".woff2");
+    }
+
+    private static boolean isVisualMediaPath(String path) {
+        String normalized = path.toLowerCase(Locale.ROOT);
+        return normalized.endsWith(".avif")
+                || normalized.endsWith(".gif")
+                || normalized.endsWith(".jpeg")
+                || normalized.endsWith(".jpg")
+                || normalized.endsWith(".png")
+                || normalized.endsWith(".svg")
+                || normalized.endsWith(".webp");
     }
 
     private boolean handleNavigation(Uri uri) {

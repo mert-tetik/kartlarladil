@@ -2,6 +2,10 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppMessageProvider, useAppMessage } from "@/components/app-message-provider";
 import { INVENTORY_BACKGROUND_ERROR_EVENT } from "@/features/inventory/inventory-events";
+import {
+  NATIVE_MEDIA_LOCAL_MISS_EVENT,
+  NATIVE_MEDIA_LOCAL_MISS_POPUP_ENABLED,
+} from "@/lib/native-media-fallback";
 
 function MessageTrigger() {
   const { showMessage } = useAppMessage();
@@ -112,6 +116,19 @@ describe("AppMessageProvider", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("Kart arka planda kaydedilemedi.");
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("keeps native local-media miss popups disabled in the web layer", () => {
+    expect(NATIVE_MEDIA_LOCAL_MISS_POPUP_ENABLED).toBe(false);
+    render(<AppMessageProvider><div /></AppMessageProvider>);
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent(NATIVE_MEDIA_LOCAL_MISS_EVENT, {
+        detail: { path: "/quiz/bonus_img.webp" },
+      }));
+    });
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("ignores messages from another origin", () => {

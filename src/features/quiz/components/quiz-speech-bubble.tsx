@@ -110,7 +110,8 @@ export function QuizSpeechBubble({
               alt={characterName}
               fill
               sizes={largeCharacter ? "(max-width: 639px) 144px, 160px" : "(max-width: 639px) 112px, 128px"}
-              quality={90}
+              unoptimized
+              decoding="async"
               className="object-contain object-bottom"
             />
           )}

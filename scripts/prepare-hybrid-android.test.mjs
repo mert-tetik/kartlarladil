@@ -29,4 +29,18 @@ describe("offline Android media requirements", () => {
     expect(() => assertRequiredOfflineMedia(incompleteMedia))
       .toThrow("/mascots/tutorial-welcome/frames/frame-048.webp");
   });
+
+  it("requires every frame for all six chest opening animations in the install-time Android media pack", () => {
+    const chestFrames = REQUIRED_OFFLINE_MEDIA_URLS.filter(
+      (url) => url.startsWith("/chests/opening-frames/"),
+    );
+    expect(chestFrames).toHaveLength(6 * 97);
+
+    const incompleteMedia = REQUIRED_OFFLINE_MEDIA_URLS.filter(
+      (url) => url !== "/chests/opening-frames/wood-frames/frame-001.webp",
+    );
+
+    expect(() => assertRequiredOfflineMedia(incompleteMedia))
+      .toThrow("/chests/opening-frames/wood-frames/frame-001.webp");
+  });
 });

@@ -132,6 +132,10 @@ import { useProgressStats } from "@/features/progress/progress-client";
 import { QuizMobileActionPortal } from "@/features/quiz/components/quiz-mobile-action-portal";
 import { QuizWordButton } from "@/features/quiz/components/quiz-word-button";
 import { QuizCountSelection } from "@/features/quiz/components/quiz-count-selection";
+import {
+  preloadQuizCharacterImages,
+  preloadQuizImageSources,
+} from "@/features/quiz/quiz-video-preload";
 import { RankUpMenu } from "@/features/progress/components/rank-progress-popover";
 import { acknowledgeRankUp, setQuizRankUpDeferred } from "@/features/progress/rank-up-flow";
 import { aiValidateTextAnswer } from "@/features/quiz/ai-validate-answer";
@@ -181,7 +185,6 @@ import { QuizStartSplash } from "@/features/quiz/components/quiz-start-splash";
 import {
   BonusRewardHud,
   BonusQuestionView,
-  preloadBonusRewardImage,
 } from "@/features/quiz/components/bonus-question-view";
 import { QuizStreakCelebrationView } from "@/features/quiz/components/quiz-streak-celebration-view";
 import { QuizCompletionProgressView } from "@/features/quiz/components/quiz-completion-progress-view";
@@ -192,7 +195,10 @@ import {
 import { QuizWordRepetitionIntroView } from "@/features/quiz/components/quiz-word-repetition-intro-view";
 import { QuizWordRepetitionView } from "@/features/quiz/components/quiz-word-repetition-view";
 import { QuizMedalRating } from "@/features/quiz/components/quiz-medal-rating";
-import { preloadQuizCompletionAssets } from "@/features/quiz/quiz-completion-preload";
+import {
+  preloadQuizCompletionAssets,
+  preloadQuizCompletionMotionAssets,
+} from "@/features/quiz/quiz-completion-preload";
 import {
   getChestTierByCount,
   resolveAwardedChestTier,
@@ -263,7 +269,6 @@ import {
 } from "@/lib/twa-analytics";
 import { trackAnalyticsEvent } from "@/lib/analytics-events";
 import { useAppMessage } from "@/components/app-message-provider";
-import confetti from "canvas-confetti";
 import type {
   InventoryCard,
   LanguageCode,
@@ -404,6 +409,28 @@ function getQuizCountButtonColor(count: number) {
   return QUIZ_COUNT_BUTTON_COLORS[index >= 0 ? index : 0];
 }
 
+function getPreparedQuizImageSources(pool: PreparedQuizPool) {
+  const sources = new Set<string>();
+
+  for (const item of pool.regularItems) {
+    if (item.questionType === "group") {
+      for (const option of item.question.options) {
+        sources.add(CARD_GROUP_IMAGE_PATHS[option.group.id]);
+      }
+    } else if (item.isBonus && item.bonusQuestion.kind === "imposter") {
+      sources.add(item.bonusQuestion.groupImageSrc);
+    }
+  }
+
+  for (const plan of pool.bonusPlans) {
+    if (plan.fallback?.kind === "imposter") {
+      sources.add(plan.fallback.groupImageSrc);
+    }
+  }
+
+  return [...sources];
+}
+
 const RESULT_CARD_TONES = {
   correct: "border-[#2ee88a] text-[#2ee88a]",
   incorrect: "border-[#ff4f61] text-[#ff4f61]",
@@ -437,14 +464,6 @@ const TIER_RAY_COLOR_VARIABLES: Record<VocabularyCard["tier"], string> = {
   B1: "var(--tier-b1)",
   B2: "var(--tier-b2)",
   C1: "var(--tier-c1)",
-};
-
-const TIER_CONFETTI_COLORS: Record<VocabularyCard["tier"], string> = {
-  A1: "#10b981",
-  A2: "#0ea5e9",
-  B1: "#8b5cf6",
-  B2: "#f59e0b",
-  C1: "#f43f5e",
 };
 
 function QuizTierRayField({
@@ -903,9 +922,15 @@ export function QuizStation({
   useEffect(() => {
     // Start fetching and decoding the critical text-question frames while the
     // language/count setup is visible, not after the text screen mounts.
+    const releaseQuizCharacterImages = preloadQuizCharacterImages();
+    const releaseQuizCompletionAssets = preloadQuizCompletionAssets();
     void preloadTextQuizFeedbackMascots().catch(() => undefined);
-    preloadBonusRewardImage();
     preloadSoundEffects(["bonus-reward-loot"]);
+
+    return () => {
+      releaseQuizCharacterImages();
+      releaseQuizCompletionAssets();
+    };
   }, []);
 
   useEffect(() => {
@@ -914,15 +939,8 @@ export function QuizStation({
     const chestPreviewTiers = selectedCount
       ? getChestPreviewPairForCount(selectedCount) ?? ["wood", "iron"] as const
       : [];
-    const rankIcons = [stats.rank.icon, stats.nextRank?.icon].filter(
-      (icon): icon is RankIconId => Boolean(icon),
-    );
-
-    preloadQuizCompletionAssets({
-      chestTiers: chestPreviewTiers,
-      rankIcons,
-    });
-  }, [phase, selectedCount, stats.nextRank?.icon, stats.rank.icon]);
+    preloadQuizCompletionMotionAssets({ chestTiers: chestPreviewTiers });
+  }, [phase, selectedCount]);
 
   function clearQuizAnswerFeedbackAnimation() {
     if (typeof document === "undefined") return;
@@ -1924,6 +1942,8 @@ export function QuizStation({
     if (!session || session.key !== pool.key || phaseRef.current !== "quiz") return;
     if (session.complete && !pool.complete) return;
 
+    preloadQuizImageSources(getPreparedQuizImageSources(pool));
+
     const nextDeck = buildPreparedQuizDeck(pool, {
       targetRegularCount: session.targetRegularCount,
       sessionId: session.sessionId,
@@ -1996,6 +2016,7 @@ export function QuizStation({
           ? preparedQuizPoolRef.current
           : getCachedQuizPool(currentKey);
       if (!pool) return;
+      preloadQuizImageSources(getPreparedQuizImageSources(pool));
       const targetRegularCount = normalQuestionType || count === null
         ? pool.complete
           ? pool.regularItems.length
@@ -5977,6 +5998,7 @@ export function GroupQuestion({
                 alt=""
                 width={112}
                 height={112}
+                unoptimized
                 className="mx-auto block size-20 shrink-0 object-contain sm:size-24"
                 aria-hidden="true"
               />
@@ -6372,7 +6394,8 @@ export function SentenceCompletionQuestion({
               alt={characterName}
               fill
               sizes="(max-width: 639px) 128px, 144px"
-              quality={90}
+              unoptimized
+              decoding="async"
               className="object-contain object-bottom"
             />
           </div>
@@ -7027,7 +7050,6 @@ export function CelebrationView({
   const closeScheduledRef = useRef(false);
   const scoreRef = useRef<HTMLSpanElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
-  const learnedConfettiRef = useRef<ReturnType<typeof confetti.create> | null>(null);
   const gainedPoints = getPointsForTier(card.tier);
   const rewardAnimationGate = useRewardAnimationGate({
     onPointsComplete: () => {
@@ -7047,28 +7069,6 @@ export function CelebrationView({
     return () => window.clearTimeout(idleVibrationTimer);
   }, []);
 
-  useEffect(() => {
-    const canvas = document.createElement("canvas");
-    canvas.dataset.quizLearnedConfettiCanvas = "";
-    canvas.setAttribute("aria-hidden", "true");
-    canvas.style.position = "fixed";
-    canvas.style.inset = "0";
-    canvas.style.width = "100%";
-    canvas.style.height = "100%";
-    canvas.style.pointerEvents = "none";
-    canvas.style.zIndex = "100";
-    document.body.appendChild(canvas);
-
-    const learnedConfetti = confetti.create(canvas, { resize: true });
-    learnedConfettiRef.current = learnedConfetti;
-
-    return () => {
-      learnedConfettiRef.current = null;
-      learnedConfetti.reset();
-      canvas.remove();
-    };
-  }, []);
-
   function handleStartReward() {
     if (rewardStarted) return;
 
@@ -7076,13 +7076,6 @@ export function CelebrationView({
     setRewardStarted(true);
     vibrate("firm-tap");
     playSoundEffect("confetti");
-    void learnedConfettiRef.current?.({
-      particleCount: 140,
-      spread: 80,
-      origin: { y: 0.55 },
-      colors: ["#ffffff", TIER_CONFETTI_COLORS[card.tier]],
-      disableForReducedMotion: true,
-    });
   }
 
   return (
@@ -9072,13 +9065,6 @@ export function LegacyResultView({
       window.setTimeout(() => {
         playSoundEffect("confetti");
         vibrate("confetti");
-        void confetti({
-          particleCount: 140,
-          spread: 110,
-          origin: { x: 0.5, y: 0.5 },
-          colors: ["#facc15", "#fbbf24", "#f59e0b", "#fde047", "#ffffff"],
-          disableForReducedMotion: true,
-        });
       }, 350);
     }
   }, [

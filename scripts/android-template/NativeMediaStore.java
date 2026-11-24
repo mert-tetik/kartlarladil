@@ -120,6 +120,19 @@ public final class NativeMediaStore {
             if (file.isFile()) {
                 return new Source(new FileInputStream(file), file.length());
             }
+
+            // Install-time packs can finish mounting after the WebView client
+            // is created. A non-null location may therefore be stale for a
+            // brief window; refresh it once before falling back to APK assets
+            // or the remote website.
+            refreshPackLocation();
+            String refreshedPackPath = packAssetsPath;
+            if (refreshedPackPath != null) {
+                File refreshedFile = new File(refreshedPackPath, relativePath);
+                if (refreshedFile.isFile()) {
+                    return new Source(new FileInputStream(refreshedFile), refreshedFile.length());
+                }
+            }
         }
 
         String[] assetCandidates = {"ui-media/" + relativePath, relativePath};

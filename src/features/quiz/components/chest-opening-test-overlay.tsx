@@ -7,6 +7,7 @@ import { CHEST_TIERS } from "@/features/quiz/chest-rewards";
 import { createChestRewardPreview } from "@/features/gems/chest-reward-preview";
 
 const CHEST_OPENING_TEST_PARAM = "chest-opening-test";
+const CHEST_OPENING_DEBUG_PARAM = "chest-debug";
 const NEXT_CHEST_DELAY_MS = 1000;
 
 /**
@@ -15,6 +16,7 @@ const NEXT_CHEST_DELAY_MS = 1000;
  */
 export function ChestOpeningTestOverlay() {
   const [enabled, setEnabled] = useState(false);
+  const [debugFramePlayback, setDebugFramePlayback] = useState(false);
   const [tierIndex, setTierIndex] = useState(0);
   const [showChest, setShowChest] = useState(true);
   const enabledTimeoutRef = useRef<number | null>(null);
@@ -22,7 +24,7 @@ export function ChestOpeningTestOverlay() {
   const tier = CHEST_TIERS[tierIndex % CHEST_TIERS.length]!;
   const visualReward = useMemo(
     () => createChestRewardPreview(tier.tier),
-    [tier.tier, tierIndex],
+    [tier.tier],
   );
 
   useEffect(() => {
@@ -30,9 +32,13 @@ export function ChestOpeningTestOverlay() {
     const requested =
       params.get(CHEST_OPENING_TEST_PARAM) === "1" ||
       params.get(CHEST_OPENING_TEST_PARAM) === "true";
+    const debugRequested =
+      params.get(CHEST_OPENING_DEBUG_PARAM) === "1" ||
+      params.get(CHEST_OPENING_DEBUG_PARAM) === "true";
 
     enabledTimeoutRef.current = window.setTimeout(() => {
       setEnabled(requested);
+      setDebugFramePlayback(requested && debugRequested);
     }, 0);
 
     return () => {
@@ -69,6 +75,7 @@ export function ChestOpeningTestOverlay() {
         tier={tier}
         totalPoints={0}
         reward={visualReward}
+        debugFramePlayback={debugFramePlayback}
         onComplete={handleChestComplete}
       />
     </div>,
