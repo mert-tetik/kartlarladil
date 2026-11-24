@@ -30,6 +30,7 @@ import {
 import { GEM_ASSETS, type ChestRewardOutcome, type GemBalances, type GemType } from "@/features/gems/gem-types";
 import { RewardGemHud, useGemRewardDisplay } from "@/features/progress/components/reward-gem-hud";
 import { MainPointsDisplay } from "@/features/progress/components/main-points-display";
+import { useAppMessage } from "@/components/app-message-provider";
 import { RewardScatter } from "@/features/progress/components/reward-scatter";
 import {
   finishCurrentWebAnimations,
@@ -100,6 +101,7 @@ export function ChestOpeningView({
 }: ChestOpeningViewProps) {
   const t = useT();
   const { locale } = useLocale();
+  const { showMessage } = useAppMessage();
   const usesSuperWater = canUseSuperWater(locale);
   const [stableTotalPoints] = useState(totalPoints);
   const [phase, setPhase] = useState<ChestPhase>("playing");
@@ -145,6 +147,7 @@ export function ChestOpeningView({
   const imageFrameFallbackSourceRef = useRef("");
   const imageFrameFallbackIndexRef = useRef<number | null>(null);
   const waitingForFallbackFirstFrameRef = useRef(false);
+  const frameFailureNoticeShownRef = useRef(false);
   const screenRef = useRef<HTMLDivElement | null>(null);
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const lastFastForwardTapAtRef = useRef(0);
@@ -179,6 +182,23 @@ export function ChestOpeningView({
   const gemsScatterCompleteRef = useRef(false);
   const scatterCompletionTriggeredRef = useRef(false);
   const completionDeliveredRef = useRef(false);
+
+  const reportFramePlaybackFailure = useCallback((
+    frameIndex: number,
+    reason: "load" | "draw",
+  ) => {
+    if (frameFailureNoticeShownRef.current) return;
+    frameFailureNoticeShownRef.current = true;
+    const path = getChestOpeningFrameSource(tier.tier, frameIndex).split("?")[0] ?? "";
+    showMessage(
+      t("chest.openingPlaybackFailed", {
+        reason: t(reason === "load" ? "chest.openingFrameLoadReason" : "chest.openingFrameDrawReason"),
+        path,
+      }),
+      "error",
+      8_000,
+    );
+  }, [showMessage, t, tier.tier]);
 
   const updateFrameDebug = useCallback((
     patch: Partial<typeof frameDebugStateRef.current> |
@@ -244,6 +264,9 @@ export function ChestOpeningView({
         status: "image renderer frame failed",
         context: "image fallback unavailable",
       });
+      if (waitingForFallbackFirstFrameRef.current || lastDrawnFrameRef.current === null) {
+        reportFramePlaybackFailure(frameIndex ?? 0, "load");
+      }
       return;
     }
 
@@ -258,7 +281,7 @@ export function ChestOpeningView({
       waitingForFallbackFirstFrameRef.current = false;
       beginOpeningTimelineRef.current();
     }
-  }, [updateFrameDebug]);
+  }, [reportFramePlaybackFailure, updateFrameDebug]);
 
   const handleImageRendererFrameError = useCallback(() => {
     updateFrameDebug((current) => ({
@@ -267,7 +290,10 @@ export function ChestOpeningView({
       failures: current.failures + 1,
       lastEvent: `failed frame ${String((imageFrameFallbackIndexRef.current ?? 0) + 1).padStart(3, "0")}`,
     }));
-  }, [updateFrameDebug]);
+    if (waitingForFallbackFirstFrameRef.current || lastDrawnFrameRef.current === null) {
+      reportFramePlaybackFailure(imageFrameFallbackIndexRef.current ?? 0, "load");
+    }
+  }, [reportFramePlaybackFailure, updateFrameDebug]);
 
   useEffect(() => {
     if (!debugFramePlayback) return;
@@ -691,6 +717,7 @@ export function ChestOpeningView({
         }
 
         updateFrameDebug({ status: "first frame unavailable" });
+        reportFramePlaybackFailure(0, "load");
         return;
       }
 
@@ -719,12 +746,13 @@ export function ChestOpeningView({
           status: "first frame decoded, canvas draw failed",
           context: "not drawing",
         });
+        reportFramePlaybackFailure(0, "draw");
         return;
       }
 
       beginOpeningTimeline();
     });
-  }, [beginOpeningTimeline, ensureFrameImage, handleImageRendererFrameLoad, updateFrameDebug]);
+  }, [beginOpeningTimeline, ensureFrameImage, handleImageRendererFrameLoad, reportFramePlaybackFailure, updateFrameDebug]);
 
   const attachCanvasRef = useCallback((canvas: HTMLCanvasElement | null) => {
     canvasRef.current = canvas;

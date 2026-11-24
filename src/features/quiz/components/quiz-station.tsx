@@ -150,6 +150,7 @@ import {
   createQuizFlowTestLeaderboardScenario,
   hasReadyQuizPointsLeaderboard,
 } from "@/features/quiz/quiz-leaderboard-readiness";
+import { isQuizDeckAdditionScheduled } from "@/features/quiz/quiz-deck-addition-schedule";
 import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
 import type { LeaderboardPayload } from "@/features/leaderboard/leaderboard-types";
 import { preloadSoundEffects } from "@/lib/sound-effects";
@@ -3483,10 +3484,10 @@ export function QuizStation({
     advanceQuiz({ bypassCelebration: true, skipRankUpCheck: true });
   }
 
-  function handleRestart() {
+  function handleRestart(destination: "count" | "quiz-type" = "count") {
     // Restarting from the result motivation screen is a new quiz session, not
     // a continuation of the completed one. Clear every session-owned value
-    // before showing count selection so stale results, deck items, answer
+    // before showing the requested setup screen so stale results, deck items, answer
     // feedback, reward state, or completion markers cannot leak into the next
     // quiz.
     clearCardProgressFeedback();
@@ -3588,7 +3589,7 @@ export function QuizStation({
     setBonusPointsDisplayed(0);
     setBonusScorePulse(0);
     setIsPreparingQuizPool(true);
-    setPhase("count");
+    setPhase(destination);
   }
 
   function handleExit() {
@@ -4046,6 +4047,7 @@ export function QuizStation({
             results={quizFlowTest ? quizFlowTestResults : results}
             earnedPoints={earnedPoints}
             selectedCount={quizFlowTest ? 10 : selectedCount}
+            ownedCardCount={cards.length}
             quizSessionId={quizSessionId}
             quizDurationSeconds={quizFlowTest ? 60 : quizDurationSeconds ?? 0}
             chestOpened={chestOpened}
@@ -4085,6 +4087,7 @@ export function QuizStation({
             onResultInventoryRefresh={refreshResultInventorySnapshot}
             onResultMessageComplete={() => setResultMessageOnResult(false)}
             onRestart={handleRestart}
+            onRestartToModeSelection={() => handleRestart("quiz-type")}
             onExit={handleExit}
           />
         </div>
@@ -4965,10 +4968,10 @@ function buildFallbackBonusQuestion(
   }
 
   if (kind === "category-sort") {
-    return buildFallbackCategoryBonusQuestion(language, seed);
+    return buildFallbackCategoryBonusQuestion(language, seed, cards);
   }
 
-  return buildImposterBonusQuestion(language, seed);
+  return buildImposterBonusQuestion(language, seed, cards);
 }
 
 function isBonusQuizItem(item: QuizItem): item is BonusQuizItem {
@@ -7282,9 +7285,29 @@ function QuizViewportOverlaySurface({
     const root = rootRef.current;
     if (!root) return;
     if (!isQuizAnimationFastForwardDoubleTap(lastFastForwardTapAtRef)) return;
+    if (root.querySelector('[data-quiz-medal-fast-forward-guard="true"]')) return;
 
     const scopedRoot = target.closest<HTMLElement>(QUIZ_ANIMATION_SCOPE_SELECTOR) ?? root;
     let didFastForward = finishCurrentWebAnimations(root, false) > 0;
+    const resultSummaryBox = root.querySelector<HTMLElement>("[data-result-summary-box]");
+    const delayedSummaryGroup = resultSummaryBox
+      ? Array.from(resultSummaryBox.querySelectorAll<HTMLElement>("[data-result-stats], [data-result-summary-cards]")).find((group) =>
+          group.dataset.resultFastForwardStarted !== "true" &&
+          [
+            ...(group.matches(".result-stagger-enter") ? [group] : []),
+            ...group.querySelectorAll<HTMLElement>(".result-stagger-enter"),
+          ].some((element) =>
+            typeof element.getAnimations === "function" && element.getAnimations().some((animation) =>
+              animation.playState === "running" &&
+              animation.effect?.getComputedTiming().progress === null,
+            ),
+          ),
+        )
+      : null;
+    if (delayedSummaryGroup) {
+      delayedSummaryGroup.dataset.resultFastForwardStarted = "true";
+      didFastForward = true;
+    }
     for (let ancestor = scopedRoot.parentElement; ancestor && ancestor !== root; ancestor = ancestor.parentElement) {
       if (ancestor.matches(QUIZ_ANIMATION_SCOPE_SELECTOR)) {
         didFastForward = finishCurrentWebAnimations(ancestor, false) > 0 || didFastForward;
@@ -7317,6 +7340,7 @@ type ResultFlowViewProps = {
   results: QuizResult;
   earnedPoints?: number;
   selectedCount: number | null;
+  ownedCardCount?: number;
   quizSessionId?: string | null;
   quizDurationSeconds?: number;
   chestOpened: boolean;
@@ -7354,12 +7378,14 @@ type ResultFlowViewProps = {
   onRewardRankUp?: (rank: RankDefinition) => void;
   onContinue?: () => void;
   onRestart: () => void;
+  onRestartToModeSelection?: () => void;
   onExit: () => void;
 };
 
 export function ResultFlowView({
   selectedLanguage,
   presentationMode = "classic",
+  ownedCardCount = 0,
   showResultMessage = false,
   showChestRewardGate = false,
   chestTier = null,
@@ -7428,8 +7454,9 @@ export function ResultFlowView({
     missionAvailabilityHandledRef.current = false;
   }, [resultProps.quizSessionId]);
 
-  const [messageStageVisible, setMessageStageVisible] = useState(showResultMessage);
-  const [resultStageVisible, setResultStageVisible] = useState(!showResultMessage);
+  const shouldShowResultMessage = showResultMessage && resultProps.results.correct.length > 0;
+  const [messageStageVisible, setMessageStageVisible] = useState(shouldShowResultMessage);
+  const [resultStageVisible, setResultStageVisible] = useState(!shouldShowResultMessage);
   const [chestGateVisible, setChestGateVisible] = useState(false);
   const [deckCardAdditionVisible, setDeckCardAdditionVisible] = useState(false);
   const [leaderboardProgressVisible, setLeaderboardProgressVisible] = useState(false);
@@ -7437,17 +7464,48 @@ export function ResultFlowView({
   const [motivationEntering, setMotivationEntering] = useState(false);
   const [missionAvailabilityChecking, setMissionAvailabilityChecking] = useState(false);
   const [missionRewardsVisible, setMissionRewardsVisible] = useState(false);
+  const [deckAdditionSchedule, setDeckAdditionSchedule] = useState<{
+    sessionId: string;
+    scheduled: boolean;
+  } | null>(null);
+  const deckAdditionScheduleSessionRef = useRef<string | null>(null);
+  const canShowDeckCardAddition =
+    resultProps.mode === "active" &&
+    ownedCardCount <= 15 &&
+    deckAdditionSchedule?.sessionId === resultProps.quizSessionId &&
+    deckAdditionSchedule?.scheduled === true;
+
+  useEffect(() => {
+    const sessionId = resultProps.quizSessionId;
+    if (
+      resultProps.mode !== "active" ||
+      !sessionId ||
+      deckAdditionScheduleSessionRef.current === sessionId
+    ) return;
+
+    deckAdditionScheduleSessionRef.current = sessionId;
+    let scheduled = false;
+    try {
+      scheduled = isQuizDeckAdditionScheduled(sessionId, window.sessionStorage);
+    } catch {
+      // Storage restrictions must never interrupt the result flow.
+    }
+    setDeckAdditionSchedule({
+      sessionId,
+      scheduled,
+    });
+  }, [resultProps.mode, resultProps.quizSessionId]);
 
   useEffect(() => {
     // Result state can be decided asynchronously while the result flow is
     // already mounted (for example after streak/rank reconciliation). Make
     // sure a late request to show achievements can still open its first
     // stage instead of being lost in the initial useState snapshot.
-    if (!showResultMessage || messageStageVisible) return;
+    if (!shouldShowResultMessage || messageStageVisible) return;
 
     setMessageStageVisible(true);
     setResultStageVisible(false);
-  }, [messageStageVisible, showResultMessage]);
+  }, [messageStageVisible, shouldShowResultMessage]);
   const [chestRewardGemCount, setChestRewardGemCount] = useState(gainedGems);
   const resultPerformance = getQuizPerformanceSummary(
     resultProps.mode,
@@ -7538,6 +7596,37 @@ export function ResultFlowView({
     setMissionAvailabilityChecking(true);
   };
 
+  const finishDeckAdditionStage = useCallback(() => {
+    onResultInventoryRefresh?.();
+    setDeckCardAdditionVisible(false);
+
+    const hasReadyLeaderboard = hasReadyQuizPointsLeaderboard(
+      resultLeaderboardPayload,
+      resultLeaderboardLoading || resultLeaderboardRefreshing,
+      resultLeaderboardBeforePosition,
+    );
+
+    setLeaderboardProgressVisible(hasReadyLeaderboard);
+    if (!hasReadyLeaderboard) {
+      setMotivationEntering(true);
+      setContinuationMotivationVisible(true);
+    }
+  }, [
+    onResultInventoryRefresh,
+    resultLeaderboardBeforePosition,
+    resultLeaderboardLoading,
+    resultLeaderboardPayload,
+    resultLeaderboardRefreshing,
+  ]);
+
+  const openDeckAdditionOrContinue = useCallback(() => {
+    if (canShowDeckCardAddition) {
+      setDeckCardAdditionVisible(true);
+      return;
+    }
+    finishDeckAdditionStage();
+  }, [canShowDeckCardAddition, finishDeckAdditionStage]);
+
   const handleMissionAvailabilityResolved = useCallback((hasClaimableMissions: boolean) => {
     if (!missionAvailabilityStartedRef.current || missionAvailabilityHandledRef.current) return;
     missionAvailabilityHandledRef.current = true;
@@ -7549,14 +7638,12 @@ export function ResultFlowView({
       return;
     }
 
-    setDeckCardAdditionVisible(true);
+    openDeckAdditionOrContinue();
   }, [
-    setDeckCardAdditionVisible,
+    openDeckAdditionOrContinue,
     setChestGateVisible,
-    setContinuationMotivationVisible,
     setMissionAvailabilityChecking,
     setMissionRewardsVisible,
-    setMotivationEntering,
   ]);
 
   useEffect(() => {
@@ -7575,25 +7662,10 @@ export function ResultFlowView({
 
   const handleMissionRewardsContinue = () => {
     setMissionRewardsVisible(false);
-    setDeckCardAdditionVisible(true);
+    openDeckAdditionOrContinue();
   };
 
-  const handleDeckCardAdditionContinue = () => {
-    onResultInventoryRefresh?.();
-    setDeckCardAdditionVisible(false);
-
-    const hasReadyLeaderboard = hasReadyQuizPointsLeaderboard(
-      resultLeaderboardPayload,
-      resultLeaderboardLoading || resultLeaderboardRefreshing,
-      resultLeaderboardBeforePosition,
-    );
-
-    setLeaderboardProgressVisible(hasReadyLeaderboard);
-    if (!hasReadyLeaderboard) {
-      setMotivationEntering(true);
-      setContinuationMotivationVisible(true);
-    }
-  };
+  const handleDeckCardAdditionContinue = finishDeckAdditionStage;
 
   const handleLeaderboardProgressComplete = () => {
     setLeaderboardProgressVisible(false);
@@ -7613,7 +7685,11 @@ export function ResultFlowView({
       resultProps.onContinue?.();
       return;
     }
-    resultProps.onRestart();
+    if (resultProps.onRestartToModeSelection) {
+      resultProps.onRestartToModeSelection();
+    } else {
+      resultProps.onRestart();
+    }
   };
 
   const handleContinuationExit = () => {
@@ -7961,6 +8037,7 @@ export function ResultView({
   const [resultCardTapGuardActive, setResultCardTapGuardActive] = useState(false);
   const [performancePointsArrived, setPerformancePointsArrived] = useState(0);
   const [medalRevealComplete, setMedalRevealComplete] = useState(false);
+  const [medalFastForwardGuardActive, setMedalFastForwardGuardActive] = useState(false);
   const [medalClaimButtonVisible, setMedalClaimButtonVisible] = useState(false);
   const [openMenu, setOpenMenu] = useState<
     "correct" | "incorrect" | "learned" | null
@@ -7983,6 +8060,7 @@ export function ResultView({
   const medalPulseSequenceRef = useRef(0);
   const medalPulseTimerRef = useRef<number | null>(null);
   const resultSummaryExitTimerRef = useRef<number | null>(null);
+  const medalFastForwardGuardTimerRef = useRef<number | null>(null);
   const medalFlightSequenceRef = useRef(0);
   const medalParticleBurstSequenceRef = useRef(0);
   const medalParticleBurstTimersRef = useRef(new Map<number, number>());
@@ -8089,6 +8167,9 @@ export function ResultView({
       }
       if (resultSummaryExitTimerRef.current !== null) {
         window.clearTimeout(resultSummaryExitTimerRef.current);
+      }
+      if (medalFastForwardGuardTimerRef.current !== null) {
+        window.clearTimeout(medalFastForwardGuardTimerRef.current);
       }
     };
   }, []);
@@ -8616,7 +8697,19 @@ export function ResultView({
                     rating={medalRating}
                     className="origin-center scale-[1.06] w-full max-w-[310px] justify-center px-2 sm:px-4"
                     sequentialReveal
-                    onRevealComplete={() => setMedalRevealComplete(true)}
+                    onRevealComplete={(wasFastForwarded) => {
+                      setMedalRevealComplete(true);
+                      if (!wasFastForwarded) return;
+
+                      setMedalFastForwardGuardActive(true);
+                      if (medalFastForwardGuardTimerRef.current !== null) {
+                        window.clearTimeout(medalFastForwardGuardTimerRef.current);
+                      }
+                      medalFastForwardGuardTimerRef.current = window.setTimeout(() => {
+                        medalFastForwardGuardTimerRef.current = null;
+                        setMedalFastForwardGuardActive(false);
+                      }, 700);
+                    }}
                   />
                 </div>
               </div>
@@ -8647,7 +8740,9 @@ export function ResultView({
                 key="claim-medals"
                 type="button"
                 onClick={handleResultPrimaryAction}
-                disabled={!medalRevealComplete || !medalClaimButtonVisible || claimingMedals || claimedMedals}
+                disabled={!medalRevealComplete || !medalClaimButtonVisible || medalFastForwardGuardActive || claimingMedals || claimedMedals}
+                data-quiz-end-continue-locked={medalFastForwardGuardActive ? "true" : undefined}
+                data-quiz-medal-fast-forward-guard={medalFastForwardGuardActive ? "true" : undefined}
                 data-no-tap-vibrate
                 data-result-primary-action
                 data-result-claim-medals="true"

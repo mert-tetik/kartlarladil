@@ -19,6 +19,7 @@ import {
   type GatewayFlowPhase,
 } from "@/features/auth/components/gateway-flow-transition";
 import { SERIOUS_LEARNER_EXIT_UNMOUNT_DELAY_MS } from "@/features/auth/serious-learner-animation";
+import { preloadSeriousLearnerAssets } from "@/features/auth/serious-learner-assets";
 import { useAuthSession } from "@/features/auth/auth-client";
 import { MOBILE_GATEWAY_LOGIN_PARAM } from "@/features/auth/mobile-auth-paths";
 import {
@@ -640,6 +641,14 @@ export function MobileAuthGateway({ countryCode }: { countryCode: string | null 
       isMobilePasswordRecoveryPath ||
       isMobilePasswordRecoveryError
     ));
+
+  useEffect(() => {
+    if (!mounted || !isMobileViewport || isPublicMobilePath || (!needsAuth && !needsOnboarding)) return;
+
+    // Warm the offer art while the user is signing in/onboarding. This is
+    // deliberately detached from navigation so it can never block Continue.
+    void preloadSeriousLearnerAssets();
+  }, [isMobileViewport, isPublicMobilePath, mounted, needsAuth, needsOnboarding]);
 
   const isAuthButtonSoundFlowActive = Boolean(
     showGateway &&

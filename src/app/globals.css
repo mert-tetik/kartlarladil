@@ -1311,6 +1311,10 @@ html[data-route-transition="entering"] [data-route-transition-item] {
   will-change: opacity, transform;
 }
 
+[data-result-fast-forward-started="true"] {
+  --result-stagger-delay: 0ms !important;
+}
+
 @keyframes quiz-performance-reward-pulse {
   0%,
   100% {
@@ -3888,6 +3892,10 @@ body:has([data-learn-page]) footer {
 [data-quiz-count-selection]:not([data-quiz-transition-fallback-old]) .quiz-count-selection-bubble,
 [data-quiz-count-selection]:not([data-quiz-transition-fallback-old]) .quiz-count-selection-bubble::before,
 [data-quiz-count-selection]:not([data-quiz-transition-fallback-old]) .quiz-count-selection-option {
+  background-color: #000000 !important;
+}
+
+[data-quiz-presentation-selection]:not([data-quiz-transition-fallback-presentation]) .quiz-count-selection-option {
   background-color: #000000 !important;
 }
 
@@ -6571,6 +6579,17 @@ body:has([data-leaderboard-overlay]) [data-mobile-main-nav-frame] {
 
 body:has([data-learn-page]):has([data-leaderboard-overlay]) [data-mobile-main-nav-frame] {
   display: none !important;
+}
+
+html[data-learn-leaderboard-overlay-open="true"] body:has([data-leaderboard-overlay]) [data-mobile-main-nav-frame] {
+  display: block !important;
+  z-index: 90;
+  background-color: #090909;
+}
+
+html[data-learn-leaderboard-overlay-open="true"] body:has([data-leaderboard-overlay]) [data-mobile-main-nav] {
+  background-color: #090909 !important;
+  border-color: #090909 !important;
 }
 
 @media (max-width: 1023px) {

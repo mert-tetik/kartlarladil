@@ -10,6 +10,12 @@ import {
   NATIVE_MEDIA_LOCAL_MISS_EVENT,
 } from "@/lib/native-media-fallback";
 
+const { showAppMessage } = vi.hoisted(() => ({ showAppMessage: vi.fn() }));
+
+vi.mock("@/components/app-message-provider", () => ({
+  useAppMessage: () => ({ showMessage: showAppMessage }),
+}));
+
 function createMockFrame(source: string) {
   return {
     src: source,
@@ -48,6 +54,7 @@ describe("ChestOpeningView", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
+    showAppMessage.mockReset();
     vi.mocked(loadChestOpeningFrameImage).mockImplementation(async (source) => createMockFrame(source));
     queuedAnimationFrame = null;
     drawImageMock = vi.fn();
@@ -414,6 +421,39 @@ describe("ChestOpeningView", () => {
     expect(firstFrameAttempts).toBe(2);
     expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
     expect(drawImageMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows a localized diagnostic with the packaged frame path after first-frame retries fail", async () => {
+    vi.mocked(loadChestOpeningFrameImage).mockRejectedValue(new Error("decode failed"));
+    let startOpening: (() => void) | null = null;
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <ChestOpeningView
+          tier={CHEST_TIERS[0]}
+          totalPoints={0}
+          autoPlay={false}
+          onOpeningReady={(start) => { startOpening = start; }}
+          onComplete={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    act(() => startOpening?.());
+    await flushFrameLoads();
+    expect(showAppMessage).not.toHaveBeenCalled();
+
+    await act(async () => {
+      vi.advanceTimersByTime(900);
+      for (let index = 0; index < 8; index += 1) await Promise.resolve();
+    });
+
+    expect(showAppMessage).toHaveBeenCalledTimes(1);
+    expect(showAppMessage).toHaveBeenCalledWith(
+      expect.stringContaining("/chests/opening-frames/wood-frames/frame-001.webp"),
+      "error",
+      8_000,
+    );
   });
 
   it("uses the latest available decoded frame when the exact 24fps target is late", async () => {

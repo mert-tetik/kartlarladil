@@ -62,8 +62,8 @@ export const VIBRATION_PATTERNS: Record<VibrationPatternName, number | number[]>
   "result-medal-collect": [58],
   /** Strong two-hit haptic paired with the white quiz reward-box flash. */
   "quiz-reward-pulse": [110, 35, 180],
-  /** Heavy two-hit confirmation when a quiz animation is fast-forwarded. */
-  "quiz-animation-fast-forward": [90, 30, 110],
+  /** Subtle confirmation when a quiz animation is fast-forwarded. */
+  "quiz-animation-fast-forward": [45, 15, 55],
   /** Two firm confirmation taps for Word Challenge answers. */
   "word-challenge-correct": [42, 32, 70],
   /** A noticeably stronger rejection pulse for Word Challenge answers. */

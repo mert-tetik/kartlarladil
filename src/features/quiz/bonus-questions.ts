@@ -381,13 +381,33 @@ function getFallbackNativeExampleSentence(
 export function buildFallbackCategoryBonusQuestion(
   language: LanguageCode,
   seed: string,
+  preferredCards: VocabularyCard[] = [],
 ): CategorySortBonusQuestion | null {
   const usedCardIds = new Set<string>();
   const categories: BonusCategory[] = [];
   const words: CategoryWord[] = [];
 
-  for (const group of shuffle([...CARD_GROUPS])) {
-    const groupCards = getCardsForGroup(group.id, language).filter((card) => !usedCardIds.has(card.id));
+  const preferredByGroup = new Map<CardGroupIcon, VocabularyCard[]>();
+  for (const card of preferredCards) {
+    if (card.language !== language) continue;
+    const groupId = getCardGroupForCard(card)?.id;
+    if (!groupId) continue;
+    const cards = preferredByGroup.get(groupId) ?? [];
+    cards.push(card);
+    preferredByGroup.set(groupId, cards);
+  }
+
+  const groupCandidates = shuffle([...CARD_GROUPS]).sort((left, right) =>
+    Number((preferredByGroup.get(right.id)?.length ?? 0) > 0) -
+    Number((preferredByGroup.get(left.id)?.length ?? 0) > 0),
+  );
+  for (const group of groupCandidates) {
+    const globalCards = getCardsForGroup(group.id, language);
+    const preferredIds = new Set((preferredByGroup.get(group.id) ?? []).map((card) => card.id));
+    const groupCards = [
+      ...(preferredByGroup.get(group.id) ?? []),
+      ...globalCards.filter((card) => !preferredIds.has(card.id)),
+    ].filter((card) => !usedCardIds.has(card.id));
     if (groupCards.length < 3) continue;
 
     const selected = groupCards.slice(0, 3);
@@ -420,22 +440,46 @@ export function buildFallbackCategoryBonusQuestion(
 export function buildImposterBonusQuestion(
   language: LanguageCode,
   seed: string,
+  preferredCards: VocabularyCard[] = [],
 ): ImposterBonusQuestion | null {
-  const group = shuffle([...CARD_GROUPS]).find(
+  const preferredIds = new Set(
+    preferredCards.filter((card) => card.language === language).map((card) => card.id),
+  );
+  const relatedGroups = shuffle([...CARD_GROUPS]).filter(
     (candidate) => getCardsForGroup(candidate.id, language).length >= 1,
   );
+  const group = relatedGroups.find((candidate) =>
+    getCardsForGroup(candidate.id, language).some((card) => preferredIds.has(card.id)),
+  ) ?? relatedGroups[0];
   if (!group) return null;
 
-  const relatedCard = shuffle(getCardsForGroup(group.id, language))[0];
-  const outsiderGroup = shuffle([...CARD_GROUPS]).find(
+  const relatedCards = [
+    ...(preferredCards.filter((card) =>
+      card.language === language && getCardGroupForCard(card)?.id === group.id,
+    )),
+    ...getCardsForGroup(group.id, language).filter((card) => !preferredIds.has(card.id)),
+  ];
+  const relatedCard = shuffle(relatedCards.filter((card) => preferredIds.has(card.id)))[0]
+    ?? shuffle(relatedCards)[0];
+  const outsiderGroups = shuffle([...CARD_GROUPS]).filter(
     (candidate) =>
       candidate.id !== group.id &&
       !IMPOSTER_VERB_GROUPS.includes(candidate.id) &&
       getCardsForGroup(candidate.id, language).length >= IMPOSTER_OUTSIDER_WORD_COUNT,
   );
-  const outsiders = outsiderGroup
-    ? shuffle(getCardsForGroup(outsiderGroup.id, language)).slice(0, IMPOSTER_OUTSIDER_WORD_COUNT)
-    : [];
+  const outsiderGroup = outsiderGroups.find((candidate) =>
+    getCardsForGroup(candidate.id, language).some((card) => preferredIds.has(card.id)),
+  ) ?? outsiderGroups[0];
+  const outsiderCards = outsiderGroup ? [
+    ...preferredCards.filter((card) =>
+      card.language === language && getCardGroupForCard(card)?.id === outsiderGroup.id,
+    ),
+    ...getCardsForGroup(outsiderGroup.id, language).filter((card) => !preferredIds.has(card.id)),
+  ] : [];
+  const outsiders = [
+    ...shuffle(outsiderCards.filter((card) => preferredIds.has(card.id))),
+    ...shuffle(outsiderCards.filter((card) => !preferredIds.has(card.id))),
+  ].slice(0, IMPOSTER_OUTSIDER_WORD_COUNT);
 
   if (!relatedCard || outsiders.length !== IMPOSTER_OUTSIDER_WORD_COUNT) return null;
 

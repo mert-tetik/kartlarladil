@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
-import { getCardGroupForCard } from "@/features/cards/card-groups";
+import { getCardGroupForCard, getCardsForGroup } from "@/features/cards/card-groups";
 import type { Tier } from "@/types/domain";
 import {
   buildCategoryBonusFromGenerated,
@@ -188,6 +188,18 @@ describe("bonus quiz questions", () => {
     );
     expect(outsiderGroupIds.size).toBe(1);
     expect(["commonVerbs", "advancedVerbs"]).not.toContain([...outsiderGroupIds][0]);
+  });
+
+  it("prefers owned cards in category and imposter fallback questions when their groups are usable", () => {
+    const ownedCard = ENGLISH_CARDS.find((card) => {
+      const group = getCardGroupForCard(card);
+      return group != null && getCardsForGroup(group.id, "en").length >= 3;
+    })!;
+    const category = buildFallbackCategoryBonusQuestion("en", "owned-category", [ownedCard]);
+    const imposter = buildImposterBonusQuestion("en", "owned-imposter", [ownedCard]);
+
+    expect(category?.words.some((word) => word.cardId === ownedCard.id)).toBe(true);
+    expect(imposter?.options.some((option) => option.cardId === ownedCard.id)).toBe(true);
   });
 
   it("rejects generated category payloads with duplicate or unknown cards", () => {

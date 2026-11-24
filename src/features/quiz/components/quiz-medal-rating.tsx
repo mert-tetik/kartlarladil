@@ -13,7 +13,7 @@ interface QuizMedalRatingProps {
   className?: string;
   style?: CSSProperties;
   sequentialReveal?: boolean;
-  onRevealComplete?: () => void;
+  onRevealComplete?: (wasFastForwarded: boolean) => void;
 }
 
 const ARC_OFFSETS = [
@@ -82,7 +82,7 @@ export function QuizMedalRating({
     setShowEmpty(true);
     setRevealComplete(true);
     playSoundEffect("quiz-medal-reveal");
-    onRevealCompleteRef.current?.();
+    onRevealCompleteRef.current?.(true);
     return true;
   }, [clampedRating, sequentialReveal]);
 
@@ -109,7 +109,7 @@ export function QuizMedalRating({
         if (revealFinishedRef.current) return;
         revealFinishedRef.current = true;
         setRevealComplete(true);
-        onRevealCompleteRef.current?.();
+        onRevealCompleteRef.current?.(false);
       }, placeholderRevealTime);
     }, revealAt);
     return () => {

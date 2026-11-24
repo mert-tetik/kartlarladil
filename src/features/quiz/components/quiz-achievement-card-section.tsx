@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { canUseSuperWater, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
+import { QUIZ_END_ACTION_TAP_GUARD_GRACE_MS } from "@/features/quiz/quiz-end-triple-tap";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import type { VocabularyCard } from "@/types/domain";
 
@@ -53,10 +54,13 @@ export function AchievementCardSection({
   const t = useT();
   const [faceDownCardIds, setFaceDownCardIds] = useState<Set<string>>(() => new Set());
   const selectionEnabled = onCardSelect !== undefined;
+  const cardIdKey = cards.map((card) => card.id).join("|");
+  const tapGuardKey = `${selectionEnabled ? "select" : "flip"}:${cardIdKey}`;
+  const [expiredTapGuardKey, setExpiredTapGuardKey] = useState<string | null>(null);
+  const cardFlipTapGuardActive = !selectionEnabled && expiredTapGuardKey !== tapGuardKey;
   const selectionPointerRef = useRef<SelectionPointerGesture | null>(null);
   const suppressNextSelectionClickRef = useRef(false);
   const suppressClickTimerRef = useRef<number | null>(null);
-  const cardIdKey = cards.map((card) => card.id).join("|");
 
   useEffect(() => {
     if (!reveal || exiting || typeof window === "undefined") return;
@@ -73,6 +77,16 @@ export function AchievementCardSection({
       timers.forEach((timer) => window.clearTimeout(timer));
     };
   }, [cardIdKey, cards.length, exiting, reveal, staggerOffsetMs]);
+
+  useEffect(() => {
+    if (selectionEnabled || typeof window === "undefined") return;
+
+    const timer = window.setTimeout(
+      () => setExpiredTapGuardKey(tapGuardKey),
+      QUIZ_END_ACTION_TAP_GUARD_GRACE_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [selectionEnabled, tapGuardKey]);
 
   useEffect(() => {
     if (!selectionEnabled || typeof window === "undefined") return;
@@ -170,6 +184,7 @@ export function AchievementCardSection({
   };
 
   const handleCardClick = (cardId: string) => {
+    if (cardFlipTapGuardActive) return;
     vibrate("flip");
     setFaceDownCardIds((current) => {
       const next = new Set(current);

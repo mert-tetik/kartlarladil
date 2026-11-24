@@ -170,7 +170,7 @@ export function QuizPracticeSwipeCard({
 
   return (
     <div
-      className="flex min-h-0 w-full flex-1 flex-col items-center justify-center px-3 pb-4 pt-2 sm:px-6"
+      className="flex min-h-0 w-full flex-1 translate-y-[30px] flex-col items-center justify-center px-3 pb-4 pt-2 sm:px-6"
       data-quiz-practice-swipe
     >
       <QuizPracticeSwipePrompt

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useId, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { ScoreIcon } from "@/components/score-icon";
 import { GEM_ASSETS, type GemRewards, type GemType } from "@/features/gems/gem-types";
@@ -98,6 +98,7 @@ export function RewardScatter({
   flightsRef.current = flights;
   const fastForwardAnimationsRef = useRef(new Map<string, Animation>());
   const fastForwardFallbackTimersRef = useRef(new Map<string, number>());
+  const fastForwardActiveFlightsRef = useRef<() => boolean>(() => false);
   const arrivedFlightIdsRef = useRef({ points: new Set<string>(), gems: new Set<string>(), medals: new Set<string>() });
   const groupFlightCountsRef = useRef({ points: 0, gems: 0, medals: 0 });
   const groupArrivalCountsRef = useRef({ points: 0, gems: 0, medals: 0 });
@@ -468,7 +469,7 @@ export function RewardScatter({
     setFlights((current) => current.filter((item) => item.id !== flight.id));
   }
 
-  const fastForwardActiveFlights = () => {
+  function fastForwardActiveFlights() {
     if (typeof document === "undefined") return false;
 
     const elements = new Map(
@@ -482,8 +483,23 @@ export function RewardScatter({
       if (!element) continue;
 
       if (flight.channel === "points" || flight.channel === "gems") {
-        if (fastForwardAnimationsRef.current.has(flight.id)
-          || fastForwardFallbackTimersRef.current.has(flight.id)) {
+        const inFlightFastForward = fastForwardAnimationsRef.current.get(flight.id);
+        if (inFlightFastForward?.playState === "running") {
+          try {
+            inFlightFastForward.finish();
+          } catch {
+            // The logical completion below remains authoritative if Web
+            // Animations is interrupted or unsupported by the embedded view.
+          }
+          handleFlightEnd(flight);
+          handled = true;
+          continue;
+        }
+        if (fastForwardFallbackTimersRef.current.has(flight.id)) {
+          const fallbackTimer = fastForwardFallbackTimersRef.current.get(flight.id);
+          if (fallbackTimer !== undefined) window.clearTimeout(fallbackTimer);
+          fastForwardFallbackTimersRef.current.delete(flight.id);
+          handleFlightEnd(flight);
           handled = true;
           continue;
         }
@@ -612,9 +628,18 @@ export function RewardScatter({
       handleFlightEnd(flight);
     }
     return handled;
-  };
+  }
 
-  useQuizAnimationFastForward(fastForwardActiveFlights, flights.length > 0, 20);
+  useEffect(() => {
+    fastForwardActiveFlightsRef.current = fastForwardActiveFlights;
+  }, [fastForwardActiveFlights]);
+
+  const invokeFastForwardActiveFlights = useCallback(
+    () => fastForwardActiveFlightsRef.current(),
+    [],
+  );
+
+  useQuizAnimationFastForward(invokeFastForwardActiveFlights, flights.length > 0, 20);
 
   useEffect(() => {
     if (fastForwardSignal === undefined || fastForwardSignal === previousFastForwardSignalRef.current) return;
@@ -622,8 +647,8 @@ export function RewardScatter({
     // flights; otherwise a very quick second tap could be consumed on mount.
     if (flights.length === 0) return;
     previousFastForwardSignalRef.current = fastForwardSignal;
-    fastForwardActiveFlights();
-  }, [fastForwardSignal, fastForwardActiveFlights, flights.length]);
+    fastForwardActiveFlightsRef.current();
+  }, [fastForwardSignal, flights.length]);
 
   useEffect(() => {
     if (!flightExit) return;

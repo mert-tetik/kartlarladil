@@ -16,7 +16,7 @@ import ja from "./locales/ja";
 import ko from "./locales/ko";
 import zhCN from "./locales/zh-CN";
 
-export const DICTIONARIES: Record<LocaleCode, Dictionary> = {
+const LOCALE_OVERRIDES: Record<LocaleCode, Partial<Dictionary>> = {
   tr,
   en,
   de,
@@ -32,6 +32,12 @@ export const DICTIONARIES: Record<LocaleCode, Dictionary> = {
   ko,
   "zh-CN": zhCN,
 };
+
+export const DICTIONARIES = Object.fromEntries(
+  (Object.entries(LOCALE_OVERRIDES) as Array<[LocaleCode, Partial<Dictionary>]>).map(
+    ([locale, dictionary]) => [locale, { ...en, ...dictionary }],
+  ),
+) as Record<LocaleCode, Dictionary>;
 
 export function translate(locale: LocaleCode, key: TranslationKey, values?: TranslationValues) {
   const template = DICTIONARIES[locale][key] ?? DICTIONARIES.en[key] ?? tr[key];

@@ -178,6 +178,8 @@ describe("AchievementCardSection shared vocabulary cards", () => {
   });
 
   it("shows the learned medal on learned result cards and still flips on click", () => {
+    vi.useFakeTimers();
+    try {
     const { container } = render(
       <LocaleProvider initialLocale="en">
         <AchievementCardSection
@@ -203,9 +205,16 @@ describe("AchievementCardSection shared vocabulary cards", () => {
     expect(screen.queryByRole("button", { name: `${card.term} Ask` })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("reference-card"));
+    expect(cardShell).toHaveAttribute("data-card-face", "front");
+
+    act(() => vi.advanceTimersByTime(2_000));
+    fireEvent.click(screen.getByTestId("reference-card"));
 
     expect(cardShell).toHaveAttribute("data-card-face", "back");
     expect(screen.getByTestId("card-back-tier-text")).toHaveTextContent("B1");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
 });

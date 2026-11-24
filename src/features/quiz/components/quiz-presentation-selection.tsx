@@ -58,7 +58,7 @@ export function QuizPresentationSelection({
 
   return (
     <section
-      className="animate-screen-pop relative mx-auto flex h-full min-h-0 w-full max-w-4xl flex-col items-center justify-center overflow-hidden rounded-2xl border border-border bg-background-card p-5 sm:p-8 lg:p-10 max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0 max-lg:p-4"
+      className="animate-screen-pop relative mx-auto flex h-full min-h-0 w-full max-w-4xl flex-col items-center justify-center overflow-hidden rounded-2xl border border-[#333] bg-black p-5 text-white sm:p-8 lg:p-10 max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 max-lg:border-y-0 max-lg:p-4"
       data-quiz-presentation-selection
       data-testid="quiz-presentation-selection"
       aria-labelledby="quiz-presentation-title"
@@ -78,9 +78,8 @@ export function QuizPresentationSelection({
             disabled={selectedMode !== null && selectedMode !== "easy"}
             onClick={() => selectMode("easy")}
             onAnimationEnd={(event) => handleOptionAnimationEnd(event, "easy")}
-            correctClassName="border-emerald-300 bg-emerald-800 text-white"
             className={cn(
-              "group min-h-44 w-full flex-col items-stretch justify-center rounded-xl border-emerald-300/70 border-b-emerald-950 bg-emerald-600 px-5 py-4 text-left text-white transition-colors hover:bg-emerald-500 disabled:cursor-wait disabled:opacity-70 sm:min-h-52 sm:px-6 sm:py-5",
+              "quiz-count-selection-option group min-h-44 w-full flex-col items-stretch justify-center rounded-xl px-5 py-4 text-left text-white disabled:cursor-wait disabled:opacity-70 sm:min-h-52 sm:px-6 sm:py-5",
               useSuperWater && "font-super-water",
             )}
             data-quiz-presentation="easy"
@@ -101,9 +100,8 @@ export function QuizPresentationSelection({
             disabled={selectedMode !== null && selectedMode !== "classic"}
             onClick={() => selectMode("classic")}
             onAnimationEnd={(event) => handleOptionAnimationEnd(event, "classic")}
-            correctClassName="border-sky-300 bg-sky-900 text-white"
             className={cn(
-              "group min-h-44 w-full flex-col items-stretch justify-center rounded-xl border-sky-300/70 border-b-sky-950 bg-sky-700 px-5 py-4 text-left text-white transition-colors hover:bg-sky-600 disabled:cursor-wait disabled:opacity-70 sm:min-h-52 sm:px-6 sm:py-5",
+              "quiz-count-selection-option group min-h-44 w-full flex-col items-stretch justify-center rounded-xl px-5 py-4 text-left text-white disabled:cursor-wait disabled:opacity-70 sm:min-h-52 sm:px-6 sm:py-5",
               useSuperWater && "font-super-water",
             )}
             data-quiz-presentation="classic"

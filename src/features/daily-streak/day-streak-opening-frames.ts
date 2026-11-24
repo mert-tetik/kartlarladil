@@ -1,7 +1,7 @@
 import type { ThemeMode } from "@/lib/themes";
 
-export const DAY_STREAK_OPENING_FRAME_WIDTH = 480;
-export const DAY_STREAK_OPENING_FRAME_HEIGHT = 854;
+export const DAY_STREAK_OPENING_FRAME_WIDTH = 960;
+export const DAY_STREAK_OPENING_FRAME_HEIGHT = 1708;
 export const DAY_STREAK_OPENING_FRAME_RATE = 24;
 export const DAY_STREAK_OPENING_FRAME_COUNT = 97;
 export const DAY_STREAK_OPENING_ATLAS_COLUMNS = 4;
@@ -17,7 +17,7 @@ const preloadingByTheme = new Map<ThemeMode, Promise<void>>();
 
 export function getDayStreakOpeningAtlasSource(mode: ThemeMode, atlasIndex: number) {
   const atlasNumber = String(atlasIndex + 1).padStart(2, "0");
-  return `/day-streak/opening-frames/${mode}/atlas-${atlasNumber}.webp?v=20261103-1`;
+  return `/day-streak/opening-frames/${mode}/atlas-${atlasNumber}.webp?v=20261124-2x-upscale-1`;
 }
 
 export async function loadDayStreakOpeningAtlasImage(source: string) {

@@ -201,7 +201,7 @@ export function UpgradeDialog({
   return createPortal(
     <div
       className={cn(
-        "fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm transition-opacity duration-300 ease-out",
+        "fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm transition-opacity duration-300 ease-out",
         overlayClassName,
         isVisible ? "opacity-100" : "pointer-events-none opacity-0",
       )}

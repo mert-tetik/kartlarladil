@@ -111,8 +111,8 @@ function buildFallbackBonusQuestion(
 ): BonusQuestion | null {
   if (kind === "matching") return buildMatchingBonusQuestion(cards, locale, seed, learnedCards);
   if (kind === "sentence-order") return buildFallbackSentenceOrderQuestion(cards, seed, locale);
-  if (kind === "category-sort") return buildFallbackCategoryBonusQuestion(language, seed);
-  return buildImposterBonusQuestion(language, seed);
+  if (kind === "category-sort") return buildFallbackCategoryBonusQuestion(language, seed, cards);
+  return buildImposterBonusQuestion(language, seed, cards);
 }
 
 function getCardMap(customCards: VocabularyCard[]) {

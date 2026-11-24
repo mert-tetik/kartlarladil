@@ -2,12 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import {
+  SERIOUS_LEARNER_FRAME_COUNT,
+  SERIOUS_LEARNER_FRAME_BASE_PATH,
+} from "@/features/auth/serious-learner-assets";
 import type { SubscriptionPlan } from "@/types/domain";
 
-const FRAME_COUNT = 50;
+const FRAME_COUNT = SERIOUS_LEARNER_FRAME_COUNT;
 const FRAME_FPS = 45;
 const FRAME_BASE_PATH: Record<Exclude<SubscriptionPlan, "free">, string> = {
-  basic: "/pricing-subscription-menu-frames-v2",
+  basic: SERIOUS_LEARNER_FRAME_BASE_PATH,
   pro: "/pricing-subscription-menu-pro-frames-v2",
 };
 

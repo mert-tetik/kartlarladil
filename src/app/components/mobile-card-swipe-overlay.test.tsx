@@ -272,7 +272,7 @@ describe("MobileCardSwipeOverlay", () => {
     expect(addAttempted).toHaveBeenCalledOnce();
     expect((addAttempted.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({ layer: "draw-cards", count: 1 });
     expect(document.querySelector("[data-card-swipe-outgoing]")).toBeInTheDocument();
-    expect(addCardMock).toHaveBeenCalledOnce();
+    expect(addCardMock).not.toHaveBeenCalled();
     expect(document.querySelector("[data-card-swipe-outgoing]")).toHaveStyle({ transform: "translate3d(150px, 0, 0) rotate(8.333333333333334deg)" });
     expect(document.querySelector('[data-card-swipe-outgoing-state="add"]')).toHaveClass("bg-emerald-500/85");
     expect(document.querySelector('[data-card-swipe-outgoing-state="add"]')).toHaveStyle({ borderRadius: "12% / 8.5%" });
@@ -291,8 +291,8 @@ describe("MobileCardSwipeOverlay", () => {
 
     expect(document.querySelector("[data-card-swipe-outgoing]")).toBeInTheDocument();
     expect(document.querySelector("[data-card-swipe-outgoing]")).toHaveClass("duration-[320ms]");
-    expect(document.querySelector("[data-mobile-hide-bottom-nav='true']")).toHaveAttribute("data-card-swipe-incoming-state", "entering");
-    expect(document.querySelector("[data-card-swipe-card]")).toHaveStyle({ transform: "translate3d(0px, 0px, 0) rotate(0deg)", opacity: "1" });
+    expect(document.querySelector("[data-mobile-hide-bottom-nav='true']")).toHaveAttribute("data-card-swipe-incoming-state", "preparing");
+    expect(document.querySelector("[data-card-swipe-card]")).toHaveStyle({ transform: "translate3d(0px, 180px, 0) rotate(0deg)", opacity: "0" });
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(260);
@@ -308,6 +308,8 @@ describe("MobileCardSwipeOverlay", () => {
 
     expect(addCardMock).toHaveBeenCalledWith("A1");
     expect(document.querySelector("[data-card-swipe-outgoing]")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-mobile-hide-bottom-nav='true']")).toHaveAttribute("data-card-swipe-incoming-state", "entering");
+    expect(document.querySelector("[data-card-swipe-card]")).toHaveStyle({ transform: "translate3d(0px, 0px, 0) rotate(0deg)", opacity: "1" });
 
     const storedBehavior = JSON.parse(
       window.localStorage.getItem(getCardSwipeTierBehaviorStorageKey("user-1", "en")) ?? "null",
@@ -331,7 +333,7 @@ describe("MobileCardSwipeOverlay", () => {
     expect(window.localStorage.getItem(getCardSwipeTierBehaviorStorageKey("user-1", "en"))).toBeNull();
   });
 
-  it("does not wait for the card persistence promise before continuing the swipe", async () => {
+  it("starts card persistence after the old card exits without waiting for the request", async () => {
     addCardMock.mockImplementation(() => new Promise(() => undefined));
     render(<MobileCardSwipeOverlay open language="en" onClose={vi.fn()} />);
 
@@ -344,8 +346,25 @@ describe("MobileCardSwipeOverlay", () => {
     fireEvent.pointerMove(swipeCard, { pointerId: 1, clientX: 250, clientY: 100 });
     fireEvent.pointerUp(swipeCard, { pointerId: 1, clientX: 250, clientY: 100 });
 
-    expect(addCardMock).toHaveBeenCalledWith("A1");
+    expect(addCardMock).not.toHaveBeenCalled();
     expect(document.querySelector("[data-card-swipe-outgoing]")).toBeInTheDocument();
+    expect(document.querySelector("[data-vocabulary-card='A2']")).toBeInTheDocument();
+
+    await act(async () => {
+      const frames = [...animationFrames.values()];
+      animationFrames.clear();
+      frames.forEach((callback) => callback(performance.now()));
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(319);
+    });
+    expect(addCardMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(addCardMock).toHaveBeenCalledWith("A1");
     expect(document.querySelector("[data-vocabulary-card='A2']")).toBeInTheDocument();
   });
 

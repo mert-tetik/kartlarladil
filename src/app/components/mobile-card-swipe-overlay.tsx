@@ -79,12 +79,19 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
   const swipeInteractionActiveRef = useRef(false);
   const cardEntranceCompleteRef = useRef(false);
   const sessionSeenIdsRef = useRef(new Set<string>());
+  const swipeExitTimerRef = useRef<number | null>(null);
+  const swipeEntryTimerRef = useRef<number | null>(null);
   const nextTierIndexRef = useRef(0);
   const dragPosition = useRef({ x: 0, y: 0 });
   const queuedDragPosition = useRef({ x: 0, y: 0 });
   const dragFrame = useRef<number | null>(null);
   const card = deck[0]?.language === language ? deck[0] : null;
   const usedIds = useMemo(() => new Set(inventory.map((item) => item.cardId)), [inventory]);
+
+  useEffect(() => () => {
+    if (swipeExitTimerRef.current !== null) window.clearTimeout(swipeExitTimerRef.current);
+    if (swipeEntryTimerRef.current !== null) window.clearTimeout(swipeEntryTimerRef.current);
+  }, []);
 
   const completeCardEntrance = useCallback(() => {
     if (cardEntranceCompleteRef.current) return;
@@ -322,10 +329,6 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
       setSwipeFeedback(null);
     });
 
-    if (addedCardId) {
-      scheduleCardAddInBackground(addedCardId);
-    }
-
     // The new keyed card must first be laid out at its lower, transparent pose.
     // Without this forced style calculation, mobile WebViews can merge the two
     // states and skip the entry transition entirely.
@@ -333,16 +336,22 @@ export function MobileCardSwipeOverlay({ open, language, onClose, onSubscription
 
     window.requestAnimationFrame(() => {
       setOutgoing((current) => current ? { ...current, active: true } : null);
-      setIncoming("entering");
-      window.setTimeout(() => {
+      swipeExitTimerRef.current = window.setTimeout(() => {
+        swipeExitTimerRef.current = null;
+        // Commit the accepted card only after the outgoing card has completed
+        // its 320ms exit, and start the next card's entrance immediately
+        // afterwards. Persistence itself remains detached from the UI.
+        if (addedCardId) scheduleCardAddInBackground(addedCardId);
         setOutgoing(null);
+        setIncoming("entering");
+        swipeEntryTimerRef.current = window.setTimeout(() => {
+          swipeEntryTimerRef.current = null;
+          setIncoming("idle");
+          setIncomingDirection(null);
+          swipeAnimationActiveRef.current = false;
+          setLocked(false);
+        }, INCOMING_ENTRY_DURATION);
       }, CARD_EXIT_DURATION);
-      window.setTimeout(() => {
-        setIncoming("idle");
-        setIncomingDirection(null);
-        swipeAnimationActiveRef.current = false;
-        setLocked(false);
-      }, INCOMING_ENTRY_DURATION);
     });
   }
 
