@@ -7,6 +7,7 @@ import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { EMPTY_PROGRESS_STATS, getNextRankProgress } from "@/features/progress/progress-stats";
 import { CelebrationView, LegacyResultView, MobileQuizFeedback, QuizStation, ResultFlowView, ResultView } from "@/features/quiz/components/quiz-station";
+import { QuizMedalRating } from "@/features/quiz/components/quiz-medal-rating";
 import { LocaleProvider } from "@/i18n/locale-provider";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
@@ -546,6 +547,23 @@ describe("ResultView star rating", () => {
 });
 
 describe("ResultView medal stages", () => {
+  it("completes the sequential medal reveal after all medals settle", () => {
+    vi.useFakeTimers();
+    const onRevealComplete = vi.fn();
+
+    render(
+      <LocaleProvider initialLocale="en">
+        <QuizMedalRating rating={3} sequentialReveal onRevealComplete={onRevealComplete} />
+      </LocaleProvider>,
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(3_000);
+    });
+
+    expect(onRevealComplete).toHaveBeenCalledWith(false);
+  });
+
   function mockMedalGeometry() {
     const rect = {
       x: 100,
@@ -839,9 +857,12 @@ describe("ResultView medal stages", () => {
       vi.advanceTimersByTime(360);
     });
     act(() => {
-      vi.advanceTimersByTime(2500);
+      vi.advanceTimersByTime(3500);
     });
 
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
     fireEvent.click(screen.getByRole("button", { name: "Madalyaları al" }));
     act(() => {
       vi.advanceTimersByTime(3000);
@@ -884,9 +905,12 @@ describe("ResultView medal stages", () => {
       vi.advanceTimersByTime(360);
     });
     act(() => {
-      vi.advanceTimersByTime(2500);
+      vi.advanceTimersByTime(3500);
     });
 
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
     fireEvent.click(screen.getByRole("button", { name: "Madalyaları al" }));
     act(() => {
       vi.advanceTimersByTime(0);
@@ -983,6 +1007,9 @@ describe("ResultView medal stages", () => {
     act(() => {
       vi.advanceTimersByTime(3500);
     });
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
     fireEvent.click(screen.getByRole("button", { name: "Madalyaları al" }));
 
     await act(async () => {
@@ -1035,6 +1062,9 @@ describe("ResultView medal stages", () => {
     act(() => {
       vi.advanceTimersByTime(3500);
     });
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
     fireEvent.click(screen.getByRole("button", { name: "Madalyaları al" }));
 
     await act(async () => {
@@ -1083,6 +1113,9 @@ describe("ResultView medal stages", () => {
     });
     act(() => {
       vi.advanceTimersByTime(2500);
+    });
+    act(() => {
+      vi.advanceTimersByTime(1);
     });
     fireEvent.click(screen.getByRole("button", { name: "Madalyaları al" }));
 
@@ -1151,6 +1184,9 @@ describe("ResultView medal stages", () => {
     });
     act(() => {
       vi.advanceTimersByTime(2500);
+    });
+    act(() => {
+      vi.advanceTimersByTime(1);
     });
     fireEvent.click(screen.getByRole("button", { name: "Madalyaları al" }));
 
