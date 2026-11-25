@@ -40,7 +40,7 @@ function AccountSubscriptionPlanImage({ mobile = false, onClose }: { mobile?: bo
   const t = useT();
   const effectivePlan = entitlements?.effectivePlan ?? "free";
   const planImage = effectivePlan === "basic"
-    ? { src: "/subscriptions/plan-basic-v2.webp", width: 1489, height: 450 }
+    ? { src: "/subscriptions/plan-premium-v1.webp", width: 1489, height: 496 }
     : effectivePlan === "pro"
       ? { src: "/subscriptions/plan-pro-v2.webp", width: 1338, height: 511 }
       : null;

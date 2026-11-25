@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { customCardRegistry } from "@/features/cards/custom-card-registry";
 import { localCardRepository } from "@/features/cards/card-repository";
+import { LOCALE_CODES } from "@/data/languages";
 import { countActiveCardsForLanguage, limitCardIdsByLanguage } from "@/features/inventory/active-card-limits";
 import { FIRST_CARD_ADDED_EVENT } from "@/features/push/push-client";
 import { STORAGE_KEY } from "@/lib/constants";
@@ -12,7 +13,7 @@ import { isFirstLearnedTransition } from "@/lib/twa-analytics-events";
 import { trackAnalyticsEvent } from "@/lib/analytics-events";
 import { DEFAULT_LOCALE, LOCALE_STORAGE_KEY, normalizeLocale } from "@/i18n/config";
 import { translate } from "@/i18n/dictionaries";
-import type { InventoryCard, LanguageCode, LimitErrorCode, PracticeAttempt, PracticeMode, TermKind, Tier, VocabularyCard } from "@/types/domain";
+import type { GrammarGuide, InventoryCard, LanguageCode, LimitErrorCode, PracticeAttempt, PracticeMode, TermKind, Tier, VocabularyCard } from "@/types/domain";
 import type { GeneratedCardDraft } from "@/features/cards/custom-card-types";
 import {
   addCloudInventoryCardAction,
@@ -34,6 +35,7 @@ import {
 import { syncMissionsFromClientState } from "@/features/missions/mission-sync";
 import { refreshLeaderboardPositions } from "@/features/leaderboard/leaderboard-refresh";
 import { INVENTORY_BACKGROUND_ERROR_EVENT, type InventoryBackgroundErrorDetail } from "@/features/inventory/inventory-events";
+import { recordLocalCardPractice, useLocalCardStudyStore } from "@/features/inventory/local-card-study";
 
 interface RecordAnswerResult {
   attempt: PracticeAttempt;
@@ -130,6 +132,7 @@ interface InventoryState {
 }
 
 const OFFLINE_PENDING_CARD_PREFIX = "offline-pending:";
+const PERSISTED_CARD_TIERS: Tier[] = ["A1", "A2", "B1", "B2", "C1"];
 
 /**
  * Offline-note previews are reconstructible from their durable IndexedDB draft.
@@ -153,6 +156,87 @@ export function sanitizePersistedInventoryCards(value: unknown): InventoryCard[]
       typeof card.addedAt === "string" &&
       (card.learnedAt === undefined || typeof card.learnedAt === "string");
   });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function isLocalizedStringRecord(value: unknown): boolean {
+  return isRecord(value) && LOCALE_CODES.every((locale) => typeof value[locale] === "string");
+}
+
+function isLocalizedStringArrayRecord(value: unknown): boolean {
+  return isRecord(value) && LOCALE_CODES.every((locale) => isStringArray(value[locale]));
+}
+
+function isGrammarGuide(value: unknown): value is GrammarGuide {
+  if (!isRecord(value) || typeof value.summary !== "string" || !isStringArray(value.rules) || !isStringArray(value.details)) {
+    return false;
+  }
+
+  return value.tables === undefined || (
+    Array.isArray(value.tables) && value.tables.every((table) =>
+      isRecord(table) &&
+      typeof table.title === "string" &&
+      isStringArray(table.columns) &&
+      Array.isArray(table.rows) && table.rows.every(isStringArray),
+    )
+  );
+}
+
+function isPersistedCustomVocabularyCard(value: unknown): value is VocabularyCard {
+  if (!isRecord(value)) return false;
+
+  if (
+    typeof value.id !== "string" ||
+    typeof value.sourceKey !== "string" ||
+    typeof value.englishKey !== "string" ||
+    typeof value.term !== "string" ||
+    typeof value.translation !== "string" ||
+    typeof value.pronunciation !== "string" ||
+    typeof value.partOfSpeech !== "string" ||
+    typeof value.example !== "string" ||
+    typeof value.exampleTranslation !== "string" ||
+    typeof value.language !== "string" ||
+    !LOCALE_CODES.includes(value.language as LanguageCode) ||
+    typeof value.tier !== "string" ||
+    !PERSISTED_CARD_TIERS.includes(value.tier as Tier) ||
+    (value.termKind !== "word" && value.termKind !== "fixed_phrase") ||
+    !isLocalizedStringRecord(value.translations) ||
+    !isLocalizedStringArrayRecord(value.translationMeaningsByLocale) ||
+    !Array.isArray(value.examples) ||
+    !isGrammarGuide(value.grammar)
+  ) {
+    return false;
+  }
+
+  const grammarByLocale = value.grammarByLocale;
+  if (
+    !isRecord(grammarByLocale) ||
+    !LOCALE_CODES.every((locale) => isGrammarGuide(grammarByLocale[locale]))
+  ) return false;
+
+  if (value.definitionsByLocale !== undefined && !isRecord(value.definitionsByLocale)) return false;
+  if (!value.examples.every((example) =>
+    isRecord(example) &&
+    typeof example.id === "string" &&
+    typeof example.context === "string" &&
+    typeof example.label === "string" &&
+    typeof example.sentence === "string" &&
+    typeof example.translation === "string" &&
+    isLocalizedStringRecord(example.translations),
+  )) return false;
+
+  return true;
+}
+
+export function sanitizePersistedCustomCards(value: unknown): VocabularyCard[] {
+  return Array.isArray(value) ? value.filter(isPersistedCustomVocabularyCard) : [];
 }
 
 export const useInventoryStore = create<InventoryState>()(
@@ -196,6 +280,8 @@ export const useInventoryStore = create<InventoryState>()(
       },
 
       clearLocalInventory() {
+        customCardRegistry.clear();
+        useLocalCardStudyStore.getState().clearCardStudy();
         set({
           cards: [],
           attempts: [],
@@ -218,7 +304,8 @@ export const useInventoryStore = create<InventoryState>()(
             runInventoryCloudAction("load custom cards", loadCustomCardsAction),
           ]);
 
-          if (customCardsResult.status === "success" && customCardsResult.data) {
+          const customCardsLoaded = customCardsResult.status === "success" && Boolean(customCardsResult.data);
+          if (customCardsLoaded && customCardsResult.data) {
             customCardRegistry.clear();
             for (const card of customCardsResult.data) {
               customCardRegistry.register(card);
@@ -226,7 +313,12 @@ export const useInventoryStore = create<InventoryState>()(
           }
 
           if (inventoryResult.status === "error" || !inventoryResult.data) {
-            set({ cloudLoading: false, cloudLoadComplete: true, cloudError: inventoryResult.message });
+            set({
+              ...(customCardsLoaded ? { cards: [...get().cards] } : {}),
+              cloudLoading: false,
+              cloudLoadComplete: true,
+              cloudError: inventoryResult.message,
+            });
             return;
           }
 
@@ -758,6 +850,7 @@ export const useInventoryStore = create<InventoryState>()(
             cloudLoading: false,
             cloudError: "",
           });
+          forgetLocalStudyForCard(cardId);
           await syncMissionsFromClientState();
           return;
         }
@@ -766,6 +859,7 @@ export const useInventoryStore = create<InventoryState>()(
           cards: state.cards.filter((card) => card.cardId !== cardId),
           attempts: state.attempts.filter((attempt) => attempt.cardId !== cardId),
         }));
+        forgetLocalStudyForCard(cardId);
 
         void syncMissionsFromClientState();
       },
@@ -775,11 +869,23 @@ export const useInventoryStore = create<InventoryState>()(
       },
 
       async recordAnswer(input) {
+        const vocabularyCard = localCardRepository.findById(input.cardId)
+          ?? customCardRegistry.findBySourceKey(input.cardId);
+        const initialOwnedCard = get().cards.find((card) => card.cardId === input.cardId);
+
+        if (vocabularyCard && initialOwnedCard) {
+          const locallyUpdatedCard = input.mode === "learned"
+            ? initialOwnedCard
+            : applyAnswerProgress(initialOwnedCard, vocabularyCard, input.isCorrect);
+          recordLocalCardPractice(input.cardId, input.mode, input.isCorrect, {
+            newlyLearned: initialOwnedCard.status !== "learned" && locallyUpdatedCard.status === "learned",
+          });
+        }
+
         if (get().cloudEnabled && get().pendingCardIds.has(input.cardId)) {
           await waitForCloudCardAddition(get().ownerUserId);
         }
 
-        const vocabularyCard = localCardRepository.findById(input.cardId);
         const ownedCard = get().cards.find((card) => card.cardId === input.cardId);
 
         if (get().cloudEnabled) {
@@ -969,6 +1075,7 @@ export const useInventoryStore = create<InventoryState>()(
             cloudLoading: false,
             cloudError: "",
           });
+          useLocalCardStudyStore.getState().clearCardStudy();
           await syncMissionsFromClientState();
           return;
         }
@@ -981,6 +1088,7 @@ export const useInventoryStore = create<InventoryState>()(
           ownerUserId: null,
           pendingCardMutations: new Map(),
         });
+        useLocalCardStudyStore.getState().clearCardStudy();
 
         void syncMissionsFromClientState();
       },
@@ -1099,16 +1207,32 @@ export const useInventoryStore = create<InventoryState>()(
         cards: sanitizePersistedInventoryCards(state.cards),
         attempts: state.attempts,
         ownerUserId: state.ownerUserId,
+        customCards: (() => {
+          const inventoryIds = new Set(state.cards.map((card) => card.cardId));
+          return customCardRegistry.list().filter((card) =>
+            inventoryIds.has(card.sourceKey) || inventoryIds.has(card.id),
+          );
+        })(),
       }),
       merge: (persistedState, currentState) => {
         if (!persistedState || typeof persistedState !== "object") return currentState;
-        const persisted = persistedState as Partial<InventoryState>;
+        const persisted = persistedState as Partial<InventoryState> & { customCards?: unknown };
+        const cards = Array.isArray(persisted.cards)
+          ? sanitizePersistedInventoryCards(persisted.cards)
+          : currentState.cards;
+        const inventoryIds = new Set(cards.map((card) => card.cardId));
+        customCardRegistry.clear();
+        for (const card of sanitizePersistedCustomCards(persisted.customCards)) {
+          if (inventoryIds.has(card.id) || inventoryIds.has(card.sourceKey)) {
+            customCardRegistry.register(card);
+          }
+        }
+
         return {
           ...currentState,
-          ...persisted,
-          cards: Array.isArray(persisted.cards)
-            ? sanitizePersistedInventoryCards(persisted.cards)
-            : currentState.cards,
+          cards,
+          attempts: Array.isArray(persisted.attempts) ? persisted.attempts : currentState.attempts,
+          ownerUserId: typeof persisted.ownerUserId === "string" ? persisted.ownerUserId : null,
         };
       },
       onRehydrateStorage: () => (state) => {
@@ -1141,6 +1265,13 @@ function scheduleMissionSyncFromClientState() {
   } else {
     window.setTimeout(sync, 0);
   }
+}
+
+function forgetLocalStudyForCard(cardId: string) {
+  const card = localCardRepository.findById(cardId) ?? customCardRegistry.findBySourceKey(cardId);
+  useLocalCardStudyStore.getState().forgetCards(
+    [cardId, card?.id, card?.sourceKey].filter((value): value is string => Boolean(value)),
+  );
 }
 
 function dispatchInventoryBackgroundError(

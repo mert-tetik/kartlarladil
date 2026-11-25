@@ -8,7 +8,9 @@ import type { AuthShellUser } from "@/features/auth/auth-types";
 import type { InventoryCard } from "@/types/domain";
 
 const routerReplaceMock = vi.hoisted(() => vi.fn());
-const authSessionMock = vi.hoisted(() => ({ current: null as { user: AuthShellUser } | null }));
+const authSessionMock = vi.hoisted(() => ({
+  current: null as { user: AuthShellUser; isSessionReady?: boolean } | null,
+}));
 const subscriptionMock = vi.hoisted(() => ({
   current: { entitlements: null as { effectivePlan: string } | null, isLoading: false },
 }));
@@ -76,7 +78,9 @@ describe("LearnQuizShell", () => {
       hydrated: true,
       cloudEnabled: false,
       cloudLoading: false,
+      cloudLoadComplete: true,
       cloudError: "",
+      ownerUserId: null,
     });
   });
 
@@ -120,6 +124,75 @@ describe("LearnQuizShell", () => {
 
     expect(screen.queryByRole("status", { name: "Preparing practice" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Learn\b/i })).toBeVisible();
+  });
+
+  it("uses the matching local inventory while the cloud refresh is still running", () => {
+    const user: AuthShellUser = {
+      id: "user-1",
+      email: "user@example.com",
+      profile: {
+        displayName: null,
+        preferredLanguageCode: "en",
+        preferredUiLocale: "en",
+        preferredTier: "A1",
+        onboardingCompleted: true,
+        aiPracticePoints: 0,
+        chestPoints: 0,
+        pushMarketingEnabled: false,
+      },
+    };
+    authSessionMock.current = { user, isSessionReady: true };
+    useInventoryStore.setState({
+      cards: [createInventoryCard(englishCard.id)],
+      ownerUserId: user.id,
+      hydrated: true,
+      cloudEnabled: true,
+      cloudLoading: true,
+      cloudLoadComplete: false,
+    });
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <LearnQuizShell title="Kartları öğren" description="Kartlarını çalış" initialMode={null} />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByRole("button", { name: /^Öğren/i })).toBeVisible();
+    expect(routerReplaceMock).not.toHaveBeenCalled();
+  });
+
+  it("does not expose a cached inventory owned by a different account", () => {
+    const user: AuthShellUser = {
+      id: "user-2",
+      email: "user2@example.com",
+      profile: {
+        displayName: null,
+        preferredLanguageCode: "en",
+        preferredUiLocale: "en",
+        preferredTier: "A1",
+        onboardingCompleted: true,
+        aiPracticePoints: 0,
+        chestPoints: 0,
+        pushMarketingEnabled: false,
+      },
+    };
+    authSessionMock.current = { user, isSessionReady: true };
+    useInventoryStore.setState({
+      cards: [createInventoryCard(englishCard.id)],
+      ownerUserId: "user-1",
+      hydrated: true,
+      cloudEnabled: true,
+      cloudLoading: true,
+      cloudLoadComplete: false,
+    });
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <LearnQuizShell title="Kartları öğren" description="Kartlarını çalış" initialMode={null} />
+      </LocaleProvider>,
+    );
+
+    expect(screen.queryByRole("button", { name: /^Öğren/i })).not.toBeInTheDocument();
   });
 
   it("shows only the no-card empty state when the user has no cards", () => {

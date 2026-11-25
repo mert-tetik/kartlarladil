@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { VOCABULARY_CARDS } from "@/data/cards";
 import { customCardRegistry } from "@/features/cards/custom-card-registry";
-import { filterInventoryCards, joinInventoryCards } from "@/features/inventory/inventory-selectors";
+import {
+  filterInventoryCards,
+  hasCompleteInventoryCardData,
+  joinInventoryCards,
+} from "@/features/inventory/inventory-selectors";
 import type { InventoryCard, VocabularyCard } from "@/types/domain";
 
 describe("inventory selectors", () => {
@@ -38,5 +42,15 @@ describe("inventory selectors", () => {
     expect(filterInventoryCards({ cards: inventory, language: "de", status: "active" })).toEqual([
       { inventory: inventory[0], card: customCard },
     ]);
+    expect(hasCompleteInventoryCardData(inventory)).toBe(true);
+  });
+
+  it("detects cached inventory references whose card definitions are not available locally", () => {
+    expect(hasCompleteInventoryCardData([{
+      cardId: "custom:missing-card-definition",
+      status: "active",
+      correctCount: 0,
+      addedAt: "2026-01-01T00:00:00.000Z",
+    }])).toBe(false);
   });
 });

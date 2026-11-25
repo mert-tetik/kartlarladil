@@ -14,6 +14,7 @@ import { useAuthSession } from "@/features/auth/auth-client";
 import { joinInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
+import { shouldClearInventoryForSession } from "@/features/inventory/inventory-session-cache";
 import {
   EMPTY_PROGRESS_STATS,
   calculateProgressStats,
@@ -94,7 +95,7 @@ function writeCachedProgressStats(ownerKey: string, stats: ProgressStats) {
 export function ProgressStatsProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isVisualTestMode = isMissionVisualTestRoute(pathname);
-  const { user, refreshProfile } = useAuthSession();
+  const { user, isSessionReady, refreshProfile } = useAuthSession();
   const cards = useInventoryStore((state) => state.cards);
   const ownerUserId = useInventoryStore((state) => state.ownerUserId);
   const hydrated = useInventoryStore((state) => state.hydrated);
@@ -130,20 +131,30 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setCloudEnabled(Boolean(user));
     setActiveCardLimit(entitlements?.limits.activeCards ?? null);
+
+    // AuthSessionProvider can temporarily report no user while it restores a
+    // valid browser session. Keep the persisted inventory intact until that
+    // identity check has completed.
+    if (!isSessionReady) return;
+
+    setCloudEnabled(Boolean(user));
 
     if (!user) {
       migrationStartedForUserRef.current = null;
 
-      if (ownerUserId) {
+      if (shouldClearInventoryForSession({
+        sessionReady: isSessionReady,
+        userId: null,
+        ownerUserId,
+      })) {
         clearLocalInventory();
       }
     }
-  }, [isVisualTestMode, setCloudEnabled, setActiveCardLimit, user, ownerUserId, clearLocalInventory, entitlements]);
+  }, [isVisualTestMode, isSessionReady, setCloudEnabled, setActiveCardLimit, user, ownerUserId, clearLocalInventory, entitlements]);
 
   useEffect(() => {
-    if (isVisualTestMode || !user || !hydrated || migrationStartedForUserRef.current === user.id) {
+    if (isVisualTestMode || !isSessionReady || !user || !hydrated || migrationStartedForUserRef.current === user.id) {
       return;
     }
 
@@ -180,7 +191,7 @@ export function ProgressStatsProvider({ children }: { children: ReactNode }) {
       state.setOwnerUserId(user.id);
       window.localStorage.setItem(migrationKey, "1");
     })();
-  }, [cards.length, hydrated, isVisualTestMode, loadCloudInventory, migrateLocalInventoryToCloud, ownerUserId, user]);
+  }, [cards.length, hydrated, isSessionReady, isVisualTestMode, loadCloudInventory, migrateLocalInventoryToCloud, ownerUserId, user]);
 
   const computedStats = useMemo(() => {
     if (!hydrated) {

@@ -49,6 +49,66 @@ describe("buildQuizPool", () => {
     expect(pool.regularItems[0]).not.toHaveProperty("forceLearned");
   });
 
+  it("prioritizes the most recently studied active cards when building the quiz deck", async () => {
+    const cards = VOCABULARY_CARDS.filter((item) => item.language === "en").slice(0, 3);
+    const pool = await buildQuizPool({
+      key: "recent-study-priority",
+      seed: "recent-study-priority",
+      cards: cards.map((card) => ({
+        cardId: card.id,
+        status: "active" as const,
+        correctCount: 0,
+        addedAt: "2026-01-01T00:00:00.000Z",
+      })),
+      studyByCardId: {
+        [cards[0]!.id]: { lastStudiedAt: "2026-11-25T10:00:00.000Z", familiarityLevel: 0, nextReviewAt: null },
+        [cards[1]!.id]: { lastStudiedAt: "2026-11-20T10:00:00.000Z", familiarityLevel: 0, nextReviewAt: null },
+      },
+      reviewNow: Date.parse("2026-11-25T12:00:00.000Z"),
+      customCards: [],
+      language: "en",
+      mode: "active",
+      locale: "tr",
+      normalQuestionType: "text",
+      bonusAfterEachNormalQuestion: false,
+    });
+
+    expect(pool.regularItems.map((item) => item.card.id)).toEqual([
+      cards[0]!.id,
+      cards[1]!.id,
+      cards[2]!.id,
+    ]);
+  });
+
+  it("includes only learned cards whose local review time is due", async () => {
+    const cards = VOCABULARY_CARDS.filter((item) => item.language === "en").slice(0, 2);
+    const reviewNow = Date.parse("2026-11-25T12:00:00.000Z");
+    const pool = await buildQuizPool({
+      key: "learned-due-only",
+      seed: "learned-due-only",
+      cards: cards.map((card) => ({
+        cardId: card.id,
+        status: "learned" as const,
+        correctCount: 2,
+        addedAt: "2026-01-01T00:00:00.000Z",
+      })),
+      studyByCardId: {
+        [cards[0]!.id]: { lastStudiedAt: "2026-11-25T10:00:00.000Z", familiarityLevel: 2, nextReviewAt: "2026-11-25T11:00:00.000Z" },
+        [cards[1]!.id]: { lastStudiedAt: "2026-11-25T11:30:00.000Z", familiarityLevel: 4, nextReviewAt: "2026-11-26T00:00:00.000Z" },
+      },
+      reviewNow,
+      customCards: [],
+      language: "en",
+      mode: "learned",
+      locale: "tr",
+      normalQuestionType: "text",
+      bonusAfterEachNormalQuestion: false,
+    });
+
+    expect(pool.totalCandidateCount).toBe(1);
+    expect(pool.regularItems.map((item) => item.card.id)).toEqual([cards[0]!.id]);
+  });
+
   it("stops when the preparation has been cancelled", async () => {
     await expect(buildQuizPool({
       key: "cancelled-pool",

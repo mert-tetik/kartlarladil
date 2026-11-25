@@ -207,7 +207,7 @@ export function AchievementCardSection({
       {!hideTitle ? (
         <h2
           className={cn(
-            "text-center text-3xl font-bold uppercase sm:text-4xl",
+            "text-center text-xl font-bold leading-tight uppercase sm:text-2xl",
             exiting ? "result-stagger-exit" : reveal ? "result-stagger-enter" : "result-stagger-pending",
             canUseSuperWater(locale) && "font-super-water",
             tone === "learned" ? "text-sky-400" : "text-emerald-400",

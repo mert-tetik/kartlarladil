@@ -1,5 +1,5 @@
 {
-  "version": "a3201129558448d59d7aa1ad1c0982c82a23447ef123ffc2706dad77cc8f8583",
+  "version": "dcf98599c35eec899d22b677d158195652250ce950eb8070c9b8173c85c49be2",
   "assets": [
     {
       "url": "/AppLogdfo.png",
@@ -4524,6 +4524,34 @@
     {
       "url": "/quiz/count-selection-frames/frame-061.webp",
       "revision": "4bb305822b703ac83cd9c1a767d047a6f78ee346490f0ecf30402a696d70229f"
+    },
+    {
+      "url": "/quiz/presentation-selection/classic-practice-01.webp",
+      "revision": "59039f8b7830933f7fb6cac301d5e7f1052daf1db8909807b423ba53eb5e3860"
+    },
+    {
+      "url": "/quiz/presentation-selection/classic-practice-02.webp",
+      "revision": "a1d79fc3d116e0620e761b752ebe48820a5a8de26847e486777e2f76f72b4db4"
+    },
+    {
+      "url": "/quiz/presentation-selection/classic-practice-03.webp",
+      "revision": "280cbccf7b27d0f88834c508ed1d756a3376afee82c7e1e4276f35c274414a16"
+    },
+    {
+      "url": "/quiz/presentation-selection/classic-practice-04.webp",
+      "revision": "bacf9fdfdcb5153368fc77ab10c2858daa5f0518c3682f3d22884a89998e3e73"
+    },
+    {
+      "url": "/quiz/presentation-selection/classic-practice-05.webp",
+      "revision": "d7ea403666addefb808a70481b89d367f5c236272805d4358b0b09a99790249d"
+    },
+    {
+      "url": "/quiz/presentation-selection/classic-practice-06.webp",
+      "revision": "6355e18d46c2f3c10ec67b4e10df4ee719c02d3929a1a769ed147c8f88e5732b"
+    },
+    {
+      "url": "/quiz/presentation-selection/easy-practice.webp",
+      "revision": "e33bc3b8fd63a7f51a9dbb63d8ee131068197e8ca96fd5ace26222c996c720f6"
     },
     {
       "url": "/quiz/quiz-word-repetition-teacher-1.webp",

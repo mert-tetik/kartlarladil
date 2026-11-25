@@ -5,6 +5,23 @@ export const QUIZ_COUNT_SELECTION_FRAME_SOURCES = Array.from(
     `/quiz/count-selection-frames/frame-${String(index + 1).padStart(3, "0")}.webp?v=20261009-1`,
 );
 
+export const QUIZ_PRESENTATION_SELECTION_ARTWORK = {
+  easy: "/quiz/presentation-selection/easy-practice.webp",
+  classic: [
+    "/quiz/presentation-selection/classic-practice-01.webp",
+    "/quiz/presentation-selection/classic-practice-02.webp",
+    "/quiz/presentation-selection/classic-practice-03.webp",
+    "/quiz/presentation-selection/classic-practice-04.webp",
+    "/quiz/presentation-selection/classic-practice-05.webp",
+    "/quiz/presentation-selection/classic-practice-06.webp",
+  ],
+} as const;
+
+export const QUIZ_PRESENTATION_SELECTION_IMAGE_SOURCES = [
+  QUIZ_PRESENTATION_SELECTION_ARTWORK.easy,
+  ...QUIZ_PRESENTATION_SELECTION_ARTWORK.classic,
+] as const;
+
 const QUIZ_CRITICAL_IMAGE_SOURCES = [
   "/quiz/quiz-word-repetition-teacher.webp?v=20261008-2",
   "/quiz/quiz-word-repetition-teacher-1.webp?v=20261008-1",
@@ -148,7 +165,17 @@ export function preloadQuizCriticalMedia() {
     preloadCriticalImage(source);
   }
 
+  preloadQuizPresentationSelectionImages();
   preloadQuizCountSelectionFrames();
+}
+
+/** Fetch and decode both mode illustrations and every random classic variant. */
+export function preloadQuizPresentationSelectionImages() {
+  if (typeof window === "undefined") return;
+
+  for (const source of QUIZ_PRESENTATION_SELECTION_IMAGE_SOURCES) {
+    preloadCriticalImage(source);
+  }
 }
 
 export function preloadQuizCountSelectionFrames() {

@@ -744,7 +744,7 @@ function UserControlPanel({
             }
             value={subscriptionPlan}
           >
-            <option value="basic">Basic</option>
+            <option value="basic">PREMIUM</option>
             <option value="pro">Pro</option>
           </select>
           <input

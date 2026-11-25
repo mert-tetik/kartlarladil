@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale } from "@/i18n/locale-provider";
+import { formatNumber } from "@/i18n/labels";
 import { cn } from "@/lib/utils";
 import { canUseSuperWater, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { playSoundEffect } from "@/lib/sound-effects";
@@ -94,32 +95,23 @@ export function QuizResultMessageView({
     >
       <div className="pointer-events-auto h-full min-h-0 w-full overflow-y-auto overscroll-contain pb-24">
         <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col justify-center gap-8 p-4 sm:p-6">
-          {learnedCards.length > 0 ? (
-            <AchievementCardSection
-              title={t("quiz.resultLearned")}
-              cards={learnedCards}
-              tone="learned"
-              reveal={cardsVisible}
-              exiting={exiting}
-              staggerOffsetMs={0}
-            />
-          ) : null}
-          {advancedCards.length > 0 ? (
-            <AchievementCardSection
-              title={t("quiz.resultAdvanced")}
-              cards={advancedCards}
-              tone="advanced"
-              progressByCardId={advancedCardProgress}
-              reveal={cardsVisible}
-              exiting={exiting}
-              staggerOffsetMs={learnedCards.length > 0 ? 850 : 0}
-            />
-          ) : null}
-          {learnedCards.length === 0 && advancedCards.length === 0 ? (
-            <p className="text-center text-base font-semibold text-foreground/60">
-              {formatSuperWaterUppercaseText(locale, t("quiz.continue"))}
-            </p>
-          ) : null}
+          <AchievementCardSection
+            title={t("quiz.resultLearnedCount", { count: formatNumber(locale, learnedCards.length) })}
+            cards={learnedCards}
+            tone="learned"
+            reveal={cardsVisible}
+            exiting={exiting}
+            staggerOffsetMs={0}
+          />
+          <AchievementCardSection
+            title={t("quiz.resultAdvancedCount", { count: formatNumber(locale, advancedCards.length) })}
+            cards={advancedCards}
+            tone="advanced"
+            progressByCardId={advancedCardProgress}
+            reveal={cardsVisible}
+            exiting={exiting}
+            staggerOffsetMs={learnedCards.length > 0 ? 850 : 0}
+          />
         </div>
       </div>
 

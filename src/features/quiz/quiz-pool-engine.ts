@@ -28,6 +28,12 @@ import {
 } from "@/features/quiz/bonus-question-constants";
 import { getAiPracticeCharacters } from "@/features/ai-practice/ai-practice-data";
 import type { InventoryCard, LanguageCode, LocaleCode, PracticeMode, VocabularyCard } from "@/types/domain";
+import {
+  getLearnedCardNextReviewAt,
+  getLocalCardStudyRecord,
+  isLearnedCardDue,
+  type LocalCardStudyMap,
+} from "@/features/inventory/local-card-study-scheduler";
 import type {
   PreparedBonusPlan,
   PreparedQuizPool,
@@ -55,6 +61,8 @@ export interface QuizPoolInput {
   locale: LocaleCode;
   normalQuestionType: NormalQuestionType;
   bonusAfterEachNormalQuestion: boolean;
+  studyByCardId?: LocalCardStudyMap;
+  reviewNow?: number;
 }
 
 const BONUS_QUESTION_KINDS: readonly BonusQuestionKind[] = [
@@ -156,6 +164,8 @@ export async function buildQuizPool(
     locale,
     normalQuestionType,
     bonusAfterEachNormalQuestion,
+    studyByCardId = {},
+    reviewNow = Date.now(),
   } = input;
   const cardById = getCardMap(customCards);
   const inventoryById = new Map(cards.map((item) => [item.cardId, item]));
@@ -163,14 +173,33 @@ export async function buildQuizPool(
     const card = cardById.get(inventory.cardId);
     return card ? [{ inventory, card }] : [];
   });
-  const source = joined
+  const sourceEntries = joined
     .filter(({ inventory, card }) =>
       card.language === language && inventory.status.trim().toLowerCase() === mode,
     )
-    .map(({ card }) => card);
+    .filter(({ inventory, card }) => {
+      if (mode !== "learned") return true;
+      const study = getLocalCardStudyRecord(studyByCardId, inventory.cardId, card.id, card.sourceKey);
+      return isLearnedCardDue(study, reviewNow);
+    });
+  const randomizedSource = shuffle(sourceEntries);
+  const prioritizedSource = randomizedSource.sort((left, right) => {
+    const leftStudy = getLocalCardStudyRecord(studyByCardId, left.inventory.cardId, left.card.id, left.card.sourceKey);
+    const rightStudy = getLocalCardStudyRecord(studyByCardId, right.inventory.cardId, right.card.id, right.card.sourceKey);
+    const leftPriority = mode === "learned"
+      ? getLearnedCardNextReviewAt(leftStudy) ?? Number.NEGATIVE_INFINITY
+      : leftStudy?.lastStudiedAt ? Date.parse(leftStudy.lastStudiedAt) : Number.NEGATIVE_INFINITY;
+    const rightPriority = mode === "learned"
+      ? getLearnedCardNextReviewAt(rightStudy) ?? Number.NEGATIVE_INFINITY
+      : rightStudy?.lastStudiedAt ? Date.parse(rightStudy.lastStudiedAt) : Number.NEGATIVE_INFINITY;
+    return mode === "learned"
+      ? leftPriority - rightPriority
+      : rightPriority - leftPriority;
+  });
+  const source = prioritizedSource.map(({ card }) => card);
   const maxRegularCount = Math.min(50, source.length);
   const listeningCards = [...VOCABULARY_CARDS, ...source];
-  const shuffled = shuffle(source).slice(0, maxRegularCount);
+  const shuffled = source.slice(0, maxRegularCount);
   const candidates = shuffled.flatMap((card): QuizPoolCandidate[] => {
     const inventoryCard = inventoryById.get(card.id) ?? inventoryById.get(card.sourceKey);
     if (!inventoryCard) return [];
@@ -182,7 +211,12 @@ export async function buildQuizPool(
     return [{ card, inventoryCard, willLearn }];
   });
   const orderedCandidates = moveLearningQuestionsToEnd(candidates);
-  const bonusInventoryCards = joined.filter(({ card }) => card.language === language);
+  const bonusInventoryCards = joined.filter(({ inventory, card }) =>
+    card.language === language && (mode !== "learned" || isLearnedCardDue(
+      getLocalCardStudyRecord(studyByCardId, inventory.cardId, card.id, card.sourceKey),
+      reviewNow,
+    )),
+  );
   const bonusCards = bonusInventoryCards.map(({ card }) => card);
   const bonusLearnedCards = bonusInventoryCards
     .filter(({ inventory }) => inventory.status.trim().toLowerCase() === "learned")

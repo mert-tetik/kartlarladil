@@ -23,6 +23,7 @@ import { MobileImageTextTranslateOverlay } from "@/app/components/mobile-image-t
 import { MobileCardGroupSheet } from "@/app/components/mobile-card-group-sheet";
 import { MobileGemDetailsSheet } from "@/app/components/mobile-gem-details-sheet";
 import { MobileMedalDetailsSheet } from "@/app/components/mobile-medal-details-sheet";
+import { LearnedReviewIntroDialog } from "@/app/components/learned-review-intro-dialog";
 import { preloadDayStreakFrames } from "@/features/daily-streak/day-streak-opening-frames";
 import { useOptionalMobileDayStreakOverlay } from "@/app/components/mobile-day-streak-overlay-provider";
 import { useTheme } from "@/components/theme-provider";
@@ -35,8 +36,10 @@ import { UpgradeDialog, type UpgradeDialogErrorCode } from "@/features/subscript
 import { updateLanguagePreferenceAction } from "@/features/auth/actions";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { useAuthSession, useRequireAuthAction } from "@/features/auth/auth-client";
-import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
+import { filterInventoryCards, hasCompleteInventoryCardData } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
+import { useLocalCardStudyStore } from "@/features/inventory/local-card-study";
+import { isInventorySnapshotSafeForSession } from "@/features/inventory/inventory-session-cache";
 import { customCardRegistry } from "@/features/cards/custom-card-registry";
 import { prepareQuizPool } from "@/features/quiz/quiz-pool-preparation";
 import { useProgressStats } from "@/features/progress/progress-client";
@@ -75,6 +78,7 @@ import { beginNavigationIntent, isActiveNavigationIntent } from "@/lib/navigatio
 import { navigateWithRouteTransition } from "@/lib/route-transition";
 import type {
   ActiveCardLimitDetails,
+  InventoryCard,
   LanguageCode,
   LimitErrorCode,
   Tier,
@@ -83,7 +87,10 @@ import type {
 import type { GemType } from "@/features/gems/gem-types";
 import { RewardMedalHud } from "@/features/progress/components/reward-medal-hud";
 import { ScorePulse } from "@/features/progress/components/score-pulse";
-import { preloadQuizCountSelectionFrames } from "@/features/quiz/quiz-video-preload";
+import {
+  preloadQuizCountSelectionFrames,
+  preloadQuizPresentationSelectionImages,
+} from "@/features/quiz/quiz-video-preload";
 
 function parseLandingLanguage(value: string | null): LanguageCode | null {
   return value && LANGUAGES.some((item) => item.code === value) ? (value as LanguageCode) : null;
@@ -103,6 +110,7 @@ function persistLandingCardLanguage(language: LanguageCode) {
 
 const MOBILE_TOP_ACTION_LABEL_CLASSNAME =
   "whitespace-nowrap text-left font-semibold leading-none text-action-review";
+const EMPTY_INVENTORY_CARDS: InventoryCard[] = [];
 const MOBILE_RANK_MIN_HEIGHT =
   "calc(clamp(1.5rem, calc(100dvh - 35rem), 20rem) + 4rem)";
 const MOBILE_GEM_COUNTERS = [
@@ -120,6 +128,7 @@ export function MobileLandingDashboard() {
   useEffect(() => {
     preloadDayStreakFrames(themeMode);
     preloadQuizCountSelectionFrames();
+    preloadQuizPresentationSelectionImages();
   }, [themeMode]);
 
   const router = useRouter();
@@ -131,7 +140,7 @@ export function MobileLandingDashboard() {
   );
   const landingEmptyActionsTestVariant: LandingEmptyActionsTestVariant =
     landingEmptyActionsTestParam === "learned" ? "learned" : "active";
-  const { user } = useAuthSession();
+  const { user, isSessionReady = true } = useAuthSession();
   const dayStreakOverlay = useOptionalMobileDayStreakOverlay();
   const dayStreakOpen = dayStreakOverlay?.isOpen ?? false;
   const dayStreakSnapshot = dayStreakOverlay?.snapshot ?? null;
@@ -143,7 +152,7 @@ export function MobileLandingDashboard() {
   const requireAuthAction = useRequireAuthAction();
   const { openLeaderboard } = useLeaderboardOverlay();
   const { entitlements, refreshEntitlements } = useSubscription();
-  const cards = useInventoryStore((state) => state.cards);
+  const persistedCards = useInventoryStore((state) => state.cards);
   const addCards = useInventoryStore((state) => state.addCards);
   const hydrated = useInventoryStore((state) => state.hydrated);
   const cloudEnabled = useInventoryStore((state) => state.cloudEnabled);
@@ -151,6 +160,19 @@ export function MobileLandingDashboard() {
   const cloudLoadComplete = useInventoryStore((state) => state.cloudLoadComplete);
   const cloudError = useInventoryStore((state) => state.cloudError);
   const ownerUserId = useInventoryStore((state) => state.ownerUserId);
+  const learnedReviewIntroSeen = useLocalCardStudyStore((state) => state.learnedReviewIntroSeen);
+  const markLearnedReviewIntroSeen = useLocalCardStudyStore((state) => state.markLearnedReviewIntroSeen);
+  const inventorySnapshotSafe = isInventorySnapshotSafeForSession({
+    sessionReady: isSessionReady,
+    userId: user?.id ?? null,
+    ownerUserId,
+    hasInventoryCards: persistedCards.length > 0,
+  });
+  const inventoryCardDataComplete = useMemo(
+    () => hasCompleteInventoryCardData(persistedCards),
+    [persistedCards],
+  );
+  const cards = inventorySnapshotSafe ? persistedCards : EMPTY_INVENTORY_CARDS;
   const waitingMissionCount = useMissionWaitingCount();
   const {
     data: leaderboardData,
@@ -197,6 +219,7 @@ export function MobileLandingDashboard() {
   );
   const [showLanguageMatchDialog, setShowLanguageMatchDialog] = useState(false);
   const [showLearnedReviewUpgrade, setShowLearnedReviewUpgrade] = useState(false);
+  const [showLearnedReviewIntro, setShowLearnedReviewIntro] = useState(false);
   const [cardLimitError, setCardLimitError] = useState<UpgradeDialogErrorCode | null>(null);
   const [activeCardLimitDetails, setActiveCardLimitDetails] = useState<ActiveCardLimitDetails | null>(null);
   const [missionsPanelOpen, setMissionsPanelOpen] = useState(false);
@@ -218,6 +241,7 @@ export function MobileLandingDashboard() {
   const allowRequestedLanguageRef = useRef(parseLandingLanguage(searchParams.get("language")) !== null);
   const hasPendingStoredLandingLanguageRef = useRef(false);
   const consumedMissionActionRef = useRef<string | null>(null);
+  const pendingLearnedReviewStartRef = useRef(false);
   const selectedLanguageRef = useRef(selectedLanguage);
   const tutorialCardSessionRef = useRef<{
     layer: TutorialCardLayer;
@@ -350,7 +374,7 @@ export function MobileLandingDashboard() {
   useEffect(() => {
     if (
       !hydrated ||
-      (cloudEnabled && (cloudLoading || !cloudLoadComplete)) ||
+      !inventorySnapshotSafe ||
       !cards.some((card) => card.status.trim().toLowerCase() === "active")
     ) {
       return;
@@ -370,7 +394,7 @@ export function MobileLandingDashboard() {
     }, 250);
 
     return () => window.clearTimeout(timeoutId);
-  }, [cards, cloudEnabled, cloudLoadComplete, cloudLoading, hydrated, locale, selectedLanguage, user?.id]);
+  }, [cards, hydrated, inventorySnapshotSafe, locale, selectedLanguage, user?.id]);
 
   useEffect(() => {
     // Browser storage is intentionally read after hydration. Reading it while
@@ -483,9 +507,8 @@ export function MobileLandingDashboard() {
 
   const activeCount = activeForLanguage.length;
   const learnedCount = learnedForLanguage.length;
-  const inventoryCountsPending = Boolean(
+  const inventoryCountsPending = !hydrated || !inventorySnapshotSafe || !inventoryCardDataComplete || Boolean(
     user &&
-    ownerUserId !== user.id &&
     cards.length === 0 &&
     (!cloudEnabled || cloudLoading || !cloudLoadComplete || Boolean(cloudError)),
   );
@@ -613,10 +636,32 @@ export function MobileLandingDashboard() {
 
   function handleRepeatLearned() {
     vibrate("tap");
+    if (!learnedReviewIntroSeen) {
+      markLearnedReviewIntroSeen();
+      setShowLearnedReviewIntro(true);
+      return;
+    }
+
     if (learnedCount === 0) {
       openLockedSheet("learned");
       return;
     }
+
+    startLearnedReview();
+  }
+
+  function handleStartLearnedReview() {
+    pendingLearnedReviewStartRef.current = true;
+    setShowLearnedReviewIntro(false);
+  }
+
+  function handleLearnedReviewIntroExited() {
+    if (!pendingLearnedReviewStartRef.current) return;
+    pendingLearnedReviewStartRef.current = false;
+    startLearnedReview();
+  }
+
+  function startLearnedReview() {
     const nextPath = `/learn?mode=learned&language=${encodeURIComponent(selectedLanguage)}`;
     const navigationIntent = beginNavigationIntent();
     requireAuthAction(() => {
@@ -1110,16 +1155,24 @@ export function MobileLandingDashboard() {
         <ActionButton
           icon={GraduationCap}
           label={t("home.mobile.startLearning")}
-          locked={inventoryCountsPending || activeCount === 0}
-          onClick={() => { if (!inventoryCountsPending) handleStartLearning(); }}
+          locked={!hydrated || !inventorySnapshotSafe || (inventoryCountsPending && activeCount === 0)}
+          onClick={() => {
+            if (hydrated && inventorySnapshotSafe && (!inventoryCountsPending || activeCount > 0)) {
+              handleStartLearning();
+            }
+          }}
           variant="active"
           dataTutorialTarget="start-learning"
         />
         <ActionButton
           icon={RotateCcw}
           label={t("home.mobile.repeatLearned")}
-          locked={inventoryCountsPending || learnedCount === 0}
-          onClick={() => { if (!inventoryCountsPending) handleRepeatLearned(); }}
+          locked={!hydrated || !inventorySnapshotSafe || (inventoryCountsPending && learnedCount === 0)}
+          onClick={() => {
+            if (hydrated && inventorySnapshotSafe && (!inventoryCountsPending || learnedCount > 0)) {
+              handleRepeatLearned();
+            }
+          }}
           variant="learned"
           dataTutorialTarget="repeat-learned"
         />
@@ -1263,6 +1316,13 @@ export function MobileLandingDashboard() {
         open={showLearnedReviewUpgrade}
         errorCode="learned_review_subscription_required"
         onOpenChange={setShowLearnedReviewUpgrade}
+      />
+
+      <LearnedReviewIntroDialog
+        open={showLearnedReviewIntro}
+        onClose={() => setShowLearnedReviewIntro(false)}
+        onExited={handleLearnedReviewIntroExited}
+        onStart={handleStartLearnedReview}
       />
 
       <MissionsPanel

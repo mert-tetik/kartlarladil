@@ -91,9 +91,9 @@ const PRICING_PURCHASE_CTA_CLASS = "h-16 !text-2xl";
 const PRICING_ACTIVE_BUTTON_IMAGE = "/pricing-buttons/pricing-active-button-v2.webp";
 const PRICING_PLAN_BUTTON_IMAGES: Record<Exclude<SubscriptionPlan, "free">, { src: string; width: number; height: number }> = {
   basic: {
-    src: "/subscriptions/plan-basic-v2.webp",
+    src: "/subscriptions/plan-premium-v1.webp",
     width: 1489,
-    height: 450,
+    height: 496,
   },
   pro: {
     src: "/subscriptions/plan-pro-v2.webp",
@@ -360,7 +360,7 @@ function ActiveSubscriptionPricingView({
 }) {
   const t = useT();
   const planImage = plan === "basic"
-    ? { src: "/subscriptions/plan-basic-v2.webp", width: 1489, height: 450 }
+    ? { src: "/subscriptions/plan-premium-v1.webp", width: 1489, height: 496 }
     : { src: "/subscriptions/plan-pro-v2.webp", width: 1338, height: 511 };
   const usesSuperWater = canUseSuperWater(locale);
 

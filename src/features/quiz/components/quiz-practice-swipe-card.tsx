@@ -1,17 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
-import { Check, MessageCircleQuestion, X } from "lucide-react";
+import { Check, MessageCircleQuestion, Volume2, X } from "lucide-react";
 import { CardGrammarDetailsButton, CardGrammarDetailsOverlay } from "@/features/cards/components/card-grammar-details-overlay";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
 import { useAskOverlay } from "@/features/ask/components/ask-overlay-provider";
 import { useRequireAuthAction } from "@/features/auth/auth-client";
+import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
+import { useCardPronunciation } from "@/features/cards/card-pronunciation-client";
 import { getCardDesignTierPalette } from "@/features/cards/card-design-tier-palette";
+import { speakCardTerm } from "@/features/cards/card-speech";
 import { useLocale, useT } from "@/i18n/locale-provider";
 import { QuizPracticeSwipePrompt } from "@/features/quiz/components/quiz-practice-swipe-prompt";
 import type { NormalQuizItem } from "@/features/quiz/quiz-pool-types";
 import { formatSuperWaterText } from "@/lib/super-water";
 import { cn } from "@/lib/utils";
+import { vibrate } from "@/lib/vibration";
 
 const SWIPE_DISTANCE = 96;
 const SWIPE_VELOCITY = 0.55;
@@ -19,13 +23,23 @@ const EXIT_DURATION_MS = 280;
 
 type SwipeDirection = "left" | "right";
 
+export function getEasyPracticePromptSide(cardKey: string): "native" | "learning" {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < cardKey.length; index += 1) {
+    hash = Math.imul(hash ^ cardKey.charCodeAt(index), 0x01000193);
+  }
+  return (((hash >>> 0) ^ ((hash >>> 0) >>> 16)) & 1) === 0 ? "native" : "learning";
+}
+
 export function QuizPracticeSwipeCard({
   item,
   disabled = false,
+  onReveal,
   onSwipe,
 }: {
   item: NormalQuizItem;
   disabled?: boolean;
+  onReveal?: () => void;
   onSwipe: (isCorrect: boolean) => void;
 }) {
   const { locale } = useLocale();
@@ -34,15 +48,26 @@ export function QuizPracticeSwipeCard({
   const requireAuth = useRequireAuthAction();
   const [drag, setDrag] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
+  const [revealedCardId, setRevealedCardId] = useState<string | null>(null);
   const [exitDirection, setExitDirection] = useState<SwipeDirection | null>(null);
   const [exitDurationMs, setExitDurationMs] = useState(EXIT_DURATION_MS);
   const [grammarDetailsOpen, setGrammarDetailsOpen] = useState(false);
   const startRef = useRef<{ pointerId: number; x: number; y: number; time: number } | null>(null);
+  const faceDownPointerRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
+  const suppressRevealClickRef = useRef(false);
   const lockedRef = useRef(false);
   const timerRef = useRef<number | null>(null);
   const onSwipeRef = useRef(onSwipe);
   const disabledRef = useRef(disabled);
   const tierColor = getCardDesignTierPalette(item.card.tier).badge;
+  const isRevealed = revealedCardId === item.card.id;
+  const promptSide = getEasyPracticePromptSide(item.card.sourceKey);
+  const showNativeTranslation = promptSide === "native";
+  const promptText = showNativeTranslation
+    ? getPrimaryCardTranslation(item.card, locale) || item.card.translation || item.card.term
+    : item.card.term;
+  const { pronunciation } = useCardPronunciation(item.card);
+  const pronunciationText = pronunciation.trim() || item.card.term;
 
   useEffect(() => {
     onSwipeRef.current = onSwipe;
@@ -57,7 +82,7 @@ export function QuizPracticeSwipeCard({
   }, []);
 
   const submitSwipe = useCallback((direction: SwipeDirection) => {
-    if (lockedRef.current || disabledRef.current) return;
+    if (lockedRef.current || disabledRef.current || revealedCardId !== item.card.id) return;
     lockedRef.current = true;
     setDragging(false);
     setExitDirection(direction);
@@ -69,7 +94,14 @@ export function QuizPracticeSwipeCard({
       timerRef.current = null;
       onSwipeRef.current(direction === "right");
     }, delay);
-  }, []);
+  }, [item.card.id, revealedCardId]);
+
+  function revealCard() {
+    if (isRevealed || disabled || lockedRef.current) return;
+    vibrate("flip");
+    setRevealedCardId(item.card.id);
+    onReveal?.();
+  }
 
   function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
     const target = event.target;
@@ -80,6 +112,21 @@ export function QuizPracticeSwipeCard({
       event.button !== 0 ||
       (target instanceof Element && target.closest("button, a, input, textarea, select"))
     ) return;
+
+    if (!isRevealed) {
+      faceDownPointerRef.current = {
+        pointerId: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+      };
+      suppressRevealClickRef.current = false;
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Pointer capture keeps a drag from turning into a synthetic tap when supported.
+      }
+      return;
+    }
 
     startRef.current = {
       pointerId: event.pointerId,
@@ -103,6 +150,15 @@ export function QuizPracticeSwipeCard({
   }
 
   function handlePointerUp(event: PointerEvent<HTMLDivElement>) {
+    const faceDownPointer = faceDownPointerRef.current;
+    if (faceDownPointer?.pointerId === event.pointerId) {
+      faceDownPointerRef.current = null;
+      const movedX = event.clientX - faceDownPointer.x;
+      const movedY = event.clientY - faceDownPointer.y;
+      suppressRevealClickRef.current = Math.hypot(movedX, movedY) > 8;
+      return;
+    }
+
     const start = startRef.current;
     if (!start || start.pointerId !== event.pointerId) return;
     startRef.current = null;
@@ -126,6 +182,8 @@ export function QuizPracticeSwipeCard({
   }
 
   function handlePointerCancel() {
+    faceDownPointerRef.current = null;
+    suppressRevealClickRef.current = false;
     startRef.current = null;
     setDragging(false);
     if (!lockedRef.current) setDrag({ x: 0, y: 0 });
@@ -133,6 +191,13 @@ export function QuizPracticeSwipeCard({
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
     if (event.target !== event.currentTarget) return;
+    if (!isRevealed) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        revealCard();
+      }
+      return;
+    }
     if (event.key === "ArrowLeft") {
       event.preventDefault();
       submitSwipe("left");
@@ -140,6 +205,14 @@ export function QuizPracticeSwipeCard({
       event.preventDefault();
       submitSwipe("right");
     }
+  }
+
+  function handleCardClick() {
+    if (suppressRevealClickRef.current) {
+      suppressRevealClickRef.current = false;
+      return;
+    }
+    revealCard();
   }
 
   function handleAskClick() {
@@ -167,6 +240,9 @@ export function QuizPracticeSwipeCard({
     ? `translate3d(${exitDirection === "right" ? "115vw" : "-115vw"}, ${drag.y * 0.2}px, 0) rotate(${exitDirection === "right" ? 22 : -22}deg)`
     : `translate3d(${drag.x}px, ${drag.y * 0.22}px, 0) rotate(${drag.x / 20}deg)`;
   const askLabel = formatSuperWaterText(locale, t("cards.ask"));
+  const practicePromptLabel = isRevealed
+    ? t(item.willLearn ? "quiz.practiceSwipeLearnedPrompt" : "quiz.practiceSwipeProgressPrompt")
+    : t("quiz.easyPracticeGuessAndTap");
 
   return (
     <div
@@ -175,15 +251,20 @@ export function QuizPracticeSwipeCard({
     >
       <QuizPracticeSwipePrompt
         item={item}
+        isRevealed={isRevealed}
         className="mb-5 hidden w-full max-w-[22rem] lg:flex"
       />
       <div
         className="relative flex max-w-full touch-none flex-col items-center outline-none focus-visible:ring-4 focus-visible:ring-brand/50"
         role="group"
         tabIndex={disabled ? -1 : 0}
-        aria-label={`${item.card.term}. ${t(item.willLearn ? "quiz.practiceSwipeLearnedPrompt" : "quiz.practiceSwipeProgressPrompt")}`}
+        aria-label={isRevealed
+          ? `${item.card.term}. ${practicePromptLabel}`
+          : `${promptText}. ${practicePromptLabel}`}
         aria-roledescription="swipe card"
         data-quiz-practice-swipe-card
+        data-quiz-practice-card-revealed={isRevealed ? "true" : "false"}
+        onClick={handleCardClick}
         onKeyDown={handleKeyDown}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -213,13 +294,14 @@ export function QuizPracticeSwipeCard({
             <div
               className="relative aspect-[3/4] w-full select-none overflow-hidden rounded-[12%/8.5%] shadow-sm shadow-black/30"
               data-quiz-practice-card-face
+              aria-hidden={!isRevealed}
             >
               <VocabularyCardView
                 card={item.card}
                 inventory={item.inventoryCard}
                 owned
-                initialFace="front"
-                face="front"
+                initialFace="back"
+                face={isRevealed ? "front" : "back"}
                 flippable={false}
                 showActions={false}
                 frontFit
@@ -255,25 +337,69 @@ export function QuizPracticeSwipeCard({
             </div>
 
             <div
-              className="mt-[13px] flex w-full items-center justify-center gap-[13px]"
+              className="mt-[13px] flex min-h-[52px] w-full items-center justify-center gap-[13px]"
               data-quiz-practice-card-actions
             >
-              <CardGrammarDetailsButton
-                onClick={() => setGrammarDetailsOpen(true)}
-                className="min-h-11 min-w-0 flex-1 justify-center whitespace-nowrap rounded-lg px-2 text-xs"
-                style={{ backgroundColor: tierColor }}
-              />
-              <button
-                type="button"
-                aria-label={askLabel}
-                title={askLabel}
-                onClick={handleAskClick}
-                className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-[var(--tier-a1)] transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                style={{ color: tierColor }}
-                data-quiz-practice-ask
-              >
-                <MessageCircleQuestion className="size-5" aria-hidden="true" />
-              </button>
+              {isRevealed ? (
+                <>
+                  <CardGrammarDetailsButton
+                    onClick={() => setGrammarDetailsOpen(true)}
+                    showIcon={false}
+                    className="min-h-11 min-w-0 flex-1 justify-center whitespace-nowrap rounded-lg px-2 text-base"
+                    style={{ backgroundColor: tierColor }}
+                  />
+                  <button
+                    type="button"
+                    aria-label={askLabel}
+                    title={askLabel}
+                    onClick={handleAskClick}
+                    className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-[var(--tier-a1)] transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    style={{ color: tierColor }}
+                    data-quiz-practice-ask
+                  >
+                    <MessageCircleQuestion className="size-5" aria-hidden="true" />
+                  </button>
+                </>
+              ) : (
+                <div
+                  className="flex min-w-0 flex-1 flex-col items-center justify-center text-center"
+                  style={{ color: tierColor }}
+                  data-quiz-practice-card-prompt
+                  data-quiz-practice-card-prompt-side={showNativeTranslation ? "native" : "learning"}
+                >
+                  <p
+                    className="max-w-full break-words text-[2.5rem] font-semibold leading-tight"
+                    dir="auto"
+                    lang={showNativeTranslation ? locale : item.card.language}
+                    data-quiz-practice-card-prompt-text
+                  >
+                    {promptText}
+                  </p>
+                  {!showNativeTranslation ? (
+                    <div className="mt-0.5 flex max-w-full items-center justify-center gap-1.5">
+                      <span
+                        className="max-w-[min(70vw,18rem)] break-words text-[1.75rem] leading-8"
+                        data-quiz-practice-card-pronunciation
+                      >
+                        {pronunciationText}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label={`${t("cards.pronunciation")}: ${item.card.term}`}
+                        title={`${t("cards.pronunciation")}: ${item.card.term}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          speakCardTerm(item.card.term, item.card.language);
+                        }}
+                        className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-current transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+                        data-quiz-practice-card-speak
+                      >
+                        <Volume2 className="size-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              )}
             </div>
           </div>
         </div>

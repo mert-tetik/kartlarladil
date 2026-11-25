@@ -275,7 +275,7 @@ export function CardGrammarDetailsOverlay({
       }}
     >
       <div className="flex h-full min-h-0 w-full max-w-none flex-col text-white" onPointerDown={(event) => event.stopPropagation()}>
-        <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,3fr)_minmax(0,1fr)] gap-0">
+        <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,7fr)_minmax(0,3fr)] gap-0">
           <section
             data-card-grammar-details-info
             data-card-grammar-details-panel="top"

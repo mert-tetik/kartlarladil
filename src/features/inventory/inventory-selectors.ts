@@ -10,7 +10,7 @@ export function isLearnedInventoryCard(inventory?: Pick<InventoryCard, "status">
   return typeof inventory?.status === "string" && inventory.status.trim().toLowerCase() === "learned";
 }
 
-export function joinInventoryCards(cards: InventoryCard[]): InventoryCardView[] {
+export function joinInventoryCards(cards: readonly InventoryCard[]): InventoryCardView[] {
   const cardById = new Map(
     customCardRegistry
       .getAllCards()
@@ -24,6 +24,10 @@ export function joinInventoryCards(cards: InventoryCard[]): InventoryCardView[] 
     const card = cardById.get(inventory.cardId);
     return card ? [{ inventory, card }] : [];
   });
+}
+
+export function hasCompleteInventoryCardData(cards: readonly InventoryCard[]): boolean {
+  return joinInventoryCards(cards).length === cards.length;
 }
 
 export function filterInventoryCards(input: {

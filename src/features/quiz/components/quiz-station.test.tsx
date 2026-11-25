@@ -5,6 +5,7 @@ import { VOCABULARY_CARDS } from "@/data/cards";
 import { getPrimaryCardTranslation } from "@/features/cards/card-localization";
 import { AuthSessionProvider } from "@/features/auth/auth-client";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
+import { useLocalCardStudyStore } from "@/features/inventory/local-card-study";
 import { EMPTY_PROGRESS_STATS, getNextRankProgress } from "@/features/progress/progress-stats";
 import { CelebrationView, LegacyResultView, MobileQuizFeedback, QuizStation, ResultFlowView, ResultView } from "@/features/quiz/components/quiz-station";
 import { QuizMedalRating } from "@/features/quiz/components/quiz-medal-rating";
@@ -51,6 +52,7 @@ const mathRandomSpy = vi.spyOn(Math, "random");
 
 beforeEach(() => {
   window.localStorage.clear();
+  useLocalCardStudyStore.setState({ cards: {}, learnedReviewIntroSeen: false });
   document.cookie = `${LOCALE_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
   mathRandomSpy.mockReset();
   mathRandomSpy.mockReturnValue(0.75);
@@ -2519,7 +2521,11 @@ describe("QuizStation practice presentation", () => {
     quizCountSelectionTestState.autoSelectCount = 1;
 
     renderQuizStation("tr", undefined, "active", "en", "easy");
-    const swipeCard = await screen.findByRole("group", { name: new RegExp(testCard.term) });
+    await waitFor(() => {
+      expect(document.querySelector("[data-quiz-practice-swipe-card]"))
+        .toBeInTheDocument();
+    });
+    const swipeCard = document.querySelector<HTMLElement>("[data-quiz-practice-swipe-card]")!;
     fireEvent.keyDown(swipeCard, { key: "ArrowRight" });
 
     await waitFor(() => {
@@ -2536,7 +2542,68 @@ describe("QuizStation practice presentation", () => {
     }, { timeout: 1_500 });
   });
 
-  it("keeps easy-practice cards front-facing and routes a left swipe into wrong-card review without feedback", async () => {
+  it("starts the five-card matching lesson immediately after five right-swiped learnable cards", async () => {
+    const batchCards = VOCABULARY_CARDS
+      .filter((card) => card.language === "en" && card.tier === "A1")
+      .slice(0, 5);
+    useInventoryStore.setState({
+      cards: batchCards.map((card) => ({
+        cardId: card.id,
+        status: "active",
+        correctCount: 1,
+        addedAt: "2026-06-09T00:00:00.000Z",
+      })),
+      attempts: [],
+      hydrated: true,
+      cloudEnabled: false,
+      cloudLoading: false,
+      cloudError: "",
+    });
+    quizCountSelectionTestState.autoSelectCount = 5;
+    renderQuizStation("tr", undefined, "active", "en", "easy", 5);
+
+    const getLiveSwipeCard = () => Array.from(
+      document.querySelectorAll<HTMLElement>("[data-quiz-practice-swipe-card]"),
+    ).find((element) => !element.closest("[data-quiz-transition-fallback-old]")) ?? null;
+
+    for (let index = 0; index < 5; index += 1) {
+      const swipeCard = await waitFor(() => {
+        const element = getLiveSwipeCard();
+        if (!element) throw new Error("Waiting for the next easy-quiz card");
+        return element;
+      }, { timeout: 5_000 });
+      if (swipeCard.getAttribute("data-quiz-practice-card-revealed") !== "true") {
+        fireEvent.keyDown(swipeCard, { key: " " });
+        await waitFor(() => expect(swipeCard).toHaveAttribute("data-quiz-practice-card-revealed", "true"));
+      }
+      fireEvent.keyDown(swipeCard, { key: "ArrowRight" });
+
+      if (index < 4) {
+        await waitFor(() => expect(getLiveSwipeCard()).not.toBe(swipeCard), { timeout: 5_000 });
+      }
+    }
+
+    await waitFor(() => {
+      expect(document.querySelector("[data-easy-learning-matching-screen]")).toBeInTheDocument();
+      expect(document.querySelectorAll("[data-bonus-term]")).toHaveLength(5);
+    }, { timeout: 5_000 });
+    expect(useInventoryStore.getState().cards.every((card) => card.correctCount === 1)).toBe(true);
+
+    const pairIds = Array.from(document.querySelectorAll<HTMLElement>("[data-bonus-term]"))
+      .map((element) => element.dataset.bonusTerm)
+      .filter((id): id is string => Boolean(id));
+    for (const id of pairIds) {
+      fireEvent.click(document.querySelector(`[data-bonus-term="${id}"]`)!);
+      fireEvent.click(document.querySelector(`[data-bonus-meaning="${id}"]`)!);
+    }
+
+    await waitFor(() => {
+      expect(document.querySelector("[data-quiz-celebration]")).toBeInTheDocument();
+      expect(useInventoryStore.getState().cards.every((card) => card.status === "learned")).toBe(true);
+    }, { timeout: 5_000 });
+  });
+
+  it("keeps easy-practice cards face down and blocks swiping until they are revealed", async () => {
     useInventoryStore.setState({
       cards: [inventoryCard],
       attempts: [],
@@ -2551,6 +2618,22 @@ describe("QuizStation practice presentation", () => {
     const swipeCard = await screen.findByRole("group", { name: new RegExp(testCard.term) });
 
     expect(document.querySelector("[data-quiz-practice-swipe]")).toBeInTheDocument();
+    expect(swipeCard).toHaveAttribute("data-quiz-practice-card-revealed", "false");
+    expect(document.querySelector("[data-quiz-practice-card-face] [data-card-face='back']"))
+      .toBeInTheDocument();
+    expect(document.querySelector("[data-mobile-quiz-question-prompt] [data-revealed]"))
+      .toHaveAttribute("data-revealed", "false");
+    fireEvent.keyDown(swipeCard, { key: "ArrowLeft" });
+    expect(document.querySelector("[data-quiz-word-repetition-intro]")).not.toBeInTheDocument();
+
+    fireEvent.keyDown(swipeCard, { key: " " });
+    await waitFor(() => {
+      expect(swipeCard).toHaveAttribute("data-quiz-practice-card-revealed", "true");
+    });
+    expect(document.querySelector("[data-mobile-quiz-question-prompt] [data-revealed]"))
+      .toHaveAttribute("data-revealed", "true");
+    expect(document.querySelector("[data-quiz-practice-card-face] [data-card-face='front']"))
+      .toBeInTheDocument();
     fireEvent.keyDown(swipeCard, { key: "ArrowLeft" });
 
     await waitFor(() => {

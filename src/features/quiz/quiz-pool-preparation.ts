@@ -5,6 +5,7 @@ import type {
   QuizPoolProgressUpdate,
 } from "@/features/quiz/quiz-pool-types";
 import type { QuizPoolWorkerRequest, QuizPoolWorkerResponse } from "@/features/quiz/quiz-pool-worker-protocol";
+import type { LocalCardStudyMap } from "@/features/inventory/local-card-study";
 
 export interface QuizPoolRequest {
   ownerScope: string;
@@ -15,6 +16,8 @@ export interface QuizPoolRequest {
   locale: LocaleCode;
   normalQuestionType: NormalQuestionType;
   bonusAfterEachNormalQuestion: boolean;
+  studyByCardId?: LocalCardStudyMap;
+  reviewNow?: number;
 }
 
 type ProgressListener = (pool: PreparedQuizPool) => void;
@@ -51,6 +54,17 @@ function customCardState(cards: VocabularyCard[]) {
     .join(",");
 }
 
+function stableStudyState(studyByCardId: LocalCardStudyMap = {}) {
+  return Object.entries(studyByCardId)
+    .map(([cardId, record]) => [
+      cardId,
+      record.lastStudiedAt,
+      record.familiarityLevel,
+      record.nextReviewAt,
+    ] as const)
+    .sort(([leftId], [rightId]) => leftId.localeCompare(rightId));
+}
+
 export function getQuizPoolKey(request: QuizPoolRequest) {
   return JSON.stringify([
     request.ownerScope,
@@ -59,6 +73,8 @@ export function getQuizPoolKey(request: QuizPoolRequest) {
     request.locale,
     request.normalQuestionType ?? "default",
     request.bonusAfterEachNormalQuestion ? "bonus-each" : "bonus-default",
+    stableStudyState(request.studyByCardId),
+    Math.floor((request.reviewNow ?? 0) / 1000),
     stableCardState(request.cards),
     customCardState(request.customCards),
   ]);
@@ -253,6 +269,8 @@ export function prepareQuizPool(
     locale: request.locale,
     normalQuestionType: request.normalQuestionType,
     bonusAfterEachNormalQuestion: request.bonusAfterEachNormalQuestion,
+    studyByCardId: request.studyByCardId,
+    reviewNow: request.reviewNow,
   };
 
   let worker: Worker | null = null;
@@ -354,6 +372,8 @@ export function prepareQuizPool(
       locale: input.locale,
       normalQuestionType: input.normalQuestionType,
       bonusAfterEachNormalQuestion: input.bonusAfterEachNormalQuestion,
+      studyByCardId: input.studyByCardId,
+      reviewNow: input.reviewNow,
     };
     worker.postMessage({ id: requestId, input: workerInput } satisfies QuizPoolWorkerRequest);
   } catch {

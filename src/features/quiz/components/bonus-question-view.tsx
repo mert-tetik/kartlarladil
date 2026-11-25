@@ -963,6 +963,8 @@ function MatchingBonus({
   answerAccepted,
   onSubmit,
   onSkip,
+  learningMode = false,
+  onLearningComplete,
 }: {
   question: MatchingBonusQuestion;
   language: LanguageCode;
@@ -970,6 +972,8 @@ function MatchingBonus({
   answerAccepted: boolean | null;
   onSubmit: (answer: string, isCorrect: boolean) => void;
   onSkip: () => void;
+  learningMode?: boolean;
+  onLearningComplete?: (outcomes: Array<{ termId: string; meaningId: string; correct: boolean }>) => void;
 }) {
   const { locale } = useLocale();
   const usesSuperWater = canUseSuperWater(locale);
@@ -977,12 +981,14 @@ function MatchingBonus({
   const [selectedTermId, setSelectedTermId] = useState<string | null>(null);
   const [selectedMeaningId, setSelectedMeaningId] = useState<string | null>(null);
   const [matches, setMatches] = useState<Record<string, string>>({});
+  const [wrongMatches, setWrongMatches] = useState<Record<string, string>>({});
   const [invalidPair, setInvalidPair] = useState<{ termId: string; meaningId: string } | null>(null);
   const [invalidAnimationKey, setInvalidAnimationKey] = useState(0);
   const invalidAnimationTimerRef = useRef<number | null>(null);
   const matchingCompletionSubmittedRef = useRef(false);
   const matchedMeaningIds = new Set(Object.values(matches));
-  const allMatchesComplete = Object.keys(matches).length === question.pairs.length;
+  const completedPairCount = Object.keys(matches).length + Object.keys(wrongMatches).length;
+  const allMatchesComplete = completedPairCount === question.pairs.length;
 
   useEffect(() => () => {
     if (invalidAnimationTimerRef.current !== null) {
@@ -993,13 +999,22 @@ function MatchingBonus({
   useEffect(() => {
     if (!allMatchesComplete || showingAnswer || matchingCompletionSubmittedRef.current) return;
 
-    matchingCompletionSubmittedRef.current = true;
     const timer = window.setTimeout(() => {
-      onSubmit("matching", true);
+      if (matchingCompletionSubmittedRef.current) return;
+      matchingCompletionSubmittedRef.current = true;
+      if (learningMode) {
+        onLearningComplete?.(question.pairs.map((pair) => ({
+          termId: pair.id,
+          meaningId: matches[pair.id] ?? wrongMatches[pair.id] ?? pair.id,
+          correct: matches[pair.id] === pair.id,
+        })));
+      } else {
+        onSubmit("matching", true);
+      }
     }, MATCHING_CORRECT_ANIMATION_MS);
 
     return () => window.clearTimeout(timer);
-  }, [allMatchesComplete, onSubmit, showingAnswer]);
+  }, [allMatchesComplete, learningMode, matches, onLearningComplete, onSubmit, question.pairs, showingAnswer, wrongMatches]);
 
   function triggerInvalidPair(termId: string, meaningId: string) {
     if (invalidAnimationTimerRef.current !== null) {
@@ -1008,6 +1023,9 @@ function MatchingBonus({
 
     setInvalidPair({ termId, meaningId });
     setInvalidAnimationKey((current) => current + 1);
+    if (learningMode) {
+      setWrongMatches((current) => ({ ...current, [termId]: meaningId }));
+    }
     playSoundEffect("bonus-invalid-operation");
     vibrate("incorrect");
     invalidAnimationTimerRef.current = window.setTimeout(() => {
@@ -1017,6 +1035,7 @@ function MatchingBonus({
   }
 
   function completePair(termId: string, meaningId: string) {
+    if (learningMode && (wrongMatches[termId] || matchedMeaningIds.has(meaningId))) return;
     if (invalidAnimationTimerRef.current !== null) {
       window.clearTimeout(invalidAnimationTimerRef.current);
       invalidAnimationTimerRef.current = null;
@@ -1085,10 +1104,14 @@ function MatchingBonus({
         <div className="flex w-full flex-col items-center gap-3">
          {question.terms.map((pair) => {
            const correct = matches[pair.id] === pair.id;
-           const invalid = invalidPair?.termId === pair.id;
+           const permanentlyWrong = Object.prototype.hasOwnProperty.call(wrongMatches, pair.id);
+           const invalidAnimation = invalidPair?.termId === pair.id;
+           const invalid = invalidAnimation || permanentlyWrong;
            const feedback: QuizWordButtonFeedback | undefined = correct
              ? "correct"
-             : invalid
+             : permanentlyWrong
+               ? "incorrect-revealed"
+               : invalidAnimation
                ? undefined
                : selectedTermId === pair.id
                  ? "selected"
@@ -1099,12 +1122,14 @@ function MatchingBonus({
               type="button"
               disabled={showingAnswer || correct || invalid}
               onClick={() => selectTerm(pair.id)}
-              wordType={invalid ? "invalid-operation" : correct ? "correct" : "select"}
+              wordType={permanentlyWrong ? "incorrect" : invalidAnimation ? "invalid-operation" : correct ? "correct" : "select"}
               selected={feedback === "selected"}
               feedback={feedback}
-              animationTrigger={invalid ? invalidAnimationKey : undefined}
+              animationTrigger={invalidAnimation ? invalidAnimationKey : undefined}
               className={cn(
-                "h-[86px] min-h-[86px] w-[calc(100%-0.5rem)] text-lg sm:text-xl",
+                learningMode
+                  ? "h-[72px] min-h-[72px] w-[calc(100%-0.5rem)] text-base sm:text-lg"
+                  : "h-[86px] min-h-[86px] w-[calc(100%-0.5rem)] text-lg sm:text-xl",
               )}
               data-bonus-term={pair.id}
               data-bonus-result={feedback ?? "idle"}
@@ -1138,14 +1163,16 @@ function MatchingBonus({
             <QuizWordButton
               key={`meaning-${pair.id}`}
               type="button"
-              disabled={showingAnswer || correct || invalid}
+              disabled={showingAnswer || correct || matchedMeaningIds.has(pair.id) || invalid}
               onClick={() => selectMeaning(pair.id)}
               wordType={invalid ? "invalid-operation" : correct ? "correct" : "select"}
               selected={feedback === "selected"}
               feedback={feedback}
               animationTrigger={invalid ? invalidAnimationKey : undefined}
               className={cn(
-                "h-[86px] min-h-[86px] w-[calc(100%-0.5rem)] text-lg sm:text-xl",
+                learningMode
+                  ? "h-[72px] min-h-[72px] w-[calc(100%-0.5rem)] text-base sm:text-lg"
+                  : "h-[86px] min-h-[86px] w-[calc(100%-0.5rem)] text-lg sm:text-xl",
               )}
               data-bonus-meaning={pair.id}
               data-bonus-result={feedback ?? "idle"}
@@ -1156,7 +1183,7 @@ function MatchingBonus({
         })}
         </div>
       </div>
-      <div className="relative z-10 col-span-2">
+      {!learningMode ? <div className="relative z-10 col-span-2">
         <QuizMobileActionPortal withinTransition>
           <div className="mt-1 flex w-full justify-center" data-quiz-bottom-actions>
             <QuizSkipButton
@@ -1166,9 +1193,40 @@ function MatchingBonus({
             />
           </div>
         </QuizMobileActionPortal>
-      </div>
+      </div> : null}
       <span className="sr-only" data-bonus-answer-state>{answerAccepted === null ? "idle" : answerAccepted ? "correct" : "incorrect"}</span>
       <span className="sr-only">{matchedMeaningIds.size}</span>
+    </div>
+  );
+}
+
+export function EasyLearningMatchingView({
+  question,
+  language,
+  onComplete,
+}: {
+  question: MatchingBonusQuestion;
+  language: LanguageCode;
+  onComplete: (outcomes: Array<{ termId: string; meaningId: string; correct: boolean }>) => void;
+}) {
+  const { locale } = useLocale();
+  const copy = getBonusCopy(locale);
+
+  return (
+    <div className="animate-screen-pop flex w-full max-w-2xl flex-col items-center gap-5 px-3 py-4 text-foreground" data-easy-learning-matching-screen>
+      <h2 className={cn("text-center text-3xl font-semibold text-white sm:text-4xl", canUseSuperWater(locale) && "font-super-water")}>
+        {formatSuperWaterText(locale, copy.matchingTitle)}
+      </h2>
+      <MatchingBonus
+        question={question}
+        language={language}
+        showingAnswer={false}
+        answerAccepted={null}
+        onSubmit={() => undefined}
+        onSkip={() => undefined}
+        learningMode
+        onLearningComplete={onComplete}
+      />
     </div>
   );
 }

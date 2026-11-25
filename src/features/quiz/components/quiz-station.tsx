@@ -34,6 +34,7 @@ import { VOCABULARY_CARDS } from "@/data/cards";
 import { LANGUAGES } from "@/data/languages";
 import { TIER_REQUIREMENTS, TIER_STYLES } from "@/data/tiers";
 import { VocabularyCardView } from "@/features/cards/components/vocabulary-card-view";
+import { localCardRepository } from "@/features/cards/card-repository";
 import { CARD_GROUP_IMAGE_PATHS } from "@/features/cards/card-groups";
 import {
   preloadTextQuizFeedbackMascots,
@@ -58,6 +59,12 @@ import {
 } from "@/features/ai-practice/ai-practice-data";
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { InventoryActionError, useInventoryStore } from "@/features/inventory/inventory-store";
+import {
+  getLearnedCardNextReviewAt,
+  getLocalCardStudyRecord,
+  isLearnedCardDue,
+} from "@/features/inventory/local-card-study-scheduler";
+import { useLocalCardStudyStore } from "@/features/inventory/local-card-study";
 import { useQuizInventoryCards } from "@/features/quiz/use-quiz-inventory-cards";
 import { customCardRegistry } from "@/features/cards/custom-card-registry";
 import {
@@ -76,7 +83,13 @@ import {
   getBonusCopy,
   type BonusQuestion,
   type BonusQuestionKind,
+  type MatchingBonusQuestion,
 } from "@/features/quiz/bonus-questions";
+import {
+  buildEasyLearningMatchingQuestion,
+  EASY_LEARNING_BATCH_SIZE,
+  type EasyLearningCandidate,
+} from "@/features/quiz/easy-learning-quiz";
 import {
   requestCategoryBonusQuestion,
 } from "@/features/quiz/bonus-question-client";
@@ -185,6 +198,7 @@ import type { QuizContinuationMotivationInput } from "@/features/quiz/quiz-conti
 import { QuizStartSplash } from "@/features/quiz/components/quiz-start-splash";
 import {
   BonusRewardHud,
+  EasyLearningMatchingView,
   BonusQuestionView,
 } from "@/features/quiz/components/bonus-question-view";
 import { QuizStreakCelebrationView } from "@/features/quiz/components/quiz-streak-celebration-view";
@@ -286,6 +300,7 @@ type QuizPhase =
   | "quiz-type"
   | "count"
   | "quiz"
+  | "easy-learning-quiz"
   | "word-repetition-intro"
   | "word-repetition"
   | "quiz-completion"
@@ -704,6 +719,10 @@ export function QuizStation({
   const cloudLoading = useInventoryStore((state) => state.cloudLoading);
   const cloudLoadComplete = useInventoryStore((state) => state.cloudLoadComplete);
   const recordAnswer = useInventoryStore((state) => state.recordAnswer);
+  const localStudyByCardId = useLocalCardStudyStore((state) => state.cards);
+  // Keep the pool cutoff stable between renders, but refresh it when local study data changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const studyReviewNow = useMemo(() => Date.now(), [localStudyByCardId]);
   const { entitlements } = useSubscription();
   const { locale } = useLocale();
   const t = useT();
@@ -756,6 +775,7 @@ export function QuizStation({
   const [awardedChestTier, setAwardedChestTier] = useState<ChestTierDefinition | null>(null);
   const [deck, setDeck] = useState<QuizItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [revealedPracticeCardKey, setRevealedPracticeCardKey] = useState<string | null>(null);
   const [wordRepetitionCards, setWordRepetitionCards] = useState<VocabularyCard[]>([]);
   const [wordRepetitionIndex, setWordRepetitionIndex] = useState(0);
   const [showingAnswer, setShowingAnswer] = useState(false);
@@ -773,6 +793,13 @@ export function QuizStation({
     incorrect: [],
     learned: [],
   });
+  const [easyLearningQuestion, setEasyLearningQuestion] = useState<MatchingBonusQuestion | null>(null);
+  const [easyLearningCandidates, setEasyLearningCandidates] = useState<EasyLearningCandidate[]>([]);
+  const [easyLearningCelebrationCards, setEasyLearningCelebrationCards] = useState<VocabularyCard[]>([]);
+  const [easyLearningCelebrationIndex, setEasyLearningCelebrationIndex] = useState(0);
+  const easyLearningQueueRef = useRef<EasyLearningCandidate[]>([]);
+  const easyLearningWrongCardIdsRef = useRef<Set<string>>(new Set());
+  const easyLearningAfterLimitCloseRef = useRef<(() => void) | null>(null);
   const [lastLearned, setLastLearned] = useState<VocabularyCard | null>(null);
   const [limitError, setLimitError] = useState<LimitErrorCode | null>(null);
   const [chestOpened, setChestOpened] = useState(false);
@@ -982,6 +1009,7 @@ export function QuizStation({
       findLiveTransitionElement<HTMLElement>("[data-streak-celebration-view]") ??
       findLiveTransitionElement<HTMLElement>("[data-quiz-completion-progress]") ??
       findLiveTransitionElement<HTMLElement>("[data-quiz-card-progress-reveal]") ??
+      findLiveTransitionElement<HTMLElement>("[data-easy-learning-matching-screen]") ??
       findLiveTransitionElement<HTMLElement>("[data-quiz-celebration]") ??
       findLiveTransitionElement<HTMLElement>("[data-quiz-count-selection]") ??
       findLiveTransitionElement<HTMLElement>("[data-quiz-presentation-selection]") ??
@@ -1716,6 +1744,9 @@ export function QuizStation({
     }
   }
 
+  const runQuizViewTransitionRef = useRef(runQuizViewTransition);
+  runQuizViewTransitionRef.current = runQuizViewTransition;
+
   function transitionToStreakCelebration() {
     runQuizViewTransition(() => {
       setPendingStreak(false);
@@ -1848,17 +1879,24 @@ export function QuizStation({
 
   const effectivePlan = entitlements?.effectivePlan ?? "free";
 
+  const eligibleInventoryCards = useMemo(
+    () => filterInventoryCards({ cards, status: mode }).filter(({ inventory, card }) =>
+      mode !== "learned" || isLearnedCardDue(
+        getLocalCardStudyRecord(localStudyByCardId, inventory.cardId, card.id, card.sourceKey),
+      ),
+    ),
+    [cards, localStudyByCardId, mode],
+  );
+  const allLearnedPracticeCards = useMemo(
+    () => filterInventoryCards({ cards, status: "learned" }).filter(({ card }) => card.language !== locale),
+    [cards, locale],
+  );
   const languageStats = useMemo(
-    () =>
-      LANGUAGES.map((language) => ({
-        ...language,
-        count: filterInventoryCards({
-          cards,
-          language: language.code,
-          status: mode,
-        }).length,
-      })).filter((language) => language.count > 0),
-    [cards, mode],
+    () => LANGUAGES.map((language) => ({
+      ...language,
+      count: eligibleInventoryCards.filter(({ card }) => card.language === language.code).length,
+    })).filter((language) => language.count > 0),
+    [eligibleInventoryCards],
   );
   const practiceLanguageStats = useMemo(
     () => languageStats.filter((language) => language.code !== locale),
@@ -1871,12 +1909,30 @@ export function QuizStation({
 
   const availableCards = useMemo(() => {
     if (!selectedLanguage) return [];
-    return filterInventoryCards({
-      cards,
-      language: selectedLanguage,
-      status: mode,
-    }).map((item) => item.card);
-  }, [cards, mode, selectedLanguage]);
+    return eligibleInventoryCards
+      .filter(({ card }) => card.language === selectedLanguage)
+      .map((item) => item.card);
+  }, [eligibleInventoryCards, selectedLanguage]);
+  const selectedLearnedPracticeCards = useMemo(
+    () => selectedLanguage
+      ? filterInventoryCards({ cards, language: selectedLanguage, status: "learned" })
+      : allLearnedPracticeCards,
+    [allLearnedPracticeCards, cards, selectedLanguage],
+  );
+  const nextLearnedReviewAt = useMemo(() => {
+    const languageScopedCards = phase === "count" && selectedLanguage
+      ? selectedLearnedPracticeCards
+      : allLearnedPracticeCards;
+    const nextDates = languageScopedCards
+      .map(({ inventory, card }) => getLearnedCardNextReviewAt(
+        getLocalCardStudyRecord(localStudyByCardId, inventory.cardId, card.id, card.sourceKey),
+      ))
+      .filter((timestamp): timestamp is number => timestamp !== null && timestamp > Date.now());
+    return nextDates.length > 0 ? Math.min(...nextDates) : null;
+  }, [allLearnedPracticeCards, localStudyByCardId, phase, selectedLanguage, selectedLearnedPracticeCards]);
+  const learnedReviewNotDue = mode === "learned" &&
+    ((phase === "language" && practiceLanguageStats.length === 0 && allLearnedPracticeCards.length > 0) ||
+      (phase === "count" && availableCards.length === 0));
   const canRenderPersistedQuizSetup = cards.length > 0;
   const cloudInventoryReady = cloudLoadComplete || (!cloudEnabled && canRenderPersistedQuizSetup);
   const interactionLocked = !hydrated;
@@ -1885,6 +1941,8 @@ export function QuizStation({
     const hasQuizCardsForCurrentSetup =
       practiceLanguageStats.length > 0 &&
       (!selectedLanguage || (selectedLanguage !== locale && availableCards.length > 0));
+
+    if (learnedReviewNotDue) return;
 
     if (
       !hydrated ||
@@ -1905,6 +1963,7 @@ export function QuizStation({
     cloudLoading,
     hydrated,
     languageStats.length,
+    learnedReviewNotDue,
     locale,
     phase,
     practiceLanguageStats.length,
@@ -1916,6 +1975,8 @@ export function QuizStation({
     (language: LanguageCode) => ({
       ownerScope: user?.id ?? "guest",
       cards,
+      studyByCardId: localStudyByCardId,
+      reviewNow: studyReviewNow,
       customCards: customCardRegistry.list(),
       language,
       mode,
@@ -1923,7 +1984,7 @@ export function QuizStation({
       normalQuestionType,
       bonusAfterEachNormalQuestion,
     }),
-    [bonusAfterEachNormalQuestion, cards, locale, mode, normalQuestionType, user?.id],
+    [bonusAfterEachNormalQuestion, cards, locale, localStudyByCardId, mode, normalQuestionType, studyReviewNow, user?.id],
   );
   const getQuizPoolKey = useCallback(
     (language: LanguageCode) => getPreparedQuizPoolKey(createQuizPoolRequest(language)),
@@ -2085,6 +2146,13 @@ export function QuizStation({
         bonusCorrect: 0,
         bonusIncorrect: startsWithWordRepetition ? skippedBonusCount : 0,
       });
+      easyLearningQueueRef.current = [];
+      easyLearningWrongCardIdsRef.current = new Set();
+      easyLearningAfterLimitCloseRef.current = null;
+      setEasyLearningQuestion(null);
+      setEasyLearningCandidates([]);
+      setEasyLearningCelebrationCards([]);
+      setEasyLearningCelebrationIndex(0);
       setChestOpened(false);
       setAwardedChestTier(null);
       setChestCelebrationNextPhase(null);
@@ -2378,6 +2446,90 @@ export function QuizStation({
     });
   }, [user?.id]);
 
+  const beginEasyLearningBatch = useCallback((pendingCandidates: EasyLearningCandidate[]) => {
+    if (!selectedLanguage || quizPresentationMode !== "easy" || mode !== "active") return false;
+
+    const selected: EasyLearningCandidate[] = pendingCandidates.slice(0, EASY_LEARNING_BATCH_SIZE);
+    const seenCardIds = new Set(selected.map(({ card }) => card.id));
+    const seenTerms = new Set(selected.map(({ card }) => card.term.trim().normalize("NFKC").toLocaleLowerCase()));
+    const inventoryCandidates = cards.flatMap((inventoryCard): EasyLearningCandidate[] => {
+      const card = localCardRepository.findById(inventoryCard.cardId)
+        ?? customCardRegistry.findBySourceKey(inventoryCard.cardId);
+      if (!card || card.language !== selectedLanguage) return [];
+      return [{ card, inventoryCard, source: inventoryCard.status === "learned" ? "learned" : "active" }];
+    });
+    const learnedCandidates = shuffle(inventoryCandidates.filter(({ card, inventoryCard }) =>
+      inventoryCard?.status === "learned" && isLearnedCardDue(
+        getLocalCardStudyRecord(localStudyByCardId, inventoryCard.cardId, card.id, card.sourceKey),
+      ),
+    )).sort((left, right) => {
+      const leftRecord = getLocalCardStudyRecord(localStudyByCardId, left.inventoryCard?.cardId, left.card.id, left.card.sourceKey);
+      const rightRecord = getLocalCardStudyRecord(localStudyByCardId, right.inventoryCard?.cardId, right.card.id, right.card.sourceKey);
+      return (getLearnedCardNextReviewAt(leftRecord) ?? Number.NEGATIVE_INFINITY)
+        - (getLearnedCardNextReviewAt(rightRecord) ?? Number.NEGATIVE_INFINITY);
+    });
+    const activeCandidates = shuffle(inventoryCandidates.filter(({ card, inventoryCard }) =>
+      inventoryCard?.status === "active"
+      && inventoryCard.correctCount + 1 >= getTierRequirement(card.tier),
+    )).sort((left, right) => {
+      const leftRecord = getLocalCardStudyRecord(localStudyByCardId, left.inventoryCard?.cardId, left.card.id, left.card.sourceKey);
+      const rightRecord = getLocalCardStudyRecord(localStudyByCardId, right.inventoryCard?.cardId, right.card.id, right.card.sourceKey);
+      const leftTime = leftRecord?.lastStudiedAt ? Date.parse(leftRecord.lastStudiedAt) : Number.NEGATIVE_INFINITY;
+      const rightTime = rightRecord?.lastStudiedAt ? Date.parse(rightRecord.lastStudiedAt) : Number.NEGATIVE_INFINITY;
+      return rightTime - leftTime;
+    });
+    const ownedIds = new Set(inventoryCandidates.map(({ card }) => card.id));
+    const catalogCandidates = shuffle(VOCABULARY_CARDS
+      .filter((card) => card.language === selectedLanguage && !ownedIds.has(card.id))
+      .map((card) => ({ card, inventoryCard: null, source: "catalog" as const })));
+
+    let question: MatchingBonusQuestion | null = null;
+    const fillerPriority = [...learnedCandidates, ...activeCandidates, ...catalogCandidates];
+    for (const candidate of fillerPriority) {
+      if (selected.length >= EASY_LEARNING_BATCH_SIZE) break;
+      const normalizedTerm = candidate.card.term.trim().normalize("NFKC").toLocaleLowerCase();
+      if (seenCardIds.has(candidate.card.id) || seenTerms.has(normalizedTerm)) continue;
+
+      selected.push(candidate);
+      seenCardIds.add(candidate.card.id);
+      seenTerms.add(normalizedTerm);
+      if (selected.length === EASY_LEARNING_BATCH_SIZE) {
+        question = buildEasyLearningMatchingQuestion(
+          selected,
+          locale,
+          `easy-learning-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        );
+        if (question) break;
+        selected.pop();
+        seenCardIds.delete(candidate.card.id);
+        seenTerms.delete(normalizedTerm);
+      }
+    }
+
+    if (!question && selected.length === EASY_LEARNING_BATCH_SIZE) {
+      question = buildEasyLearningMatchingQuestion(
+        selected,
+        locale,
+        `easy-learning-${Date.now()}`,
+      );
+    }
+    if (!question || selected.length !== EASY_LEARNING_BATCH_SIZE) {
+      showMessage(t("inventory.error.operationFailed"), "error");
+      return false;
+    }
+
+    easyLearningQueueRef.current = [];
+    runQuizViewTransitionRef.current(() => {
+      resetQuestionUi();
+      setEasyLearningCandidates(selected);
+      setEasyLearningQuestion(question);
+      setEasyLearningCelebrationCards([]);
+      setEasyLearningCelebrationIndex(0);
+      setPhase("easy-learning-quiz");
+    });
+    return true;
+  }, [cards, locale, localStudyByCardId, mode, quizPresentationMode, resetQuestionUi, selectedLanguage, showMessage, t]);
+
   const advanceQuiz = useCallback(
     ({
       bypassCelebration = false,
@@ -2489,12 +2641,22 @@ export function QuizStation({
         return;
       }
 
+      if (
+        currentIndex + 1 >= deck.length &&
+        quizPresentationMode === "easy" &&
+        mode === "active" &&
+        easyLearningQueueRef.current.length > 0
+      ) {
+        if (beginEasyLearningBatch(easyLearningQueueRef.current)) return;
+      }
+
       if (currentIndex + 1 >= deck.length) {
         setIsWaitingForQuizPool(false);
         const quizResults = resultsOverride ?? results;
 
         if (!wordRepetitionCompletedRef.current) {
-          const repetitionCards = getUniqueCardsForRepetition(quizResults.incorrect);
+          const repetitionCards = getUniqueCardsForRepetition(quizResults.incorrect)
+            .filter((card) => !easyLearningWrongCardIdsRef.current.has(card.id));
 
           if (repetitionCards.length > 0) {
             runQuizViewTransition(() => {
@@ -2632,6 +2794,7 @@ export function QuizStation({
       announceQuizRankUp,
       stats.nextRank,
       stats.rank,
+      beginEasyLearningBatch,
     ],
   );
 
@@ -3389,6 +3552,33 @@ export function QuizStation({
     const item = deck[currentIndex];
     if (!item || isBonusQuizItem(item)) return;
     nextQuizTransitionDirectionRef.current = isCorrect ? "reverse" : "forward";
+
+    if (
+      quizPresentationMode === "easy" &&
+      mode === "active" &&
+      isCorrect &&
+      item.willLearn
+    ) {
+      const candidate: EasyLearningCandidate = {
+        card: item.card,
+        inventoryCard: item.inventoryCard,
+        source: "pending",
+      };
+      const pending = easyLearningQueueRef.current;
+      if (!pending.some(({ card }) => card.id === item.card.id)) {
+        pending.push(candidate);
+      }
+      playQuizAnswerPressSound(true, getCorrectAnswerPlaybackRate(streak + 1));
+      vibrate("correct");
+
+      if (pending.length >= EASY_LEARNING_BATCH_SIZE) {
+        beginEasyLearningBatch(pending);
+      } else {
+        advanceQuizRef.current({ bypassCelebration: true, lastLearnedOverride: null });
+      }
+      return;
+    }
+
     const correctAnswer = item.questionType === "group"
       ? item.question.options.find(
           (option) => option.card.id === item.question.correctOptionId,
@@ -3396,6 +3586,147 @@ export function QuizStation({
       : item.question.correctAnswer;
     void handleAnswer(isCorrect ? correctAnswer : "", isCorrect);
   }
+
+  const handleEasyLearningComplete = useCallback((outcomes: Array<{
+    termId: string;
+    meaningId: string;
+    correct: boolean;
+  }>) => {
+    const question = easyLearningQuestion;
+    if (!question) return;
+
+    const candidateByPairId = new Map(
+      question.pairs.map((pair) => [
+        pair.id,
+        easyLearningCandidates.find(({ card }) => card.id === pair.cardId),
+      ]),
+    );
+    const learnedLimit = PLAN_LIMITS[effectivePlan].learnedCards;
+    let learnedSlots = effectivePlan === "free" && typeof learnedLimit === "number"
+      ? Math.max(0, learnedLimit - cards.filter((card) => card.status === "learned").length)
+      : Number.POSITIVE_INFINITY;
+    let hitStreakMilestone = false;
+    let nextStreak = streak;
+    const newlyLearned: VocabularyCard[] = [];
+    const answerWrites: Array<{
+      cardId: string;
+      selectedAnswer: string;
+      correctAnswer: string;
+      isCorrect: boolean;
+      mode: PracticeMode;
+    }> = [];
+    let limitReached = false;
+    let nextResults = results;
+
+    for (const outcome of outcomes) {
+      const termPair = question.pairs.find((pair) => pair.id === outcome.termId);
+      const selectedMeaningPair = question.pairs.find((pair) => pair.id === outcome.meaningId);
+      const candidate = candidateByPairId.get(outcome.termId);
+      if (!termPair || !candidate) continue;
+
+      const isCorrect = outcome.correct && outcome.termId === outcome.meaningId;
+      nextResults = {
+        ...nextResults,
+        correct: isCorrect ? [...nextResults.correct, candidate.card] : nextResults.correct,
+        incorrect: !isCorrect ? [...nextResults.incorrect, candidate.card] : nextResults.incorrect,
+      };
+      if (!isCorrect) {
+        easyLearningWrongCardIdsRef.current.add(candidate.card.id);
+      }
+
+      if (isCorrect) {
+        const previousStreakBucket = Math.floor(nextStreak / 5);
+        nextStreak += 1;
+        if (Math.floor(nextStreak / 5) > previousStreakBucket) hitStreakMilestone = true;
+      } else {
+        nextStreak = 0;
+      }
+
+      const inventoryCard = candidate.inventoryCard;
+      if (!inventoryCard || inventoryCard.status !== "active") continue;
+
+      const willLearn = isCorrect
+        && inventoryCard.correctCount + 1 >= getTierRequirement(candidate.card.tier);
+      if (willLearn && learnedSlots <= 0) {
+        limitReached = true;
+        continue;
+      }
+      if (willLearn) {
+        learnedSlots -= 1;
+        newlyLearned.push(candidate.card);
+        nextResults = { ...nextResults, learned: [...nextResults.learned, candidate.card] };
+      }
+      answerWrites.push({
+        cardId: inventoryCard.cardId,
+        selectedAnswer: isCorrect ? termPair.meaning : selectedMeaningPair?.meaning ?? "",
+        correctAnswer: termPair.meaning,
+        isCorrect,
+        mode: "active",
+      });
+    }
+
+    setResults(nextResults);
+    setStreak(nextStreak);
+    setMaxStreak((current) => Math.max(current, nextStreak));
+    setPendingStreak(hitStreakMilestone);
+    if (limitReached) setLimitError("free_learned_card_limit");
+    if (newlyLearned.length > 0) rankCheckNeededRef.current = true;
+
+    if (answerWrites.length > 0) {
+      pendingAnswerWritesRef.current += answerWrites.length;
+      setPendingAnswerWrites(pendingAnswerWritesRef.current);
+      void (async () => {
+        for (const answer of answerWrites) {
+          try {
+            await recordAnswer(answer);
+          } catch (error) {
+            if (error instanceof InventoryActionError && error.errorCode) {
+              setLimitError(error.errorCode);
+            }
+          } finally {
+            pendingAnswerWritesRef.current = Math.max(0, pendingAnswerWritesRef.current - 1);
+            setPendingAnswerWrites(pendingAnswerWritesRef.current);
+          }
+        }
+      })();
+    }
+
+    setEasyLearningCelebrationCards(newlyLearned);
+    setEasyLearningCelebrationIndex(0);
+    const resumeAfterBatch = () => {
+      if (newlyLearned[0]) {
+        runQuizViewTransitionRef.current(() => {
+          setEasyLearningQuestion(null);
+          setEasyLearningCandidates([]);
+          setLastLearned(newlyLearned[0]!);
+          setCelebrationBasePoints(stats.totalPoints);
+          setPhase("celebration");
+        });
+      } else if (hitStreakMilestone) {
+        runQuizViewTransitionRef.current(() => {
+          setEasyLearningQuestion(null);
+          setEasyLearningCandidates([]);
+          setPendingStreak(false);
+          setPhase("streak-celebration");
+        });
+      } else {
+        setEasyLearningQuestion(null);
+        setEasyLearningCandidates([]);
+        advanceQuizRef.current({
+          bypassCelebration: true,
+          lastLearnedOverride: null,
+          resultsOverride: nextResults,
+          skipRankUpCheck: true,
+        });
+      }
+    };
+
+    if (limitReached) {
+      easyLearningAfterLimitCloseRef.current = resumeAfterBatch;
+      return;
+    }
+    resumeAfterBatch();
+  }, [cards, easyLearningCandidates, easyLearningQuestion, effectivePlan, recordAnswer, results, stats.totalPoints, streak]);
 
   function completeCardProgressReveal() {
     const shouldShowStreak = pendingStreak;
@@ -3468,6 +3799,22 @@ export function QuizStation({
   }
 
   function handleContinueFromCelebration() {
+    const nextCelebrationIndex = easyLearningCelebrationIndex + 1;
+    const nextCelebrationCard = easyLearningCelebrationCards[nextCelebrationIndex];
+    if (nextCelebrationCard) {
+      runQuizViewTransition(() => {
+        setEasyLearningCelebrationIndex(nextCelebrationIndex);
+        setLastLearned(nextCelebrationCard);
+        setCelebrationBasePoints(stats.totalPoints);
+        setPhase("celebration");
+      });
+      return;
+    }
+
+    if (easyLearningCelebrationCards.length > 0) {
+      setEasyLearningCelebrationCards([]);
+      setEasyLearningCelebrationIndex(0);
+    }
     deferPendingRankCheck();
 
     if (pendingStreak) {
@@ -3551,6 +3898,13 @@ export function QuizStation({
       bonusCorrect: 0,
       bonusIncorrect: 0,
     });
+    easyLearningQueueRef.current = [];
+    easyLearningWrongCardIdsRef.current = new Set();
+    easyLearningAfterLimitCloseRef.current = null;
+    setEasyLearningQuestion(null);
+    setEasyLearningCandidates([]);
+    setEasyLearningCelebrationCards([]);
+    setEasyLearningCelebrationIndex(0);
     setLastLearned(null);
     setLimitError(null);
     setCelebrationBasePoints(null);
@@ -3852,6 +4206,46 @@ export function QuizStation({
   }
 
   if (
+    learnedReviewNotDue
+  ) {
+    const reviewDate = nextLearnedReviewAt === null
+      ? null
+      : new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" })
+        .format(new Date(nextLearnedReviewAt));
+
+    return (
+      <div className="flex w-full flex-1 items-center justify-center px-5 py-8">
+        <section className="w-full max-w-md rounded-xl border border-white/10 bg-[#202020] px-6 py-7 text-center text-white">
+          <h1 className="text-xl font-bold">{t("quiz.learnedReviewNotDueTitle")}</h1>
+          <p className="mt-3 text-sm leading-6 text-white/75">
+            {reviewDate
+              ? t("quiz.learnedReviewNotDueDescription", { date: reviewDate })
+              : t("quiz.noLearnedDescription")}
+          </p>
+          <Button
+            className="mt-6 min-h-11 w-full rounded-lg bg-action-learned font-bold text-white hover:bg-action-review-hover"
+            onClick={() => {
+              if (phase === "count" && practiceLanguageStats.length > 0) {
+                setPhase("language");
+                return;
+              }
+              if (onBackToMode) {
+                onBackToMode();
+                return;
+              }
+              navigateWithRouteTransition(() => router.replace("/"));
+            }}
+          >
+            {phase === "count" && practiceLanguageStats.length > 0
+              ? t("quiz.changeReviewLanguage")
+              : t("quiz.returnToLearningMode")}
+          </Button>
+        </section>
+      </div>
+    );
+  }
+
+  if (
     languageStats.length === 0 &&
     (phase === "language" || phase === "count")
   ) {
@@ -3974,6 +4368,33 @@ export function QuizStation({
         enterWithCss={useCssQuizTransition}
         onContinue={handleContinueFromCelebration}
       />
+    );
+  }
+
+  if (phase === "easy-learning-quiz" && easyLearningQuestion && selectedLanguage) {
+    return (
+      <>
+        <div className="flex min-h-full w-full flex-1 items-center justify-center overflow-y-auto py-3" data-easy-learning-quiz-stage>
+          <EasyLearningMatchingView
+            question={easyLearningQuestion}
+            language={selectedLanguage}
+            onComplete={handleEasyLearningComplete}
+          />
+        </div>
+        <UpgradeDialog
+          open={limitError !== null}
+          errorCode={limitError}
+          onOpenChange={(open) => {
+            if (!open) {
+              setLimitError(null);
+              const resume = easyLearningAfterLimitCloseRef.current;
+              easyLearningAfterLimitCloseRef.current = null;
+              if (resume) window.setTimeout(resume, 0);
+            }
+          }}
+          selectedLanguage={selectedLanguage}
+        />
+      </>
     );
   }
 
@@ -4243,6 +4664,8 @@ export function QuizStation({
     );
   }
 
+  const practiceCardKey = `${currentIndex}:${item.card.id}`;
+  const isPracticeCardRevealed = revealedPracticeCardKey === practiceCardKey;
   const regularProgress = getRegularQuizProgress(
     deck,
     currentIndex,
@@ -4313,6 +4736,7 @@ export function QuizStation({
         total={regularProgress.total}
         questionPrompt={quizPresentationMode === "easy" ? null : mobileQuestionPrompt}
         practiceItem={quizPresentationMode === "easy" && !isBonusQuizItem(item) ? item : undefined}
+        practiceItemRevealed={isPracticeCardRevealed}
         questionPromptAccent={quizPresentationMode === "classic" && (item.questionType === "definition" || item.questionType === "text")}
         questionPromptIsBonus={quizPresentationMode === "classic" && isBonusQuizItem(item)}
         onExit={handleExit}
@@ -4369,6 +4793,7 @@ export function QuizStation({
                   key={`${currentIndex}:${item.card.id}`}
                   item={item}
                   disabled={showingAnswer}
+                  onReveal={() => setRevealedPracticeCardKey(practiceCardKey)}
                   onSwipe={handlePracticeSwipe}
                 />
               )
@@ -5713,6 +6138,7 @@ export function MobileQuizTopBar({
   total,
   questionPrompt,
   practiceItem,
+  practiceItemRevealed = false,
   questionPromptAccent = false,
   questionPromptIsBonus = false,
   onExit,
@@ -5722,6 +6148,7 @@ export function MobileQuizTopBar({
   total: number;
   questionPrompt: string | null;
   practiceItem?: NormalQuizItem;
+  practiceItemRevealed?: boolean;
   questionPromptAccent?: boolean;
   questionPromptIsBonus?: boolean;
   onExit: () => void;
@@ -5781,7 +6208,7 @@ export function MobileQuizTopBar({
           data-mobile-quiz-question-prompt
         >
           {practiceItem ? (
-            <QuizPracticeSwipePrompt item={practiceItem} />
+            <QuizPracticeSwipePrompt item={practiceItem} isRevealed={practiceItemRevealed} />
           ) : (
           <div className="flex w-fit max-w-full items-center gap-2">
             <p

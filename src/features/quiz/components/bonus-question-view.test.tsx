@@ -2,7 +2,7 @@ import { fireEvent, render, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/locale-provider";
-import { BonusQuestionView, BonusRewardHud } from "@/features/quiz/components/bonus-question-view";
+import { BonusQuestionView, BonusRewardHud, EasyLearningMatchingView } from "@/features/quiz/components/bonus-question-view";
 import { speakCardTerm } from "@/features/cards/card-speech";
 import { playSoundEffect } from "@/lib/sound-effects";
 import { vibrate } from "@/lib/vibration";
@@ -41,6 +41,47 @@ describe("BonusQuestionView", () => {
       { id: "d", cardId: "card-d", term: "door", meaning: "kapı" },
     ],
   };
+
+  it("keeps a wrong easy-learning match wrong while allowing the remaining cards to finish", async () => {
+    const question = {
+      ...matchingQuestion,
+      pairs: [
+        ...matchingQuestion.pairs,
+        { id: "e", cardId: "card-e", term: "egg", meaning: "yumurta" },
+      ],
+      terms: [
+        ...matchingQuestion.terms,
+        { id: "e", cardId: "card-e", term: "egg", meaning: "yumurta" },
+      ],
+      meanings: [
+        ...matchingQuestion.meanings,
+        { id: "e", cardId: "card-e", term: "egg", meaning: "yumurta" },
+      ],
+    };
+    const onComplete = vi.fn();
+    const { container } = render(
+      <LocaleProvider initialLocale="en">
+        <EasyLearningMatchingView question={question} language="en" onComplete={onComplete} />
+      </LocaleProvider>,
+    );
+
+    fireEvent.click(container.querySelector('[data-bonus-term="a"]')!);
+    fireEvent.click(container.querySelector('[data-bonus-meaning="b"]')!);
+    expect(container.querySelector('[data-bonus-term="a"]')).toBeDisabled();
+    await waitFor(() => expect(container.querySelector('[data-bonus-meaning="b"]')).not.toBeDisabled());
+    expect(container.querySelector('[data-bonus-term="a"]')).toHaveAttribute("data-bonus-result", "incorrect-revealed");
+
+    for (const id of ["b", "c", "d", "e"]) {
+      fireEvent.click(container.querySelector(`[data-bonus-term="${id}"]`)!);
+      fireEvent.click(container.querySelector(`[data-bonus-meaning="${id}"]`)!);
+    }
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(onComplete.mock.calls[0]?.[0]).toEqual(expect.arrayContaining([
+      expect.objectContaining({ termId: "a", meaningId: "b", correct: false }),
+      expect.objectContaining({ termId: "b", meaningId: "b", correct: true }),
+    ]));
+  });
 
   it("does not show the reward HUD before the bonus reward is ready", () => {
     const { container } = render(

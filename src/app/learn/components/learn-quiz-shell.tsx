@@ -11,6 +11,7 @@ import { NoCardsEmptyState } from "@/features/inventory/components/no-cards-empt
 import { filterInventoryCards } from "@/features/inventory/inventory-selectors";
 import { useInventoryStore } from "@/features/inventory/inventory-store";
 import { useQuizInventoryCards } from "@/features/quiz/use-quiz-inventory-cards";
+import { isInventorySnapshotSafeForSession } from "@/features/inventory/inventory-session-cache";
 import type { NormalQuizItem, QuizPhase } from "@/features/quiz/components/quiz-station";
 import { cn } from "@/lib/utils";
 import { useLocale, useT } from "@/i18n/locale-provider";
@@ -18,7 +19,9 @@ import { useOptionalAuthSession } from "@/features/auth/auth-client";
 import { UpgradeDialog } from "@/features/subscriptions/components/upgrade-dialog";
 import { useSubscription } from "@/features/subscriptions/subscription-client";
 import { navigateWithRouteTransition } from "@/lib/route-transition";
-import type { LanguageCode, PracticeMode } from "@/types/domain";
+import type { InventoryCard, LanguageCode, PracticeMode } from "@/types/domain";
+
+const EMPTY_INVENTORY_CARDS: InventoryCard[] = [];
 
 const QuizStation = dynamic(
   () => import("@/features/quiz/components/quiz-station").then((module) => module.QuizStation),
@@ -155,11 +158,9 @@ export function LearnQuizShell({
       : "language"
     : "mode";
   const [phase, setPhase] = useState<LearnShellPhase>(initialPhase);
-  const { cards } = useQuizInventoryCards(phase === "result");
+  const { cards: persistedCards } = useQuizInventoryCards(phase === "result");
   const hydrated = useInventoryStore((state) => state.hydrated);
   const cloudLoading = useInventoryStore((state) => state.cloudLoading);
-  const cloudEnabled = useInventoryStore((state) => state.cloudEnabled);
-  const cloudLoadComplete = useInventoryStore((state) => state.cloudLoadComplete);
   const ownerUserId = useInventoryStore((state) => state.ownerUserId);
   const router = useRouter();
   const authSession = useOptionalAuthSession();
@@ -167,15 +168,19 @@ export function LearnQuizShell({
   const { locale } = useLocale();
   const redirectStartedRef = useRef(false);
   const showHeader = phase === "mode" || phase === "language" || phase === "quiz-type" || phase === "count";
-  const canRenderPersistedPool = cards.length > 0;
-  // The store starts with `cloudLoadComplete: true` for guest/local use. An
-  // authenticated render can therefore not use that default as proof that
-  // the user's cloud inventory has loaded. Wait until cloud mode is enabled,
-  // the request has completed, and the returned inventory is associated with
-  // the current user before deciding that a quiz mode is empty.
-  const cloudInventoryReady = !authSession?.user
-    ? true
-    : cloudEnabled && cloudLoadComplete && ownerUserId === authSession.user.id;
+  const inventorySnapshotSafe = isInventorySnapshotSafeForSession({
+    sessionReady: authSession?.isSessionReady ?? true,
+    userId: authSession?.user?.id ?? null,
+    ownerUserId,
+    hasInventoryCards: persistedCards.length > 0,
+  });
+  const cards = inventorySnapshotSafe ? persistedCards : EMPTY_INVENTORY_CARDS;
+  const canRenderPersistedPool = cards.length > 0 && inventorySnapshotSafe;
+  // A matching, owner-tagged local snapshot is usable while Supabase refreshes
+  // it in the background; a foreign or unresolved session's cache is not.
+  const cloudInventoryReady = authSession
+    ? inventorySnapshotSafe
+    : true;
   const hasLearnedReviewAccess = entitlements?.effectivePlan === "basic"
     || entitlements?.effectivePlan === "pro";
   const learnedReviewEntitlementsPending = selectedMode === "learned"

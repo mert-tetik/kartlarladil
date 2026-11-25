@@ -16,10 +16,12 @@ import {
   dispatchTutorialCardLayerOpened,
 } from "@/features/tutorial/tutorial-card-session";
 import { useTutorialStore } from "@/features/tutorial/tutorial-store";
+import { useLocalCardStudyStore } from "@/features/inventory/local-card-study";
 
 const {
   addCardsMock,
   inventoryCardsMock,
+  inventoryCloudLoadingMock,
   refreshEntitlementsMock,
   routerPushMock,
   searchParamsMock,
@@ -31,6 +33,7 @@ const {
 } = vi.hoisted(() => ({
   addCardsMock: vi.fn(),
   inventoryCardsMock: { value: [] as InventoryCard[] },
+  inventoryCloudLoadingMock: { value: false },
   refreshEntitlementsMock: vi.fn(),
   routerPushMock: vi.fn(),
   searchParamsMock: { value: "" as string },
@@ -131,7 +134,7 @@ vi.mock("@/features/inventory/inventory-store", () => {
         addCards: addCardsMock,
         hydrated: true,
         cloudEnabled: true,
-        cloudLoading: false,
+        cloudLoading: inventoryCloudLoadingMock.value,
         cloudLoadComplete: true,
         cloudError: "",
         ownerUserId: "test-user",
@@ -163,7 +166,9 @@ describe("MobileLandingDashboard language sync", () => {
       value: vi.fn(),
     });
     window.localStorage.clear();
+    useLocalCardStudyStore.setState({ cards: {}, learnedReviewIntroSeen: true });
     inventoryCardsMock.value = [];
+    inventoryCloudLoadingMock.value = false;
     prepareQuizPoolMock.mockReset();
     prepareQuizPoolMock.mockResolvedValue({});
     addCardsMock.mockReset();
@@ -201,7 +206,7 @@ describe("MobileLandingDashboard language sync", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("starts preparing active quiz questions in the background on the landing page", async () => {
-    const card = VOCABULARY_CARDS[0];
+    const card = VOCABULARY_CARDS.find((candidate) => candidate.language === "en")!;
     inventoryCardsMock.value = [{
       cardId: card.id,
       status: "active",
@@ -223,6 +228,61 @@ describe("MobileLandingDashboard language sync", () => {
         cards: inventoryCardsMock.value,
       }));
     });
+    expect(screen.getByRole("button", { name: /öğrenmeye başla/i })).toHaveAttribute("aria-disabled", "false");
+  });
+
+  it("prepares the cached quiz pool while the cloud inventory refresh is pending", async () => {
+    const card = VOCABULARY_CARDS.find((candidate) => candidate.language === "en")!;
+    inventoryCardsMock.value = [{
+      cardId: card.id,
+      status: "active",
+      correctCount: 0,
+      addedAt: "2026-01-01T00:00:00.000Z",
+    }];
+    inventoryCloudLoadingMock.value = true;
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    await waitFor(() => {
+      expect(prepareQuizPoolMock).toHaveBeenCalledWith(expect.objectContaining({
+        ownerScope: "test-user",
+        language: "en",
+        mode: "active",
+        cards: inventoryCardsMock.value,
+      }));
+    });
+    expect(screen.getByRole("button", { name: /\u00f6\u011frenmeye ba\u015fla/i })).toHaveAttribute("aria-disabled", "false");
+  });
+
+  it("keeps quiz access available from resolved cached cards while an old unresolved card refreshes", () => {
+    const card = VOCABULARY_CARDS.find((candidate) => candidate.language === "en")!;
+    inventoryCardsMock.value = [
+      {
+        cardId: card.id,
+        status: "active",
+        correctCount: 0,
+        addedAt: "2026-01-01T00:00:00.000Z",
+      },
+      {
+        cardId: "custom:missing-card-definition",
+        status: "active",
+        correctCount: 0,
+        addedAt: "2026-01-02T00:00:00.000Z",
+      },
+    ];
+    inventoryCloudLoadingMock.value = true;
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByRole("button", { name: /\u00f6\u011frenmeye ba\u015fla/i })).toHaveAttribute("aria-disabled", "false");
   });
 
   it("shows the current user's leaderboard position", () => {
@@ -534,6 +594,58 @@ describe("MobileLandingDashboard language sync", () => {
     expect(routerPushMock).not.toHaveBeenCalledWith(expect.stringContaining("mode=learned"));
   });
 
+  it("shows the local learned-review introduction on the first tap and gates only after Start", async () => {
+    const user = userEvent.setup();
+    const englishCard = VOCABULARY_CARDS.find((card) => card.language === "en")!;
+    useLocalCardStudyStore.setState({ cards: {}, learnedReviewIntroSeen: false });
+    inventoryCardsMock.value = [{
+      cardId: englishCard.id,
+      status: "learned",
+      correctCount: 4,
+      addedAt: "2026-07-12T00:00:00.000Z",
+      learnedAt: "2026-07-12T01:00:00.000Z",
+    }];
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    await user.click(document.querySelector<HTMLButtonElement>('[data-tutorial-target="repeat-learned"]')!);
+    await waitFor(() => expect(document.querySelector("[data-learned-review-intro-step='1']")).not.toBeNull());
+    expect(routerPushMock).not.toHaveBeenCalledWith(expect.stringContaining("mode=learned"));
+    expect(useLocalCardStudyStore.getState().learnedReviewIntroSeen).toBe(true);
+
+    await user.click(screen.getByRole("button", { name: "Devam" }));
+    await user.click(screen.getByRole("button", { name: "Devam" }));
+    await user.click(screen.getByTestId("learned-review-intro-start"));
+
+    expect(await screen.findByRole("heading", { name: /abonelik gerekli/i })).toBeInTheDocument();
+    expect(routerPushMock).not.toHaveBeenCalledWith(expect.stringContaining("mode=learned"));
+  });
+
+  it("shows the free-plan restriction after the first-use tutorial even without learned cards", async () => {
+    const user = userEvent.setup();
+    useLocalCardStudyStore.setState({ cards: {}, learnedReviewIntroSeen: false });
+    inventoryCardsMock.value = [];
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    await user.click(document.querySelector<HTMLButtonElement>('[data-tutorial-target="repeat-learned"]')!);
+    await waitFor(() => expect(document.querySelector("[data-learned-review-intro-step='1']")).not.toBeNull());
+    await user.click(screen.getByTestId("learned-review-intro-continue"));
+    await user.click(screen.getByTestId("learned-review-intro-continue"));
+    await user.click(screen.getByTestId("learned-review-intro-start"));
+
+    expect(await screen.findByRole("heading", { name: /abonelik gerekli/i })).toBeInTheDocument();
+    expect(routerPushMock).not.toHaveBeenCalledWith(expect.stringContaining("mode=learned"));
+  });
+
   it("starts learned-card review for paid users", async () => {
     const user = userEvent.setup();
     const englishCard = VOCABULARY_CARDS.find((card) => card.language === "en")!;
@@ -554,6 +666,38 @@ describe("MobileLandingDashboard language sync", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Öğrenilenleri Tekrar Et" }));
+
+    await waitFor(() => {
+      expect(routerPushMock).toHaveBeenCalledWith("/learn?mode=learned&language=en");
+    });
+  });
+
+  it("starts learned-card review for a paid user only after the first-use steps finish", async () => {
+    const user = userEvent.setup();
+    const englishCard = VOCABULARY_CARDS.find((card) => card.language === "en")!;
+    subscriptionPlanMock.value = "basic";
+    subscriptionEntitlementsMock.value = { effectivePlan: subscriptionPlanMock.value };
+    useLocalCardStudyStore.setState({ cards: {}, learnedReviewIntroSeen: false });
+    inventoryCardsMock.value = [{
+      cardId: englishCard.id,
+      status: "learned",
+      correctCount: 4,
+      addedAt: "2026-07-12T00:00:00.000Z",
+      learnedAt: "2026-07-12T01:00:00.000Z",
+    }];
+
+    render(
+      <LocaleProvider initialLocale="tr">
+        <MobileLandingDashboard />
+      </LocaleProvider>,
+    );
+
+    await user.click(document.querySelector<HTMLButtonElement>('[data-tutorial-target="repeat-learned"]')!);
+    expect(routerPushMock).not.toHaveBeenCalledWith(expect.stringContaining("mode=learned"));
+    await waitFor(() => expect(document.querySelector("[data-learned-review-intro-step='1']")).not.toBeNull());
+    await user.click(screen.getByTestId("learned-review-intro-continue"));
+    await user.click(screen.getByTestId("learned-review-intro-continue"));
+    await user.click(screen.getByTestId("learned-review-intro-start"));
 
     await waitFor(() => {
       expect(routerPushMock).toHaveBeenCalledWith("/learn?mode=learned&language=en");

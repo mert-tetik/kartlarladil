@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import { useLocale } from "@/i18n/locale-provider";
+import { formatNumber } from "@/i18n/labels";
 import { cn } from "@/lib/utils";
 import { canUseSuperWater, formatSuperWaterUppercaseText } from "@/lib/super-water";
 import { VideoFrameAtlasPlayer, type VideoFrameAtlasPlayerHandle } from "@/components/video-frame-atlas-player";
@@ -560,27 +561,23 @@ export function ChestCelebrationView({
         >
           <div className="pointer-events-auto h-full min-h-0 w-full overflow-y-auto overscroll-contain">
             <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col justify-center gap-8 p-4 sm:p-6">
-              {learnedCards.length > 0 ? (
-                <AchievementCardSection
-                  title={t("quiz.resultLearned")}
-                  cards={learnedCards}
-                  tone="learned"
-                  reveal={summaryVisible}
-                  exiting={summaryExiting}
-                  staggerOffsetMs={0}
-                />
-              ) : null}
-              {advancedCards.length > 0 ? (
-                <AchievementCardSection
-                  title={t("quiz.resultAdvanced")}
-                  cards={advancedCards}
-                  tone="advanced"
-                  progressByCardId={advancedCardProgress}
-                  reveal={summaryVisible}
-                  exiting={summaryExiting}
-                  staggerOffsetMs={learnedCards.length > 0 ? 850 : 0}
-                />
-              ) : null}
+              <AchievementCardSection
+                title={t("quiz.resultLearnedCount", { count: formatNumber(locale, learnedCards.length) })}
+                cards={learnedCards}
+                tone="learned"
+                reveal={summaryVisible}
+                exiting={summaryExiting}
+                staggerOffsetMs={0}
+              />
+              <AchievementCardSection
+                title={t("quiz.resultAdvancedCount", { count: formatNumber(locale, advancedCards.length) })}
+                cards={advancedCards}
+                tone="advanced"
+                progressByCardId={advancedCardProgress}
+                reveal={summaryVisible}
+                exiting={summaryExiting}
+                staggerOffsetMs={learnedCards.length > 0 ? 850 : 0}
+              />
             </div>
           </div>
         </div>

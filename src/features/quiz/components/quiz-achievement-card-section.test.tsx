@@ -21,6 +21,40 @@ beforeEach(() => {
 });
 
 describe("AchievementCardSection shared vocabulary cards", () => {
+  it("styles result counts with moderate Super Water headings and category colors", () => {
+    const { rerender } = render(
+      <LocaleProvider initialLocale="en">
+        <AchievementCardSection
+          title="You learned 0 cards"
+          cards={[]}
+          tone="learned"
+          reveal
+          exiting={false}
+          staggerOffsetMs={0}
+        />
+      </LocaleProvider>,
+    );
+
+    const learnedHeading = screen.getByRole("heading", { name: "YOU LEARNED 0 CARDS" });
+    expect(learnedHeading).toHaveClass("font-super-water", "text-sky-400", "text-xl", "sm:text-2xl");
+
+    rerender(
+      <LocaleProvider initialLocale="en">
+        <AchievementCardSection
+          title="1 card levelled up"
+          cards={[]}
+          tone="advanced"
+          reveal
+          exiting={false}
+          staggerOffsetMs={0}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByRole("heading", { name: "1 CARD LEVELLED UP" }))
+      .toHaveClass("font-super-water", "text-emerald-400", "text-xl", "sm:text-2xl");
+  });
+
   it("localizes the accessible label for selectable cards", () => {
     render(
       <LocaleProvider initialLocale="en">

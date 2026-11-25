@@ -13,9 +13,11 @@ const MIN_PROMPT_FONT_SIZE = 11;
 
 export function QuizPracticeSwipePrompt({
   item,
+  isRevealed = false,
   className,
 }: {
   item: NormalQuizItem;
+  isRevealed?: boolean;
   className?: string;
 }) {
   const { locale } = useLocale();
@@ -23,7 +25,9 @@ export function QuizPracticeSwipePrompt({
   const textRef = useRef<HTMLParagraphElement>(null);
   const [fitFontSize, setFitFontSize] = useState<number | null>(null);
   const learned = item.willLearn;
-  const label = t(learned ? "quiz.practiceSwipeLearnedPrompt" : "quiz.practiceSwipeProgressPrompt");
+  const label = isRevealed
+    ? t(learned ? "quiz.practiceSwipeLearnedPrompt" : "quiz.practiceSwipeProgressPrompt")
+    : t("quiz.easyPracticeGuessAndTap");
   const badgeSource = learned
     ? "/card-status/kart_ogrenildi_madalyasi.webp"
     : "/card-status/kart_ogreniliyor_madalyasi.webp";
@@ -76,6 +80,7 @@ export function QuizPracticeSwipePrompt({
     <div
       className={cn("flex min-w-0 w-full items-center gap-2", className)}
       data-quiz-practice-prompt={learned ? "learned" : "progress"}
+      data-revealed={isRevealed ? "true" : "false"}
     >
       <p
         ref={textRef}

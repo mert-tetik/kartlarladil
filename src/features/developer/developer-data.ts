@@ -1044,7 +1044,7 @@ export async function getDeveloperAnalytics(): Promise<DeveloperAnalyticsData> {
 
   const monthlyRevenueByPlan = ["basic", "pro"].map((plan) => ({
     key: plan,
-    label: plan === "basic" ? "Basic" : "Pro",
+    label: plan === "basic" ? "PREMIUM" : "Pro",
     value: paidSubscriptionRows
       .filter((row) => row.plan === plan)
       .reduce((sum, row) => sum + asNumber(row.recurring_monthly_try), 0),
@@ -1256,7 +1256,7 @@ export async function getDeveloperAnalytics(): Promise<DeveloperAnalyticsData> {
     subscriptions: {
       byPlan: [...planCounts.entries()].map(([key, value]) => ({
         key,
-        label: key === "free" ? "Free" : key === "basic" ? "Basic" : "Pro",
+        label: key === "free" ? "Free" : key === "basic" ? "PREMIUM" : "Pro",
         value,
         percent:
           totalUsers > 0 ? Math.round((value / totalUsers) * 1000) / 10 : 0,

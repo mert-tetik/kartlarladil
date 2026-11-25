@@ -77,7 +77,7 @@ const PLAN_COLOR: Record<Exclude<SubscriptionPlan, "free">, string> = {
 };
 
 const PLAN_BUTTON_IMAGE: Record<Exclude<SubscriptionPlan, "free">, { src: string; width: number; height: number }> = {
-  basic: { src: "/subscriptions/plan-basic-v2.webp", width: 1489, height: 450 },
+  basic: { src: "/subscriptions/plan-premium-v1.webp", width: 1489, height: 496 },
   pro: { src: "/subscriptions/plan-pro-v2.webp", width: 1338, height: 511 },
 };
 

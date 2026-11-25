@@ -41,7 +41,7 @@ export type UpgradeDialogErrorCode =
   | "scenario_subscription_required";
 
 const RESTRICTION_PLAN_IMAGE = {
-  basic: { src: "/subscriptions/plan-basic-v2.webp", width: 1489, height: 450 },
+  basic: { src: "/subscriptions/plan-premium-v1.webp", width: 1489, height: 496 },
   pro: { src: "/subscriptions/plan-pro-v2.webp", width: 1338, height: 511 },
 } as const;
 
