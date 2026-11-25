@@ -1,5 +1,5 @@
 {
-  "version": "dcf98599c35eec899d22b677d158195652250ce950eb8070c9b8173c85c49be2",
+  "version": "7dc87d860ff9bdf22fc5a37bf02e33d173dce88d6c50f9211f7d3df232c6ad32",
   "assets": [
     {
       "url": "/AppLogdfo.png",
@@ -4680,6 +4680,10 @@
     {
       "url": "/subscriptions/plan-basic-v2.webp",
       "revision": "4fea98da4349096f4654260f642a0b463682072a54d746209ecafb2919380022"
+    },
+    {
+      "url": "/subscriptions/plan-premium-v1.webp",
+      "revision": "b4c74a55b7df6c29a830111328ca98b2c24237cfcef54ebd229687d2216f6d14"
     },
     {
       "url": "/subscriptions/plan-pro-v2.webp",
